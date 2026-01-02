@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor">
+  <!-- 螺旋手裏剣 - 斜め刃の風車型 -->
+  <!-- 右上の刃 -->
+  <path d="M12 12 L10 8 L14 2 L16 6 Z"/>
+  <!-- 右下の刃 -->
+  <path d="M12 12 L16 10 L22 14 L18 16 Z"/>
+  <!-- 左下の刃 -->
+  <path d="M12 12 L14 16 L10 22 L8 18 Z"/>
+  <!-- 左上の刃 -->
+  <path d="M12 12 L8 14 L2 10 L6 8 Z"/>
+  <!-- 中心の螺旋リング -->
+  <circle cx="12" cy="12" r="4" fill="none" stroke="currentColor" stroke-width="1.5"/>
+  <circle cx="12" cy="12" r="2.5" fill="none" stroke="currentColor" stroke-width="1"/>
+  <circle cx="12" cy="12" r="1.2"/>
+</svg>

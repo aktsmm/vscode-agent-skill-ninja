@@ -1,0 +1,226 @@
+{
+  "name": "skill-finder",
+  "displayName": "%displayName%",
+  "description": "%description%",
+  "version": "0.0.1",
+  "publisher": "yamapan",
+  "license": "CC-BY-NC-4.0",
+  "icon": "resources/icon.png",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/aktsmm/Ext-Skillfinder"
+  },
+  "engines": {
+    "vscode": "^1.85.0"
+  },
+  "categories": [
+    "Other"
+  ],
+  "activationEvents": [],
+  "main": "./dist/extension.js",
+  "contributes": {
+    "viewsContainers": {
+      "activitybar": [
+        {
+          "id": "skill-finder",
+          "title": "Skill Finder",
+          "icon": "resources/icon.svg"
+        }
+      ]
+    },
+    "views": {
+      "skill-finder": [
+        {
+          "id": "skillFinder.installedView",
+          "name": "%view.installed%"
+        },
+        {
+          "id": "skillFinder.browseView",
+          "name": "%view.browse%"
+        }
+      ]
+    },
+    "commands": [
+      {
+        "command": "skillFinder.search",
+        "title": "%command.search%",
+        "category": "Skill Finder",
+        "icon": "$(search)"
+      },
+      {
+        "command": "skillFinder.install",
+        "title": "%command.install%",
+        "category": "Skill Finder",
+        "icon": "$(add)"
+      },
+      {
+        "command": "skillFinder.uninstall",
+        "title": "%command.uninstall%",
+        "category": "Skill Finder",
+        "icon": "$(trash)"
+      },
+      {
+        "command": "skillFinder.showInstalled",
+        "title": "%command.showInstalled%",
+        "category": "Skill Finder"
+      },
+      {
+        "command": "skillFinder.refresh",
+        "title": "%command.refresh%",
+        "category": "Skill Finder",
+        "icon": "$(refresh)"
+      },
+      {
+        "command": "skillFinder.openSkillFile",
+        "title": "%command.openSkillFile%",
+        "category": "Skill Finder",
+        "icon": "$(go-to-file)"
+      },
+      {
+        "command": "skillFinder.updateIndex",
+        "title": "%command.updateIndex%",
+        "category": "Skill Finder",
+        "icon": "$(cloud-download)"
+      },
+      {
+        "command": "skillFinder.addSource",
+        "title": "%command.addSource%",
+        "category": "Skill Finder",
+        "icon": "$(add)"
+      },
+      {
+        "command": "skillFinder.webSearch",
+        "title": "%command.webSearch%",
+        "category": "Skill Finder",
+        "icon": "$(globe)"
+      },
+      {
+        "command": "skillFinder.removeSource",
+        "title": "%command.removeSource%",
+        "category": "Skill Finder",
+        "icon": "$(trash)"
+      }
+    ],
+    "menus": {
+      "view/title": [
+        {
+          "command": "skillFinder.search",
+          "when": "view == skillFinder.browseView",
+          "group": "navigation@1"
+        },
+        {
+          "command": "skillFinder.webSearch",
+          "when": "view == skillFinder.browseView",
+          "group": "navigation@2"
+        },
+        {
+          "command": "skillFinder.updateIndex",
+          "when": "view == skillFinder.browseView",
+          "group": "navigation@3"
+        },
+        {
+          "command": "skillFinder.addSource",
+          "when": "view == skillFinder.browseView",
+          "group": "navigation@4"
+        }
+      ],
+      "view/title/context": [
+        {
+          "command": "skillFinder.refresh",
+          "when": "view == skillFinder.installedView || view == skillFinder.browseView"
+        }
+      ],
+      "view/item/context": [
+        {
+          "command": "skillFinder.install",
+          "when": "view == skillFinder.browseView && viewItem == skill",
+          "group": "inline"
+        },
+        {
+          "command": "skillFinder.uninstall",
+          "when": "view == skillFinder.installedView && viewItem == installedSkill",
+          "group": "inline"
+        },
+        {
+          "command": "skillFinder.openSkillFile",
+          "when": "view == skillFinder.installedView && viewItem == installedSkill",
+          "group": "inline"
+        },
+        {
+          "command": "skillFinder.removeSource",
+          "when": "view == skillFinder.browseView && viewItem == source",
+          "group": "inline"
+        }
+      ]
+    },
+    "configuration": {
+      "title": "Skill Finder",
+      "properties": {
+        "skillFinder.instructionFile": {
+          "type": "string",
+          "default": "AGENTS.md",
+          "enum": [
+            "AGENTS.md",
+            ".github/copilot-instructions.md",
+            "CLAUDE.md",
+            "custom"
+          ],
+          "enumDescriptions": [
+            "%config.instructionFile.agents%",
+            "%config.instructionFile.copilot%",
+            "%config.instructionFile.claude%",
+            "%config.instructionFile.custom%"
+          ],
+          "description": "%config.instructionFile.description%"
+        },
+        "skillFinder.customInstructionPath": {
+          "type": "string",
+          "default": "",
+          "description": "%config.customInstructionPath.description%"
+        },
+        "skillFinder.skillsDirectory": {
+          "type": "string",
+          "default": ".github/skills",
+          "description": "%config.skillsDirectory.description%"
+        },
+        "skillFinder.autoUpdateInstruction": {
+          "type": "boolean",
+          "default": true,
+          "description": "%config.autoUpdateInstruction.description%"
+        },
+        "skillFinder.githubToken": {
+          "type": "string",
+          "default": "",
+          "description": "%config.githubToken.description%"
+        }
+      }
+    }
+  },
+  "scripts": {
+    "vscode:prepublish": "npm run package",
+    "compile": "npm run check-types && npm run lint && node esbuild.js",
+    "watch": "npm-run-all -p watch:*",
+    "watch:esbuild": "node esbuild.js --watch",
+    "watch:tsc": "tsc --noEmit --watch --project tsconfig.json",
+    "package": "npm run check-types && npm run lint && node esbuild.js --production",
+    "check-types": "tsc --noEmit",
+    "lint": "eslint src",
+    "test": "vscode-test"
+  },
+  "devDependencies": {
+    "@types/mocha": "^10.0.10",
+    "@types/node": "20.x",
+    "@types/vscode": "^1.85.0",
+    "@typescript-eslint/eslint-plugin": "^8.18.0",
+    "@typescript-eslint/parser": "^8.18.0",
+    "@vscode/test-cli": "^0.0.10",
+    "@vscode/test-electron": "^2.4.1",
+    "esbuild": "^0.24.2",
+    "eslint": "^9.17.0",
+    "npm-run-all": "^4.1.5",
+    "typescript": "^5.7.2"
+  },
+  "dependencies": {
+    "vscode-nls": "^5.2.0"
+  }
+}
