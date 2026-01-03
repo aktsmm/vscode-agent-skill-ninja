@@ -16,7 +16,7 @@
 </p>
 
 <p align="center">
-  🇯🇵 <a href="README_ja.md">日本語版はこちら</a>
+  🇯🇵 <a href="https://github.com/aktsmm/vscode-agent-skill-ninja/blob/master/README_ja.md">日本語版はこちら</a>
 </p>
 
 ---
