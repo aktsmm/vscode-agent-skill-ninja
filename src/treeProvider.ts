@@ -2,9 +2,16 @@
 // ワークスペーススキル（統合）とブラウズ用のツリービューを提供
 
 import * as vscode from "vscode";
-import { SkillIndex, Skill, loadSkillIndex, Source } from "./skillIndex";
+import {
+  SkillIndex,
+  Skill,
+  loadSkillIndex,
+  Source,
+  getLocalizedDescription,
+} from "./skillIndex";
 import { getInstalledSkillsWithMeta } from "./skillInstaller";
 import { LocalSkill, scanLocalSkills } from "./localSkillScanner";
+import { isJapanese } from "./i18n";
 
 /**
  * ワークスペーススキル情報（統合型）
@@ -256,11 +263,12 @@ export class BrowseSkillsProvider
       const skills = this.skillIndex.skills.filter(
         (s) => s.source === element.source!.id
       );
+      const isJa = isJapanese();
       return skills.map(
         (skill) =>
           new SkillTreeItem(
             skill.name,
-            skill.description,
+            getLocalizedDescription(skill, isJa),
             vscode.TreeItemCollapsibleState.None,
             "skill",
             skill

@@ -3,6 +3,7 @@
 
 import * as vscode from "vscode";
 import { Skill, loadSkillIndex, getSkillRawUrl } from "./skillIndex";
+import { isJapanese } from "./i18n";
 
 /**
  * スキルをインストールする
@@ -53,11 +54,21 @@ export async function installSkill(
   }
 
   // メタデータを保存（description などを後で取得できるように）
+  // 英語環境の場合はSKILL.mdからdescriptionを抽出（インデックスは日本語のため）
+  let description = skill.description;
+  if (!isJapanese()) {
+    const skillMdPath = vscode.Uri.joinPath(skillPath, "SKILL.md");
+    const extractedDesc = await extractDescriptionFromSkillMd(skillMdPath);
+    if (extractedDesc) {
+      description = extractedDesc;
+    }
+  }
+
   const metaPath = vscode.Uri.joinPath(skillPath, ".skill-meta.json");
   const meta = {
     name: skill.name,
     source: skill.source,
-    description: skill.description,
+    description: description,
     categories: skill.categories,
     installedAt: new Date().toISOString(),
   };
@@ -148,11 +159,14 @@ export async function getInstalledSkillsWithMeta(
         const meta = JSON.parse(Buffer.from(content).toString("utf-8"));
         metas.push(meta);
       } catch {
-        // メタデータがない場合はデフォルト値
+        // メタデータがない場合は SKILL.md から description を読み取る
+        const description = await extractDescriptionFromSkillMd(
+          vscode.Uri.joinPath(skillsPath, name, "SKILL.md")
+        );
         metas.push({
           name,
-          source: "unknown",
-          description: "",
+          source: "local",
+          description,
           categories: [],
           installedAt: "",
         });
@@ -161,6 +175,82 @@ export async function getInstalledSkillsWithMeta(
     return metas;
   } catch {
     return [];
+  }
+}
+
+/**
+ * SKILL.md ファイルから description を抽出する
+ * frontmatter の description フィールドを読み取り、長い場合は切り詰める
+ */
+async function extractDescriptionFromSkillMd(
+  skillMdUri: vscode.Uri
+): Promise<string> {
+  try {
+    const content = await vscode.workspace.fs.readFile(skillMdUri);
+    const text = Buffer.from(content).toString("utf-8");
+
+    // frontmatter を解析
+    const frontmatterMatch = text.match(/^---\n([\s\S]*?)\n---/);
+    if (!frontmatterMatch) {
+      return "";
+    }
+
+    const frontmatter = frontmatterMatch[1];
+
+    // description フィールドを抽出（複数行対応）
+    // パターン1: description: "..."（ダブルクォート）
+    // パターン2: description: '...'（シングルクォート）
+    // パターン3: description: ...（クォートなし、1行）
+    let description = "";
+
+    // ダブルクォート対応
+    const doubleQuoteMatch = frontmatter.match(
+      /^description:\s*"([^"]*(?:""[^"]*)*)"/m
+    );
+    if (doubleQuoteMatch) {
+      description = doubleQuoteMatch[1].replace(/""/g, '"');
+    }
+
+    // シングルクォート対応
+    if (!description) {
+      const singleQuoteMatch = frontmatter.match(
+        /^description:\s*'([^']*(?:''[^']*)*)'/m
+      );
+      if (singleQuoteMatch) {
+        description = singleQuoteMatch[1].replace(/''/g, "'");
+      }
+    }
+
+    // クォートなし（1行）
+    if (!description) {
+      const plainMatch = frontmatter.match(/^description:\s*(.+)$/m);
+      if (plainMatch) {
+        description = plainMatch[1].trim();
+      }
+    }
+
+    // 長い説明は切り詰める（AGENTS.md 用に短くする）
+    const maxLength = 80;
+    if (description.length > maxLength) {
+      // 日本語の文末（。）か英語の文末（.）で切る
+      const periodIndex = description.indexOf("。");
+      const dotIndex = description.indexOf(". ");
+      const cutIndex =
+        periodIndex !== -1 && periodIndex < maxLength
+          ? periodIndex + 1
+          : dotIndex !== -1 && dotIndex < maxLength
+          ? dotIndex + 1
+          : maxLength;
+
+      description = description.substring(0, cutIndex).trim();
+      if (description.length === maxLength) {
+        description += "...";
+      }
+    }
+
+    return description;
+  } catch {
+    return "";
   }
 }
 

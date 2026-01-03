@@ -19,7 +19,7 @@ const jaMessages: Record<string, string> = {
   skillNotFound: "SKILL.md が見つかりません: {0}",
   invalidSkillInfo: "スキル情報が不正です",
   updatingIndex: "スキルインデックスを更新中...",
-  indexUpdated: "✅ インデックスを更新しました ({0} スキル)",
+  indexUpdated: "✅ インデックスを更新しました ({0} → {1} スキル, {2})",
   updateFailed: "更新失敗: {0}",
   updating: "{0} を更新中...",
   enterRepoUrl: "GitHub リポジトリの URL を入力してください",
@@ -97,7 +97,7 @@ const enMessages: Record<string, string> = {
   skillNotFound: "SKILL.md not found: {0}",
   invalidSkillInfo: "Invalid skill information",
   updatingIndex: "Updating skill index...",
-  indexUpdated: "✅ Index updated ({0} skills)",
+  indexUpdated: "✅ Index updated ({0} → {1} skills, {2})",
   updateFailed: "Update failed: {0}",
   updating: "Updating {0}...",
   enterRepoUrl: "Enter GitHub repository URL",
@@ -159,20 +159,29 @@ const enMessages: Record<string, string> = {
   noLocalSkills: "No local skills found",
 };
 
-// 現在の言語に応じたメッセージを取得
-function getMessages(): Record<string, string> {
-  // 設定から言語を取得（autoの場合はVS Codeの言語を使用）
+/**
+ * 現在の言語設定を取得
+ */
+function getCurrentLanguage(): string {
   const config = vscode.workspace.getConfiguration("skillNinja");
   const langSetting = config.get<string>("language", "auto");
 
-  let lang: string;
   if (langSetting === "auto") {
-    lang = vscode.env.language;
-  } else {
-    lang = langSetting;
+    return vscode.env.language;
   }
+  return langSetting;
+}
 
-  if (lang.startsWith("ja")) {
+/**
+ * 現在の言語が日本語かどうかを判定
+ */
+export function isJapanese(): boolean {
+  return getCurrentLanguage().startsWith("ja");
+}
+
+// 現在の言語に応じたメッセージを取得
+function getMessages(): Record<string, string> {
+  if (isJapanese()) {
     return jaMessages;
   }
   return enMessages;
@@ -218,7 +227,8 @@ export const messages = {
 
   // インデックス更新
   updatingIndex: () => localize("updatingIndex"),
-  indexUpdated: (count: number) => localize("indexUpdated", count),
+  indexUpdated: (oldCount: number, newCount: number, diff: string) =>
+    localize("indexUpdated", oldCount, newCount, diff),
   updateFailed: (error: string) => localize("updateFailed", error),
   updating: (name: string) => localize("updating", name),
 

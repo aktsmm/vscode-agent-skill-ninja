@@ -193,6 +193,39 @@ async function processTreeResponse(
       (item.path.endsWith("/SKILL.md") || item.path === "SKILL.md")
   );
 
+  // PRPs-agentic-eng リポジトリの特別処理: .claude/commands/**/*.md をスキャン
+  const isPRPsRepo = repoName.toLowerCase().includes("prps-agentic");
+  if (isPRPsRepo) {
+    const claudeCommandSkills = await scanClaudeCommands(
+      data,
+      owner,
+      repoName,
+      branch
+    );
+    const source: Source = {
+      id: `${owner}-${repoName}`,
+      name: repoName,
+      url: repoUrl.replace(/\.git$/, ""),
+      type: "user-added",
+      description: `User added repository: ${owner}/${repoName}`,
+    };
+    return { skills: claudeCommandSkills, source };
+  }
+
+  // ComposioHQ/awesome-claude-skills リポジトリの特別処理: トップレベルディレクトリをスキル扱い
+  const isComposioRepo = repoName.toLowerCase().includes("awesome-claude-skills");
+  if (isComposioRepo) {
+    const composioSkills = scanComposioSkills(data, owner, repoName);
+    const source: Source = {
+      id: `${owner}-${repoName}`,
+      name: repoName,
+      url: repoUrl.replace(/\.git$/, ""),
+      type: "user-added",
+      description: `User added repository: ${owner}/${repoName}`,
+    };
+    return { skills: composioSkills, source };
+  }
+
   const skills: Skill[] = [];
 
   for (const file of skillFiles) {
@@ -228,6 +261,116 @@ async function processTreeResponse(
   };
 
   return { skills, source };
+}
+
+/**
+ * PRPs-agentic-eng リポジトリ専用: .claude/commands/ 内の .md ファイルをスキャン
+ * このリポジトリは SKILL.md ではなく Claude Code コマンド形式を使用
+ */
+async function scanClaudeCommands(
+  data: { tree: Array<{ path: string; type: string }> },
+  owner: string,
+  repoName: string,
+  branch: string
+): Promise<Skill[]> {
+  // .claude/commands/ 配下の .md ファイルを取得
+  const commandFiles = data.tree.filter(
+    (item) =>
+      item.type === "blob" &&
+      item.path.startsWith(".claude/commands/") &&
+      item.path.endsWith(".md")
+  );
+
+  const skills: Skill[] = [];
+
+  for (const file of commandFiles) {
+    try {
+      // コマンドの内容を取得
+      const rawUrl = `https://raw.githubusercontent.com/${owner}/${repoName}/${branch}/${file.path}`;
+      const contentResponse = await fetch(rawUrl);
+      if (contentResponse.ok) {
+        const content = await contentResponse.text();
+
+        // パスからスキル名を抽出: .claude/commands/category/command-name.md -> category/command-name
+        const pathWithoutPrefix = file.path.replace(".claude/commands/", "");
+        const skillName = pathWithoutPrefix.replace(".md", "");
+
+        // ファイルの最初の行から説明を抽出（# Title 形式）
+        const lines = content.split("\n");
+        let description = "";
+        for (const line of lines) {
+          const trimmed = line.trim();
+          if (trimmed.startsWith("# ")) {
+            description = trimmed.replace(/^#+\s*/, "").substring(0, 80);
+            break;
+          }
+          // frontmatter 内の description も確認
+          if (trimmed.startsWith("description:")) {
+            description = trimmed
+              .replace(/^description:\s*["']?/, "")
+              .replace(/["']$/, "")
+              .substring(0, 80);
+            break;
+          }
+        }
+
+        // カテゴリはパスのディレクトリ名から推測
+        const pathParts = skillName.split("/");
+        const category = pathParts.length > 1 ? pathParts[0] : "command";
+
+        skills.push({
+          name: skillName,
+          source: `${owner}-${repoName}`,
+          path: file.path,
+          categories: [category, "claude-code", "prp"],
+          description: description || `Claude Code command: ${skillName}`,
+        });
+      }
+    } catch {
+      console.warn(`Failed to fetch command: ${file.path}`);
+    }
+  }
+
+  return skills;
+}
+
+/**
+ * ComposioHQ/awesome-claude-skills リポジトリ専用: トップレベルディレクトリをスキルとして扱う
+ * このリポジトリは SKILL.md を持たないディレクトリベースの構造
+ */
+function scanComposioSkills(
+  data: { tree: Array<{ path: string; type: string }> },
+  owner: string,
+  repoName: string
+): Skill[] {
+  // 除外するディレクトリ（設定ファイルや非スキル）
+  const excludeDirs = new Set([
+    ".claude-plugin",
+    ".github",
+    ".git",
+    "scripts",
+    "templates",
+    "resources",
+  ]);
+
+  // トップレベルのディレクトリを取得（スキルディレクトリ）
+  const topLevelDirs = data.tree.filter(
+    (item) =>
+      item.type === "tree" &&
+      !item.path.includes("/") &&
+      !item.path.startsWith(".") &&
+      !excludeDirs.has(item.path)
+  );
+
+  const skills: Skill[] = topLevelDirs.map((dir) => ({
+    name: dir.path,
+    source: `${owner}-${repoName}`,
+    path: dir.path,
+    categories: ["community"],
+    description: `${dir.path} skill`,
+  }));
+
+  return skills;
 }
 
 /**

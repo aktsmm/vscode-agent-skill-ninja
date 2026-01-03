@@ -1,9 +1,11 @@
 # Agent Skill Ninja 🥷
 
-> ⚠️ **注意**: 本コンテンツは、AI/ML トレーニング、データマイニング、その他の解析目的での使用を明示的な許可なく禁止します。
+<p align="center">
+  <strong>AI コーディングアシスタント用 Agent Skills の検索・インストール・管理</strong>
+</p>
 
 <p align="center">
-  <strong>Agent Skills（GitHub Copilot / Claude Code）の検索・インストール・管理</strong>
+  <b>GitHub Copilot • Claude Code • Cursor • Windsurf • Cline</b>
 </p>
 
 <p align="center">
@@ -29,14 +31,26 @@
 ### 📦 インストール・管理
 
 - ワンクリックで `.github/skills/` に自動配置
-- **AGENTS.md** 自動更新
+- **instruction file** 自動更新（AGENTS.md / copilot-instructions.md / CLAUDE.md）
 - アンインストール機能
 
-### 🏠 ローカルスキル管理
+### � マルチツール対応
 
-- ワークスペースの **SKILL.md** を自動検出
-- AGENTS.md への登録/解除
-- 新規スキル作成コマンド
+- ワークスペース内の AI ツールを**自動検出**（Cursor, Windsurf, Cline, Claude Code, GitHub Copilot）
+- 検出されたツールに基づいて出力形式を自動選択
+- 設定で手動オーバーライド可能
+- 対応出力形式:
+  - Markdown（AGENTS.md, CLAUDE.md, copilot-instructions.md）
+  - Cursor Rules（.cursor/rules/）
+  - Windsurf Rules（.windsurfrules）
+  - Cline Rules（.clinerules）
+
+### �🏠 ローカルスキル管理
+
+- ワークスペース内の **SKILL.md** を自動検出
+- instruction file へ自動同期（`includeLocalSkills` 設定で制御）
+- 手動での登録/解除コマンド
+- テンプレートから新規スキル作成
 
 ### 🤖 GitHub Copilot Chat 連携
 
@@ -49,7 +63,7 @@
 - **Agent Mode** で自動的にツールとして利用可能
 - **8 ツール**: `#searchSkills`, `#installSkill`, `#uninstallSkill`, `#listSkills`, `#recommendSkills`, `#updateSkillIndex`, `#webSearchSkills`, `#addSkillSource`
 - 信頼度バッジ（🏢 Official / 📋 Curated / 👥 Community）
-- インストール時に AGENTS.md 自動更新
+- インストール時に instruction file 自動更新
 
 ### 🌍 多言語・UI
 
@@ -74,11 +88,13 @@
 
 ## Installation
 
-### VS Code Marketplace（準備中）
+### VS Code Marketplace
 
 ```
-ext install yamapan.skill-ninja
+ext install yamapan.agent-skill-ninja
 ```
+
+または VS Code の拡張機能（`Ctrl+Shift+X`）で **"Agent Skill Ninja"** を検索
 
 ### 手動インストール
 
@@ -88,15 +104,19 @@ ext install yamapan.skill-ninja
 
 ## Included Skill Sources
 
-| Source                                                                                  | Type         | Skills |
-| --------------------------------------------------------------------------------------- | ------------ | -----: |
-| [anthropics/skills](https://github.com/anthropics/skills)                               | 🏢 Official  |     17 |
-| [github/awesome-copilot](https://github.com/github/awesome-copilot)                     | 🏢 Official  |      1 |
-| [ComposioHQ/awesome-claude-skills](https://github.com/ComposioHQ/awesome-claude-skills) | 📋 Curated   |     27 |
-| [obra/superpowers](https://github.com/obra/superpowers)                                 | 👥 Community |     14 |
-| **Total**                                                                               |              | **59** |
+| Source                                                                                                                        | Type         | 説明                                |
+| ----------------------------------------------------------------------------------------------------------------------------- | ------------ | ----------------------------------- |
+| [anthropics/skills](https://github.com/anthropics/skills)                                                                     | 🏢 Official  | Anthropic 公式 Claude Skills        |
+| [github/awesome-copilot](https://github.com/github/awesome-copilot)                                                           | 🏢 Official  | GitHub 公式 Copilot リソース        |
+| [ComposioHQ/awesome-claude-skills](https://github.com/ComposioHQ/awesome-claude-skills)                                       | 📋 Curated   | Claude Skills キュレーションリスト  |
+| [obra/superpowers](https://github.com/obra/superpowers)                                                                       | 👥 Community | 高品質スキル・エージェント集        |
+| [muratcankoylan/Agent-Skills-for-Context-Engineering](https://github.com/muratcankoylan/Agent-Skills-for-Context-Engineering) | 👥 Community | Context Engineering スキル (5k+ ⭐) |
+| [danielmiessler/Personal_AI_Infrastructure](https://github.com/danielmiessler/Personal_AI_Infrastructure)                     | 👥 Community | PAI Packs - スキル・フィーチャー集  |
+| [EveryInc/compound-engineering-plugin](https://github.com/EveryInc/compound-engineering-plugin)                               | 👥 Community | Compound Engineering (3.5k+ ⭐)     |
+| [Wirasm/PRPs-agentic-eng](https://github.com/Wirasm/PRPs-agentic-eng)                                                         | 👥 Community | PRP (Prompt Recipe Patterns)        |
+| [qdhenry/Claude-Command-Suite](https://github.com/qdhenry/Claude-Command-Suite)                                               | 👥 Community | Claude コマンド・スキル集           |
 
-> 💡 `Update Index` コマンドで最新のスキル数を取得できます
+> 💡 `Update Index` コマンドで最新のスキルを取得できます
 
 ## Usage
 
@@ -112,18 +132,18 @@ ext install yamapan.skill-ninja
 
 ### コマンドパレット
 
-| コマンド                                      | 説明                              |
-| --------------------------------------------- | --------------------------------- |
-| `Agent Skill Ninja: Search Skills`            | スキルを検索してインストール      |
-| `Agent Skill Ninja: Update Index`             | 全ソースからインデックスを更新    |
-| `Agent Skill Ninja: Search on GitHub`         | GitHub でスキルを検索             |
-| `Agent Skill Ninja: Add Source Repository`    | 新しいソースリポジトリを追加      |
-| `Agent Skill Ninja: Remove Source Repository` | ソースリポジトリを削除            |
-| `Agent Skill Ninja: Uninstall Skill`          | スキルをアンインストール          |
-| `Agent Skill Ninja: Show Installed Skills`    | インストール済みスキルを表示      |
-| `Agent Skill Ninja: Create New Skill`         | 新規ローカルスキルを作成          |
-| `Agent Skill Ninja: Register Local Skill`     | ローカルスキルを AGENTS.md に登録 |
-| `Agent Skill Ninja: Unregister Local Skill`   | AGENTS.md から登録解除            |
+| コマンド                                      | 説明                                     |
+| --------------------------------------------- | ---------------------------------------- |
+| `Agent Skill Ninja: Search Skills`            | スキルを検索してインストール             |
+| `Agent Skill Ninja: Update Index`             | 全ソースからインデックスを更新           |
+| `Agent Skill Ninja: Search on GitHub`         | GitHub でスキルを検索                    |
+| `Agent Skill Ninja: Add Source Repository`    | 新しいソースリポジトリを追加             |
+| `Agent Skill Ninja: Remove Source Repository` | ソースリポジトリを削除                   |
+| `Agent Skill Ninja: Uninstall Skill`          | スキルをアンインストール                 |
+| `Agent Skill Ninja: Show Installed Skills`    | インストール済みスキルを表示             |
+| `Agent Skill Ninja: Create New Skill`         | 新規ローカルスキルを作成                 |
+| `Agent Skill Ninja: Register Local Skill`     | ローカルスキルを instruction file に登録 |
+| `Agent Skill Ninja: Unregister Local Skill`   | instruction file から登録解除            |
 
 ### クイックスタート
 
@@ -131,7 +151,7 @@ ext install yamapan.skill-ninja
 1. Ctrl+Shift+P → "Agent Skill Ninja: Search Skills"
 2. キーワードを入力（例: "pdf", "azure", "git"）
 3. スキルを選択 → アクションを選択（Install / Preview / Favorite / GitHub）
-4. 完了！AGENTS.md に自動登録されます
+4. 完了！instruction file に自動登録されます
 ```
 
 ## Copilot Chat
@@ -181,7 +201,7 @@ GitHub Copilot の **Agent Mode** では、自動的に MCP ツールとして�
    → 自動的に #searchSkills が呼び出され、結果を表示
 
 💬 "bicep-mcp スキルをインストールして"
-   → #installSkill でインストール、AGENTS.md 自動更新
+   → #installSkill でインストール、instruction file 自動更新
 
 💬 "GitHub で MCP サーバーを検索して"
    → #webSearchSkills で GitHub リポジトリを検索
@@ -199,26 +219,59 @@ GitHub Copilot の **Agent Mode** では、自動的に MCP ツールとして�
 
 ## Settings
 
-| 順序 | Setting                            | Default          | Description                                           |
-| :--: | ---------------------------------- | ---------------- | ----------------------------------------------------- |
-|  1   | `skillNinja.autoUpdateInstruction` | `true`           | **インストール時に instruction file を自動更新**      |
-|  2   | `skillNinja.instructionFile`       | `agents`         | スキルを登録するファイル形式 _(要: Auto Update)_      |
-|  3   | `skillNinja.customInstructionPath` | `""`             | カスタムパス _(instructionFile が 'custom' の時のみ)_ |
-|  4   | `skillNinja.includeLocalSkills`    | `true`           | ローカルスキルも instruction file に含める            |
-|  5   | `skillNinja.skillsDirectory`       | `.github/skills` | スキルをインストールするディレクトリ                  |
-|  6   | `skillNinja.githubToken`           | `""`             | GitHub Token（API 制限緩和用）                        |
-|  7   | `skillNinja.language`              | `auto`           | UI 言語（auto / en / ja）                             |
+| 順序 | Setting                            | Default          | Description                                             |
+| :--: | ---------------------------------- | ---------------- | ------------------------------------------------------- |
+|  1   | `skillNinja.autoUpdateInstruction` | `true`           | **インストール時に instruction file を自動更新**        |
+|  2   | `skillNinja.instructionFile`       | `AGENTS.md`      | スキルを登録するファイル形式 _(要: Auto Update)_        |
+|  3   | `skillNinja.customInstructionPath` | `""`             | カスタムパス _(instructionFile が 'custom' の時のみ)_   |
+|  4   | `skillNinja.includeLocalSkills`    | `true`           | ローカルスキルも instruction file に含める              |
+|  5   | `skillNinja.skillsDirectory`       | `.github/skills` | スキルをインストールするディレクトリ                    |
+|  6   | `skillNinja.githubToken`           | `""`             | GitHub Token（API 制限緩和用）                          |
+|  7   | `skillNinja.language`              | `auto`           | UI 言語（auto / en / ja）                               |
+|  8   | `skillNinja.outputFormat`          | `auto`           | 出力形式（auto / markdown / cursor / windsurf / cline） |
+|  9   | `skillNinja.enableToolDetection`   | `true`           | AI ツール自動検出を有効化                               |
 
 > 💡 設定画面では上記の順序で表示されます
 
+### 出力フォーマット詳細
+
+| フォーマット     | ファイル                 | 対応ツール                  |
+| ---------------- | ------------------------ | --------------------------- |
+| `markdown`       | AGENTS.md, CLAUDE.md 等  | GitHub Copilot, Claude Code |
+| `cursor-rules`   | .cursor/rules/skills.mdc | Cursor                      |
+| `windsurf-rules` | .windsurfrules           | Windsurf                    |
+| `cline-rules`    | .clinerules              | Cline                       |
+
+`auto` を選択すると、ワークスペース内の設定ファイルから使用中の AI ツールを自動検出します。
+
+### Instruction File 同期の仕組み
+
+`autoUpdateInstruction` が有効な場合：
+
+1. **スキルのインストール/アンインストール** → instruction file が自動更新
+2. **ローカル SKILL.md 検出** → instruction file に追加（`includeLocalSkills` が true の場合）
+3. **登録/解除コマンド** → ローカルスキルの手動制御
+
+instruction file には管理セクションが追加されます：
+
+```markdown
+<!-- skill-ninja-START -->
+
+## Agent Skills
+
+- [skill-name](path/to/SKILL.md) - 説明
+<!-- skill-ninja-END -->
+```
+
 ### Instruction File オプション
 
-| 値        | ファイルパス                      | 用途           |
-| --------- | --------------------------------- | -------------- |
-| `agents`  | `AGENTS.md` (root)                | 推奨：汎用     |
-| `copilot` | `.github/copilot-instructions.md` | GitHub Copilot |
-| `claude`  | `CLAUDE.md` (root)                | Claude Code    |
-| `custom`  | 任意のパス                        | カスタム       |
+| 値                                               | ファイルパス                                     | 用途                          |
+| ------------------------------------------------ | ------------------------------------------------ | ----------------------------- |
+| `AGENTS.md`                                      | `AGENTS.md` (root)                               | 推奨：汎用                    |
+| `.github/copilot-instructions.md`                | `.github/copilot-instructions.md`                | GitHub Copilot                |
+| `.github/instructions/SkillList.instructions.md` | `.github/instructions/SkillList.instructions.md` | Copilot Instructions フォルダ |
+| `CLAUDE.md`                                      | `CLAUDE.md` (root)                               | Claude Code                   |
+| `custom`                                         | 任意のパス (customInstructionPath で指定)        | カスタム                      |
 
 ## GitHub Token 設定
 
@@ -284,6 +337,8 @@ npm run lint
 - 非営利目的での利用・改変・再配布が可能
 - 商用利用は要相談
 - Microsoft 社員は業務利用可
+
+> ⚠️ 本コンテンツの AI/ML トレーニング、データマイニング、その他の解析目的での使用を禁止します。
 
 ## Related Projects
 

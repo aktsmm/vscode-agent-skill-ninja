@@ -361,6 +361,8 @@ export function activate(context: vscode.ExtensionContext) {
         skillIndex = await loadSkillIndex(context);
       }
 
+      const oldCount = skillIndex.skills.length;
+
       try {
         await vscode.window.withProgress(
           {
@@ -376,8 +378,11 @@ export function activate(context: vscode.ExtensionContext) {
             );
           }
         );
+        const newCount = skillIndex.skills.length;
+        const diff = newCount - oldCount;
+        const diffText = diff > 0 ? `+${diff}` : diff === 0 ? "±0" : `${diff}`;
         vscode.window.showInformationMessage(
-          messages.indexUpdated(skillIndex.skills.length)
+          messages.indexUpdated(oldCount, newCount, diffText)
         );
         browseProvider.refresh();
       } catch (error: unknown) {

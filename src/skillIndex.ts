@@ -9,12 +9,23 @@ export interface Skill {
   source: string;
   path: string;
   categories: string[];
-  description: string;
+  description: string; // 英語説明（デフォルト）
+  description_ja?: string; // 日本語説明（オプション）
   url?: string; // GitHub URL (for preview/favorites)
   rawUrl?: string; // Raw content URL
   stars?: number; // GitHub stars count
   owner?: string; // Repository owner (user or org)
   isOrg?: boolean; // Whether owner is an organization
+}
+
+/**
+ * 言語に応じたスキルの説明を取得
+ */
+export function getLocalizedDescription(skill: Skill, isJa: boolean): string {
+  if (isJa && skill.description_ja) {
+    return skill.description_ja;
+  }
+  return skill.description;
 }
 
 // ソース情報の型定義
@@ -24,6 +35,7 @@ export interface Source {
   url: string;
   type: string;
   description: string;
+  description_ja?: string; // 日本語説明（オプション）
 }
 
 // カテゴリ情報の型定義
@@ -46,6 +58,7 @@ export interface SkillIndex {
  * スキルインデックスを読み込む
  * 1. globalStorageUri にローカルインデックスがあればそれを使用
  * 2. なければバンドルされたインデックスをコピーして使用
+ * 3. バンドル版のバージョンが新しければソースをマージ
  */
 export async function loadSkillIndex(
   context: vscode.ExtensionContext
@@ -55,39 +68,122 @@ export async function loadSkillIndex(
     "skill-index.json"
   );
 
+  // バンドルされたインデックスを読み込む
+  const bundledIndexPath = vscode.Uri.joinPath(
+    context.extensionUri,
+    "resources",
+    "skill-index.json"
+  );
+
+  let bundledIndex: SkillIndex | null = null;
+  try {
+    const bundledContent = await vscode.workspace.fs.readFile(bundledIndexPath);
+    bundledIndex = JSON.parse(Buffer.from(bundledContent).toString("utf-8"));
+  } catch {
+    // バンドルがなければ null のまま
+  }
+
   try {
     // ローカルインデックスを読み込む
     const content = await vscode.workspace.fs.readFile(localIndexPath);
-    return JSON.parse(Buffer.from(content).toString("utf-8"));
-  } catch {
-    // ローカルにない場合はバンドルされたインデックスを使用
-    const bundledIndexPath = vscode.Uri.joinPath(
-      context.extensionUri,
-      "resources",
-      "skill-index.json"
+    const localIndex: SkillIndex = JSON.parse(
+      Buffer.from(content).toString("utf-8")
     );
 
-    try {
-      const content = await vscode.workspace.fs.readFile(bundledIndexPath);
-      const index = JSON.parse(Buffer.from(content).toString("utf-8"));
+    // バンドル版が新しい場合、ソースをマージ
+    if (bundledIndex && bundledIndex.version > localIndex.version) {
+      const mergedIndex = mergeSkillIndexes(localIndex, bundledIndex);
+      // マージ結果を保存
+      await saveSkillIndex(context, mergedIndex);
+      return mergedIndex;
+    }
 
+    return localIndex;
+  } catch {
+    // ローカルにない場合はバンドルされたインデックスを使用
+    if (bundledIndex) {
       // ローカルにコピー
       await vscode.workspace.fs.createDirectory(context.globalStorageUri);
-      await vscode.workspace.fs.writeFile(localIndexPath, content);
+      await vscode.workspace.fs.writeFile(
+        localIndexPath,
+        Buffer.from(JSON.stringify(bundledIndex, null, 2), "utf-8")
+      );
+      return bundledIndex;
+    }
 
-      return index;
-    } catch {
-      // バンドルされたインデックスもない場合は空のインデックスを返す
-      console.warn("No skill index found, using empty index");
+    // バンドルされたインデックスもない場合は空のインデックスを返す
+    console.warn("No skill index found, using empty index");
+    return {
+      version: "1.0.0",
+      lastUpdated: new Date().toISOString().split("T")[0],
+      sources: [],
+      skills: [],
+      categories: [],
+    };
+  }
+}
+
+/**
+ * 2つのスキルインデックスをマージ
+ * バンドル版の新しいソースをローカル版に追加
+ * 既存スキルの多言語説明も更新
+ */
+function mergeSkillIndexes(
+  localIndex: SkillIndex,
+  bundledIndex: SkillIndex
+): SkillIndex {
+  // ローカルのソース ID セット
+  const localSourceIds = new Set(localIndex.sources.map((s) => s.id));
+
+  // バンドル版の新しいソースを追加
+  const newSources = bundledIndex.sources.filter(
+    (s) => !localSourceIds.has(s.id)
+  );
+
+  // 既存ソースの説明を更新（description_ja を追加）
+  const updatedSources = localIndex.sources.map((localSource) => {
+    const bundledSource = bundledIndex.sources.find(
+      (s) => s.id === localSource.id
+    );
+    if (bundledSource) {
       return {
-        version: "1.0.0",
-        lastUpdated: new Date().toISOString().split("T")[0],
-        sources: [],
-        skills: [],
-        categories: [],
+        ...localSource,
+        description: bundledSource.description,
+        description_ja:
+          bundledSource.description_ja || localSource.description_ja,
       };
     }
-  }
+    return localSource;
+  });
+
+  // バンドル版の新しいスキルを追加（新ソースからのもの）
+  const newSourceIds = new Set(newSources.map((s) => s.id));
+  const newSkills = bundledIndex.skills.filter((s) =>
+    newSourceIds.has(s.source)
+  );
+
+  // 既存スキルの説明を更新（description と description_ja をマージ）
+  const updatedSkills = localIndex.skills.map((localSkill) => {
+    const bundledSkill = bundledIndex.skills.find(
+      (s) => s.name === localSkill.name
+    );
+    if (bundledSkill) {
+      return {
+        ...localSkill,
+        description: bundledSkill.description,
+        description_ja:
+          bundledSkill.description_ja || localSkill.description_ja,
+      };
+    }
+    return localSkill;
+  });
+
+  return {
+    ...localIndex,
+    version: bundledIndex.version,
+    sources: [...updatedSources, ...newSources],
+    skills: [...updatedSkills, ...newSkills],
+  };
 }
 
 /**

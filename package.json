@@ -2,7 +2,7 @@
   "name": "agent-skill-ninja",
   "displayName": "%displayName%",
   "description": "%description%",
-  "version": "0.1.1",
+  "version": "0.2.0",
   "publisher": "yamapan",
   "license": "CC-BY-NC-4.0",
   "icon": "resources/icon.png",
@@ -273,6 +273,44 @@
           },
           "required": [
             "repoUrl"
+          ]
+        }
+      },
+      {
+        "name": "skillNinja_localize",
+        "tags": [
+          "skills",
+          "agent",
+          "skill-ninja",
+          "localize",
+          "translate",
+          "i18n",
+          "翻訳",
+          "ローカライズ"
+        ],
+        "toolReferenceName": "localizeSkill",
+        "displayName": "Localize Skill Description",
+        "icon": "$(globe)",
+        "modelDescription": "Translate/localize skill descriptions in the index. Provide skillName and description_en (English) and/or description_ja (Japanese) to update.",
+        "canBeReferencedInPrompt": true,
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "skillName": {
+              "type": "string",
+              "description": "Name of the skill to localize"
+            },
+            "description_en": {
+              "type": "string",
+              "description": "English description for the skill"
+            },
+            "description_ja": {
+              "type": "string",
+              "description": "Japanese description for the skill (日本語の説明)"
+            }
+          },
+          "required": [
+            "skillName"
           ]
         }
       }
@@ -604,6 +642,32 @@
             "%config.language.ja%"
           ],
           "description": "%config.language.description%"
+        },
+        "skillNinja.outputFormat": {
+          "type": "string",
+          "default": "auto",
+          "order": 8,
+          "enum": [
+            "auto",
+            "markdown",
+            "cursor-rules",
+            "windsurf-rules",
+            "cline-rules"
+          ],
+          "enumDescriptions": [
+            "%config.outputFormat.auto%",
+            "%config.outputFormat.markdown%",
+            "%config.outputFormat.cursor%",
+            "%config.outputFormat.windsurf%",
+            "%config.outputFormat.cline%"
+          ],
+          "markdownDescription": "%config.outputFormat.markdownDescription%"
+        },
+        "skillNinja.enableToolDetection": {
+          "type": "boolean",
+          "default": true,
+          "order": 9,
+          "markdownDescription": "%config.enableToolDetection.markdownDescription%"
         }
       }
     }

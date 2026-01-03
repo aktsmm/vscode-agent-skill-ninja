@@ -3,7 +3,11 @@
 > ⚠️ **Notice**: This content is not permitted to be used for AI/ML training, data mining, or similar purposes without explicit permission.
 
 <p align="center">
-  <strong>Search, Install, and Manage Agent Skills (GitHub Copilot / Claude Code)</strong>
+  <strong>Search, Install, and Manage Agent Skills for AI Coding Assistants</strong>
+</p>
+
+<p align="center">
+  <b>GitHub Copilot • Claude Code • Cursor • Windsurf • Cline</b>
 </p>
 
 <p align="center">
@@ -33,14 +37,26 @@
 ### 📦 Install & Manage
 
 - One-click installation to `.github/skills/`
-- Auto-update **AGENTS.md**
+- Auto-update **instruction file** (AGENTS.md / copilot-instructions.md / CLAUDE.md)
 - Uninstall functionality
 
-### 🏠 Local Skill Management
+### � Multi-Tool Support
 
-- Auto-detect **SKILL.md** files in workspace
-- Register / Unregister from AGENTS.md
-- Create new skill command
+- **Auto-detection** of AI tools in workspace (Cursor, Windsurf, Cline, Claude Code, GitHub Copilot)
+- Automatic format selection based on detected tool
+- Manual override available in settings
+- Supported output formats:
+  - Markdown (AGENTS.md, CLAUDE.md, copilot-instructions.md)
+  - Cursor Rules (.cursor/rules/)
+  - Windsurf Rules (.windsurfrules)
+  - Cline Rules (.clinerules)
+
+### �🏠 Local Skill Management
+
+- Auto-detect **SKILL.md** files anywhere in workspace
+- Automatically sync to instruction file (with `includeLocalSkills` setting)
+- Manual register / unregister commands
+- Create new skill from template
 
 ### 🤖 GitHub Copilot Chat Integration
 
@@ -53,7 +69,7 @@
 - Automatically available as tools in **Agent Mode**
 - **8 Tools**: `#searchSkills`, `#installSkill`, `#uninstallSkill`, `#listSkills`, `#recommendSkills`, `#updateSkillIndex`, `#webSearchSkills`, `#addSkillSource`
 - Trust badges (🏢 Official / 📋 Curated / 👥 Community)
-- Auto-update AGENTS.md on install
+- Auto-update instruction file on install
 
 ### 🌍 Multi-language & UI
 
@@ -78,11 +94,13 @@
 
 ## Installation
 
-### VS Code Marketplace (Coming Soon)
+### VS Code Marketplace
 
 ```
-ext install yamapan.skill-ninja
+ext install yamapan.agent-skill-ninja
 ```
+
+Or search for **"Agent Skill Ninja"** in VS Code Extensions (`Ctrl+Shift+X`)
 
 ### Manual Installation
 
@@ -92,15 +110,19 @@ ext install yamapan.skill-ninja
 
 ## Included Skill Sources
 
-| Source                                                                                  | Type         | Skills |
-| --------------------------------------------------------------------------------------- | ------------ | -----: |
-| [anthropics/skills](https://github.com/anthropics/skills)                               | 🏢 Official  |     17 |
-| [github/awesome-copilot](https://github.com/github/awesome-copilot)                     | 🏢 Official  |      1 |
-| [ComposioHQ/awesome-claude-skills](https://github.com/ComposioHQ/awesome-claude-skills) | 📋 Curated   |     27 |
-| [obra/superpowers](https://github.com/obra/superpowers)                                 | 👥 Community |     14 |
-| **Total**                                                                               |              | **59** |
+| Source                                                                                                                        | Type         | Description                         |
+| ----------------------------------------------------------------------------------------------------------------------------- | ------------ | ----------------------------------- |
+| [anthropics/skills](https://github.com/anthropics/skills)                                                                     | 🏢 Official  | Anthropic official Claude Skills    |
+| [github/awesome-copilot](https://github.com/github/awesome-copilot)                                                           | 🏢 Official  | GitHub official Copilot resources   |
+| [ComposioHQ/awesome-claude-skills](https://github.com/ComposioHQ/awesome-claude-skills)                                       | 📋 Curated   | Curated Claude Skills list          |
+| [obra/superpowers](https://github.com/obra/superpowers)                                                                       | 👥 Community | High-quality skills & agents        |
+| [muratcankoylan/Agent-Skills-for-Context-Engineering](https://github.com/muratcankoylan/Agent-Skills-for-Context-Engineering) | 👥 Community | Context Engineering skills (5k+ ⭐) |
+| [danielmiessler/Personal_AI_Infrastructure](https://github.com/danielmiessler/Personal_AI_Infrastructure)                     | 👥 Community | PAI Packs - Skills & Features       |
+| [EveryInc/compound-engineering-plugin](https://github.com/EveryInc/compound-engineering-plugin)                               | 👥 Community | Compound Engineering (3.5k+ ⭐)     |
+| [Wirasm/PRPs-agentic-eng](https://github.com/Wirasm/PRPs-agentic-eng)                                                         | 👥 Community | PRP (Prompt Recipe Patterns)        |
+| [qdhenry/Claude-Command-Suite](https://github.com/qdhenry/Claude-Command-Suite)                                               | 👥 Community | Claude commands & skills            |
 
-> 💡 Use `Update Index` command to fetch the latest skill count
+> 💡 Use `Update Index` command to fetch the latest skills
 
 ## Usage
 
@@ -116,18 +138,18 @@ ext install yamapan.skill-ninja
 
 ### Command Palette
 
-| Command                                       | Description                       |
-| --------------------------------------------- | --------------------------------- |
-| `Agent Skill Ninja: Search Skills`            | Search and install skills         |
-| `Agent Skill Ninja: Update Index`             | Update index from all sources     |
-| `Agent Skill Ninja: Search on GitHub`         | Search skills on GitHub           |
-| `Agent Skill Ninja: Add Source Repository`    | Add new source repository         |
-| `Agent Skill Ninja: Remove Source Repository` | Remove source repository          |
-| `Agent Skill Ninja: Uninstall Skill`          | Uninstall a skill                 |
-| `Agent Skill Ninja: Show Installed Skills`    | Show installed skills             |
-| `Agent Skill Ninja: Create New Skill`         | Create new local skill            |
-| `Agent Skill Ninja: Register Local Skill`     | Register local skill to AGENTS.md |
-| `Agent Skill Ninja: Unregister Local Skill`   | Unregister from AGENTS.md         |
+| Command                                       | Description                              |
+| --------------------------------------------- | ---------------------------------------- |
+| `Agent Skill Ninja: Search Skills`            | Search and install skills                |
+| `Agent Skill Ninja: Update Index`             | Update index from all sources            |
+| `Agent Skill Ninja: Search on GitHub`         | Search skills on GitHub                  |
+| `Agent Skill Ninja: Add Source Repository`    | Add new source repository                |
+| `Agent Skill Ninja: Remove Source Repository` | Remove source repository                 |
+| `Agent Skill Ninja: Uninstall Skill`          | Uninstall a skill                        |
+| `Agent Skill Ninja: Show Installed Skills`    | Show installed skills                    |
+| `Agent Skill Ninja: Create New Skill`         | Create new local skill                   |
+| `Agent Skill Ninja: Register Local Skill`     | Register local skill to instruction file |
+| `Agent Skill Ninja: Unregister Local Skill`   | Unregister from instruction file         |
 
 ### Quick Start
 
@@ -135,7 +157,7 @@ ext install yamapan.skill-ninja
 1. Ctrl+Shift+P → "Agent Skill Ninja: Search Skills"
 2. Enter keywords (e.g., "pdf", "azure", "git")
 3. Select skill → Choose action (Install / Preview / Favorite / GitHub)
-4. Done! Auto-registered in AGENTS.md
+4. Done! Auto-registered in instruction file
 ```
 
 ## Copilot Chat
@@ -185,7 +207,7 @@ In GitHub Copilot's **Agent Mode**, tools are automatically available.
    → #searchSkills automatically invoked, displays results
 
 💬 "Install the bicep-mcp skill"
-   → #installSkill installs, auto-updates AGENTS.md
+   → #installSkill installs, auto-updates instruction file
 
 💬 "Search GitHub for MCP servers"
    → #webSearchSkills searches GitHub repositories
@@ -203,26 +225,59 @@ In GitHub Copilot's **Agent Mode**, tools are automatically available.
 
 ## Settings
 
-| Order | Setting                            | Default          | Description                                      |
-| :---: | ---------------------------------- | ---------------- | ------------------------------------------------ |
-|   1   | `skillNinja.autoUpdateInstruction` | `true`           | **Auto-update instruction file on install**      |
-|   2   | `skillNinja.instructionFile`       | `agents`         | Instruction file format _(requires Auto Update)_ |
-|   3   | `skillNinja.customInstructionPath` | `""`             | Custom path _(only when 'custom' selected)_      |
-|   4   | `skillNinja.includeLocalSkills`    | `true`           | Include local skills in instruction file         |
-|   5   | `skillNinja.skillsDirectory`       | `.github/skills` | Directory to install skills                      |
-|   6   | `skillNinja.githubToken`           | `""`             | GitHub Token (for API rate limit)                |
-|   7   | `skillNinja.language`              | `auto`           | UI language (auto / en / ja)                     |
+| Order | Setting                            | Default          | Description                                                 |
+| :---: | ---------------------------------- | ---------------- | ----------------------------------------------------------- |
+|   1   | `skillNinja.autoUpdateInstruction` | `true`           | **Auto-update instruction file on install**                 |
+|   2   | `skillNinja.instructionFile`       | `AGENTS.md`      | Instruction file format _(requires Auto Update)_            |
+|   3   | `skillNinja.customInstructionPath` | `""`             | Custom path _(only when 'custom' selected)_                 |
+|   4   | `skillNinja.includeLocalSkills`    | `true`           | Include local skills in instruction file                    |
+|   5   | `skillNinja.skillsDirectory`       | `.github/skills` | Directory to install skills                                 |
+|   6   | `skillNinja.githubToken`           | `""`             | GitHub Token (for API rate limit)                           |
+|   7   | `skillNinja.language`              | `auto`           | UI language (auto / en / ja)                                |
+|   8   | `skillNinja.outputFormat`          | `auto`           | Output format (auto / markdown / cursor / windsurf / cline) |
+|   9   | `skillNinja.enableToolDetection`   | `true`           | Auto-detect AI tools in workspace                           |
 
 > 💡 Settings are displayed in the order above
 
+### Output Format Details
+
+| Format           | File                       | Compatible Tools            |
+| ---------------- | -------------------------- | --------------------------- |
+| `markdown`       | AGENTS.md, CLAUDE.md, etc. | GitHub Copilot, Claude Code |
+| `cursor-rules`   | .cursor/rules/skills.mdc   | Cursor                      |
+| `windsurf-rules` | .windsurfrules             | Windsurf                    |
+| `cline-rules`    | .clinerules                | Cline                       |
+
+When `auto` is selected, the extension automatically detects which AI tool is being used based on configuration files in your workspace.
+
+### How Instruction File Sync Works
+
+When `autoUpdateInstruction` is enabled:
+
+1. **Install/Uninstall skill** → Instruction file is automatically updated
+2. **Local SKILL.md detected** → Added to instruction file (if `includeLocalSkills` is true)
+3. **Register/Unregister command** → Manual control for local skills
+
+The instruction file contains a managed section:
+
+```markdown
+<!-- skill-ninja-START -->
+
+## Agent Skills
+
+- [skill-name](path/to/SKILL.md) - description
+<!-- skill-ninja-END -->
+```
+
 ### Instruction File Options
 
-| Value     | File Path                         | Use Case             |
-| --------- | --------------------------------- | -------------------- |
-| `agents`  | `AGENTS.md` (root)                | Recommended: General |
-| `copilot` | `.github/copilot-instructions.md` | GitHub Copilot       |
-| `claude`  | `CLAUDE.md` (root)                | Claude Code          |
-| `custom`  | Any path                          | Custom               |
+| Value                                            | File Path                                        | Use Case                    |
+| ------------------------------------------------ | ------------------------------------------------ | --------------------------- |
+| `AGENTS.md`                                      | `AGENTS.md` (root)                               | Recommended: General        |
+| `.github/copilot-instructions.md`                | `.github/copilot-instructions.md`                | GitHub Copilot              |
+| `.github/instructions/SkillList.instructions.md` | `.github/instructions/SkillList.instructions.md` | Copilot Instructions folder |
+| `CLAUDE.md`                                      | `CLAUDE.md` (root)                               | Claude Code                 |
+| `custom`                                         | Any path (set in customInstructionPath)          | Custom                      |
 
 ## GitHub Token Setup
 
@@ -288,6 +343,8 @@ npm run lint
 - Free for non-commercial use, modification, and redistribution
 - Commercial use requires permission
 - Microsoft employees may use for work purposes
+
+> ⚠️ Use of this content for AI/ML training, data mining, or other analytical purposes is prohibited.
 
 ## Related Projects
 

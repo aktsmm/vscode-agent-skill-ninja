@@ -5,7 +5,13 @@
  * ツール一覧に表示され、エージェントが自動的に使用可能
  */
 import * as vscode from "vscode";
-import { Skill, loadSkillIndex, SkillIndex } from "./skillIndex";
+import {
+  Skill,
+  loadSkillIndex,
+  SkillIndex,
+  getLocalizedDescription,
+  saveSkillIndex,
+} from "./skillIndex";
 import {
   installSkill,
   getInstalledSkills,
@@ -13,6 +19,7 @@ import {
 } from "./skillInstaller";
 import { updateInstructionFile } from "./instructionManager";
 import { searchGitHub, addSource } from "./indexUpdater";
+import { isJapanese } from "./i18n";
 
 /** スキルインデックスをキャッシュ */
 let cachedIndex: SkillIndex | undefined;
@@ -135,6 +142,11 @@ export function registerMcpTools(context: vscode.ExtensionContext): void {
       vscode.lm.registerTool("skillNinja_addSource", new AddSourceTool())
     );
 
+    // スキル説明ローカライズツール
+    context.subscriptions.push(
+      vscode.lm.registerTool("skillNinja_localize", new LocalizeSkillsTool())
+    );
+
     console.log("Agent Skill Ninja: MCP tools registered successfully");
   } catch (error) {
     console.error("Agent Skill Ninja: Failed to register MCP tools:", error);
@@ -190,13 +202,15 @@ No skills found for "${query}".
     }
 
     // 結果をフォーマット（信頼度バッジ付き）
+    const isJa = isJapanese();
     const formatted = results
       .map((skill: Skill) => {
         const stars = skill.stars ? ` ⭐${skill.stars}` : "";
         const categories = skill.categories?.join(", ") || "";
         const trust = getTrustBadge(skill.source || "");
+        const desc = getLocalizedDescription(skill, isJa);
         return `| ${skill.name} | ${
-          skill.description || "No description"
+          desc || "No description"
         } | ${categories} | ${trust} |${stars}`;
       })
       .join("\n");
@@ -215,7 +229,7 @@ No skills found for "${query}".
 
     const recommendSection = recommended
       ? `\n### 🌟 おすすめ: ${recommended.name}\n${
-          recommended.description || ""
+          getLocalizedDescription(recommended, isJa) || ""
         } (${getTrustBadge(recommended.source || "")})\n`
       : "";
 
@@ -314,6 +328,7 @@ class SkillInstallTool
       await vscode.commands.executeCommand("skillNinja.refresh");
 
       const trust = getTrustBadge(skill.source || "");
+      const desc = getLocalizedDescription(skill, isJapanese());
 
       return new vscode.LanguageModelToolResult([
         new vscode.LanguageModelTextPart(
@@ -322,7 +337,7 @@ class SkillInstallTool
 | 項目 | 内容 |
 |------|------|
 | スキル名 | ${skill.name} |
-| 説明 | ${skill.description || "No description"} |
+| 説明 | ${desc || "No description"} |
 | 信頼度 | ${trust} |
 | インストール先 | .github/skills/${skill.name}/ |
 
@@ -521,13 +536,14 @@ ${list}
       return bOfficial - aOfficial;
     });
 
+    const isJa = isJapanese();
     const list = recommendations
       .slice(0, 5)
       .map(
         (r) =>
-          `| ${r.skill.name} | ${r.skill.description || ""} | ${
-            r.reason
-          } | ${getTrustBadge(r.skill.source || "")} |`
+          `| ${r.skill.name} | ${
+            getLocalizedDescription(r.skill, isJa) || ""
+          } | ${r.reason} | ${getTrustBadge(r.skill.source || "")} |`
       )
       .join("\n");
 
@@ -535,7 +551,9 @@ ${list}
 
     return new vscode.LanguageModelToolResult([
       new vscode.LanguageModelTextPart(
-        `� ${sourceStats}から分析しました（最終更新: ${updateInfo.lastUpdated}）
+        `🔍 ${sourceStats}から分析しました（最終更新: ${
+          updateInfo.lastUpdated
+        }）
 ${updateInfo.warning}
 
 💡 プロジェクト分析に基づく推奨スキル:
@@ -545,7 +563,7 @@ ${updateInfo.warning}
 ${list}
 
 ### 🌟 イチオシ: ${topRecommend.skill.name}
-${topRecommend.skill.description || ""} 
+${getLocalizedDescription(topRecommend.skill, isJa) || ""} 
 理由: ${topRecommend.reason} | ${getTrustBadge(topRecommend.skill.source || "")}
 
 ---
@@ -873,6 +891,100 @@ class AddSourceTool implements vscode.LanguageModelTool<{ repoUrl: string }> {
 2. Repository must be public
 3. Repository should contain SKILL.md files
 4. GitHub API rate limit may be exceeded`
+        ),
+      ]);
+    }
+  }
+}
+
+/**
+ * スキル説明ローカライズツール
+ * AIエージェントがスキル説明を翻訳してインデックスに保存
+ */
+interface LocalizeInput {
+  skillName: string;
+  description_en?: string;
+  description_ja?: string;
+}
+
+class LocalizeSkillsTool implements vscode.LanguageModelTool<LocalizeInput> {
+  async invoke(
+    options: vscode.LanguageModelToolInvocationOptions<LocalizeInput>,
+    _token: vscode.CancellationToken
+  ): Promise<vscode.LanguageModelToolResult> {
+    const { skillName, description_en, description_ja } = options.input;
+
+    if (!skillName) {
+      return new vscode.LanguageModelToolResult([
+        new vscode.LanguageModelTextPart(
+          `❌ skillName is required.
+
+Usage: Provide skillName and at least one of description_en or description_ja.`
+        ),
+      ]);
+    }
+
+    if (!description_en && !description_ja) {
+      return new vscode.LanguageModelToolResult([
+        new vscode.LanguageModelTextPart(
+          `❌ At least one of description_en or description_ja is required.`
+        ),
+      ]);
+    }
+
+    try {
+      const index = await getSkillIndex();
+      const skill = index.skills.find(
+        (s) => s.name.toLowerCase() === skillName.toLowerCase()
+      );
+
+      if (!skill) {
+        return new vscode.LanguageModelToolResult([
+          new vscode.LanguageModelTextPart(
+            `❌ Skill "${skillName}" not found in index.
+
+Try searching for the skill first with skillNinja_search.`
+          ),
+        ]);
+      }
+
+      // 説明を更新
+      let updated = false;
+      if (description_en) {
+        skill.description = description_en;
+        updated = true;
+      }
+      if (description_ja) {
+        skill.description_ja = description_ja;
+        updated = true;
+      }
+
+      if (updated) {
+        // インデックスを保存
+        await saveSkillIndex(extContext!, index);
+        cachedIndex = index;
+      }
+
+      return new vscode.LanguageModelToolResult([
+        new vscode.LanguageModelTextPart(
+          `✅ Skill "${skillName}" localized successfully!
+
+| Field | Value |
+|-------|-------|
+| Skill | ${skillName} |
+| English | ${skill.description || "(not set)"} |
+| Japanese | ${skill.description_ja || "(not set)"} |
+
+---
+**Agent Instructions:**
+- The skill description has been updated in the local index
+- Changes will persist across sessions`
+        ),
+      ]);
+    } catch (error) {
+      return new vscode.LanguageModelToolResult([
+        new vscode.LanguageModelTextPart(
+          `❌ Failed to localize skill: ${error}`
         ),
       ]);
     }

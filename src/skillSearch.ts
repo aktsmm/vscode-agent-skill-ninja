@@ -2,7 +2,8 @@
 // キーワードやカテゴリでスキルを検索
 
 import * as vscode from "vscode";
-import { SkillIndex, Skill } from "./skillIndex";
+import { SkillIndex, Skill, getLocalizedDescription } from "./skillIndex";
+import { isJapanese } from "./i18n";
 
 // QuickPick用のアイテム型
 export interface SkillQuickPickItem extends vscode.QuickPickItem {
@@ -27,8 +28,11 @@ export function searchSkills(
       if (skill.name.toLowerCase().includes(lowerQuery)) {
         return true;
       }
-      // 説明で検索
+      // 説明で検索（英語・日本語両方）
       if (skill.description.toLowerCase().includes(lowerQuery)) {
+        return true;
+      }
+      if (skill.description_ja?.toLowerCase().includes(lowerQuery)) {
         return true;
       }
       // カテゴリで検索
@@ -49,17 +53,19 @@ export function searchSkills(
   const limited = filtered.slice(0, 100);
 
   // QuickPickアイテムに変換（説明文をわかりやすく）
+  const isJa = isJapanese();
   return limited.map((skill) => {
     // カテゴリをタグ形式で表示
     const categoryTags =
       skill.categories.length > 0
         ? skill.categories.map((c) => `#${c}`).join(" ")
         : "";
+    const desc = getLocalizedDescription(skill, isJa);
 
     return {
       label: `$(package) ${skill.name}`,
       description: `$(repo) ${skill.source}`,
-      detail: `${skill.description || "No description"}${
+      detail: `${desc || "No description"}${
         categoryTags ? `  ${categoryTags}` : ""
       }`,
       skill: skill,
