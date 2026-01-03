@@ -2,7 +2,7 @@
   "name": "skill-finder",
   "displayName": "%displayName%",
   "description": "%description%",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "publisher": "yamapan",
   "license": "CC-BY-NC-4.0",
   "icon": "resources/icon.png",
