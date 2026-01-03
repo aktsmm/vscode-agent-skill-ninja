@@ -106,7 +106,15 @@ async function parseLocalSkillFile(
     }
   }
 
-  // 名前がない場合はディレクトリ名を使用
+  // 名前がない場合は # ヘッダーから取得
+  if (!name) {
+    const headerMatch = text.match(/^#\s+(.+)$/m);
+    if (headerMatch) {
+      name = headerMatch[1].trim();
+    }
+  }
+
+  // まだ名前がない場合はディレクトリ名を使用
   if (!name) {
     const pathParts = fileUri.fsPath.split(/[/\\]/);
     name = pathParts[pathParts.length - 2] || "Unknown";

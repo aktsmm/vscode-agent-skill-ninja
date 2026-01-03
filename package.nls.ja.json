@@ -49,6 +49,7 @@
   "config.outputFormat.windsurf": "Windsurf Rules（.windsurfrules）",
   "config.outputFormat.cline": "Cline Rules（.clinerules）",
   "config.enableToolDetection.markdownDescription": "**ツール自動検出** - ワークスペース内の AI ツールを検出し、適切なフォーマットを提案",
+  "config.singleClickInstall.description": "シングルクリックでインストール（デフォルト: ダブルクリック）",
   "view.workspace": "ワークスペーススキル",
   "view.browse": "リモートスキル",
   "command.registerLocalSkill": "AGENTS.md に登録",

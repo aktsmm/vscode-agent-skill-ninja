@@ -1,7 +1,13 @@
 // Agent Skill Ninja - VS Code Extension
 
 import * as vscode from "vscode";
-import { SkillIndex, Skill, Source, loadSkillIndex } from "./skillIndex";
+import {
+  SkillIndex,
+  Skill,
+  Source,
+  loadSkillIndex,
+  getSkillGitHubUrl,
+} from "./skillIndex";
 import { searchSkills, SkillQuickPickItem } from "./skillSearch";
 import {
   installSkill,
@@ -24,11 +30,7 @@ import {
   showAuthHelp,
 } from "./indexUpdater";
 import { messages, isJapanese } from "./i18n";
-import {
-  showSkillPreview,
-  getSkillId,
-  getSkillGitHubUrl,
-} from "./skillPreview";
+import { showSkillPreview, getSkillId } from "./skillPreview";
 import {
   LocalSkill,
   registerLocalSkill,
@@ -261,8 +263,13 @@ export function activate(context: vscode.ExtensionContext) {
               selected.skill
             );
           } else if (action?.value === "github") {
-            const url = getSkillGitHubUrl(selected.skill);
-            await vscode.env.openExternal(vscode.Uri.parse(url));
+            const url = getSkillGitHubUrl(
+              selected.skill,
+              skillIndex?.sources || []
+            );
+            if (url) {
+              await vscode.env.openExternal(vscode.Uri.parse(url));
+            }
           }
         }
       });
@@ -324,6 +331,7 @@ export function activate(context: vscode.ExtensionContext) {
           messages.installSuccess(skill.name)
         );
         workspaceProvider.refresh();
+        browseProvider.refresh();
 
         // ツリービューでスキルを選択状態にする
         const items = await workspaceProvider.getChildren();
@@ -398,6 +406,7 @@ export function activate(context: vscode.ExtensionContext) {
             messages.uninstallSuccess(skillName)
           );
           workspaceProvider.refresh();
+          browseProvider.refresh();
         } catch (error) {
           vscode.window.showErrorMessage(
             messages.uninstallFailed(String(error))
@@ -456,9 +465,13 @@ export function activate(context: vscode.ExtensionContext) {
             });
 
             // スキル情報を取得
-            const skill = index.skills.find(
+            let skill = index.skills.find(
               (s: Skill) => s.name === meta.name && s.source === meta.source
             );
+            // source が "unknown" の場合は name だけで検索
+            if (!skill && meta.source === "unknown") {
+              skill = index.skills.find((s: Skill) => s.name === meta.name);
+            }
 
             if (skill) {
               try {
@@ -481,6 +494,7 @@ export function activate(context: vscode.ExtensionContext) {
       }
 
       installedProvider.refresh();
+      browseProvider.refresh();
       vscode.window.showInformationMessage(
         isJapanese()
           ? `${installedMeta.length} 個のスキルを再インストールしました`
@@ -520,9 +534,14 @@ export function activate(context: vscode.ExtensionContext) {
 
       // インデックスからスキル情報を取得
       const index = await loadSkillIndex(context);
-      const fullSkill = index.skills.find(
+      // source が "unknown" の場合は name だけで検索
+      let fullSkill = index.skills.find(
         (s: Skill) => s.name === meta.name && s.source === meta.source
       );
+      if (!fullSkill && meta.source === "unknown") {
+        // source が unknown の場合は name だけで検索（最初に見つかったもの）
+        fullSkill = index.skills.find((s: Skill) => s.name === meta.name);
+      }
 
       if (!fullSkill) {
         vscode.window.showErrorMessage(
@@ -568,6 +587,7 @@ export function activate(context: vscode.ExtensionContext) {
             : `Reinstalled ${skill.name}`
         );
         workspaceProvider.refresh();
+        browseProvider.refresh();
       } catch (error) {
         vscode.window.showErrorMessage(
           isJapanese()
@@ -650,6 +670,7 @@ export function activate(context: vscode.ExtensionContext) {
       }
 
       workspaceProvider.refresh();
+      browseProvider.refresh();
       vscode.window.showInformationMessage(
         isJapanese()
           ? `${installed.length} 個のスキルを削除しました`
@@ -732,6 +753,7 @@ export function activate(context: vscode.ExtensionContext) {
       }
 
       workspaceProvider.refresh();
+      browseProvider.refresh();
       vscode.window.showInformationMessage(
         isJapanese()
           ? `${selected.length} 個のスキルを削除しました`
@@ -793,10 +815,16 @@ export function activate(context: vscode.ExtensionContext) {
               increment: 100 / selected.length,
             });
 
-            const skill = index.skills.find(
+            let skill = index.skills.find(
               (s: Skill) =>
                 s.name === item.meta.name && s.source === item.meta.source
             );
+            // source が "unknown" の場合は name だけで検索
+            if (!skill && item.meta.source === "unknown") {
+              skill = index.skills.find(
+                (s: Skill) => s.name === item.meta.name
+              );
+            }
 
             if (skill) {
               try {
@@ -818,6 +846,7 @@ export function activate(context: vscode.ExtensionContext) {
       }
 
       workspaceProvider.refresh();
+      browseProvider.refresh();
       vscode.window.showInformationMessage(
         isJapanese()
           ? `${selected.length} 個のスキルを再インストールしました`
@@ -1124,12 +1153,17 @@ export function activate(context: vscode.ExtensionContext) {
 
             if (action.value === "preview") {
               // プレビュー表示
+              // パスが .md で終わる場合はそのまま使用
+              const pathEndsWithMd = selected.result.path.endsWith(".md");
+              const urlPath = pathEndsWithMd
+                ? selected.result.path
+                : `${selected.result.path}/SKILL.md`;
               const skill: Skill = {
                 name: selected.result.name,
                 description: selected.result.description || "",
                 source: selected.result.repo,
-                url: `${selected.result.repoUrl}/blob/HEAD/${selected.result.path}/SKILL.md`,
-                rawUrl: `https://raw.githubusercontent.com/${selected.result.repo}/HEAD/${selected.result.path}/SKILL.md`,
+                url: `${selected.result.repoUrl}/blob/HEAD/${urlPath}`,
+                rawUrl: `https://raw.githubusercontent.com/${selected.result.repo}/HEAD/${urlPath}`,
                 path: selected.result.path,
                 categories: [],
                 stars: selected.result.stars,
@@ -1386,13 +1420,13 @@ export function activate(context: vscode.ExtensionContext) {
 
       if (skillOrItem instanceof SkillTreeItem) {
         if (skillOrItem.skill) {
-          url = getSkillGitHubUrl(skillOrItem.skill);
+          url = getSkillGitHubUrl(skillOrItem.skill, skillIndex?.sources || []);
         } else if (skillOrItem.source) {
           url = skillOrItem.source.url;
         }
       } else if (skillOrItem && "name" in skillOrItem) {
         const skill = skillOrItem as Skill;
-        url = getSkillGitHubUrl(skill);
+        url = getSkillGitHubUrl(skill, skillIndex?.sources || []);
       }
 
       if (url) {

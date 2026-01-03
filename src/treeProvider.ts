@@ -9,10 +9,7 @@ import {
   Source,
   getLocalizedDescription,
 } from "./skillIndex";
-import {
-  getInstalledSkillsWithMeta,
-  getInstalledSkills,
-} from "./skillInstaller";
+import { getInstalledSkillsWithMeta } from "./skillInstaller";
 import { LocalSkill, scanLocalSkills } from "./localSkillScanner";
 import { isJapanese } from "./i18n";
 import { getSkillId } from "./skillPreview";
@@ -283,13 +280,13 @@ export class BrowseSkillsProvider
       this.skillIndex = await loadSkillIndex(this.context);
     }
 
-    // インストール済みスキルを取得
+    // インストール済みスキルを取得（メタデータの name を使用）
     if (this.installedSkillNames.size === 0) {
       const wsFolder = vscode.workspace.workspaceFolders?.[0];
       if (wsFolder) {
-        const installed = await getInstalledSkills(wsFolder.uri);
-        installed.forEach((name: string) =>
-          this.installedSkillNames.add(name.toLowerCase())
+        const installedMeta = await getInstalledSkillsWithMeta(wsFolder.uri);
+        installedMeta.forEach((meta) =>
+          this.installedSkillNames.add(meta.name.toLowerCase())
         );
       }
     }
@@ -379,6 +376,17 @@ export class BrowseSkillsProvider
           );
         } else {
           item.iconPath = new vscode.ThemeIcon("package");
+          // シングルクリックインストールが有効な場合のみコマンドを設定
+          const singleClickInstall = vscode.workspace
+            .getConfiguration("skillNinja")
+            .get<boolean>("singleClickInstall", false);
+          if (singleClickInstall) {
+            item.command = {
+              command: "skillNinja.install",
+              title: "Install Skill",
+              arguments: [skill],
+            };
+          }
         }
         return item;
       });
@@ -409,6 +417,17 @@ export class BrowseSkillsProvider
           );
         } else {
           item.iconPath = new vscode.ThemeIcon("package");
+          // シングルクリックインストールが有効な場合のみコマンドを設定
+          const singleClickInstall = vscode.workspace
+            .getConfiguration("skillNinja")
+            .get<boolean>("singleClickInstall", false);
+          if (singleClickInstall) {
+            item.command = {
+              command: "skillNinja.install",
+              title: "Install Skill",
+              arguments: [skill],
+            };
+          }
         }
         return item;
       });

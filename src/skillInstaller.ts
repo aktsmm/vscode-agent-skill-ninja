@@ -2,7 +2,7 @@
 // GitHub からスキルをダウンロードしてワークスペースに配置
 
 import * as vscode from "vscode";
-import { Skill, loadSkillIndex, Source } from "./skillIndex";
+import { Skill, loadSkillIndex, Source, getSourceBranch } from "./skillIndex";
 import { isJapanese } from "./i18n";
 
 /**
@@ -12,12 +12,17 @@ async function listGitHubDirectory(
   owner: string,
   repo: string,
   path: string,
-  branch: string = "main"
+  branch: string = "main",
+  token?: string
 ): Promise<{ name: string; type: string; download_url: string | null }[]> {
   const url = `https://api.github.com/repos/${owner}/${repo}/contents/${path}?ref=${branch}`;
-  const response = await fetch(url, {
-    headers: { Accept: "application/vnd.github.v3+json" },
-  });
+  const headers: Record<string, string> = {
+    Accept: "application/vnd.github.v3+json",
+  };
+  if (token) {
+    headers["Authorization"] = `token ${token}`;
+  }
+  const response = await fetch(url, { headers });
   if (!response.ok) {
     throw new Error(`Failed to list directory: ${response.status}`);
   }
@@ -29,25 +34,6 @@ async function listGitHubDirectory(
 }
 
 /**
- * GitHub API でリポジトリのデフォルトブランチを取得
- */
-async function getDefaultBranch(owner: string, repo: string): Promise<string> {
-  try {
-    const url = `https://api.github.com/repos/${owner}/${repo}`;
-    const response = await fetch(url, {
-      headers: { Accept: "application/vnd.github.v3+json" },
-    });
-    if (response.ok) {
-      const data = (await response.json()) as { default_branch: string };
-      return data.default_branch;
-    }
-  } catch {
-    // エラー時はmainにフォールバック
-  }
-  return "main";
-}
-
-/**
  * フォルダを再帰的にダウンロード
  */
 async function downloadDirectory(
@@ -55,15 +41,28 @@ async function downloadDirectory(
   repo: string,
   remotePath: string,
   localPath: vscode.Uri,
-  branch: string = "main"
+  branch: string = "main",
+  token?: string
 ): Promise<void> {
-  const entries = await listGitHubDirectory(owner, repo, remotePath, branch);
+  console.log(
+    `[Skill Ninja] Downloading directory: ${owner}/${repo}/${remotePath} (branch: ${branch})`
+  );
+
+  const entries = await listGitHubDirectory(
+    owner,
+    repo,
+    remotePath,
+    branch,
+    token
+  );
+  console.log(`[Skill Ninja] Found ${entries.length} entries`);
 
   for (const entry of entries) {
     const localFilePath = vscode.Uri.joinPath(localPath, entry.name);
 
     if (entry.type === "file" && entry.download_url) {
-      const content = await fetchFileContent(entry.download_url);
+      console.log(`[Skill Ninja] Downloading file: ${entry.name}`);
+      const content = await fetchFileContent(entry.download_url, token);
       await vscode.workspace.fs.writeFile(
         localFilePath,
         Buffer.from(content, "utf-8")
@@ -75,7 +74,8 @@ async function downloadDirectory(
         repo,
         `${remotePath}/${entry.name}`,
         localFilePath,
-        branch
+        branch,
+        token
       );
     }
   }
@@ -115,6 +115,9 @@ export async function installSkill(
   const index = await loadSkillIndex(context);
   const source = index.sources.find((s: Source) => s.id === skill.source);
 
+  // GitHub Token を取得
+  const token = config.get<string>("githubToken");
+
   if (!source) {
     // ソースがない場合はフォールバック
     await createFallbackSkillMd(skillPath, skill);
@@ -125,8 +128,8 @@ export async function installSkill(
       await createFallbackSkillMd(skillPath, skill);
     } else {
       const [, owner, repo] = match;
-      // ブランチを取得（指定がなければAPIでデフォルトブランチを取得）
-      const branch = source.branch || (await getDefaultBranch(owner, repo));
+      // ブランチを取得（HEAD確認 or API でデフォルトブランチを取得）
+      const branch = await getSourceBranch(source, token, skill.path);
       const remotePath = skill.path;
 
       console.log(`[Skill Ninja] Installing skill: ${skill.name}`);
@@ -141,7 +144,7 @@ export async function installSkill(
         const rawUrl = `https://raw.githubusercontent.com/${owner}/${repo}/${branch}/${remotePath}`;
         console.log(`[Skill Ninja] Downloading single file: ${rawUrl}`);
         try {
-          const content = await fetchFileContent(rawUrl);
+          const content = await fetchFileContent(rawUrl, token);
           console.log(`[Skill Ninja] Downloaded ${content.length} bytes`);
 
           // SKILL.md として保存（メインファイル）
@@ -158,7 +161,14 @@ export async function installSkill(
       } else {
         // フォルダ全体をダウンロード
         try {
-          await downloadDirectory(owner, repo, remotePath, skillPath, branch);
+          await downloadDirectory(
+            owner,
+            repo,
+            remotePath,
+            skillPath,
+            branch,
+            token
+          );
           // SKILL.md がなければ作成
           try {
             await vscode.workspace.fs.stat(
@@ -167,7 +177,8 @@ export async function installSkill(
           } catch {
             await createFallbackSkillMd(skillPath, skill);
           }
-        } catch {
+        } catch (error) {
+          console.error(`[Skill Ninja] Failed to download directory:`, error);
           await createFallbackSkillMd(skillPath, skill);
         }
       }
@@ -337,6 +348,7 @@ export async function getInstalledSkillsWithMeta(
 /**
  * SKILL.md ファイルから name と description を抽出する
  * frontmatter の name, description フィールドを読み取る
+ * frontmatter がない場合は # ヘッダーから name を抽出
  */
 async function extractNameAndDescriptionFromSkillMd(
   skillMdUri: vscode.Uri,
@@ -348,23 +360,44 @@ async function extractNameAndDescriptionFromSkillMd(
 
     // frontmatter を解析
     const frontmatterMatch = text.match(/^---\n([\s\S]*?)\n---/);
-    if (!frontmatterMatch) {
-      return { name: fallbackName, description: "" };
+    if (frontmatterMatch) {
+      const frontmatter = frontmatterMatch[1];
+
+      // name フィールドを抽出
+      let name = fallbackName;
+      const nameMatch = frontmatter.match(/^name:\s*(.+)$/m);
+      if (nameMatch) {
+        name = nameMatch[1].trim().replace(/^["']|["']$/g, "");
+      }
+
+      // description を抽出
+      const description = extractDescriptionFromFrontmatter(frontmatter);
+
+      return { name, description };
     }
 
-    const frontmatter = frontmatterMatch[1];
-
-    // name フィールドを抽出
-    let name = fallbackName;
-    const nameMatch = frontmatter.match(/^name:\s*(.+)$/m);
-    if (nameMatch) {
-      name = nameMatch[1].trim().replace(/^["']|["']$/g, "");
+    // frontmatter がない場合は # ヘッダーから name を抽出
+    const headerMatch = text.match(/^#\s+(.+)$/m);
+    if (headerMatch) {
+      const name = headerMatch[1].trim();
+      // 2行目以降で説明文を探す（空行を除く）
+      const lines = text.split("\n").slice(1);
+      let description = "";
+      for (const line of lines) {
+        const trimmed = line.trim();
+        if (
+          trimmed &&
+          !trimmed.startsWith("#") &&
+          !trimmed.startsWith("Source:")
+        ) {
+          description = trimmed;
+          break;
+        }
+      }
+      return { name, description };
     }
 
-    // description を抽出
-    const description = extractDescriptionFromFrontmatter(frontmatter);
-
-    return { name, description };
+    return { name: fallbackName, description: "" };
   } catch {
     return { name: fallbackName, description: "" };
   }
@@ -469,9 +502,13 @@ Source: ${skill.source}
 /**
  * URL からファイル内容を取得
  */
-async function fetchFileContent(url: string): Promise<string> {
+async function fetchFileContent(url: string, token?: string): Promise<string> {
   // VS Code の fetch API を使用（Node.js 18+ の fetch）
-  const response = await fetch(url);
+  const headers: Record<string, string> = {};
+  if (token) {
+    headers["Authorization"] = `token ${token}`;
+  }
+  const response = await fetch(url, { headers });
   if (!response.ok) {
     throw new Error(`HTTP ${response.status}: ${response.statusText}`);
   }

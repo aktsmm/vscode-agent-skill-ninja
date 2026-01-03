@@ -602,7 +602,22 @@
         {
           "command": "skillNinja.install",
           "when": "view == skillNinja.browseView && viewItem == skill",
-          "group": "inline"
+          "group": "inline@1"
+        },
+        {
+          "command": "skillNinja.preview",
+          "when": "view == skillNinja.browseView && viewItem == skill",
+          "group": "inline@2"
+        },
+        {
+          "command": "skillNinja.toggleFavorite",
+          "when": "view == skillNinja.browseView && viewItem == skill",
+          "group": "inline@3"
+        },
+        {
+          "command": "skillNinja.openOnGitHub",
+          "when": "view == skillNinja.browseView && (viewItem == skill || viewItem == source)",
+          "group": "inline@4"
         },
         {
           "command": "skillNinja.uninstall",
@@ -628,21 +643,6 @@
           "command": "skillNinja.removeSource",
           "when": "view == skillNinja.browseView && viewItem == source",
           "group": "inline"
-        },
-        {
-          "command": "skillNinja.openOnGitHub",
-          "when": "view == skillNinja.browseView && (viewItem == skill || viewItem == source)",
-          "group": "navigation"
-        },
-        {
-          "command": "skillNinja.preview",
-          "when": "view == skillNinja.browseView && viewItem == skill",
-          "group": "navigation"
-        },
-        {
-          "command": "skillNinja.toggleFavorite",
-          "when": "view == skillNinja.browseView && viewItem == skill",
-          "group": "navigation"
         },
         {
           "command": "skillNinja.registerLocalSkill",
@@ -750,6 +750,12 @@
           "default": true,
           "order": 9,
           "markdownDescription": "%config.enableToolDetection.markdownDescription%"
+        },
+        "skillNinja.singleClickInstall": {
+          "type": "boolean",
+          "default": false,
+          "order": 10,
+          "description": "%config.singleClickInstall.description%"
         }
       }
     }

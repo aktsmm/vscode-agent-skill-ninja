@@ -2,7 +2,13 @@
 // Webview で SKILL.md の内容を表示
 
 import * as vscode from "vscode";
-import { Skill } from "./skillIndex";
+import {
+  loadSkillIndex,
+  getSkillGitHubUrl,
+  getSourceBranch,
+  Skill,
+  Source,
+} from "./skillIndex";
 import messages from "./i18n";
 
 let previewPanel: vscode.WebviewPanel | undefined;
@@ -12,6 +18,7 @@ let previewPanel: vscode.WebviewPanel | undefined;
  */
 async function fetchSkillContent(
   skill: Skill,
+  sources: Source[],
   token?: string
 ): Promise<string> {
   // GitHub raw URL を構築
@@ -24,8 +31,27 @@ async function fetchSkillContent(
       .replace("github.com", "raw.githubusercontent.com")
       .replace("/blob/", "/");
   } else {
-    // source と path から URL を構築
-    rawUrl = `https://raw.githubusercontent.com/${skill.source}/HEAD/${skill.path}/SKILL.md`;
+    // source ID からソース情報を取得
+    const sourceInfo = sources.find((s) => s.id === skill.source);
+    if (sourceInfo) {
+      // ソース URL から owner/repo を抽出
+      const match = sourceInfo.url.match(/github\.com\/([^/]+\/[^/]+)/);
+      if (match) {
+        const ownerRepo = match[1];
+        // HEAD リクエストまたは API でデフォルトブランチを動的取得
+        const branch = await getSourceBranch(sourceInfo, token, skill.path);
+        // パスが .md で終わる場合はそのまま使用、そうでなければ /SKILL.md を追加
+        if (skill.path.endsWith(".md")) {
+          rawUrl = `https://raw.githubusercontent.com/${ownerRepo}/${branch}/${skill.path}`;
+        } else {
+          rawUrl = `https://raw.githubusercontent.com/${ownerRepo}/${branch}/${skill.path}/SKILL.md`;
+        }
+      } else {
+        throw new Error(`Invalid source URL: ${sourceInfo.url}`);
+      }
+    } else {
+      throw new Error(`Source not found: ${skill.source}`);
+    }
   }
 
   const headers: Record<string, string> = {
@@ -235,16 +261,6 @@ export function getSkillId(skill: Skill): string {
 }
 
 /**
- * スキルの GitHub URL を取得
- */
-export function getSkillGitHubUrl(skill: Skill): string {
-  if (skill.url) {
-    return skill.url;
-  }
-  return `https://github.com/${skill.source}/tree/HEAD/${skill.path}`;
-}
-
-/**
  * スキルプレビューを表示
  */
 export async function showSkillPreview(
@@ -253,6 +269,10 @@ export async function showSkillPreview(
 ): Promise<void> {
   const config = vscode.workspace.getConfiguration("skillNinja");
   const token = config.get<string>("githubToken");
+
+  // スキルインデックスからソース情報を取得
+  const skillIndex = await loadSkillIndex(context);
+  const sources = skillIndex.sources;
 
   // お気に入り状態を取得
   const favorites = context.globalState.get<string[]>("favorites", []);
@@ -283,7 +303,7 @@ export async function showSkillPreview(
     previewPanel.title = `${messages.previewTitle()}: ${skill.name}`;
     previewPanel.webview.html = `<p>Loading...</p>`;
 
-    const content = await fetchSkillContent(skill, token);
+    const content = await fetchSkillContent(skill, sources, token);
     previewPanel.webview.html = getWebviewContent(skill, content, isFavorite);
 
     // メッセージハンドラー
@@ -293,11 +313,13 @@ export async function showSkillPreview(
           case "install":
             await vscode.commands.executeCommand("skillNinja.install", skill);
             break;
-          case "openGitHub":
-            await vscode.env.openExternal(
-              vscode.Uri.parse(getSkillGitHubUrl(skill))
-            );
+          case "openGitHub": {
+            const url = getSkillGitHubUrl(skill, sources);
+            if (url) {
+              await vscode.env.openExternal(vscode.Uri.parse(url));
+            }
             break;
+          }
           case "toggleFavorite": {
             await vscode.commands.executeCommand(
               "skillNinja.toggleFavorite",

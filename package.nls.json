@@ -49,6 +49,7 @@
   "config.outputFormat.windsurf": "Windsurf Rules (.windsurfrules)",
   "config.outputFormat.cline": "Cline Rules (.clinerules)",
   "config.enableToolDetection.markdownDescription": "**Enable tool detection** - Automatically detect AI tools in workspace and suggest appropriate format",
+  "config.singleClickInstall.description": "Install skills with single click (default: double click)",
   "view.workspace": "Workspace Skills",
   "view.browse": "Remote Skills",
   "command.registerLocalSkill": "Register in AGENTS.md",
