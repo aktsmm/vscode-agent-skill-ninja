@@ -954,17 +954,22 @@ export function activate(context: vscode.ExtensionContext) {
   // Command: Add source
   const addSourceCmd = vscode.commands.registerCommand(
     "skillNinja.addSource",
-    async () => {
-      const repoUrl = await vscode.window.showInputBox({
-        prompt: messages.enterRepoUrl(),
-        placeHolder: messages.repoUrlPlaceholder(),
-        validateInput: (value) => {
-          if (!value.match(/github\.com\/[^/]+\/[^/]+/)) {
-            return messages.invalidRepoUrl();
-          }
-          return null;
-        },
-      });
+    async (urlArg?: string) => {
+      // 引数で URL が渡された場合はそれを使用、なければ入力を求める
+      let repoUrl = urlArg;
+
+      if (!repoUrl) {
+        repoUrl = await vscode.window.showInputBox({
+          prompt: messages.enterRepoUrl(),
+          placeHolder: messages.repoUrlPlaceholder(),
+          validateInput: (value) => {
+            if (!value.match(/github\.com\/[^/]+\/[^/]+/)) {
+              return messages.invalidRepoUrl();
+            }
+            return null;
+          },
+        });
+      }
 
       if (!repoUrl) {
         return;

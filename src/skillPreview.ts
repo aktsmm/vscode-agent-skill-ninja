@@ -111,11 +111,17 @@ function markdownToHtml(markdown: string): string {
 function getWebviewContent(
   skill: Skill,
   content: string,
-  isFavorite: boolean
+  isFavorite: boolean,
+  isInIndex: boolean = true
 ): string {
   const htmlContent = markdownToHtml(content);
   const starIcon = isFavorite ? "★" : "☆";
   const starClass = isFavorite ? "favorite" : "";
+
+  // インデックスにないスキル（検索結果から）の場合は Add Source ボタンを表示
+  const addSourceButton = isInIndex
+    ? ""
+    : `<button class="btn-secondary" onclick="addSource()">Add Source</button>`;
 
   return `<!DOCTYPE html>
 <html lang="en">
@@ -163,6 +169,13 @@ function getWebviewContent(
     }
     .btn-primary:hover {
       background-color: var(--vscode-button-hoverBackground);
+    }
+    .btn-secondary {
+      background-color: var(--vscode-button-secondaryBackground);
+      color: var(--vscode-button-secondaryForeground);
+    }
+    .btn-secondary:hover {
+      background-color: var(--vscode-button-secondaryHoverBackground);
     }
     .btn-star {
       background-color: transparent;
@@ -218,6 +231,7 @@ function getWebviewContent(
       <button class="btn-primary" onclick="install()">
         Install
       </button>
+      ${addSourceButton}
       <button class="btn-primary" onclick="openGitHub()">
         GitHub
       </button>
@@ -239,6 +253,10 @@ function getWebviewContent(
     
     function install() {
       vscode.postMessage({ command: 'install' });
+    }
+    
+    function addSource() {
+      vscode.postMessage({ command: 'addSource' });
     }
     
     function openGitHub() {
@@ -274,6 +292,12 @@ export async function showSkillPreview(
   const skillIndex = await loadSkillIndex(context);
   const sources = skillIndex.sources;
 
+  // スキルがインデックスに登録されているか確認
+  const isInIndex =
+    skillIndex.skills.some(
+      (s: Skill) => s.name === skill.name && s.source === skill.source
+    ) || sources.some((s: Source) => s.id === skill.source);
+
   // お気に入り状態を取得
   const favorites = context.globalState.get<string[]>("favorites", []);
   const skillId = getSkillId(skill);
@@ -304,15 +328,54 @@ export async function showSkillPreview(
     previewPanel.webview.html = `<p>Loading...</p>`;
 
     const content = await fetchSkillContent(skill, sources, token);
-    previewPanel.webview.html = getWebviewContent(skill, content, isFavorite);
+    previewPanel.webview.html = getWebviewContent(
+      skill,
+      content,
+      isFavorite,
+      isInIndex
+    );
 
     // メッセージハンドラー
     previewPanel.webview.onDidReceiveMessage(
       async (message) => {
         switch (message.command) {
-          case "install":
-            await vscode.commands.executeCommand("skillNinja.install", skill);
+          case "install": {
+            // インデックスにない場合は先にソースを追加
+            if (!isInIndex) {
+              const repoUrl = `https://github.com/${skill.source}`;
+              await vscode.commands.executeCommand(
+                "skillNinja.addSource",
+                repoUrl
+              );
+              // ソース追加後、インデックスを再読み込みしてスキルを検索
+              const updatedIndex = await loadSkillIndex(context);
+              const installedSkill = updatedIndex.skills.find(
+                (s: Skill) => s.name === skill.name
+              );
+              if (installedSkill) {
+                await vscode.commands.executeCommand(
+                  "skillNinja.install",
+                  installedSkill
+                );
+              } else {
+                vscode.window.showWarningMessage(
+                  `Skill "${skill.name}" not found after adding source. Please try installing manually.`
+                );
+              }
+            } else {
+              await vscode.commands.executeCommand("skillNinja.install", skill);
+            }
             break;
+          }
+          case "addSource": {
+            // ソースのみ追加
+            const repoUrl = `https://github.com/${skill.source}`;
+            await vscode.commands.executeCommand(
+              "skillNinja.addSource",
+              repoUrl
+            );
+            break;
+          }
           case "openGitHub": {
             const url = getSkillGitHubUrl(skill, sources);
             if (url) {
@@ -334,7 +397,8 @@ export async function showSkillPreview(
             previewPanel!.webview.html = getWebviewContent(
               skill,
               content,
-              newIsFavorite
+              newIsFavorite,
+              isInIndex
             );
             break;
           }
