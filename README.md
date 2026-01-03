@@ -1,7 +1,7 @@
 # Agent Skill Ninja 🥷
 
 <p align="center">
-  <strong>Agent Skills（GitHub Copilot / Claude Code）の検索・インストール・管理</strong>
+  <strong>Search, Install, and Manage Agent Skills (GitHub Copilot / Claude Code)</strong>
 </p>
 
 <p align="center">
@@ -13,76 +13,80 @@
   <a href="#development">Development</a>
 </p>
 
+<p align="center">
+  🇯🇵 <a href="README_ja.md">日本語版はこちら</a>
+</p>
+
 ---
 
 ## Features
 
-### 🔍 スキル検索・発見
+### 🔍 Skill Search & Discovery
 
-- **59 スキル** をキーワード検索（ローカル＆GitHub）
-- 説明文・カテゴリタグ付きの検索結果
-- ⭐ スター数・組織バッジ表示
-- 検索結果から直接インストール/プレビュー/お気に入り
+- Search **59+ skills** by keyword (local & GitHub)
+- Search results with descriptions & category tags
+- ⭐ Star counts & organization badges
+- Install / Preview / Favorite directly from search results
 
-### 📦 インストール・管理
+### 📦 Install & Manage
 
-- ワンクリックで `.github/skills/` に自動配置
-- **AGENTS.md** 自動更新
-- アンインストール機能
+- One-click installation to `.github/skills/`
+- Auto-update **AGENTS.md**
+- Uninstall functionality
 
-### 🏠 ローカルスキル管理
+### 🏠 Local Skill Management
 
-- ワークスペースの **SKILL.md** を自動検出
-- AGENTS.md への登録/解除
-- 新規スキル作成コマンド
+- Auto-detect **SKILL.md** files in workspace
+- Register / Unregister from AGENTS.md
+- Create new skill command
 
-### 🤖 GitHub Copilot Chat 連携
+### 🤖 GitHub Copilot Chat Integration
 
-- `@skill` コマンドでチャットから直接操作
+- `@skill` commands for direct chat operations
 - `/search`, `/install`, `/list`, `/recommend`
-- プロジェクトに基づくスキル推奨
+- Project-based skill recommendations
 
-### 🛠️ MCP ツール連携
+### 🛠️ MCP Tools Integration
 
-- **Agent Mode** で自動的にツールとして利用可能
-- **8 ツール**: `#searchSkills`, `#installSkill`, `#uninstallSkill`, `#listSkills`, `#recommendSkills`, `#updateSkillIndex`, `#webSearchSkills`, `#addSkillSource`
-- 信頼度バッジ（🏢 Official / 📋 Curated / 👥 Community）
-- インストール時に AGENTS.md 自動更新
+- Automatically available as tools in **Agent Mode**
+- **8 Tools**: `#searchSkills`, `#installSkill`, `#uninstallSkill`, `#listSkills`, `#recommendSkills`, `#updateSkillIndex`, `#webSearchSkills`, `#addSkillSource`
+- Trust badges (🏢 Official / 📋 Curated / 👥 Community)
+- Auto-update AGENTS.md on install
 
-### 🌍 多言語・UI
+### 🌍 Multi-language & UI
 
-- 日本語 / 英語 UI（自動検出 + 手動切替）
-- Webview でスキルプレビュー
-- お気に入り機能
+- Japanese / English UI (auto-detect + manual switch)
+- Skill preview in Webview
+- Favorites feature
 
 ## Screenshots
 
-> 📸 スクリーンショットは近日追加予定
+> 📸 Screenshots coming soon
 
 <!--
-### サイドバー
+### Sidebar
 ![Sidebar](docs/screenshots/sidebar.png)
 
-### スキル検索
+### Skill Search
 ![Search](docs/screenshots/search.png)
 
-### インストール確認
+### Install Confirmation
 ![Install](docs/screenshots/install.png)
 -->
 
 ## Installation
 
-### VS Code Marketplace（準備中）
+### VS Code Marketplace (Coming Soon)
 
 ```
 ext install yamapan.skill-ninja
 ```
 
-### 手動インストール
+### Manual Installation
 
-1. [Releases](https://github.com/aktsmm/vscode-agent-skill-ninja/releases) から `.vsix` をダウンロード
-2. VS Code で `Ctrl+Shift+P` → `Extensions: Install from VSIX...`
-3. ダウンロードした `.vsix` を選択
+1. Download `.vsix` from [Releases](https://github.com/aktsmm/vscode-agent-skill-ninja/releases)
+2. In VS Code: `Ctrl+Shift+P` → `Extensions: Install from VSIX...`
+3. Select the downloaded `.vsix` file
 
 ## Included Skill Sources
 
@@ -94,137 +98,137 @@ ext install yamapan.skill-ninja
 | [obra/superpowers](https://github.com/obra/superpowers)                                 | 👥 Community |     14 |
 | **Total**                                                                               |              | **59** |
 
-> 💡 `Update Index` コマンドで最新のスキル数を取得できます
+> 💡 Use `Update Index` command to fetch the latest skill count
 
 ## Usage
 
-### サイドバーから操作
+### Sidebar Operations
 
-1. アクティビティバーの **螺旋手裏剣アイコン** をクリック
-2. **Workspace Skills** - インストール済み＆ローカルスキル一覧
-   - ✓ インストール済みスキル
-   - ○ ローカルスキル（未登録）
-   - 📄 Instruction File を開くボタン
-   - ⚙️ 設定を開くボタン
-3. **Browse** - ソース別にスキルを閲覧
+1. Click the **spiral shuriken icon** in the Activity Bar
+2. **Workspace Skills** - Installed & local skills list
+   - ✓ Installed skills
+   - ○ Local skills (unregistered)
+   - 📄 Open Instruction File button
+   - ⚙️ Open Settings button
+3. **Browse** - Browse skills by source
 
-### コマンドパレット
+### Command Palette
 
-| コマンド                                      | 説明                              |
-| --------------------------------------------- | --------------------------------- |
-| `Agent Skill Ninja: Search Skills`            | スキルを検索してインストール      |
-| `Agent Skill Ninja: Update Index`             | 全ソースからインデックスを更新    |
-| `Agent Skill Ninja: Search on GitHub`         | GitHub でスキルを検索             |
-| `Agent Skill Ninja: Add Source Repository`    | 新しいソースリポジトリを追加      |
-| `Agent Skill Ninja: Remove Source Repository` | ソースリポジトリを削除            |
-| `Agent Skill Ninja: Uninstall Skill`          | スキルをアンインストール          |
-| `Agent Skill Ninja: Show Installed Skills`    | インストール済みスキルを表示      |
-| `Agent Skill Ninja: Create New Skill`         | 新規ローカルスキルを作成          |
-| `Agent Skill Ninja: Register Local Skill`     | ローカルスキルを AGENTS.md に登録 |
-| `Agent Skill Ninja: Unregister Local Skill`   | AGENTS.md から登録解除            |
+| Command                                       | Description                        |
+| --------------------------------------------- | ---------------------------------- |
+| `Agent Skill Ninja: Search Skills`            | Search and install skills          |
+| `Agent Skill Ninja: Update Index`             | Update index from all sources      |
+| `Agent Skill Ninja: Search on GitHub`         | Search skills on GitHub            |
+| `Agent Skill Ninja: Add Source Repository`    | Add new source repository          |
+| `Agent Skill Ninja: Remove Source Repository` | Remove source repository           |
+| `Agent Skill Ninja: Uninstall Skill`          | Uninstall a skill                  |
+| `Agent Skill Ninja: Show Installed Skills`    | Show installed skills              |
+| `Agent Skill Ninja: Create New Skill`         | Create new local skill             |
+| `Agent Skill Ninja: Register Local Skill`     | Register local skill to AGENTS.md  |
+| `Agent Skill Ninja: Unregister Local Skill`   | Unregister from AGENTS.md          |
 
-### クイックスタート
+### Quick Start
 
 ```
 1. Ctrl+Shift+P → "Agent Skill Ninja: Search Skills"
-2. キーワードを入力（例: "pdf", "azure", "git"）
-3. スキルを選択 → アクションを選択（Install / Preview / Favorite / GitHub）
-4. 完了！AGENTS.md に自動登録されます
+2. Enter keywords (e.g., "pdf", "azure", "git")
+3. Select skill → Choose action (Install / Preview / Favorite / GitHub)
+4. Done! Auto-registered in AGENTS.md
 ```
 
 ## Copilot Chat
 
-GitHub Copilot Chat から `@skill` でスキル操作が可能です：
+Use `@skill` in GitHub Copilot Chat for skill operations:
 
 ```
-@skill /search MCP server      # スキル検索
-@skill /install github-mcp     # スキルインストール
-@skill /list                   # インストール済み一覧
-@skill /recommend              # プロジェクトに基づく推奨
-@skill what tools for Python?  # 自然言語で検索
+@skill /search MCP server      # Search skills
+@skill /install github-mcp     # Install skill
+@skill /list                   # List installed
+@skill /recommend              # Project-based recommendations
+@skill what tools for Python?  # Natural language search
 ```
 
-### コマンド一覧
+### Commands
 
-| コマンド          | 説明                       |
-| ----------------- | -------------------------- |
-| `/search <query>` | キーワードでスキル検索     |
-| `/install <name>` | スキルをインストール       |
-| `/list`           | インストール済みスキル一覧 |
-| `/recommend`      | ワークスペースに基づく推奨 |
+| Command           | Description                       |
+| ----------------- | --------------------------------- |
+| `/search <query>` | Search skills by keyword          |
+| `/install <name>` | Install a skill                   |
+| `/list`           | List installed skills             |
+| `/recommend`      | Recommendations based on workspace |
 
-> 💡 検索結果にはインストールボタンが付いており、直接インストールできます
+> 💡 Search results include install buttons for direct installation
 
 ## MCP Tools (Agent Mode)
 
-GitHub Copilot の **Agent Mode** では、自動的に MCP ツールとして利用されます。
+In GitHub Copilot's **Agent Mode**, tools are automatically available.
 
-### ツール一覧
+### Tool List
 
-| Tool Reference      | 説明                       |
-| ------------------- | -------------------------- |
-| `#searchSkills`     | キーワードでスキル検索     |
-| `#installSkill`     | スキルをインストール       |
-| `#uninstallSkill`   | スキルをアンインストール   |
-| `#listSkills`       | インストール済みスキル一覧 |
-| `#recommendSkills`  | プロジェクトに合った推奨   |
-| `#updateSkillIndex` | スキルインデックスを更新   |
-| `#webSearchSkills`  | GitHub でスキルを Web 検索 |
-| `#addSkillSource`   | 新しいスキルソースを追加   |
+| Tool Reference      | Description                    |
+| ------------------- | ------------------------------ |
+| `#searchSkills`     | Search skills by keyword       |
+| `#installSkill`     | Install a skill                |
+| `#uninstallSkill`   | Uninstall a skill              |
+| `#listSkills`       | List installed skills          |
+| `#recommendSkills`  | Get project-based recommendations |
+| `#updateSkillIndex` | Update skill index             |
+| `#webSearchSkills`  | Web search skills on GitHub    |
+| `#addSkillSource`   | Add new skill source           |
 
-### 使用例
+### Usage Examples
 
 ```
-💬 "Azure 関連のスキルを探して"
-   → 自動的に #searchSkills が呼び出され、結果を表示
+💬 "Find Azure-related skills"
+   → #searchSkills automatically invoked, displays results
 
-💬 "bicep-mcp スキルをインストールして"
-   → #installSkill でインストール、AGENTS.md 自動更新
+💬 "Install the bicep-mcp skill"
+   → #installSkill installs, auto-updates AGENTS.md
 
-💬 "GitHub で MCP サーバーを検索して"
-   → #webSearchSkills で GitHub リポジトリを検索
+💬 "Search GitHub for MCP servers"
+   → #webSearchSkills searches GitHub repositories
 
-💬 "このプロジェクトにおすすめのスキルは？"
-   → #recommendSkills でワークスペースを分析して推奨
+💬 "What skills would you recommend for this project?"
+   → #recommendSkills analyzes workspace and recommends
 ```
 
-### 特徴
+### Features
 
-- 🏢 **信頼度バッジ**: Official / Curated / Community を表示
-- 🌟 **おすすめスキル**: 検索結果から最適なスキルを推奨
-- 📅 **インデックス更新情報**: 最終更新日と古い場合の警告
-- ⚙️ **設定連動**: `autoUpdateInstruction` / `includeLocalSkills` を尊重
+- 🏢 **Trust Badges**: Shows Official / Curated / Community
+- 🌟 **Recommended Skills**: Suggests best skills from search results
+- 📅 **Index Update Info**: Shows last update date with warnings if outdated
+- ⚙️ **Settings Integration**: Respects `autoUpdateInstruction` / `includeLocalSkills`
 
 ## Settings
 
-| 順序 | Setting                            | Default          | Description                                           |
-| :--: | ---------------------------------- | ---------------- | ----------------------------------------------------- |
-|  1   | `skillNinja.autoUpdateInstruction` | `true`           | **インストール時に instruction file を自動更新**      |
-|  2   | `skillNinja.instructionFile`       | `agents`         | スキルを登録するファイル形式 _(要: Auto Update)_      |
-|  3   | `skillNinja.customInstructionPath` | `""`             | カスタムパス _(instructionFile が 'custom' の時のみ)_ |
-|  4   | `skillNinja.includeLocalSkills`    | `true`           | ローカルスキルも instruction file に含める            |
-|  5   | `skillNinja.skillsDirectory`       | `.github/skills` | スキルをインストールするディレクトリ                  |
-|  6   | `skillNinja.githubToken`           | `""`             | GitHub Token（API 制限緩和用）                        |
-|  7   | `skillNinja.language`              | `auto`           | UI 言語（auto / en / ja）                             |
+| Order | Setting                            | Default          | Description                                              |
+| :---: | ---------------------------------- | ---------------- | -------------------------------------------------------- |
+|   1   | `skillNinja.autoUpdateInstruction` | `true`           | **Auto-update instruction file on install**              |
+|   2   | `skillNinja.instructionFile`       | `agents`         | Instruction file format _(requires Auto Update)_         |
+|   3   | `skillNinja.customInstructionPath` | `""`             | Custom path _(only when 'custom' selected)_              |
+|   4   | `skillNinja.includeLocalSkills`    | `true`           | Include local skills in instruction file                 |
+|   5   | `skillNinja.skillsDirectory`       | `.github/skills` | Directory to install skills                              |
+|   6   | `skillNinja.githubToken`           | `""`             | GitHub Token (for API rate limit)                        |
+|   7   | `skillNinja.language`              | `auto`           | UI language (auto / en / ja)                             |
 
-> 💡 設定画面では上記の順序で表示されます
+> 💡 Settings are displayed in the order above
 
-### Instruction File オプション
+### Instruction File Options
 
-| 値        | ファイルパス                      | 用途           |
-| --------- | --------------------------------- | -------------- |
-| `agents`  | `AGENTS.md` (root)                | 推奨：汎用     |
-| `copilot` | `.github/copilot-instructions.md` | GitHub Copilot |
-| `claude`  | `CLAUDE.md` (root)                | Claude Code    |
-| `custom`  | 任意のパス                        | カスタム       |
+| Value     | File Path                         | Use Case         |
+| --------- | --------------------------------- | ---------------- |
+| `agents`  | `AGENTS.md` (root)                | Recommended: General |
+| `copilot` | `.github/copilot-instructions.md` | GitHub Copilot   |
+| `claude`  | `CLAUDE.md` (root)                | Claude Code      |
+| `custom`  | Any path                          | Custom           |
 
-## GitHub Token 設定
+## GitHub Token Setup
 
-API レート制限を緩和するには GitHub Token を設定してください：
+Set up a GitHub Token to increase API rate limits:
 
-### 方法 1: VS Code 設定
+### Option 1: VS Code Settings
 
-設定画面から `Agent Skill Ninja: GitHub Token` を探し、トークンを入力：
+Find `Agent Skill Ninja: GitHub Token` in settings and enter your token:
 
 ```json
 {
@@ -232,40 +236,40 @@ API レート制限を緩和するには GitHub Token を設定してくださ�
 }
 ```
 
-👉 [GitHub Token を作成する](https://github.com/settings/tokens/new?description=Agent%20Skill%20Ninja&scopes=repo,read:org)（必要なスコープ: `repo`, `read:org`）
+👉 [Create a GitHub Token](https://github.com/settings/tokens/new?description=Agent%20Skill%20Ninja&scopes=repo,read:org) (Required scopes: `repo`, `read:org`)
 
-### 方法 2: GitHub CLI（推奨）
+### Option 2: GitHub CLI (Recommended)
 
 ```bash
 gh auth login
 ```
 
-> 💡 GitHub CLI がインストールされていれば自動でトークンを取得します（設定不要）
+> 💡 If GitHub CLI is installed, the token is automatically retrieved (no configuration needed)
 
 ## Development
 
 ```bash
-# 依存関係をインストール
+# Install dependencies
 npm install
 
-# コンパイル
+# Compile
 npm run compile
 
-# 監視モードでビルド
+# Build in watch mode
 npm run watch
 
-# パッケージ作成
+# Package
 npm run package
 
-# リント
+# Lint
 npm run lint
 ```
 
-### デバッグ
+### Debugging
 
-1. VS Code で `F5` を押す
-2. 新しい VS Code ウィンドウで拡張機能をテスト
-3. コマンドパレット (`Ctrl+Shift+P`) で `Agent Skill Ninja` コマンドを実行
+1. Press `F5` in VS Code
+2. Test the extension in a new VS Code window
+3. Run `Agent Skill Ninja` commands from Command Palette (`Ctrl+Shift+P`)
 
 ## Contributing
 
@@ -279,9 +283,9 @@ npm run lint
 
 [CC BY-NC 4.0](https://creativecommons.org/licenses/by-nc/4.0/) © [yamapan](https://github.com/aktsmm)
 
-- 非営利目的での利用・改変・再配布が可能
-- 商用利用は要相談
-- Microsoft 社員は業務利用可
+- Free for non-commercial use, modification, and redistribution
+- Commercial use requires permission
+- Microsoft employees may use for work purposes
 
 ## Related Projects
 
