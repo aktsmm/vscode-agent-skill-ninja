@@ -13,7 +13,7 @@ export async function installSkill(
   workspaceUri: vscode.Uri,
   context: vscode.ExtensionContext
 ): Promise<void> {
-  const config = vscode.workspace.getConfiguration("skillFinder");
+  const config = vscode.workspace.getConfiguration("skillNinja");
   const skillsDir = config.get<string>("skillsDirectory") || ".github/skills";
 
   // スキルディレクトリを作成
@@ -74,7 +74,7 @@ export async function uninstallSkill(
   skillName: string,
   workspaceUri: vscode.Uri
 ): Promise<void> {
-  const config = vscode.workspace.getConfiguration("skillFinder");
+  const config = vscode.workspace.getConfiguration("skillNinja");
   const skillsDir = config.get<string>("skillsDirectory") || ".github/skills";
 
   const skillPath = vscode.Uri.joinPath(workspaceUri, skillsDir, skillName);
@@ -92,7 +92,7 @@ export async function uninstallSkill(
 export async function getInstalledSkills(
   workspaceUri: vscode.Uri
 ): Promise<string[]> {
-  const config = vscode.workspace.getConfiguration("skillFinder");
+  const config = vscode.workspace.getConfiguration("skillNinja");
   const skillsDir = config.get<string>("skillsDirectory") || ".github/skills";
 
   const skillsPath = vscode.Uri.joinPath(workspaceUri, skillsDir);
@@ -126,7 +126,7 @@ export interface SkillMeta {
 export async function getInstalledSkillsWithMeta(
   workspaceUri: vscode.Uri
 ): Promise<SkillMeta[]> {
-  const config = vscode.workspace.getConfiguration("skillFinder");
+  const config = vscode.workspace.getConfiguration("skillNinja");
   const skillsDir = config.get<string>("skillsDirectory") || ".github/skills";
   const skillsPath = vscode.Uri.joinPath(workspaceUri, skillsDir);
 

@@ -1,162 +1,545 @@
 {
-  "name": "skill-finder",
+  "name": "agent-skill-ninja",
   "displayName": "%displayName%",
   "description": "%description%",
-  "version": "0.0.2",
+  "version": "0.0.3",
   "publisher": "yamapan",
   "license": "CC-BY-NC-4.0",
   "icon": "resources/icon.png",
   "repository": {
     "type": "git",
-    "url": "https://github.com/aktsmm/Ext-Skillfinder"
+    "url": "https://github.com/aktsmm/vscode-agent-skill-ninja"
   },
+  "keywords": [
+    "agent skills",
+    "claude",
+    "claude code",
+    "copilot",
+    "github copilot",
+    "ai assistant",
+    "skills",
+    "anthropic",
+    "mcp",
+    "agents",
+    "ninja"
+  ],
   "engines": {
-    "vscode": "^1.85.0"
+    "vscode": "^1.100.0"
   },
   "categories": [
-    "Other"
+    "Other",
+    "Machine Learning",
+    "Snippets"
   ],
-  "activationEvents": [],
+  "activationEvents": [
+    "onStartupFinished"
+  ],
   "main": "./dist/extension.js",
   "contributes": {
+    "chatParticipants": [
+      {
+        "id": "skill",
+        "name": "skill",
+        "fullName": "Agent Skill Ninja",
+        "description": "Search, install and manage Agent Skills",
+        "isSticky": false,
+        "commands": [
+          {
+            "name": "search",
+            "description": "Search for Agent Skills"
+          },
+          {
+            "name": "install",
+            "description": "Install an Agent Skill"
+          },
+          {
+            "name": "list",
+            "description": "List installed skills"
+          },
+          {
+            "name": "recommend",
+            "description": "Recommend skills for current project"
+          }
+        ]
+      }
+    ],
+    "languageModelTools": [
+      {
+        "name": "skillNinja_search",
+        "tags": [
+          "skills",
+          "agent",
+          "skill-ninja",
+          "ninja",
+          "忍者",
+          "スキル",
+          "エージェントスキル"
+        ],
+        "toolReferenceName": "searchSkills",
+        "displayName": "Search Agent Skills",
+        "icon": "$(search)",
+        "modelDescription": "Search for Agent Skills (SKILL.md) / エージェントスキルを検索 / スキル忍者 / NINJA. For GitHub Copilot, Claude Code, or other AI coding assistants. Find skills by name, description, or category.",
+        "canBeReferencedInPrompt": true,
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "query": {
+              "type": "string",
+              "description": "Search query (skill name, description, or category like 'github', 'python', 'mcp')"
+            }
+          },
+          "required": [
+            "query"
+          ]
+        }
+      },
+      {
+        "name": "skillNinja_install",
+        "tags": [
+          "skills",
+          "agent",
+          "skill-ninja",
+          "ninja",
+          "忍者",
+          "スキル",
+          "エージェントスキル"
+        ],
+        "toolReferenceName": "installSkill",
+        "displayName": "Install Agent Skill",
+        "icon": "$(cloud-download)",
+        "modelDescription": "Install an Agent Skill / エージェントスキルをインストール / スキル忍者 / NINJA. Download to .github/skills/ and register in AGENTS.md.",
+        "canBeReferencedInPrompt": true,
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "skillName": {
+              "type": "string",
+              "description": "Name of the skill to install"
+            }
+          },
+          "required": [
+            "skillName"
+          ]
+        }
+      },
+      {
+        "name": "skillNinja_list",
+        "tags": [
+          "skills",
+          "agent",
+          "skill-ninja",
+          "ninja",
+          "忍者",
+          "スキル",
+          "エージェントスキル"
+        ],
+        "toolReferenceName": "listSkills",
+        "displayName": "List Installed Skills",
+        "icon": "$(list-tree)",
+        "modelDescription": "List all installed Agent Skills / インストール済みエージェントスキル一覧 / スキル忍者 / NINJA. Shows skills in .github/skills/ directory.",
+        "canBeReferencedInPrompt": true,
+        "inputSchema": {
+          "type": "object",
+          "properties": {}
+        }
+      },
+      {
+        "name": "skillNinja_recommend",
+        "tags": [
+          "skills",
+          "agent",
+          "skill-ninja",
+          "ninja",
+          "忍者",
+          "スキル",
+          "エージェントスキル"
+        ],
+        "toolReferenceName": "recommendSkills",
+        "displayName": "Recommend Skills",
+        "icon": "$(lightbulb)",
+        "modelDescription": "Recommend Agent Skills for your project / プロジェクトに合ったエージェントスキルを推奨 / スキル忍者 / NINJA. Analyzes languages, frameworks, and file patterns.",
+        "canBeReferencedInPrompt": true,
+        "inputSchema": {
+          "type": "object",
+          "properties": {}
+        }
+      },
+      {
+        "name": "skillNinja_uninstall",
+        "tags": [
+          "skills",
+          "agent",
+          "skill-ninja",
+          "uninstall",
+          "remove",
+          "delete",
+          "削除",
+          "アンインストール"
+        ],
+        "toolReferenceName": "uninstallSkill",
+        "displayName": "Uninstall Skill",
+        "icon": "$(trash)",
+        "modelDescription": "Uninstall an Agent Skill / エージェントスキルをアンインストール / 削除 / NINJA. Removes skill from .github/skills/ and updates AGENTS.md.",
+        "canBeReferencedInPrompt": true,
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "skillName": {
+              "type": "string",
+              "description": "Name of the skill to uninstall"
+            }
+          },
+          "required": [
+            "skillName"
+          ]
+        }
+      },
+      {
+        "name": "skillNinja_updateIndex",
+        "tags": [
+          "skills",
+          "agent",
+          "skill-ninja",
+          "update",
+          "refresh",
+          "sync",
+          "更新",
+          "同期"
+        ],
+        "toolReferenceName": "updateSkillIndex",
+        "displayName": "Update Skill Index",
+        "icon": "$(sync)",
+        "modelDescription": "Update the skill index from all sources / スキルインデックスを更新 / 同期 / NINJA. Fetches latest skills from GitHub repositories.",
+        "canBeReferencedInPrompt": true,
+        "inputSchema": {
+          "type": "object",
+          "properties": {}
+        }
+      },
+      {
+        "name": "skillNinja_webSearch",
+        "tags": [
+          "skills",
+          "agent",
+          "skill-ninja",
+          "github",
+          "search",
+          "web",
+          "検索",
+          "GitHub"
+        ],
+        "toolReferenceName": "webSearchSkills",
+        "displayName": "Search Skills on GitHub",
+        "icon": "$(globe)",
+        "modelDescription": "Search for Agent Skills on GitHub / GitHubでエージェントスキルを検索 / Web検索 / NINJA. Finds SKILL.md files across GitHub repositories.",
+        "canBeReferencedInPrompt": true,
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "query": {
+              "type": "string",
+              "description": "Search query for GitHub (e.g., 'azure', 'python', 'mcp')"
+            }
+          },
+          "required": [
+            "query"
+          ]
+        }
+      },
+      {
+        "name": "skillNinja_addSource",
+        "tags": [
+          "skills",
+          "agent",
+          "skill-ninja",
+          "source",
+          "repository",
+          "add",
+          "ソース",
+          "リポジトリ"
+        ],
+        "toolReferenceName": "addSkillSource",
+        "displayName": "Add Skill Source",
+        "icon": "$(repo)",
+        "modelDescription": "Add a new GitHub repository as a skill source / 新しいリポジトリをスキルソースとして追加 / NINJA. Repository should contain SKILL.md files.",
+        "canBeReferencedInPrompt": true,
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "repoUrl": {
+              "type": "string",
+              "description": "GitHub repository URL (e.g., 'https://github.com/owner/repo' or 'owner/repo')"
+            }
+          },
+          "required": [
+            "repoUrl"
+          ]
+        }
+      }
+    ],
     "viewsContainers": {
       "activitybar": [
         {
-          "id": "skill-finder",
-          "title": "Skill Finder",
+          "id": "skill-ninja",
+          "title": "Agent Skill Ninja",
           "icon": "resources/icon.svg"
         }
       ]
     },
     "views": {
-      "skill-finder": [
+      "skill-ninja": [
         {
-          "id": "skillFinder.installedView",
-          "name": "%view.installed%"
+          "id": "skillNinja.installedView",
+          "name": "%view.workspace%"
         },
         {
-          "id": "skillFinder.browseView",
+          "id": "skillNinja.browseView",
           "name": "%view.browse%"
         }
       ]
     },
     "commands": [
       {
-        "command": "skillFinder.search",
+        "command": "skillNinja.search",
         "title": "%command.search%",
-        "category": "Skill Finder",
+        "category": "Agent Skill Ninja",
         "icon": "$(search)"
       },
       {
-        "command": "skillFinder.install",
+        "command": "skillNinja.install",
         "title": "%command.install%",
-        "category": "Skill Finder",
+        "category": "Agent Skill Ninja",
         "icon": "$(add)"
       },
       {
-        "command": "skillFinder.uninstall",
+        "command": "skillNinja.uninstall",
         "title": "%command.uninstall%",
-        "category": "Skill Finder",
+        "category": "Agent Skill Ninja",
         "icon": "$(trash)"
       },
       {
-        "command": "skillFinder.showInstalled",
+        "command": "skillNinja.showInstalled",
         "title": "%command.showInstalled%",
-        "category": "Skill Finder"
+        "category": "Agent Skill Ninja"
       },
       {
-        "command": "skillFinder.refresh",
+        "command": "skillNinja.refresh",
         "title": "%command.refresh%",
-        "category": "Skill Finder",
+        "category": "Agent Skill Ninja",
         "icon": "$(refresh)"
       },
       {
-        "command": "skillFinder.openSkillFile",
+        "command": "skillNinja.openSkillFile",
         "title": "%command.openSkillFile%",
-        "category": "Skill Finder",
+        "category": "Agent Skill Ninja",
         "icon": "$(go-to-file)"
       },
       {
-        "command": "skillFinder.updateIndex",
+        "command": "skillNinja.updateIndex",
         "title": "%command.updateIndex%",
-        "category": "Skill Finder",
+        "category": "Agent Skill Ninja",
         "icon": "$(cloud-download)"
       },
       {
-        "command": "skillFinder.addSource",
+        "command": "skillNinja.addSource",
         "title": "%command.addSource%",
-        "category": "Skill Finder",
+        "category": "Agent Skill Ninja",
         "icon": "$(add)"
       },
       {
-        "command": "skillFinder.webSearch",
+        "command": "skillNinja.webSearch",
         "title": "%command.webSearch%",
-        "category": "Skill Finder",
+        "category": "Agent Skill Ninja",
         "icon": "$(globe)"
       },
       {
-        "command": "skillFinder.removeSource",
+        "command": "skillNinja.removeSource",
         "title": "%command.removeSource%",
-        "category": "Skill Finder",
+        "category": "Agent Skill Ninja",
         "icon": "$(trash)"
+      },
+      {
+        "command": "skillNinja.preview",
+        "title": "%command.preview%",
+        "category": "Agent Skill Ninja",
+        "icon": "$(eye)"
+      },
+      {
+        "command": "skillNinja.toggleFavorite",
+        "title": "%command.toggleFavorite%",
+        "category": "Agent Skill Ninja",
+        "icon": "$(star)"
+      },
+      {
+        "command": "skillNinja.showFavorites",
+        "title": "%command.showFavorites%",
+        "category": "Agent Skill Ninja",
+        "icon": "$(star-full)"
+      },
+      {
+        "command": "skillNinja.openOnGitHub",
+        "title": "%command.openOnGitHub%",
+        "category": "Agent Skill Ninja",
+        "icon": "$(github)"
+      },
+      {
+        "command": "skillNinja.browseByCategory",
+        "title": "%command.browseByCategory%",
+        "category": "Agent Skill Ninja",
+        "icon": "$(filter)"
+      },
+      {
+        "command": "skillNinja.showRecent",
+        "title": "%command.showRecent%",
+        "category": "Agent Skill Ninja",
+        "icon": "$(history)"
+      },
+      {
+        "command": "skillNinja.registerLocalSkill",
+        "title": "%command.registerLocalSkill%",
+        "category": "Agent Skill Ninja",
+        "icon": "$(add)"
+      },
+      {
+        "command": "skillNinja.unregisterLocalSkill",
+        "title": "%command.unregisterLocalSkill%",
+        "category": "Agent Skill Ninja",
+        "icon": "$(remove)"
+      },
+      {
+        "command": "skillNinja.createSkill",
+        "title": "%command.createSkill%",
+        "category": "Agent Skill Ninja",
+        "icon": "$(new-file)"
+      },
+      {
+        "command": "skillNinja.refreshLocal",
+        "title": "%command.refresh%",
+        "category": "Agent Skill Ninja",
+        "icon": "$(refresh)"
+      },
+      {
+        "command": "skillNinja.openInstructionFile",
+        "title": "%command.openInstructionFile%",
+        "category": "Agent Skill Ninja",
+        "icon": "$(file-text)"
+      },
+      {
+        "command": "skillNinja.openSettings",
+        "title": "%command.openSettings%",
+        "category": "Agent Skill Ninja",
+        "icon": "$(gear)"
       }
     ],
     "menus": {
       "view/title": [
         {
-          "command": "skillFinder.search",
-          "when": "view == skillFinder.browseView",
+          "command": "skillNinja.openInstructionFile",
+          "when": "view == skillNinja.installedView",
           "group": "navigation@1"
         },
         {
-          "command": "skillFinder.webSearch",
-          "when": "view == skillFinder.browseView",
+          "command": "skillNinja.createSkill",
+          "when": "view == skillNinja.installedView",
           "group": "navigation@2"
         },
         {
-          "command": "skillFinder.updateIndex",
-          "when": "view == skillFinder.browseView",
+          "command": "skillNinja.refresh",
+          "when": "view == skillNinja.installedView",
           "group": "navigation@3"
         },
         {
-          "command": "skillFinder.addSource",
-          "when": "view == skillFinder.browseView",
+          "command": "skillNinja.openSettings",
+          "when": "view == skillNinja.installedView",
+          "group": "navigation@4"
+        },
+        {
+          "command": "skillNinja.search",
+          "when": "view == skillNinja.browseView",
+          "group": "navigation@1"
+        },
+        {
+          "command": "skillNinja.webSearch",
+          "when": "view == skillNinja.browseView",
+          "group": "navigation@2"
+        },
+        {
+          "command": "skillNinja.updateIndex",
+          "when": "view == skillNinja.browseView",
+          "group": "navigation@3"
+        },
+        {
+          "command": "skillNinja.addSource",
+          "when": "view == skillNinja.browseView",
           "group": "navigation@4"
         }
       ],
       "view/title/context": [
         {
-          "command": "skillFinder.refresh",
-          "when": "view == skillFinder.installedView || view == skillFinder.browseView"
+          "command": "skillNinja.refresh",
+          "when": "view == skillNinja.installedView || view == skillNinja.browseView"
+        },
+        {
+          "command": "skillNinja.refreshLocal",
+          "when": "view == skillNinja.localView"
+        },
+        {
+          "command": "skillNinja.createSkill",
+          "when": "view == skillNinja.localView"
         }
       ],
       "view/item/context": [
         {
-          "command": "skillFinder.install",
-          "when": "view == skillFinder.browseView && viewItem == skill",
+          "command": "skillNinja.install",
+          "when": "view == skillNinja.browseView && viewItem == skill",
           "group": "inline"
         },
         {
-          "command": "skillFinder.uninstall",
-          "when": "view == skillFinder.installedView && viewItem == installedSkill",
+          "command": "skillNinja.uninstall",
+          "when": "view == skillNinja.installedView && viewItem == installedSkill",
           "group": "inline"
         },
         {
-          "command": "skillFinder.openSkillFile",
-          "when": "view == skillFinder.installedView && viewItem == installedSkill",
+          "command": "skillNinja.openSkillFile",
+          "when": "view == skillNinja.installedView && (viewItem == installedSkill || viewItem == localSkill)",
           "group": "inline"
         },
         {
-          "command": "skillFinder.removeSource",
-          "when": "view == skillFinder.browseView && viewItem == source",
+          "command": "skillNinja.removeSource",
+          "when": "view == skillNinja.browseView && viewItem == source",
           "group": "inline"
+        },
+        {
+          "command": "skillNinja.openOnGitHub",
+          "when": "view == skillNinja.browseView && (viewItem == skill || viewItem == source)",
+          "group": "navigation"
+        },
+        {
+          "command": "skillNinja.preview",
+          "when": "view == skillNinja.browseView && viewItem == skill",
+          "group": "navigation"
+        },
+        {
+          "command": "skillNinja.toggleFavorite",
+          "when": "view == skillNinja.browseView && viewItem == skill",
+          "group": "navigation"
+        },
+        {
+          "command": "skillNinja.registerLocalSkill",
+          "when": "view == skillNinja.installedView && viewItem == localSkill",
+          "group": "inline"
+        },
+        {
+          "command": "skillNinja.unregisterLocalSkill",
+          "when": "view == skillNinja.installedView && viewItem == localSkill",
+          "group": "navigation"
         }
       ]
     },
     "configuration": {
-      "title": "Skill Finder",
+      "title": "Agent Skill Ninja",
       "properties": {
-        "skillFinder.instructionFile": {
+        "skillNinja.instructionFile": {
           "type": "string",
           "default": "AGENTS.md",
           "enum": [
@@ -175,25 +558,45 @@
           ],
           "description": "%config.instructionFile.description%"
         },
-        "skillFinder.customInstructionPath": {
+        "skillNinja.customInstructionPath": {
           "type": "string",
           "default": "",
           "description": "%config.customInstructionPath.description%"
         },
-        "skillFinder.skillsDirectory": {
+        "skillNinja.skillsDirectory": {
           "type": "string",
           "default": ".github/skills",
           "description": "%config.skillsDirectory.description%"
         },
-        "skillFinder.autoUpdateInstruction": {
+        "skillNinja.autoUpdateInstruction": {
           "type": "boolean",
           "default": true,
           "description": "%config.autoUpdateInstruction.description%"
         },
-        "skillFinder.githubToken": {
+        "skillNinja.includeLocalSkills": {
+          "type": "boolean",
+          "default": true,
+          "description": "%config.includeLocalSkills.description%"
+        },
+        "skillNinja.githubToken": {
           "type": "string",
           "default": "",
           "description": "%config.githubToken.description%"
+        },
+        "skillNinja.language": {
+          "type": "string",
+          "default": "auto",
+          "enum": [
+            "auto",
+            "en",
+            "ja"
+          ],
+          "enumDescriptions": [
+            "%config.language.auto%",
+            "%config.language.en%",
+            "%config.language.ja%"
+          ],
+          "description": "%config.language.description%"
         }
       }
     }

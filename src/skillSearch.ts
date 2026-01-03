@@ -48,13 +48,23 @@ export function searchSkills(
   // 最大100件に制限
   const limited = filtered.slice(0, 100);
 
-  // QuickPickアイテムに変換
-  return limited.map((skill) => ({
-    label: `$(package) ${skill.name}`,
-    description: skill.source,
-    detail: skill.description || skill.categories.join(", "),
-    skill: skill,
-  }));
+  // QuickPickアイテムに変換（説明文をわかりやすく）
+  return limited.map((skill) => {
+    // カテゴリをタグ形式で表示
+    const categoryTags =
+      skill.categories.length > 0
+        ? skill.categories.map((c) => `#${c}`).join(" ")
+        : "";
+
+    return {
+      label: `$(package) ${skill.name}`,
+      description: `$(repo) ${skill.source}`,
+      detail: `${skill.description || "No description"}${
+        categoryTags ? `  ${categoryTags}` : ""
+      }`,
+      skill: skill,
+    };
+  });
 }
 
 /**

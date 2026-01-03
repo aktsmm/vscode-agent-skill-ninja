@@ -145,6 +145,13 @@
       "description": "社内コミュニケーション"
     },
     {
+      "name": "template",
+      "source": "anthropics-skills",
+      "path": "template",
+      "categories": ["meta"],
+      "description": "スキルテンプレート"
+    },
+    {
       "name": "brainstorming",
       "source": "obra-superpowers",
       "path": "skills/brainstorming",
@@ -271,11 +278,32 @@
       "description": "開発者成長分析"
     },
     {
-      "name": "document-skills",
+      "name": "docx (ComposioHQ)",
       "source": "composio-awesome",
-      "path": "document-skills",
+      "path": "document-skills/docx",
+      "categories": ["document", "office"],
+      "description": "Word ドキュメント (.docx) 処理"
+    },
+    {
+      "name": "pdf (ComposioHQ)",
+      "source": "composio-awesome",
+      "path": "document-skills/pdf",
       "categories": ["document"],
-      "description": "ドキュメント処理スキル"
+      "description": "PDF ファイル処理"
+    },
+    {
+      "name": "pptx (ComposioHQ)",
+      "source": "composio-awesome",
+      "path": "document-skills/pptx",
+      "categories": ["document", "office", "presentation"],
+      "description": "PowerPoint (.pptx) 処理"
+    },
+    {
+      "name": "xlsx (ComposioHQ)",
+      "source": "composio-awesome",
+      "path": "document-skills/xlsx",
+      "categories": ["document", "office", "data"],
+      "description": "Excel (.xlsx) 処理"
     },
     {
       "name": "domain-name-brainstormer",

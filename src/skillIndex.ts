@@ -10,6 +10,11 @@ export interface Skill {
   path: string;
   categories: string[];
   description: string;
+  url?: string; // GitHub URL (for preview/favorites)
+  rawUrl?: string; // Raw content URL
+  stars?: number; // GitHub stars count
+  owner?: string; // Repository owner (user or org)
+  isOrg?: boolean; // Whether owner is an organization
 }
 
 // ソース情報の型定義

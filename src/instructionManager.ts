@@ -3,10 +3,11 @@
 
 import * as vscode from "vscode";
 import { getInstalledSkillsWithMeta, SkillMeta } from "./skillInstaller";
+import { scanLocalSkills, LocalSkill } from "./localSkillScanner";
 
 // セクションマーカー
-const MARKER_START = "<!-- SKILL-FINDER-START -->";
-const MARKER_END = "<!-- SKILL-FINDER-END -->";
+const MARKER_START = "<!-- skill-ninja-START -->";
+const MARKER_END = "<!-- skill-ninja-END -->";
 
 /**
  * インストラクションファイルを更新する
@@ -15,7 +16,7 @@ export async function updateInstructionFile(
   workspaceUri: vscode.Uri,
   _context: vscode.ExtensionContext
 ): Promise<void> {
-  const config = vscode.workspace.getConfiguration("skillFinder");
+  const config = vscode.workspace.getConfiguration("skillNinja");
   let instructionPath = config.get<string>("instructionFile") || "AGENTS.md";
 
   // custom の場合はカスタムパスを使用
@@ -25,13 +26,28 @@ export async function updateInstructionFile(
   }
 
   const skillsDir = config.get<string>("skillsDirectory") || ".github/skills";
+  const includeLocalSkills = config.get<boolean>("includeLocalSkills") ?? true;
   const instructionUri = vscode.Uri.joinPath(workspaceUri, instructionPath);
 
   // インストール済みスキルをメタデータ付きで取得
   const installedSkills = await getInstalledSkillsWithMeta(workspaceUri);
 
+  // ローカルスキルを取得（設定で有効な場合のみ）
+  let localSkills: LocalSkill[] = [];
+  if (includeLocalSkills) {
+    const allLocalSkills = await scanLocalSkills(workspaceUri);
+    // インストール済みスキル（.github/skills 配下）は除外
+    localSkills = allLocalSkills.filter(
+      (ls) => !ls.relativePath.startsWith(skillsDir)
+    );
+  }
+
   // スキルセクションを生成
-  const skillSection = generateSkillSection(installedSkills, skillsDir);
+  const skillSection = generateSkillSection(
+    installedSkills,
+    localSkills,
+    skillsDir
+  );
 
   // 既存のファイルを読み込む
   let existingContent = "";
@@ -58,31 +74,58 @@ export async function updateInstructionFile(
 /**
  * スキルセクションを生成
  */
-function generateSkillSection(skills: SkillMeta[], skillsDir: string): string {
-  if (skills.length === 0) {
+function generateSkillSection(
+  installedSkills: SkillMeta[],
+  localSkills: LocalSkill[],
+  skillsDir: string
+): string {
+  const hasInstalled = installedSkills.length > 0;
+  const hasLocal = localSkills.length > 0;
+
+  if (!hasInstalled && !hasLocal) {
     return `${MARKER_START}
 ## Installed Skills
 
-No skills installed yet. Use \`Skill Finder: Search Skills\` to install skills.
+No skills installed yet. Use "Agent Skill Ninja: Search Skills" to install skills.
 
 ${MARKER_END}`;
   }
 
-  const skillList = skills
-    .map((skill) => {
-      const desc = skill.description ? ` - ${skill.description}` : "";
-      return `- [${skill.name}](${skillsDir}/${skill.name}/SKILL.md)${desc}`;
-    })
-    .join("\n");
-
-  return `${MARKER_START}
+  let content = `${MARKER_START}
 ## Installed Skills
 
 The following skills are available in this workspace.
 
-${skillList}
+`;
 
-${MARKER_END}`;
+  // インストール済みスキル
+  if (hasInstalled) {
+    const installedList = installedSkills
+      .map((skill) => {
+        const desc = skill.description ? ` - ${skill.description}` : "";
+        return `- [${skill.name}](${skillsDir}/${skill.name}/SKILL.md)${desc}`;
+      })
+      .join("\n");
+    content += installedList + "\n";
+  }
+
+  // ローカルスキル
+  if (hasLocal) {
+    if (hasInstalled) {
+      content += "\n### Local Skills\n\n";
+    }
+    const localList = localSkills
+      .map((skill) => {
+        const desc = skill.description ? ` - ${skill.description}` : "";
+        return `- [${skill.name}](${skill.relativePath}/SKILL.md)${desc}`;
+      })
+      .join("\n");
+    content += localList + "\n";
+  }
+
+  content += `\n${MARKER_END}`;
+
+  return content;
 }
 
 /**
@@ -113,7 +156,7 @@ function updateSection(existingContent: string, newSection: string): string {
 export async function removeSkillSection(
   workspaceUri: vscode.Uri
 ): Promise<void> {
-  const config = vscode.workspace.getConfiguration("skillFinder");
+  const config = vscode.workspace.getConfiguration("skillNinja");
   let instructionPath =
     config.get<string>("instructionFile") || ".github/agents.md";
 

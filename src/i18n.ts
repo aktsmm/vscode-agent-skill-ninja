@@ -54,6 +54,31 @@ const jaMessages: Record<string, string> = {
     "GitHub API の制限に達しました。GitHub トークンで認証してください。",
   repoNotFound: "リポジトリが見つかりません: {0}",
   githubApiError: "GitHub API エラー: {0}",
+  actionPreview: "プレビュー",
+  actionNewSearch: "新しい検索",
+  actionBack: "戻る",
+  previewTitle: "スキル プレビュー",
+  addToFavorites: "お気に入りに追加",
+  removeFromFavorites: "お気に入りから削除",
+  favorites: "お気に入り",
+  noFavorites: "お気に入りはありません",
+  openOnGitHub: "GitHub で開く",
+  popularSkill: "⭐ 人気スキル",
+  orgManagedSkill: "☑ 組織管理",
+  starsCount: "{0} スター",
+  addSourceFromSearch: "このリポジトリをソースに追加",
+  selectCategory: "カテゴリを選択",
+  allCategories: "すべてのカテゴリ",
+  recentlyInstalled: "最近インストールしたスキル",
+  noRecentSkills: "最近インストールしたスキルはありません",
+  skillsInCategory: "{0} のスキル ({1}件)",
+  localSkillRegistered: "✅ {0} を AGENTS.md に登録しました",
+  localSkillUnregistered: "✅ {0} を AGENTS.md から削除しました",
+  localSkillAlreadyRegistered: "{0} は既に登録されています",
+  createSkillPrompt: "スキル名を入力してください",
+  createSkillPlaceholder: "my-awesome-skill",
+  skillCreated: "✅ {0} を作成しました",
+  noLocalSkills: "ローカルスキルが見つかりません",
 };
 
 // 英語メッセージ（デフォルト）
@@ -107,11 +132,46 @@ const enMessages: Record<string, string> = {
     "GitHub API rate limit exceeded. Please authenticate with a GitHub token.",
   repoNotFound: "Repository not found: {0}",
   githubApiError: "GitHub API error: {0}",
+  actionPreview: "Preview",
+  actionNewSearch: "New Search",
+  actionBack: "Back",
+  previewTitle: "Skill Preview",
+  addToFavorites: "Add to Favorites",
+  removeFromFavorites: "Remove from Favorites",
+  favorites: "Favorites",
+  noFavorites: "No favorites yet",
+  openOnGitHub: "Open on GitHub",
+  popularSkill: "⭐ Popular",
+  orgManagedSkill: "☑ Organization",
+  starsCount: "{0} stars",
+  addSourceFromSearch: "Add this repository to sources",
+  selectCategory: "Select Category",
+  allCategories: "All Categories",
+  recentlyInstalled: "Recently Installed Skills",
+  noRecentSkills: "No recently installed skills",
+  skillsInCategory: "{0} skills ({1})",
+  localSkillRegistered: "✅ {0} registered in AGENTS.md",
+  localSkillUnregistered: "✅ {0} removed from AGENTS.md",
+  localSkillAlreadyRegistered: "{0} is already registered",
+  createSkillPrompt: "Enter skill name",
+  createSkillPlaceholder: "my-awesome-skill",
+  skillCreated: "✅ {0} created",
+  noLocalSkills: "No local skills found",
 };
 
 // 現在の言語に応じたメッセージを取得
 function getMessages(): Record<string, string> {
-  const lang = vscode.env.language;
+  // 設定から言語を取得（autoの場合はVS Codeの言語を使用）
+  const config = vscode.workspace.getConfiguration("skillNinja");
+  const langSetting = config.get<string>("language", "auto");
+
+  let lang: string;
+  if (langSetting === "auto") {
+    lang = vscode.env.language;
+  } else {
+    lang = langSetting;
+  }
+
   if (lang.startsWith("ja")) {
     return jaMessages;
   }
@@ -204,6 +264,43 @@ export const messages = {
   rateLimitExceeded: () => localize("rateLimitExceeded"),
   repoNotFound: (repo: string) => localize("repoNotFound", repo),
   githubApiError: (status: number) => localize("githubApiError", status),
+
+  // 新機能: プレビュー、お気に入り、検索継続
+  actionPreview: () => localize("actionPreview"),
+  actionNewSearch: () => localize("actionNewSearch"),
+  actionBack: () => localize("actionBack"),
+  previewTitle: () => localize("previewTitle"),
+  addToFavorites: () => localize("addToFavorites"),
+  removeFromFavorites: () => localize("removeFromFavorites"),
+  favorites: () => localize("favorites"),
+  noFavorites: () => localize("noFavorites"),
+
+  // GitHubで開く・ハイライト
+  openOnGitHub: () => localize("openOnGitHub"),
+  popularSkill: () => localize("popularSkill"),
+  orgManagedSkill: () => localize("orgManagedSkill"),
+  starsCount: (count: number) => localize("starsCount", count),
+  addSourceFromSearch: () => localize("addSourceFromSearch"),
+
+  // カテゴリフィルタ・履歴
+  selectCategory: () => localize("selectCategory"),
+  allCategories: () => localize("allCategories"),
+  recentlyInstalled: () => localize("recentlyInstalled"),
+  noRecentSkills: () => localize("noRecentSkills"),
+  skillsInCategory: (category: string, count: number) =>
+    localize("skillsInCategory", category, count),
+
+  // ローカルスキル
+  localSkillRegistered: (name: string) =>
+    localize("localSkillRegistered", name),
+  localSkillUnregistered: (name: string) =>
+    localize("localSkillUnregistered", name),
+  localSkillAlreadyRegistered: (name: string) =>
+    localize("localSkillAlreadyRegistered", name),
+  createSkillPrompt: () => localize("createSkillPrompt"),
+  createSkillPlaceholder: () => localize("createSkillPlaceholder"),
+  skillCreated: (name: string) => localize("skillCreated", name),
+  noLocalSkills: () => localize("noLocalSkills"),
 };
 
 export default messages;

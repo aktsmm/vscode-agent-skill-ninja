@@ -34,7 +34,7 @@ async function getGhCliToken(): Promise<string | null> {
  */
 async function getGitHubToken(): Promise<string | undefined> {
   // 1. 設定からトークンをチェック
-  const config = vscode.workspace.getConfiguration("skillFinder");
+  const config = vscode.workspace.getConfiguration("skillNinja");
   const configToken = config.get<string>("githubToken");
   if (configToken && configToken.length > 0) {
     return configToken;
@@ -58,7 +58,7 @@ export async function checkGitHubAuth(): Promise<{
   message: string;
 }> {
   // 1. 設定からトークンをチェック
-  const config = vscode.workspace.getConfiguration("skillFinder");
+  const config = vscode.workspace.getConfiguration("skillNinja");
   const token = config.get<string>("githubToken");
   if (token) {
     // トークンの有効性を確認
@@ -104,7 +104,7 @@ async function githubFetch(url: string, token?: string): Promise<Response> {
 
   const headers: Record<string, string> = {
     Accept: "application/vnd.github.v3+json",
-    "User-Agent": "VSCode-SkillFinder",
+    "User-Agent": "VSCode-SkillNinja",
   };
 
   if (effectiveToken) {
@@ -293,7 +293,7 @@ export async function updateIndexFromSources(
   currentIndex: SkillIndex,
   progress?: vscode.Progress<{ message?: string; increment?: number }>
 ): Promise<SkillIndex> {
-  const config = vscode.workspace.getConfiguration("skillFinder");
+  const config = vscode.workspace.getConfiguration("skillNinja");
   const token = config.get<string>("githubToken");
 
   // 既存スキルの説明をマップとして保持（ローカライズされた説明を保持するため）
@@ -362,7 +362,7 @@ export async function addSource(
   currentIndex: SkillIndex,
   repoUrl: string
 ): Promise<{ index: SkillIndex; addedSkills: number }> {
-  const config = vscode.workspace.getConfiguration("skillFinder");
+  const config = vscode.workspace.getConfiguration("skillNinja");
   const token = config.get<string>("githubToken");
 
   const result = await scanRepositoryForSkills(repoUrl, token);
@@ -457,6 +457,8 @@ export async function searchGitHub(
     repoUrl: string;
     path: string;
     description: string;
+    stars?: number;
+    isOrg?: boolean;
   }>
 > {
   // クエリ形式: "{query} filename:SKILL.md" (gh search code と同じ)
@@ -506,12 +508,18 @@ export async function searchGitHub(
     items: GitHubSearchItem[];
     total_count: number;
   };
+
+  // リポジトリ情報のキャッシュ（同じリポジトリからの複数スキルで重複APIコールを防ぐ）
+  const repoInfoCache = new Map<string, { stars: number; isOrg: boolean }>();
+
   const results: Array<{
     name: string;
     repo: string;
     repoUrl: string;
     path: string;
     description: string;
+    stars?: number;
+    isOrg?: boolean;
   }> = [];
 
   for (const item of data.items || []) {
@@ -522,12 +530,36 @@ export async function searchGitHub(
         ? pathParts[pathParts.length - 2]
         : item.repository.full_name.split("/")[1];
 
+    // リポジトリ情報を取得（キャッシュがなければAPI呼び出し）
+    let repoInfo = repoInfoCache.get(item.repository.full_name);
+    if (!repoInfo) {
+      try {
+        const repoApiUrl = `https://api.github.com/repos/${item.repository.full_name}`;
+        const repoResponse = await githubFetch(repoApiUrl, token);
+        if (repoResponse.ok) {
+          const repoData = (await repoResponse.json()) as {
+            stargazers_count: number;
+            owner: { type: string };
+          };
+          repoInfo = {
+            stars: repoData.stargazers_count,
+            isOrg: repoData.owner.type === "Organization",
+          };
+          repoInfoCache.set(item.repository.full_name, repoInfo);
+        }
+      } catch {
+        // リポジトリ情報取得に失敗しても続行
+      }
+    }
+
     results.push({
       name: skillName,
       repo: item.repository.full_name,
       repoUrl: item.repository.html_url,
       path: item.path.replace("/SKILL.md", "").replace("SKILL.md", ""),
       description: `From ${item.repository.full_name}`,
+      stars: repoInfo?.stars,
+      isOrg: repoInfo?.isOrg,
     });
   }
 
@@ -552,7 +584,7 @@ export async function showAuthHelp(): Promise<void> {
   if (action === openSettingsLabel) {
     await vscode.commands.executeCommand(
       "workbench.action.openSettings",
-      "skillFinder.githubToken"
+      "skillNinja.githubToken"
     );
   } else if (action === authWithGhCliLabel) {
     const terminal = vscode.window.createTerminal("GitHub Auth");
