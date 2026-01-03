@@ -2,8 +2,97 @@
 // GitHub からスキルをダウンロードしてワークスペースに配置
 
 import * as vscode from "vscode";
-import { Skill, loadSkillIndex, getSkillRawUrl } from "./skillIndex";
+import { Skill, loadSkillIndex, Source } from "./skillIndex";
 import { isJapanese } from "./i18n";
+
+/**
+ * GitHub API でフォルダ内のファイル一覧を取得
+ */
+async function listGitHubDirectory(
+  owner: string,
+  repo: string,
+  path: string,
+  branch: string = "main"
+): Promise<{ name: string; type: string; download_url: string | null }[]> {
+  const url = `https://api.github.com/repos/${owner}/${repo}/contents/${path}?ref=${branch}`;
+  const response = await fetch(url, {
+    headers: { Accept: "application/vnd.github.v3+json" },
+  });
+  if (!response.ok) {
+    throw new Error(`Failed to list directory: ${response.status}`);
+  }
+  return (await response.json()) as {
+    name: string;
+    type: string;
+    download_url: string | null;
+  }[];
+}
+
+/**
+ * GitHub API でリポジトリのデフォルトブランチを取得
+ */
+async function getDefaultBranch(owner: string, repo: string): Promise<string> {
+  try {
+    const url = `https://api.github.com/repos/${owner}/${repo}`;
+    const response = await fetch(url, {
+      headers: { Accept: "application/vnd.github.v3+json" },
+    });
+    if (response.ok) {
+      const data = (await response.json()) as { default_branch: string };
+      return data.default_branch;
+    }
+  } catch {
+    // エラー時はmainにフォールバック
+  }
+  return "main";
+}
+
+/**
+ * フォルダを再帰的にダウンロード
+ */
+async function downloadDirectory(
+  owner: string,
+  repo: string,
+  remotePath: string,
+  localPath: vscode.Uri,
+  branch: string = "main"
+): Promise<void> {
+  const entries = await listGitHubDirectory(owner, repo, remotePath, branch);
+
+  for (const entry of entries) {
+    const localFilePath = vscode.Uri.joinPath(localPath, entry.name);
+
+    if (entry.type === "file" && entry.download_url) {
+      const content = await fetchFileContent(entry.download_url);
+      await vscode.workspace.fs.writeFile(
+        localFilePath,
+        Buffer.from(content, "utf-8")
+      );
+    } else if (entry.type === "dir") {
+      await vscode.workspace.fs.createDirectory(localFilePath);
+      await downloadDirectory(
+        owner,
+        repo,
+        `${remotePath}/${entry.name}`,
+        localFilePath,
+        branch
+      );
+    }
+  }
+}
+
+/**
+ * スキル名をフォルダ名として安全な形式に変換
+ */
+function sanitizeSkillName(name: string): string {
+  return name
+    .toLowerCase()
+    .replace(/\s+/g, "-") // スペースをハイフンに
+    .replace(/[()[\]{}]/g, "") // 括弧を削除
+    .replace(/[^a-z0-9\-_]/g, "-") // 英数字とハイフン、アンダースコア以外をハイフンに
+    .replace(/-+/g, "-") // 連続ハイフンを1つに
+    .replace(/^-|-$/g, ""); // 先頭・末尾のハイフンを削除
+}
 
 /**
  * スキルをインストールする
@@ -17,40 +106,72 @@ export async function installSkill(
   const config = vscode.workspace.getConfiguration("skillNinja");
   const skillsDir = config.get<string>("skillsDirectory") || ".github/skills";
 
-  // スキルディレクトリを作成
-  const skillPath = vscode.Uri.joinPath(workspaceUri, skillsDir, skill.name);
+  // スキル名をサニタイズしてフォルダ名として使用
+  const safeName = sanitizeSkillName(skill.name);
+  const skillPath = vscode.Uri.joinPath(workspaceUri, skillsDir, safeName);
   await vscode.workspace.fs.createDirectory(skillPath);
 
   // インデックスからソース情報を取得
   const index = await loadSkillIndex(context);
+  const source = index.sources.find((s: Source) => s.id === skill.source);
 
-  // SKILL.md をダウンロード
-  const skillMdUrl = getSkillRawUrl(skill, index.sources, "SKILL.md");
-  if (skillMdUrl) {
-    try {
-      const content = await fetchFileContent(skillMdUrl);
-      const skillMdPath = vscode.Uri.joinPath(skillPath, "SKILL.md");
-      await vscode.workspace.fs.writeFile(
-        skillMdPath,
-        Buffer.from(content, "utf-8")
-      );
-    } catch {
-      // SKILL.md がない場合は簡易的なファイルを作成
-      const fallbackContent = `# ${skill.name}\n\n${skill.description}\n\nSource: ${skill.source}\n`;
-      const skillMdPath = vscode.Uri.joinPath(skillPath, "SKILL.md");
-      await vscode.workspace.fs.writeFile(
-        skillMdPath,
-        Buffer.from(fallbackContent, "utf-8")
-      );
-    }
+  if (!source) {
+    // ソースがない場合はフォールバック
+    await createFallbackSkillMd(skillPath, skill);
   } else {
-    // URL が取得できない場合は簡易的なファイルを作成
-    const fallbackContent = `# ${skill.name}\n\n${skill.description}\n\nSource: ${skill.source}\n`;
-    const skillMdPath = vscode.Uri.joinPath(skillPath, "SKILL.md");
-    await vscode.workspace.fs.writeFile(
-      skillMdPath,
-      Buffer.from(fallbackContent, "utf-8")
-    );
+    // GitHub URL からオーナーとリポジトリを取得
+    const match = source.url.match(/github\.com\/([^/]+)\/([^/]+)/);
+    if (!match) {
+      await createFallbackSkillMd(skillPath, skill);
+    } else {
+      const [, owner, repo] = match;
+      // ブランチを取得（指定がなければAPIでデフォルトブランチを取得）
+      const branch = source.branch || (await getDefaultBranch(owner, repo));
+      const remotePath = skill.path;
+
+      console.log(`[Skill Ninja] Installing skill: ${skill.name}`);
+      console.log(
+        `[Skill Ninja] Owner: ${owner}, Repo: ${repo}, Branch: ${branch}`
+      );
+      console.log(`[Skill Ninja] Remote path: ${remotePath}`);
+
+      // パスが .md で終わる場合は単独ファイル
+      if (remotePath.endsWith(".md")) {
+        // 単独ファイルをダウンロード → SKILL.md として保存
+        const rawUrl = `https://raw.githubusercontent.com/${owner}/${repo}/${branch}/${remotePath}`;
+        console.log(`[Skill Ninja] Downloading single file: ${rawUrl}`);
+        try {
+          const content = await fetchFileContent(rawUrl);
+          console.log(`[Skill Ninja] Downloaded ${content.length} bytes`);
+
+          // SKILL.md として保存（メインファイル）
+          const skillMdPath = vscode.Uri.joinPath(skillPath, "SKILL.md");
+          await vscode.workspace.fs.writeFile(
+            skillMdPath,
+            Buffer.from(content, "utf-8")
+          );
+          console.log(`[Skill Ninja] Saved as SKILL.md`);
+        } catch (error) {
+          console.error(`[Skill Ninja] Failed to download ${rawUrl}:`, error);
+          await createFallbackSkillMd(skillPath, skill);
+        }
+      } else {
+        // フォルダ全体をダウンロード
+        try {
+          await downloadDirectory(owner, repo, remotePath, skillPath, branch);
+          // SKILL.md がなければ作成
+          try {
+            await vscode.workspace.fs.stat(
+              vscode.Uri.joinPath(skillPath, "SKILL.md")
+            );
+          } catch {
+            await createFallbackSkillMd(skillPath, skill);
+          }
+        } catch {
+          await createFallbackSkillMd(skillPath, skill);
+        }
+      }
+    }
   }
 
   // メタデータを保存（description などを後で取得できるように）
@@ -69,6 +190,7 @@ export async function installSkill(
     name: skill.name,
     source: skill.source,
     description: description,
+    description_ja: skill.description_ja,
     categories: skill.categories,
     installedAt: new Date().toISOString(),
   };
@@ -88,7 +210,36 @@ export async function uninstallSkill(
   const config = vscode.workspace.getConfiguration("skillNinja");
   const skillsDir = config.get<string>("skillsDirectory") || ".github/skills";
 
-  const skillPath = vscode.Uri.joinPath(workspaceUri, skillsDir, skillName);
+  // まずそのままの名前で試す（既存の互換性）
+  let skillPath = vscode.Uri.joinPath(workspaceUri, skillsDir, skillName);
+
+  try {
+    await vscode.workspace.fs.stat(skillPath);
+  } catch {
+    // 存在しない場合はサニタイズした名前で試す
+    const safeName = sanitizeSkillName(skillName);
+    skillPath = vscode.Uri.joinPath(workspaceUri, skillsDir, safeName);
+  }
+
+  try {
+    await vscode.workspace.fs.delete(skillPath, { recursive: true });
+  } catch (error) {
+    throw new Error(`Failed to delete skill directory: ${error}`);
+  }
+}
+
+/**
+ * 相対パスからスキルフォルダを削除
+ * SKILL.md の相対パスから親フォルダを特定して削除
+ */
+export async function uninstallSkillByPath(
+  relativePath: string,
+  workspaceUri: vscode.Uri
+): Promise<void> {
+  // relativePath は "folder/SKILL.md" 形式
+  // 親フォルダを取得
+  const folderPath = relativePath.replace(/\/SKILL\.md$/i, "");
+  const skillPath = vscode.Uri.joinPath(workspaceUri, folderPath);
 
   try {
     await vscode.workspace.fs.delete(skillPath, { recursive: true });
@@ -127,6 +278,7 @@ export interface SkillMeta {
   name: string;
   source: string;
   description: string;
+  description_ja?: string;
   categories: string[];
   installedAt: string;
 }
@@ -252,6 +404,26 @@ async function extractDescriptionFromSkillMd(
   } catch {
     return "";
   }
+}
+
+/**
+ * フォールバック SKILL.md を作成
+ */
+async function createFallbackSkillMd(
+  skillPath: vscode.Uri,
+  skill: Skill
+): Promise<void> {
+  const content = `# ${skill.name}
+
+${skill.description}
+
+Source: ${skill.source}
+`;
+  const skillMdPath = vscode.Uri.joinPath(skillPath, "SKILL.md");
+  await vscode.workspace.fs.writeFile(
+    skillMdPath,
+    Buffer.from(content, "utf-8")
+  );
 }
 
 /**

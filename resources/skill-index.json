@@ -31,6 +31,7 @@
       "name": "Awesome Claude Skills (ComposioHQ)",
       "url": "https://github.com/ComposioHQ/awesome-claude-skills",
       "type": "awesome-list",
+      "branch": "master",
       "description": "Curated list of Claude Skills",
       "description_ja": "Claude Skills のキュレーションリスト"
     },
@@ -63,6 +64,7 @@
       "name": "PRPs Agentic Engineering",
       "url": "https://github.com/Wirasm/PRPs-agentic-eng",
       "type": "community",
+      "branch": "development",
       "description": "PRP (Prompt Recipe Patterns) skills",
       "description_ja": "PRP（Prompt Recipe Patterns）スキル"
     },

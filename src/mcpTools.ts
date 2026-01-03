@@ -210,7 +210,7 @@ No skills found for "${query}".
         const trust = getTrustBadge(skill.source || "");
         const desc = getLocalizedDescription(skill, isJa);
         return `| ${skill.name} | ${
-          desc || "No description"
+          desc || (isJa ? "説明なし" : "No description")
         } | ${categories} | ${trust} |${stars}`;
       })
       .join("\n");
@@ -328,7 +328,8 @@ class SkillInstallTool
       await vscode.commands.executeCommand("skillNinja.refresh");
 
       const trust = getTrustBadge(skill.source || "");
-      const desc = getLocalizedDescription(skill, isJapanese());
+      const isJa = isJapanese();
+      const desc = getLocalizedDescription(skill, isJa);
 
       return new vscode.LanguageModelToolResult([
         new vscode.LanguageModelTextPart(
@@ -337,7 +338,7 @@ class SkillInstallTool
 | 項目 | 内容 |
 |------|------|
 | スキル名 | ${skill.name} |
-| 説明 | ${desc || "No description"} |
+| 説明 | ${desc || (isJa ? "説明なし" : "No description")} |
 | 信頼度 | ${trust} |
 | インストール先 | .github/skills/${skill.name}/ |
 

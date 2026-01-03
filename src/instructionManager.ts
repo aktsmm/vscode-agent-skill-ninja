@@ -5,6 +5,7 @@ import * as vscode from "vscode";
 import { getInstalledSkillsWithMeta, SkillMeta } from "./skillInstaller";
 import { scanLocalSkills, LocalSkill } from "./localSkillScanner";
 import { OutputFormat, resolveOutputFormat } from "./toolDetector";
+import * as path from "path";
 
 // セクションマーカー
 const MARKER_START = "<!-- skill-ninja-START -->";
@@ -13,6 +14,31 @@ const MARKER_END = "<!-- skill-ninja-END -->";
 // 旧マーカー（互換性のため検出・削除用）
 const LEGACY_MARKER_START = "<!-- SKILL-FINDER-START -->";
 const LEGACY_MARKER_END = "<!-- SKILL-FINDER-END -->";
+
+/**
+ * instructionFile から skillsDir への相対パスを計算
+ * 例: instructionFile = ".github/instructions/SkillList.instructions.md"
+ *     skillsDir = ".github/skills"
+ *     → 結果: "../skills"
+ */
+function calculateRelativePath(
+  instructionFile: string,
+  skillsDir: string
+): string {
+  // instructionFile のディレクトリを取得
+  const instructionDir = path.dirname(instructionFile);
+
+  // ルート（ワークスペース直下）の場合はそのまま
+  if (instructionDir === "." || instructionDir === "") {
+    return skillsDir;
+  }
+
+  // 相対パスを計算
+  const relativePath = path.relative(instructionDir, skillsDir);
+
+  // Windows パス区切りを / に変換
+  return relativePath.replace(/\\/g, "/");
+}
 
 /**
  * インストラクションファイルを更新する
@@ -29,8 +55,14 @@ export async function updateInstructionFile(
   const includeLocalSkills = config.get<boolean>("includeLocalSkills") ?? true;
   const instructionUri = vscode.Uri.joinPath(workspaceUri, instructionFile);
 
+  console.log(`[Skill Ninja] Updating instruction file: ${instructionFile}`);
+
   // インストール済みスキルをメタデータ付きで取得
   const installedSkills = await getInstalledSkillsWithMeta(workspaceUri);
+  console.log(
+    `[Skill Ninja] Found ${installedSkills.length} installed skills:`,
+    installedSkills.map((s) => s.name)
+  );
 
   // ローカルスキルを取得（設定で有効な場合のみ）
   let localSkills: LocalSkill[] = [];
@@ -40,13 +72,17 @@ export async function updateInstructionFile(
     localSkills = allLocalSkills.filter(
       (ls) => !ls.relativePath.startsWith(skillsDir)
     );
+    console.log(`[Skill Ninja] Found ${localSkills.length} local skills`);
   }
+
+  // instructionFile からの相対パスを計算
+  const relativeSkillsDir = calculateRelativePath(instructionFile, skillsDir);
 
   // フォーマットに応じてスキルセクションを生成
   const skillSection = generateSkillSectionForFormat(
     installedSkills,
     localSkills,
-    skillsDir,
+    relativeSkillsDir,
     format
   );
 

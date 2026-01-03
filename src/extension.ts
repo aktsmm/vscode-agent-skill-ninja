@@ -6,7 +6,9 @@ import { searchSkills, SkillQuickPickItem } from "./skillSearch";
 import {
   installSkill,
   uninstallSkill,
+  uninstallSkillByPath,
   getInstalledSkills,
+  getInstalledSkillsWithMeta,
 } from "./skillInstaller";
 import { updateInstructionFile } from "./instructionManager";
 import {
@@ -21,7 +23,7 @@ import {
   searchGitHub,
   showAuthHelp,
 } from "./indexUpdater";
-import { messages } from "./i18n";
+import { messages, isJapanese } from "./i18n";
 import {
   showSkillPreview,
   getSkillId,
@@ -40,6 +42,16 @@ export function activate(context: vscode.ExtensionContext) {
 
   let skillIndex: SkillIndex | undefined;
 
+  // 最近インストールしたスキル（🆕 表示用）
+  const recentlyInstalled = new Set<string>();
+
+  // ステータスバーアイテム
+  const statusBarItem = vscode.window.createStatusBarItem(
+    vscode.StatusBarAlignment.Left,
+    100
+  );
+  context.subscriptions.push(statusBarItem);
+
   loadSkillIndex(context).then((index: SkillIndex) => {
     skillIndex = index;
     console.log(`Loaded ${index.skills.length} skills from index`);
@@ -48,7 +60,10 @@ export function activate(context: vscode.ExtensionContext) {
   const workspaceFolder = vscode.workspace.workspaceFolders?.[0];
 
   // 統合ワークスペーススキルビュー
-  const workspaceProvider = new WorkspaceSkillsProvider(workspaceFolder?.uri);
+  const workspaceProvider = new WorkspaceSkillsProvider(
+    workspaceFolder?.uri,
+    recentlyInstalled
+  );
   const browseProvider = new BrowseSkillsProvider(context);
 
   // 後方互換のためのエイリアス
@@ -65,6 +80,17 @@ export function activate(context: vscode.ExtensionContext) {
   const browseTreeView = vscode.window.createTreeView("skillNinja.browseView", {
     treeDataProvider: browseProvider,
     showCollapseAll: true,
+  });
+
+  // 設定変更を監視してビューをリフレッシュ
+  const configWatcher = vscode.workspace.onDidChangeConfiguration(async (e) => {
+    if (e.affectsConfiguration("skillNinja.language")) {
+      // 言語設定が変わったらインデックスを再読み込みしてツリービューをリフレッシュ
+      // バンドル版の description_ja を反映させるため
+      skillIndex = await loadSkillIndex(context);
+      workspaceProvider.refresh();
+      browseProvider.refresh();
+    }
   });
 
   // GitHub Copilot Chat Participant
@@ -132,6 +158,47 @@ export function activate(context: vscode.ExtensionContext) {
       } catch {
         vscode.window.showWarningMessage(messages.skillNotFound(skillName));
       }
+    }
+  );
+
+  // Command: Open skill folder
+  const openSkillFolderCmd = vscode.commands.registerCommand(
+    "skillNinja.openSkillFolder",
+    async (item: SkillTreeItem) => {
+      if (!workspaceFolder) {
+        vscode.window.showErrorMessage(messages.noWorkspace());
+        return;
+      }
+
+      // ローカルスキルの場合は fullPath からフォルダパスを取得
+      const skill = item.skill as Skill & {
+        fullPath?: string;
+        isLocal?: boolean;
+      };
+      if (skill?.fullPath) {
+        const folderPath = skill.fullPath.replace(/[/\\]SKILL\.md$/i, "");
+        await vscode.commands.executeCommand(
+          "revealFileInOS",
+          vscode.Uri.file(folderPath)
+        );
+        return;
+      }
+
+      // インストール済みスキル（.github/skills 配下）の場合
+      const config = vscode.workspace.getConfiguration("skillNinja");
+      const skillsDir =
+        config.get<string>("skillsDirectory") || ".github/skills";
+
+      // ラベルからステータスアイコンを削除してスキル名を取得
+      const skillName = (item.label as string).replace(/^[✓○]\s*/, "");
+
+      const folderPath = vscode.Uri.joinPath(
+        workspaceFolder.uri,
+        skillsDir,
+        skillName
+      );
+
+      await vscode.commands.executeCommand("revealFileInOS", folderPath);
     }
   );
 
@@ -242,10 +309,33 @@ export function activate(context: vscode.ExtensionContext) {
             }
           }
         );
+
+        // 🆕 バッジ用に追加
+        recentlyInstalled.add(skill.name);
+
+        // ステータスバーに表示
+        statusBarItem.text = `$(check) ${skill.name} ${
+          isJapanese() ? "インストール完了" : "installed"
+        }`;
+        statusBarItem.show();
+        setTimeout(() => statusBarItem.hide(), 4000);
+
         vscode.window.showInformationMessage(
           messages.installSuccess(skill.name)
         );
-        installedProvider.refresh();
+        workspaceProvider.refresh();
+
+        // ツリービューでスキルを選択状態にする
+        const items = await workspaceProvider.getChildren();
+        const installedItem = items.find(
+          (item) => item.skill?.name === skill.name
+        );
+        if (installedItem) {
+          installedTreeView.reveal(installedItem, {
+            select: true,
+            focus: true,
+          });
+        }
       } catch (error) {
         vscode.window.showErrorMessage(messages.installFailed(String(error)));
       }
@@ -263,10 +353,16 @@ export function activate(context: vscode.ExtensionContext) {
       }
 
       let skillName: string | undefined;
+      let relativePath: string | undefined;
 
-      if (item && item.label) {
+      if (item && item.skill) {
+        // ツリーアイテムからスキル情報を取得
+        skillName = item.skill.name;
+        const skillAny = item.skill as unknown as Record<string, unknown>;
+        relativePath = (skillAny.relativePath || skillAny.path) as string | undefined;
+      } else if (item && item.label) {
         // ラベルからステータスアイコンを除去してスキル名を取得
-        skillName = (item.label as string).replace(/^[✓○]\s*/, "");
+        skillName = (item.label as string).replace(/^(?:🆕\s*)?[✓○]\s*/, "");
       } else {
         const installed = await getInstalledSkills(wsFolder.uri);
         if (installed.length === 0) {
@@ -284,7 +380,12 @@ export function activate(context: vscode.ExtensionContext) {
 
       if (skillName) {
         try {
-          await uninstallSkill(skillName, wsFolder.uri);
+          // relativePath がある場合はそれを使って削除（より確実）
+          if (relativePath) {
+            await uninstallSkillByPath(relativePath, wsFolder.uri);
+          } else {
+            await uninstallSkill(skillName, wsFolder.uri);
+          }
 
           const config = vscode.workspace.getConfiguration("skillNinja");
           if (config.get<boolean>("autoUpdateInstruction")) {
@@ -294,13 +395,432 @@ export function activate(context: vscode.ExtensionContext) {
           vscode.window.showInformationMessage(
             messages.uninstallSuccess(skillName)
           );
-          installedProvider.refresh();
+          workspaceProvider.refresh();
         } catch (error) {
           vscode.window.showErrorMessage(
             messages.uninstallFailed(String(error))
           );
         }
       }
+    }
+  );
+
+  // Command: Reinstall all skills
+  const reinstallAllCmd = vscode.commands.registerCommand(
+    "skillNinja.reinstallAll",
+    async () => {
+      const wsFolder = vscode.workspace.workspaceFolders?.[0];
+      if (!wsFolder) {
+        vscode.window.showErrorMessage(messages.noWorkspace());
+        return;
+      }
+
+      const installedMeta = await getInstalledSkillsWithMeta(wsFolder.uri);
+      if (installedMeta.length === 0) {
+        vscode.window.showInformationMessage(messages.noInstalledSkills());
+        return;
+      }
+
+      const confirm = await vscode.window.showWarningMessage(
+        isJapanese()
+          ? `${installedMeta.length} 個のスキルを再インストールしますか？`
+          : `Reinstall ${installedMeta.length} skills?`,
+        { modal: true },
+        isJapanese() ? "再インストール" : "Reinstall"
+      );
+
+      if (!confirm) {
+        return;
+      }
+
+      const index = await loadSkillIndex(context);
+
+      await vscode.window.withProgress(
+        {
+          location: vscode.ProgressLocation.Notification,
+          title: isJapanese()
+            ? "スキルを再インストール中..."
+            : "Reinstalling skills...",
+          cancellable: false,
+        },
+        async (progress) => {
+          let completed = 0;
+          for (const meta of installedMeta) {
+            progress.report({
+              message: `${meta.name} (${completed + 1}/${
+                installedMeta.length
+              })`,
+              increment: 100 / installedMeta.length,
+            });
+
+            // スキル情報を取得
+            const skill = index.skills.find(
+              (s: Skill) => s.name === meta.name && s.source === meta.source
+            );
+
+            if (skill) {
+              try {
+                // 既存を削除して再インストール
+                await uninstallSkill(meta.name, wsFolder.uri);
+                await installSkill(skill, wsFolder.uri, context);
+              } catch (error) {
+                console.error(`Failed to reinstall ${meta.name}:`, error);
+              }
+            }
+            completed++;
+          }
+        }
+      );
+
+      // Instruction ファイルを更新
+      const config = vscode.workspace.getConfiguration("skillNinja");
+      if (config.get<boolean>("autoUpdateInstruction")) {
+        await updateInstructionFile(wsFolder.uri, context);
+      }
+
+      installedProvider.refresh();
+      vscode.window.showInformationMessage(
+        isJapanese()
+          ? `${installedMeta.length} 個のスキルを再インストールしました`
+          : `Reinstalled ${installedMeta.length} skills`
+      );
+    }
+  );
+
+  // Command: Reinstall single skill
+  const reinstallCmd = vscode.commands.registerCommand(
+    "skillNinja.reinstall",
+    async (item?: SkillTreeItem) => {
+      const wsFolder = vscode.workspace.workspaceFolders?.[0];
+      if (!wsFolder) {
+        vscode.window.showErrorMessage(messages.noWorkspace());
+        return;
+      }
+
+      // ツリーアイテムからスキル情報を取得
+      const skill = item?.skill;
+      if (!skill?.name) {
+        vscode.window.showErrorMessage(messages.invalidSkillInfo());
+        return;
+      }
+
+      // メタデータからソース情報を取得
+      const installedMeta = await getInstalledSkillsWithMeta(wsFolder.uri);
+      const meta = installedMeta.find((m) => m.name === skill.name);
+      if (!meta) {
+        vscode.window.showErrorMessage(
+          isJapanese()
+            ? `${skill.name} のメタデータが見つかりません`
+            : `Metadata not found for ${skill.name}`
+        );
+        return;
+      }
+
+      // インデックスからスキル情報を取得
+      const index = await loadSkillIndex(context);
+      const fullSkill = index.skills.find(
+        (s: Skill) => s.name === meta.name && s.source === meta.source
+      );
+
+      if (!fullSkill) {
+        vscode.window.showErrorMessage(
+          isJapanese()
+            ? `${skill.name} がインデックスに見つかりません。インデックスを更新してください。`
+            : `${skill.name} not found in index. Please update the index.`
+        );
+        return;
+      }
+
+      try {
+        await vscode.window.withProgress(
+          {
+            location: vscode.ProgressLocation.Notification,
+            title: isJapanese()
+              ? `${skill.name} を再インストール中...`
+              : `Reinstalling ${skill.name}...`,
+          },
+          async () => {
+            await uninstallSkill(skill.name, wsFolder.uri);
+            await installSkill(fullSkill, wsFolder.uri, context);
+
+            const config = vscode.workspace.getConfiguration("skillNinja");
+            if (config.get<boolean>("autoUpdateInstruction")) {
+              await updateInstructionFile(wsFolder.uri, context);
+            }
+          }
+        );
+
+        // 🆕 バッジ用に追加
+        recentlyInstalled.add(skill.name);
+
+        // ステータスバーに表示
+        statusBarItem.text = `$(sync) ${skill.name} ${
+          isJapanese() ? "再インストール完了" : "reinstalled"
+        }`;
+        statusBarItem.show();
+        setTimeout(() => statusBarItem.hide(), 4000);
+
+        vscode.window.showInformationMessage(
+          isJapanese()
+            ? `${skill.name} を再インストールしました`
+            : `Reinstalled ${skill.name}`
+        );
+        workspaceProvider.refresh();
+      } catch (error) {
+        vscode.window.showErrorMessage(
+          isJapanese()
+            ? `再インストール失敗: ${String(error)}`
+            : `Reinstall failed: ${String(error)}`
+        );
+      }
+    }
+  );
+
+  // Command: Uninstall all skills (with warning)
+  const uninstallAllCmd = vscode.commands.registerCommand(
+    "skillNinja.uninstallAll",
+    async () => {
+      const wsFolder = vscode.workspace.workspaceFolders?.[0];
+      if (!wsFolder) {
+        vscode.window.showErrorMessage(messages.noWorkspace());
+        return;
+      }
+
+      const installed = await getInstalledSkills(wsFolder.uri);
+      if (installed.length === 0) {
+        vscode.window.showInformationMessage(messages.noInstalledSkills());
+        return;
+      }
+
+      // 2段階確認
+      const confirm1 = await vscode.window.showWarningMessage(
+        isJapanese()
+          ? `⚠️ ${installed.length} 個のスキルを全て削除しますか？`
+          : `⚠️ Delete all ${installed.length} skills?`,
+        { modal: true },
+        isJapanese() ? "続ける" : "Continue"
+      );
+
+      if (!confirm1) {
+        return;
+      }
+
+      const confirm2 = await vscode.window.showWarningMessage(
+        isJapanese()
+          ? `本当に全てのスキルを削除しますか？この操作は元に戻せません。`
+          : `Are you sure you want to delete ALL skills? This cannot be undone.`,
+        { modal: true },
+        isJapanese() ? "全て削除" : "Delete All"
+      );
+
+      if (!confirm2) {
+        return;
+      }
+
+      await vscode.window.withProgress(
+        {
+          location: vscode.ProgressLocation.Notification,
+          title: isJapanese()
+            ? "全スキルを削除中..."
+            : "Deleting all skills...",
+          cancellable: false,
+        },
+        async (progress) => {
+          let completed = 0;
+          for (const skillName of installed) {
+            progress.report({
+              message: `${skillName} (${completed + 1}/${installed.length})`,
+              increment: 100 / installed.length,
+            });
+            try {
+              await uninstallSkill(skillName, wsFolder.uri);
+            } catch (error) {
+              console.error(`Failed to uninstall ${skillName}:`, error);
+            }
+            completed++;
+          }
+        }
+      );
+
+      const config = vscode.workspace.getConfiguration("skillNinja");
+      if (config.get<boolean>("autoUpdateInstruction")) {
+        await updateInstructionFile(wsFolder.uri, context);
+      }
+
+      workspaceProvider.refresh();
+      vscode.window.showInformationMessage(
+        isJapanese()
+          ? `${installed.length} 個のスキルを削除しました`
+          : `Deleted ${installed.length} skills`
+      );
+    }
+  );
+
+  // Command: Uninstall multiple skills (QuickPick)
+  const uninstallMultipleCmd = vscode.commands.registerCommand(
+    "skillNinja.uninstallMultiple",
+    async () => {
+      const wsFolder = vscode.workspace.workspaceFolders?.[0];
+      if (!wsFolder) {
+        vscode.window.showErrorMessage(messages.noWorkspace());
+        return;
+      }
+
+      const installed = await getInstalledSkills(wsFolder.uri);
+      if (installed.length === 0) {
+        vscode.window.showInformationMessage(messages.noInstalledSkills());
+        return;
+      }
+
+      const selected = await vscode.window.showQuickPick(
+        installed.map((name: string) => ({
+          label: name,
+          picked: false,
+        })),
+        {
+          canPickMany: true,
+          placeHolder: isJapanese()
+            ? "削除するスキルを選択（複数選択可）"
+            : "Select skills to uninstall (multiple selection)",
+        }
+      );
+
+      if (!selected || selected.length === 0) {
+        return;
+      }
+
+      const confirm = await vscode.window.showWarningMessage(
+        isJapanese()
+          ? `${selected.length} 個のスキルを削除しますか？`
+          : `Delete ${selected.length} skills?`,
+        { modal: true },
+        isJapanese() ? "削除" : "Delete"
+      );
+
+      if (!confirm) {
+        return;
+      }
+
+      await vscode.window.withProgress(
+        {
+          location: vscode.ProgressLocation.Notification,
+          title: isJapanese() ? "スキルを削除中..." : "Deleting skills...",
+          cancellable: false,
+        },
+        async (progress) => {
+          let completed = 0;
+          for (const item of selected) {
+            progress.report({
+              message: `${item.label} (${completed + 1}/${selected.length})`,
+              increment: 100 / selected.length,
+            });
+            try {
+              await uninstallSkill(item.label, wsFolder.uri);
+            } catch (error) {
+              console.error(`Failed to uninstall ${item.label}:`, error);
+            }
+            completed++;
+          }
+        }
+      );
+
+      const config = vscode.workspace.getConfiguration("skillNinja");
+      if (config.get<boolean>("autoUpdateInstruction")) {
+        await updateInstructionFile(wsFolder.uri, context);
+      }
+
+      workspaceProvider.refresh();
+      vscode.window.showInformationMessage(
+        isJapanese()
+          ? `${selected.length} 個のスキルを削除しました`
+          : `Deleted ${selected.length} skills`
+      );
+    }
+  );
+
+  // Command: Reinstall multiple skills (QuickPick)
+  const reinstallMultipleCmd = vscode.commands.registerCommand(
+    "skillNinja.reinstallMultiple",
+    async () => {
+      const wsFolder = vscode.workspace.workspaceFolders?.[0];
+      if (!wsFolder) {
+        vscode.window.showErrorMessage(messages.noWorkspace());
+        return;
+      }
+
+      const installedMeta = await getInstalledSkillsWithMeta(wsFolder.uri);
+      if (installedMeta.length === 0) {
+        vscode.window.showInformationMessage(messages.noInstalledSkills());
+        return;
+      }
+
+      const selected = await vscode.window.showQuickPick(
+        installedMeta.map((meta) => ({
+          label: meta.name,
+          description: meta.source,
+          picked: false,
+          meta,
+        })),
+        {
+          canPickMany: true,
+          placeHolder: isJapanese()
+            ? "再インストールするスキルを選択（複数選択可）"
+            : "Select skills to reinstall (multiple selection)",
+        }
+      );
+
+      if (!selected || selected.length === 0) {
+        return;
+      }
+
+      const index = await loadSkillIndex(context);
+
+      await vscode.window.withProgress(
+        {
+          location: vscode.ProgressLocation.Notification,
+          title: isJapanese()
+            ? "スキルを再インストール中..."
+            : "Reinstalling skills...",
+          cancellable: false,
+        },
+        async (progress) => {
+          let completed = 0;
+          for (const item of selected) {
+            progress.report({
+              message: `${item.label} (${completed + 1}/${selected.length})`,
+              increment: 100 / selected.length,
+            });
+
+            const skill = index.skills.find(
+              (s: Skill) =>
+                s.name === item.meta.name && s.source === item.meta.source
+            );
+
+            if (skill) {
+              try {
+                await uninstallSkill(item.meta.name, wsFolder.uri);
+                await installSkill(skill, wsFolder.uri, context);
+                recentlyInstalled.add(item.meta.name);
+              } catch (error) {
+                console.error(`Failed to reinstall ${item.meta.name}:`, error);
+              }
+            }
+            completed++;
+          }
+        }
+      );
+
+      const config = vscode.workspace.getConfiguration("skillNinja");
+      if (config.get<boolean>("autoUpdateInstruction")) {
+        await updateInstructionFile(wsFolder.uri, context);
+      }
+
+      workspaceProvider.refresh();
+      vscode.window.showInformationMessage(
+        isJapanese()
+          ? `${selected.length} 個のスキルを再インストールしました`
+          : `Reinstalled ${selected.length} skills`
+      );
     }
   );
 
@@ -1020,6 +1540,32 @@ Add examples here
     }
   );
 
+  // Command: Update instruction file manually
+  const updateInstructionCmd = vscode.commands.registerCommand(
+    "skillNinja.updateInstruction",
+    async () => {
+      if (!workspaceFolder) {
+        vscode.window.showErrorMessage(messages.noWorkspace());
+        return;
+      }
+
+      try {
+        await updateInstructionFile(workspaceFolder.uri, context);
+        vscode.window.showInformationMessage(
+          isJapanese()
+            ? "インストラクションファイルを更新しました"
+            : "Instruction file updated"
+        );
+      } catch (error) {
+        vscode.window.showErrorMessage(
+          isJapanese()
+            ? `更新に失敗しました: ${error}`
+            : `Failed to update: ${error}`
+        );
+      }
+    }
+  );
+
   // Command: Open instruction file (AGENTS.md etc.)
   const openInstructionFileCmd = vscode.commands.registerCommand(
     "skillNinja.openInstructionFile",
@@ -1082,6 +1628,11 @@ Add examples here
     searchCmd,
     installCmd,
     uninstallCmd,
+    reinstallAllCmd,
+    reinstallCmd,
+    uninstallAllCmd,
+    uninstallMultipleCmd,
+    reinstallMultipleCmd,
     showInstalledCmd,
     refreshCmd,
     refreshLocalCmd,
@@ -1097,8 +1648,11 @@ Add examples here
     registerLocalSkillCmd,
     unregisterLocalSkillCmd,
     createSkillCmd,
+    updateInstructionCmd,
     openInstructionFileCmd,
     openSettingsCmd,
+    openSkillFolderCmd,
+    configWatcher,
     installedTreeView,
     browseTreeView
   );

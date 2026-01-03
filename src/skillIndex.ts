@@ -34,6 +34,7 @@ export interface Source {
   name: string;
   url: string;
   type: string;
+  branch?: string; // デフォルトブランチ（省略時は"main"）
   description: string;
   description_ja?: string; // 日本語説明（オプション）
 }
@@ -90,11 +91,13 @@ export async function loadSkillIndex(
       Buffer.from(content).toString("utf-8")
     );
 
-    // バンドル版が新しい場合、ソースをマージ
-    if (bundledIndex && bundledIndex.version > localIndex.version) {
+    // バンドル版がある場合は常にマージ（description_ja の補完のため）
+    if (bundledIndex) {
       const mergedIndex = mergeSkillIndexes(localIndex, bundledIndex);
-      // マージ結果を保存
-      await saveSkillIndex(context, mergedIndex);
+      // バージョンが新しい場合、または description_ja が追加された場合に保存
+      if (bundledIndex.version > localIndex.version) {
+        await saveSkillIndex(context, mergedIndex);
+      }
       return mergedIndex;
     }
 

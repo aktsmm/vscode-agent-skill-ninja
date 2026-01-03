@@ -367,10 +367,46 @@
         "icon": "$(refresh)"
       },
       {
+        "command": "skillNinja.reinstallAll",
+        "title": "%command.reinstallAll%",
+        "category": "Agent Skill Ninja",
+        "icon": "$(sync)"
+      },
+      {
+        "command": "skillNinja.reinstall",
+        "title": "%command.reinstall%",
+        "category": "Agent Skill Ninja",
+        "icon": "$(sync)"
+      },
+      {
+        "command": "skillNinja.uninstallAll",
+        "title": "%command.uninstallAll%",
+        "category": "Agent Skill Ninja",
+        "icon": "$(trash)"
+      },
+      {
+        "command": "skillNinja.uninstallMultiple",
+        "title": "%command.uninstallMultiple%",
+        "category": "Agent Skill Ninja",
+        "icon": "$(checklist)"
+      },
+      {
+        "command": "skillNinja.reinstallMultiple",
+        "title": "%command.reinstallMultiple%",
+        "category": "Agent Skill Ninja",
+        "icon": "$(checklist)"
+      },
+      {
         "command": "skillNinja.openSkillFile",
         "title": "%command.openSkillFile%",
         "category": "Agent Skill Ninja",
         "icon": "$(go-to-file)"
+      },
+      {
+        "command": "skillNinja.openSkillFolder",
+        "title": "%command.openSkillFolder%",
+        "category": "Agent Skill Ninja",
+        "icon": "$(folder-opened)"
       },
       {
         "command": "skillNinja.updateIndex",
@@ -457,6 +493,12 @@
         "icon": "$(refresh)"
       },
       {
+        "command": "skillNinja.updateInstruction",
+        "title": "%command.updateInstruction%",
+        "category": "Agent Skill Ninja",
+        "icon": "$(sync)"
+      },
+      {
         "command": "skillNinja.openInstructionFile",
         "title": "%command.openInstructionFile%",
         "category": "Agent Skill Ninja",
@@ -487,9 +529,29 @@
           "group": "navigation@3"
         },
         {
-          "command": "skillNinja.openSettings",
+          "command": "skillNinja.reinstallAll",
           "when": "view == skillNinja.installedView",
           "group": "navigation@4"
+        },
+        {
+          "command": "skillNinja.uninstallAll",
+          "when": "view == skillNinja.installedView",
+          "group": "navigation@5"
+        },
+        {
+          "command": "skillNinja.uninstallMultiple",
+          "when": "view == skillNinja.installedView",
+          "group": "navigation@6"
+        },
+        {
+          "command": "skillNinja.reinstallMultiple",
+          "when": "view == skillNinja.installedView",
+          "group": "navigation@7"
+        },
+        {
+          "command": "skillNinja.openSettings",
+          "when": "view == skillNinja.installedView",
+          "group": "navigation@8"
         },
         {
           "command": "skillNinja.search",
@@ -518,6 +580,14 @@
           "when": "view == skillNinja.installedView || view == skillNinja.browseView"
         },
         {
+          "command": "skillNinja.uninstallMultiple",
+          "when": "view == skillNinja.installedView"
+        },
+        {
+          "command": "skillNinja.reinstallMultiple",
+          "when": "view == skillNinja.installedView"
+        },
+        {
           "command": "skillNinja.refreshLocal",
           "when": "view == skillNinja.localView"
         },
@@ -535,6 +605,16 @@
         {
           "command": "skillNinja.uninstall",
           "when": "view == skillNinja.installedView && viewItem == installedSkill",
+          "group": "inline"
+        },
+        {
+          "command": "skillNinja.reinstall",
+          "when": "view == skillNinja.installedView && viewItem == installedSkill",
+          "group": "inline"
+        },
+        {
+          "command": "skillNinja.openSkillFolder",
+          "when": "view == skillNinja.installedView && (viewItem == installedSkill || viewItem == localSkill)",
           "group": "inline"
         },
         {

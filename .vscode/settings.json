@@ -3,9 +3,5 @@
     "node_modules": true,
     "dist": true
   },
-  "typescript.tsc.autoDetect": "off",
-  "chat.promptFiles": true,
-  "chat.promptFilesLocations": {
-    ".vscode/prompts": true
-  }
+  "typescript.tsc.autoDetect": "off"
 }

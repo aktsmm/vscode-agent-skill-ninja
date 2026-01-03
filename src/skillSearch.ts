@@ -65,7 +65,7 @@ export function searchSkills(
     return {
       label: `$(package) ${skill.name}`,
       description: `$(repo) ${skill.source}`,
-      detail: `${desc || "No description"}${
+      detail: `${desc || (isJa ? "説明なし" : "No description")}${
         categoryTags ? `  ${categoryTags}` : ""
       }`,
       skill: skill,

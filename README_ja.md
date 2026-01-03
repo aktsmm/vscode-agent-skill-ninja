@@ -33,6 +33,9 @@
 - ワンクリックで `.github/skills/` に自動配置
 - **instruction file** 自動更新（AGENTS.md / copilot-instructions.md / CLAUDE.md）
 - アンインストール機能
+- **全て再インストール** - 最新ソースから一括再インストール
+- **インストール通知** - 🆕 バッジ、ステータスバー表示、ツリービューで自動選択
+- **フォルダを開く** - インストール済みスキルのフォルダにクイックアクセス
 
 ### � マルチツール対応
 
@@ -124,11 +127,28 @@ ext install yamapan.agent-skill-ninja
 
 1. アクティビティバーの **螺旋手裏剣アイコン** をクリック
 2. **Workspace Skills** - インストール済み＆ローカルスキル一覧
-   - ✓ インストール済みスキル
-   - ○ ローカルスキル（未登録）
+   - ✓ インストール済みスキル（緑アイコン）
+   - ○ ローカルスキル（未登録、黄アイコン）
+   - 🆕 新しくインストールしたスキル（一時的なバッジ）
    - 📄 Instruction File を開くボタン
+   - 🔄 全て再インストールボタン
    - ⚙️ 設定を開くボタン
-3. **Browse** - ソース別にスキルを閲覧
+   - 📂 スキルフォルダを開く（右クリックメニュー）
+3. **Remote Skills** - ソース別にスキルを閲覧
+   - ✓ インストール済みは緑アイコンで表示
+   - 🏢 Official / ⭐ Curated / 📦 Community ソースバッジ
+   - リストからワンクリックでインストール
+
+### アイコン凡例
+
+| アイコン         | 意味                                      |
+| ---------------- | ----------------------------------------- |
+| ✓ (緑)           | インストール済みスキル                    |
+| ○ (黄)           | ローカルスキル（instruction file 未登録） |
+| 🆕               | 最近インストール（一時的なバッジ）        |
+| 🏢 verified (青) | 公式ソース（Anthropic, GitHub）           |
+| ⭐ star (黄)     | キュレーション awesome-list               |
+| 📦 package       | コミュニティリポジトリ                    |
 
 ### コマンドパレット
 
@@ -144,6 +164,9 @@ ext install yamapan.agent-skill-ninja
 | `Agent Skill Ninja: Create New Skill`         | 新規ローカルスキルを作成                 |
 | `Agent Skill Ninja: Register Local Skill`     | ローカルスキルを instruction file に登録 |
 | `Agent Skill Ninja: Unregister Local Skill`   | instruction file から登録解除            |
+| `Agent Skill Ninja: Reinstall All`            | 全スキルを最新ソースから再インストール   |
+| `Agent Skill Ninja: Update Instruction`       | instruction file を手動更新              |
+| `Agent Skill Ninja: Open Skill Folder`        | インストール済みスキルのフォルダを開く   |
 
 ### クイックスタート
 

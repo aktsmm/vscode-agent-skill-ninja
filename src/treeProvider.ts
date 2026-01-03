@@ -9,9 +9,13 @@ import {
   Source,
   getLocalizedDescription,
 } from "./skillIndex";
-import { getInstalledSkillsWithMeta } from "./skillInstaller";
+import {
+  getInstalledSkillsWithMeta,
+  getInstalledSkills,
+} from "./skillInstaller";
 import { LocalSkill, scanLocalSkills } from "./localSkillScanner";
 import { isJapanese } from "./i18n";
+import { getSkillId } from "./skillPreview";
 
 /**
  * ワークスペーススキル情報（統合型）
@@ -19,6 +23,7 @@ import { isJapanese } from "./i18n";
 export interface WorkspaceSkill {
   name: string;
   description: string;
+  description_ja?: string;
   relativePath: string;
   fullPath: string;
   isInstalled: boolean; // .github/skills 配下か
@@ -42,15 +47,26 @@ export class WorkspaceSkillsProvider
   readonly onDidChangeTreeData = this._onDidChangeTreeData.event;
   private workspaceSkills: WorkspaceSkill[] = [];
 
-  constructor(private workspaceUri: vscode.Uri | undefined) {}
+  constructor(
+    private workspaceUri: vscode.Uri | undefined,
+    private recentlyInstalled?: Set<string>
+  ) {}
 
   refresh(): void {
     this.workspaceSkills = [];
+    // リフレッシュ時に「最近インストール」をクリア（🆕バッジを消す）
+    this.recentlyInstalled?.clear();
     this._onDidChangeTreeData.fire();
   }
 
   getTreeItem(element: SkillTreeItem): vscode.TreeItem {
     return element;
+  }
+
+  // reveal() を使うために必要
+  getParent(): SkillTreeItem | undefined {
+    // フラットなリストなので親はなし
+    return undefined;
   }
 
   async getChildren(element?: SkillTreeItem): Promise<SkillTreeItem[]> {
@@ -67,8 +83,10 @@ export class WorkspaceSkillsProvider
       if (this.workspaceSkills.length === 0) {
         return [
           new SkillTreeItem(
-            "No skills found",
-            "Use 'Search Skills' to install skills",
+            isJapanese() ? "スキルが見つかりません" : "No skills found",
+            isJapanese()
+              ? "「スキルを検索」でインストールしてください"
+              : "Use 'Search Skills' to install skills",
             vscode.TreeItemCollapsibleState.None,
             "placeholder"
           ),
@@ -80,6 +98,10 @@ export class WorkspaceSkillsProvider
         let statusIcon: string;
         let iconId: string;
         let iconColor: vscode.ThemeColor;
+
+        // 🆕 バッジ（最近インストールされたスキル）
+        const isRecent = this.recentlyInstalled?.has(skill.name) ?? false;
+        const newBadge = isRecent ? "🆕 " : "";
 
         if (skill.isInstalled) {
           // インストール済み（.github/skills 配下）
@@ -99,13 +121,15 @@ export class WorkspaceSkillsProvider
         }
 
         const item = new SkillTreeItem(
-          `${statusIcon} ${skill.name}`,
+          `${newBadge}${statusIcon} ${skill.name}`,
           skill.relativePath,
           vscode.TreeItemCollapsibleState.None,
           skill.isInstalled ? "installedSkill" : "localSkill",
           {
             name: skill.name,
-            description: skill.description,
+            description: isJapanese()
+              ? skill.description_ja || skill.description
+              : skill.description,
             source: skill.source || "local",
             path: skill.relativePath,
             categories: skill.categories || [],
@@ -121,18 +145,29 @@ export class WorkspaceSkillsProvider
 
         // ツールチップ
         const statusText = skill.isInstalled
-          ? "Installed"
+          ? isJapanese()
+            ? "インストール済み"
+            : "Installed"
           : skill.isRegistered
-          ? "Local (Registered)"
+          ? isJapanese()
+            ? "ローカル（登録済み）"
+            : "Local (Registered)"
+          : isJapanese()
+          ? "ローカル（未登録）"
           : "Local (Not registered)";
-        item.tooltip = `${skill.name}\n${
-          skill.description || "No description"
-        }\nPath: ${skill.relativePath}\nStatus: ${statusText}`;
+        const noDesc = isJapanese() ? "説明なし" : "No description";
+        const pathLabel = isJapanese() ? "パス" : "Path";
+        const statusLabel = isJapanese() ? "状態" : "Status";
+        // 日本語設定ならdescription_jaを優先
+        const descText = isJapanese()
+          ? skill.description_ja || skill.description || noDesc
+          : skill.description || noDesc;
+        item.tooltip = `${skill.name}\n${descText}\n${pathLabel}: ${skill.relativePath}\n${statusLabel}: ${statusText}`;
 
         // クリックで SKILL.md を開く
         item.command = {
           command: "vscode.open",
-          title: "Open SKILL.md",
+          title: isJapanese() ? "SKILL.md を開く" : "Open SKILL.md",
           arguments: [vscode.Uri.file(skill.fullPath)],
         };
 
@@ -184,6 +219,7 @@ export class WorkspaceSkillsProvider
       if (existing) {
         // メタデータがあれば補完
         existing.description = meta.description || existing.description;
+        existing.description_ja = meta.description_ja;
         existing.source = meta.source || existing.source;
         existing.categories = meta.categories?.length
           ? meta.categories
@@ -225,11 +261,13 @@ export class BrowseSkillsProvider
   >();
   readonly onDidChangeTreeData = this._onDidChangeTreeData.event;
   private skillIndex: SkillIndex | undefined;
+  private installedSkillNames: Set<string> = new Set();
 
   constructor(private context: vscode.ExtensionContext) {}
 
   refresh(): void {
     this.skillIndex = undefined;
+    this.installedSkillNames.clear();
     this._onDidChangeTreeData.fire();
   }
 
@@ -243,19 +281,105 @@ export class BrowseSkillsProvider
       this.skillIndex = await loadSkillIndex(this.context);
     }
 
+    // インストール済みスキルを取得
+    if (this.installedSkillNames.size === 0) {
+      const wsFolder = vscode.workspace.workspaceFolders?.[0];
+      if (wsFolder) {
+        const installed = await getInstalledSkills(wsFolder.uri);
+        installed.forEach((name: string) =>
+          this.installedSkillNames.add(name.toLowerCase())
+        );
+      }
+    }
+
     if (!element) {
-      // ルートレベル: ソース一覧
-      return this.skillIndex.sources.map(
-        (source) =>
-          new SkillTreeItem(
-            source.name,
-            `${this.getSkillCountForSource(source.id)} skills`,
-            vscode.TreeItemCollapsibleState.Collapsed,
-            "source",
-            undefined,
-            source
-          )
+      // ルートレベル: Favorites + ソース一覧
+      const items: SkillTreeItem[] = [];
+
+      // お気に入りセクション
+      const favorites = this.context.globalState.get<string[]>("favorites", []);
+      if (favorites.length > 0) {
+        const favItem = new SkillTreeItem(
+          isJapanese() ? "お気に入り" : "Favorites",
+          `${favorites.length} skills`,
+          vscode.TreeItemCollapsibleState.Collapsed,
+          "favorites"
+        );
+        favItem.iconPath = new vscode.ThemeIcon(
+          "star-full",
+          new vscode.ThemeColor("charts.yellow")
+        );
+        items.push(favItem);
+      }
+
+      // ソース一覧（タイプ順: official → awesome-list → community）
+      const sortedSources = [...this.skillIndex.sources].sort((a, b) => {
+        const priority: Record<string, number> = {
+          official: 0,
+          "awesome-list": 1,
+          community: 2,
+        };
+        return (priority[a.type] ?? 99) - (priority[b.type] ?? 99);
+      });
+
+      for (const source of sortedSources) {
+        const item = new SkillTreeItem(
+          source.name,
+          `${this.getSkillCountForSource(source.id)} skills`,
+          vscode.TreeItemCollapsibleState.Collapsed,
+          "source",
+          undefined,
+          source
+        );
+        // ソースタイプによってアイコンを変更
+        if (source.type === "official") {
+          item.iconPath = new vscode.ThemeIcon(
+            "verified",
+            new vscode.ThemeColor("charts.blue")
+          );
+        } else if (source.type === "awesome-list") {
+          item.iconPath = new vscode.ThemeIcon(
+            "star",
+            new vscode.ThemeColor("charts.yellow")
+          );
+        } else {
+          item.iconPath = new vscode.ThemeIcon("repo");
+        }
+        items.push(item);
+      }
+
+      return items;
+    }
+
+    // Favorites 配下
+    if (element.contextValue === "favorites") {
+      const favorites = this.context.globalState.get<string[]>("favorites", []);
+      const isJa = isJapanese();
+      const favoriteSkills = this.skillIndex.skills.filter((skill) =>
+        favorites.includes(getSkillId(skill))
       );
+
+      return favoriteSkills.map((skill) => {
+        const isInstalled = this.installedSkillNames.has(
+          skill.name.toLowerCase()
+        );
+        const item = new SkillTreeItem(
+          isInstalled ? `✓ ${skill.name}` : skill.name,
+          getLocalizedDescription(skill, isJa),
+          vscode.TreeItemCollapsibleState.None,
+          "skill",
+          skill
+        );
+        if (isInstalled) {
+          item.iconPath = new vscode.ThemeIcon(
+            "package",
+            new vscode.ThemeColor("charts.green")
+          );
+        } else {
+          item.iconPath = new vscode.ThemeIcon("package");
+        }
+        return item;
+      });
     }
 
     if (element.contextValue === "source" && element.source) {
@@ -264,16 +388,28 @@ export class BrowseSkillsProvider
         (s) => s.source === element.source!.id
       );
       const isJa = isJapanese();
-      return skills.map(
-        (skill) =>
-          new SkillTreeItem(
-            skill.name,
-            getLocalizedDescription(skill, isJa),
-            vscode.TreeItemCollapsibleState.None,
-            "skill",
-            skill
-          )
-      );
+      return skills.map((skill) => {
+        const isInstalled = this.installedSkillNames.has(
+          skill.name.toLowerCase()
+        );
+        const item = new SkillTreeItem(
+          isInstalled ? `✓ ${skill.name}` : skill.name,
+          getLocalizedDescription(skill, isJa),
+          vscode.TreeItemCollapsibleState.None,
+          "skill",
+          skill
+        );
+        // インストール済みは緑色アイコン
+        if (isInstalled) {
+          item.iconPath = new vscode.ThemeIcon(
+            "package",
+            new vscode.ThemeColor("charts.green")
+          );
+        } else {
+          item.iconPath = new vscode.ThemeIcon("package");
+        }
+        return item;
+      });
     }
 
     return [];
@@ -314,7 +450,10 @@ export class SkillTreeItem extends vscode.TreeItem {
 
     // ツールチップ
     if (skill) {
-      this.tooltip = `${skill.name}\n${skill.description}\nCategories: ${
+      const isJa = isJapanese();
+      const categoriesLabel = isJa ? "カテゴリ" : "Categories";
+      const localizedDesc = getLocalizedDescription(skill, isJa);
+      this.tooltip = `${skill.name}\n${localizedDesc}\n${categoriesLabel}: ${
         skill.categories?.join(", ") || ""
       }`;
     } else if (source) {

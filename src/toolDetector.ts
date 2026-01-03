@@ -2,6 +2,7 @@
 // ワークスペース内の設定ファイルから使用中の AI ツールを検出
 
 import * as vscode from "vscode";
+import { isJapanese } from "./i18n";
 
 /**
  * 検出可能な AI ツール
@@ -227,8 +228,12 @@ export async function promptToolSelection(
     ];
 
     const selected = await vscode.window.showQuickPick(items, {
-      placeHolder: "Select your AI coding assistant",
-      title: "Agent Skill Ninja - Tool Selection",
+      placeHolder: isJapanese()
+        ? "AI コーディングアシスタントを選択"
+        : "Select your AI coding assistant",
+      title: isJapanese()
+        ? "Agent Skill Ninja - ツール選択"
+        : "Agent Skill Ninja - Tool Selection",
     });
 
     if (!selected) {
@@ -354,36 +359,41 @@ export async function resolveOutputFormat(
   const enableToolDetection =
     config.get<boolean>("enableToolDetection") ?? true;
 
+  // ユーザーが設定した instructionFile を取得
+  const userInstructionFile =
+    config.get<string>("instructionFile") || "AGENTS.md";
+
+  // カスタムパスの解決
+  const resolveInstructionFile = (): string => {
+    if (userInstructionFile === "custom") {
+      return config.get<string>("customInstructionPath") || "AGENTS.md";
+    }
+    return userInstructionFile;
+  };
+
+  // instructionFile は常にユーザー設定を使用（自動検出しない）
+  const instructionFile = resolveInstructionFile();
+
   // auto でない場合は設定値を使用
   if (outputFormat !== "auto") {
-    let instructionFile = config.get<string>("instructionFile") || "AGENTS.md";
-    if (instructionFile === "custom") {
-      instructionFile =
-        config.get<string>("customInstructionPath") || "AGENTS.md";
-    }
     return {
       format: outputFormat as OutputFormat,
       instructionFile,
     };
   }
 
-  // auto の場合は検出
+  // auto の場合は format のみ検出（instructionFile はユーザー設定を維持）
   if (enableToolDetection) {
     const result = await detectAITools(workspaceUri);
     if (result.detectedTools.length > 0) {
       return {
         format: result.recommendedFormat,
-        instructionFile: result.recommendedInstructionFile,
+        instructionFile,
       };
     }
   }
 
   // 検出できなかった場合はデフォルト
-  let instructionFile = config.get<string>("instructionFile") || "AGENTS.md";
-  if (instructionFile === "custom") {
-    instructionFile =
-      config.get<string>("customInstructionPath") || "AGENTS.md";
-  }
   return {
     format: "markdown",
     instructionFile,
