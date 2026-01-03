@@ -114,18 +114,18 @@ ext install yamapan.skill-ninja
 
 ### Command Palette
 
-| Command                                       | Description                        |
-| --------------------------------------------- | ---------------------------------- |
-| `Agent Skill Ninja: Search Skills`            | Search and install skills          |
-| `Agent Skill Ninja: Update Index`             | Update index from all sources      |
-| `Agent Skill Ninja: Search on GitHub`         | Search skills on GitHub            |
-| `Agent Skill Ninja: Add Source Repository`    | Add new source repository          |
-| `Agent Skill Ninja: Remove Source Repository` | Remove source repository           |
-| `Agent Skill Ninja: Uninstall Skill`          | Uninstall a skill                  |
-| `Agent Skill Ninja: Show Installed Skills`    | Show installed skills              |
-| `Agent Skill Ninja: Create New Skill`         | Create new local skill             |
-| `Agent Skill Ninja: Register Local Skill`     | Register local skill to AGENTS.md  |
-| `Agent Skill Ninja: Unregister Local Skill`   | Unregister from AGENTS.md          |
+| Command                                       | Description                       |
+| --------------------------------------------- | --------------------------------- |
+| `Agent Skill Ninja: Search Skills`            | Search and install skills         |
+| `Agent Skill Ninja: Update Index`             | Update index from all sources     |
+| `Agent Skill Ninja: Search on GitHub`         | Search skills on GitHub           |
+| `Agent Skill Ninja: Add Source Repository`    | Add new source repository         |
+| `Agent Skill Ninja: Remove Source Repository` | Remove source repository          |
+| `Agent Skill Ninja: Uninstall Skill`          | Uninstall a skill                 |
+| `Agent Skill Ninja: Show Installed Skills`    | Show installed skills             |
+| `Agent Skill Ninja: Create New Skill`         | Create new local skill            |
+| `Agent Skill Ninja: Register Local Skill`     | Register local skill to AGENTS.md |
+| `Agent Skill Ninja: Unregister Local Skill`   | Unregister from AGENTS.md         |
 
 ### Quick Start
 
@@ -150,11 +150,11 @@ Use `@skill` in GitHub Copilot Chat for skill operations:
 
 ### Commands
 
-| Command           | Description                       |
-| ----------------- | --------------------------------- |
-| `/search <query>` | Search skills by keyword          |
-| `/install <name>` | Install a skill                   |
-| `/list`           | List installed skills             |
+| Command           | Description                        |
+| ----------------- | ---------------------------------- |
+| `/search <query>` | Search skills by keyword           |
+| `/install <name>` | Install a skill                    |
+| `/list`           | List installed skills              |
 | `/recommend`      | Recommendations based on workspace |
 
 > 💡 Search results include install buttons for direct installation
@@ -165,16 +165,16 @@ In GitHub Copilot's **Agent Mode**, tools are automatically available.
 
 ### Tool List
 
-| Tool Reference      | Description                    |
-| ------------------- | ------------------------------ |
-| `#searchSkills`     | Search skills by keyword       |
-| `#installSkill`     | Install a skill                |
-| `#uninstallSkill`   | Uninstall a skill              |
-| `#listSkills`       | List installed skills          |
+| Tool Reference      | Description                       |
+| ------------------- | --------------------------------- |
+| `#searchSkills`     | Search skills by keyword          |
+| `#installSkill`     | Install a skill                   |
+| `#uninstallSkill`   | Uninstall a skill                 |
+| `#listSkills`       | List installed skills             |
 | `#recommendSkills`  | Get project-based recommendations |
-| `#updateSkillIndex` | Update skill index             |
-| `#webSearchSkills`  | Web search skills on GitHub    |
-| `#addSkillSource`   | Add new skill source           |
+| `#updateSkillIndex` | Update skill index                |
+| `#webSearchSkills`  | Web search skills on GitHub       |
+| `#addSkillSource`   | Add new skill source              |
 
 ### Usage Examples
 
@@ -201,26 +201,26 @@ In GitHub Copilot's **Agent Mode**, tools are automatically available.
 
 ## Settings
 
-| Order | Setting                            | Default          | Description                                              |
-| :---: | ---------------------------------- | ---------------- | -------------------------------------------------------- |
-|   1   | `skillNinja.autoUpdateInstruction` | `true`           | **Auto-update instruction file on install**              |
-|   2   | `skillNinja.instructionFile`       | `agents`         | Instruction file format _(requires Auto Update)_         |
-|   3   | `skillNinja.customInstructionPath` | `""`             | Custom path _(only when 'custom' selected)_              |
-|   4   | `skillNinja.includeLocalSkills`    | `true`           | Include local skills in instruction file                 |
-|   5   | `skillNinja.skillsDirectory`       | `.github/skills` | Directory to install skills                              |
-|   6   | `skillNinja.githubToken`           | `""`             | GitHub Token (for API rate limit)                        |
-|   7   | `skillNinja.language`              | `auto`           | UI language (auto / en / ja)                             |
+| Order | Setting                            | Default          | Description                                      |
+| :---: | ---------------------------------- | ---------------- | ------------------------------------------------ |
+|   1   | `skillNinja.autoUpdateInstruction` | `true`           | **Auto-update instruction file on install**      |
+|   2   | `skillNinja.instructionFile`       | `agents`         | Instruction file format _(requires Auto Update)_ |
+|   3   | `skillNinja.customInstructionPath` | `""`             | Custom path _(only when 'custom' selected)_      |
+|   4   | `skillNinja.includeLocalSkills`    | `true`           | Include local skills in instruction file         |
+|   5   | `skillNinja.skillsDirectory`       | `.github/skills` | Directory to install skills                      |
+|   6   | `skillNinja.githubToken`           | `""`             | GitHub Token (for API rate limit)                |
+|   7   | `skillNinja.language`              | `auto`           | UI language (auto / en / ja)                     |
 
 > 💡 Settings are displayed in the order above
 
 ### Instruction File Options
 
-| Value     | File Path                         | Use Case         |
-| --------- | --------------------------------- | ---------------- |
+| Value     | File Path                         | Use Case             |
+| --------- | --------------------------------- | -------------------- |
 | `agents`  | `AGENTS.md` (root)                | Recommended: General |
-| `copilot` | `.github/copilot-instructions.md` | GitHub Copilot   |
-| `claude`  | `CLAUDE.md` (root)                | Claude Code      |
-| `custom`  | Any path                          | Custom           |
+| `copilot` | `.github/copilot-instructions.md` | GitHub Copilot       |
+| `claude`  | `CLAUDE.md` (root)                | Claude Code          |
+| `custom`  | Any path                          | Custom               |
 
 ## GitHub Token Setup
 

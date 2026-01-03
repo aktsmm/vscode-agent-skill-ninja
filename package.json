@@ -539,9 +539,16 @@
     "configuration": {
       "title": "Agent Skill Ninja",
       "properties": {
+        "skillNinja.autoUpdateInstruction": {
+          "type": "boolean",
+          "default": true,
+          "order": 1,
+          "markdownDescription": "%config.autoUpdateInstruction.markdownDescription%"
+        },
         "skillNinja.instructionFile": {
           "type": "string",
           "default": "AGENTS.md",
+          "order": 2,
           "enum": [
             "AGENTS.md",
             ".github/copilot-instructions.md",
@@ -556,36 +563,36 @@
             "%config.instructionFile.claude%",
             "%config.instructionFile.custom%"
           ],
-          "description": "%config.instructionFile.description%"
+          "markdownDescription": "%config.instructionFile.markdownDescription%"
         },
         "skillNinja.customInstructionPath": {
           "type": "string",
           "default": "",
-          "description": "%config.customInstructionPath.description%"
-        },
-        "skillNinja.skillsDirectory": {
-          "type": "string",
-          "default": ".github/skills",
-          "description": "%config.skillsDirectory.description%"
-        },
-        "skillNinja.autoUpdateInstruction": {
-          "type": "boolean",
-          "default": true,
-          "description": "%config.autoUpdateInstruction.description%"
+          "order": 3,
+          "markdownDescription": "%config.customInstructionPath.markdownDescription%"
         },
         "skillNinja.includeLocalSkills": {
           "type": "boolean",
           "default": true,
-          "description": "%config.includeLocalSkills.description%"
+          "order": 4,
+          "markdownDescription": "%config.includeLocalSkills.markdownDescription%"
+        },
+        "skillNinja.skillsDirectory": {
+          "type": "string",
+          "default": ".github/skills",
+          "order": 5,
+          "description": "%config.skillsDirectory.description%"
         },
         "skillNinja.githubToken": {
           "type": "string",
           "default": "",
-          "description": "%config.githubToken.description%"
+          "order": 6,
+          "markdownDescription": "%config.githubToken.markdownDescription%"
         },
         "skillNinja.language": {
           "type": "string",
           "default": "auto",
+          "order": 7,
           "enum": [
             "auto",
             "en",
