@@ -14,6 +14,7 @@
   "config.instructionFile.description": "インストール済みスキルを登録するファイル",
   "config.instructionFile.agents": "AGENTS.md（プロジェクトルート、推奨）",
   "config.instructionFile.copilot": "GitHub Copilot Instructions (.github/)",
+  "config.instructionFile.instructions": "GitHub Copilot Instructions フォルダ (.github/instructions/)",
   "config.instructionFile.claude": "Claude Code (CLAUDE.md ルート)",
   "config.instructionFile.custom": "カスタムパスを指定",
   "config.customInstructionPath.description": "'custom' 選択時のカスタムパス",

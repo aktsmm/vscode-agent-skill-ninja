@@ -162,12 +162,14 @@
           "enum": [
             "AGENTS.md",
             ".github/copilot-instructions.md",
+            ".github/instructions/SkillList.instructions.md",
             "CLAUDE.md",
             "custom"
           ],
           "enumDescriptions": [
             "%config.instructionFile.agents%",
             "%config.instructionFile.copilot%",
+            "%config.instructionFile.instructions%",
             "%config.instructionFile.claude%",
             "%config.instructionFile.custom%"
           ],

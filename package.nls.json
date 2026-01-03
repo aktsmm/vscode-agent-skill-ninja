@@ -14,6 +14,7 @@
   "config.instructionFile.description": "File to register installed skills",
   "config.instructionFile.agents": "AGENTS.md at project root (recommended)",
   "config.instructionFile.copilot": "GitHub Copilot Instructions (.github/)",
+  "config.instructionFile.instructions": "GitHub Copilot Instructions folder (.github/instructions/)",
   "config.instructionFile.claude": "Claude Code (CLAUDE.md at root)",
   "config.instructionFile.custom": "Specify custom path",
   "config.customInstructionPath.description": "Custom path when 'custom' is selected",
