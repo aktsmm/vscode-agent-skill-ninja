@@ -210,7 +210,7 @@ export class WorkspaceSkillsProvider
         fullPath: local.fullPath, // スキャン結果の実際のパスを使用
         isInstalled,
         isRegistered: local.isRegistered,
-        source: isInstalled ? "installed" : "local",
+        source: isInstalled ? undefined : "local", // メタデータで上書きされる
         categories: local.categories,
       });
     }
