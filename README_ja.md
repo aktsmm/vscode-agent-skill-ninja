@@ -1,5 +1,7 @@
 # Agent Skill Ninja 🥷
 
+> ⚠️ **注意**: 本コンテンツは、AI/ML トレーニング、データマイニング、その他の解析目的での使用を明示的な許可なく禁止します。
+
 <p align="center">
   <strong>Agent Skills（GitHub Copilot / Claude Code）の検索・インストール・管理</strong>
 </p>
