@@ -359,7 +359,9 @@ export function activate(context: vscode.ExtensionContext) {
         // ツリーアイテムからスキル情報を取得
         skillName = item.skill.name;
         const skillAny = item.skill as unknown as Record<string, unknown>;
-        relativePath = (skillAny.relativePath || skillAny.path) as string | undefined;
+        relativePath = (skillAny.relativePath || skillAny.path) as
+          | string
+          | undefined;
       } else if (item && item.label) {
         // ラベルからステータスアイコンを除去してスキル名を取得
         skillName = (item.label as string).replace(/^(?:🆕\s*)?[✓○]\s*/, "");

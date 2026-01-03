@@ -127,28 +127,29 @@ ext install yamapan.agent-skill-ninja
 
 1. アクティビティバーの **螺旋手裏剣アイコン** をクリック
 2. **Workspace Skills** - インストール済み＆ローカルスキル一覧
-   - ✓ インストール済みスキル（緑アイコン）
+   - ✓ インストール済みスキル（緑アイコン）とソース名を表示
    - ○ ローカルスキル（未登録、黄アイコン）
    - 🆕 新しくインストールしたスキル（一時的なバッジ）
-   - 📄 Instruction File を開くボタン
-   - 🔄 全て再インストールボタン
-   - ⚙️ 設定を開くボタン
+   - ツールバー: 📄 Instruction / ➕ 新規作成 / 🔃 更新 / ⚙️ 設定
+   - ... メニュー: 全て再インストール / 全削除 / 複数選択
    - 📂 スキルフォルダを開く（右クリックメニュー）
 3. **Remote Skills** - ソース別にスキルを閲覧
+   - ⭐ **お気に入り** セクションが最上部に表示
+   - ソース順: 🏢 Official → ⭐ Curated → 📦 Community
    - ✓ インストール済みは緑アイコンで表示
-   - 🏢 Official / ⭐ Curated / 📦 Community ソースバッジ
    - リストからワンクリックでインストール
 
 ### アイコン凡例
 
-| アイコン         | 意味                                      |
-| ---------------- | ----------------------------------------- |
-| ✓ (緑)           | インストール済みスキル                    |
-| ○ (黄)           | ローカルスキル（instruction file 未登録） |
-| 🆕               | 最近インストール（一時的なバッジ）        |
-| 🏢 verified (青) | 公式ソース（Anthropic, GitHub）           |
-| ⭐ star (黄)     | キュレーション awesome-list               |
-| 📦 package       | コミュニティリポジトリ                    |
+| アイコン          | 意味                                      |
+| ----------------- | ----------------------------------------- |
+| ✓ (緑)            | インストール済みスキル                    |
+| ○ (黄)            | ローカルスキル（instruction file 未登録） |
+| 🆕                | 最近インストール（一時的なバッジ）        |
+| ⭐ star-full (黄) | お気に入りセクション                      |
+| 🏢 verified (青)  | 公式ソース（Anthropic, GitHub）           |
+| ⭐ star (黄)      | キュレーション awesome-list               |
+| 📦 repo           | コミュニティリポジトリ                    |
 
 ### コマンドパレット
 
@@ -165,6 +166,9 @@ ext install yamapan.agent-skill-ninja
 | `Agent Skill Ninja: Register Local Skill`     | ローカルスキルを instruction file に登録 |
 | `Agent Skill Ninja: Unregister Local Skill`   | instruction file から登録解除            |
 | `Agent Skill Ninja: Reinstall All`            | 全スキルを最新ソースから再インストール   |
+| `Agent Skill Ninja: Uninstall All`            | 全スキルを削除（確認ダイアログあり）     |
+| `Agent Skill Ninja: Uninstall Multiple`       | 複数スキルを選択して削除                 |
+| `Agent Skill Ninja: Reinstall Multiple`       | 複数スキルを選択して再インストール       |
 | `Agent Skill Ninja: Update Instruction`       | instruction file を手動更新              |
 | `Agent Skill Ninja: Open Skill Folder`        | インストール済みスキルのフォルダを開く   |
 

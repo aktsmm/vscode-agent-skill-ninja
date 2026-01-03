@@ -122,7 +122,9 @@ export class WorkspaceSkillsProvider
 
         const item = new SkillTreeItem(
           `${newBadge}${statusIcon} ${skill.name}`,
-          skill.relativePath,
+          skill.isInstalled
+            ? `installed from ${skill.source || "unknown"}`
+            : skill.relativePath,
           vscode.TreeItemCollapsibleState.None,
           skill.isInstalled ? "installedSkill" : "localSkill",
           {

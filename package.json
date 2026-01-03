@@ -328,11 +328,13 @@
       "skill-ninja": [
         {
           "id": "skillNinja.installedView",
-          "name": "%view.workspace%"
+          "name": "%view.workspace%",
+          "icon": "resources/icon.svg"
         },
         {
           "id": "skillNinja.browseView",
-          "name": "%view.browse%"
+          "name": "%view.browse%",
+          "icon": "resources/icon.svg"
         }
       ]
     },
@@ -529,29 +531,29 @@
           "group": "navigation@3"
         },
         {
-          "command": "skillNinja.reinstallAll",
+          "command": "skillNinja.openSettings",
           "when": "view == skillNinja.installedView",
           "group": "navigation@4"
         },
         {
+          "command": "skillNinja.reinstallAll",
+          "when": "view == skillNinja.installedView",
+          "group": "actions@1"
+        },
+        {
           "command": "skillNinja.uninstallAll",
           "when": "view == skillNinja.installedView",
-          "group": "navigation@5"
+          "group": "actions@2"
         },
         {
           "command": "skillNinja.uninstallMultiple",
           "when": "view == skillNinja.installedView",
-          "group": "navigation@6"
+          "group": "actions@3"
         },
         {
           "command": "skillNinja.reinstallMultiple",
           "when": "view == skillNinja.installedView",
-          "group": "navigation@7"
-        },
-        {
-          "command": "skillNinja.openSettings",
-          "when": "view == skillNinja.installedView",
-          "group": "navigation@8"
+          "group": "actions@4"
         },
         {
           "command": "skillNinja.search",

@@ -131,28 +131,29 @@ Or search for **"Agent Skill Ninja"** in VS Code Extensions (`Ctrl+Shift+X`)
 
 1. Click the **spiral shuriken icon** in the Activity Bar
 2. **Workspace Skills** - Installed & local skills list
-   - ✓ Installed skills (green icon)
+   - ✓ Installed skills (green icon) with source name
    - ○ Local skills (unregistered, yellow icon)
    - 🆕 Newly installed skills (temporary badge)
-   - 📄 Open Instruction File button
-   - 🔄 Reinstall All button
-   - ⚙️ Open Settings button
+   - Toolbar: 📄 Instruction File / ➕ Create / 🔃 Refresh / ⚙️ Settings
+   - ... Menu: Reinstall All / Uninstall All / Multiple selection
    - 📂 Open skill folder (right-click menu)
 3. **Remote Skills** - Browse skills by source
+   - ⭐ **Favorites** section at top
+   - Sources sorted: 🏢 Official → ⭐ Curated → 📦 Community
    - ✓ Shows installed status with green icons
-   - 🏢 Official / ⭐ Curated / 📦 Community source badges
    - One-click install from list
 
 ### Icon Legend
 
-| Icon | Meaning |
-|------|---------||
-| ✓ (green) | Installed skill |
-| ○ (yellow) | Local skill (not registered in instruction file) |
-| 🆕 | Recently installed (temporary badge) |
-| 🏢 verified (blue) | Official source (Anthropic, GitHub) |
-| ⭐ star (yellow) | Curated awesome-list |
-| 📦 package | Community repository |
+| Icon                  | Meaning                                          |
+| --------------------- | ------------------------------------------------ |
+| ✓ (green)             | Installed skill                                  |
+| ○ (yellow)            | Local skill (not registered in instruction file) |
+| 🆕                    | Recently installed (temporary badge)             |
+| ⭐ star-full (yellow) | Favorites section                                |
+| 🏢 verified (blue)    | Official source (Anthropic, GitHub)              |
+| ⭐ star (yellow)      | Curated awesome-list                             |
+| 📦 repo               | Community repository                             |
 
 ### Command Palette
 
@@ -169,6 +170,9 @@ Or search for **"Agent Skill Ninja"** in VS Code Extensions (`Ctrl+Shift+X`)
 | `Agent Skill Ninja: Register Local Skill`     | Register local skill to instruction file |
 | `Agent Skill Ninja: Unregister Local Skill`   | Unregister from instruction file         |
 | `Agent Skill Ninja: Reinstall All`            | Reinstall all skills from latest source  |
+| `Agent Skill Ninja: Uninstall All`            | Uninstall all skills (with confirmation) |
+| `Agent Skill Ninja: Uninstall Multiple`       | Select multiple skills to uninstall      |
+| `Agent Skill Ninja: Reinstall Multiple`       | Select multiple skills to reinstall      |
 | `Agent Skill Ninja: Update Instruction`       | Update instruction file manually         |
 | `Agent Skill Ninja: Open Skill Folder`        | Open installed skill folder in OS        |
 
