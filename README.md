@@ -45,7 +45,7 @@
 ### 🛠️ MCP ツール連携
 
 - **Agent Mode** で自動的にツールとして利用可能
-- `#searchSkills`, `#installSkill`, `#listSkills`, `#recommendSkills`
+- **8 ツール**: `#searchSkills`, `#installSkill`, `#uninstallSkill`, `#listSkills`, `#recommendSkills`, `#updateSkillIndex`, `#webSearchSkills`, `#addSkillSource`
 - 信頼度バッジ（🏢 Official / 📋 Curated / 👥 Community）
 - インストール時に AGENTS.md 自動更新
 
@@ -101,9 +101,12 @@ ext install yamapan.skill-ninja
 ### サイドバーから操作
 
 1. アクティビティバーの **螺旋手裏剣アイコン** をクリック
-2. **Installed** - インストール済みスキル一覧
-3. **Local Skills** - ワークスペース内のローカルスキル
-4. **Browse** - ソース別にスキルを閲覧
+2. **Workspace Skills** - インストール済み＆ローカルスキル一覧
+   - ✓ インストール済みスキル
+   - ○ ローカルスキル（未登録）
+   - 📄 Instruction File を開くボタン
+   - ⚙️ 設定を開くボタン
+3. **Browse** - ソース別にスキルを閲覧
 
 ### コマンドパレット
 
@@ -158,12 +161,16 @@ GitHub Copilot の **Agent Mode** では、自動的に MCP ツールとして�
 
 ### ツール一覧
 
-| Tool Reference     | 説明                       |
-| ------------------ | -------------------------- |
-| `#searchSkills`    | キーワードでスキル検索     |
-| `#installSkill`    | スキルをインストール       |
-| `#listSkills`      | インストール済みスキル一覧 |
-| `#recommendSkills` | プロジェクトに合った推奨   |
+| Tool Reference      | 説明                       |
+| ------------------- | -------------------------- |
+| `#searchSkills`     | キーワードでスキル検索     |
+| `#installSkill`     | スキルをインストール       |
+| `#uninstallSkill`   | スキルをアンインストール   |
+| `#listSkills`       | インストール済みスキル一覧 |
+| `#recommendSkills`  | プロジェクトに合った推奨   |
+| `#updateSkillIndex` | スキルインデックスを更新   |
+| `#webSearchSkills`  | GitHub でスキルを Web 検索 |
+| `#addSkillSource`   | 新しいスキルソースを追加   |
 
 ### 使用例
 
@@ -173,6 +180,12 @@ GitHub Copilot の **Agent Mode** では、自動的に MCP ツールとして�
 
 💬 "bicep-mcp スキルをインストールして"
    → #installSkill でインストール、AGENTS.md 自動更新
+
+💬 "GitHub で MCP サーバーを検索して"
+   → #webSearchSkills で GitHub リポジトリを検索
+
+💬 "このプロジェクトにおすすめのスキルは？"
+   → #recommendSkills でワークスペースを分析して推奨
 ```
 
 ### 特徴
@@ -182,15 +195,19 @@ GitHub Copilot の **Agent Mode** では、自動的に MCP ツールとして�
 - 📅 **インデックス更新情報**: 最終更新日と古い場合の警告
 - ⚙️ **設定連動**: `autoUpdateInstruction` / `includeLocalSkills` を尊重
 
-| Setting                            | Default          | Description                                    |
-| ---------------------------------- | ---------------- | ---------------------------------------------- |
-| `skillNinja.instructionFile`       | `agents`         | スキルを登録するファイル形式                   |
-| `skillNinja.customInstructionPath` | `""`             | カスタムパス（custom 選択時）                  |
-| `skillNinja.skillsDirectory`       | `.github/skills` | スキルをインストールするディレクトリ           |
-| `skillNinja.autoUpdateInstruction` | `true`           | インストール時に instruction file を自動更新   |
-| `skillNinja.includeLocalSkills`    | `true`           | ローカルスキルも instruction file に含める     |
-| `skillNinja.githubToken`           | `""`             | GitHub Personal Access Token（API 制限緩和用） |
-| `skillNinja.language`              | `auto`           | UI 言語（auto / en / ja）                      |
+## Settings
+
+| 順序 | Setting                            | Default          | Description                                           |
+| :--: | ---------------------------------- | ---------------- | ----------------------------------------------------- |
+|  1   | `skillNinja.autoUpdateInstruction` | `true`           | **インストール時に instruction file を自動更新**      |
+|  2   | `skillNinja.instructionFile`       | `agents`         | スキルを登録するファイル形式 _(要: Auto Update)_      |
+|  3   | `skillNinja.customInstructionPath` | `""`             | カスタムパス _(instructionFile が 'custom' の時のみ)_ |
+|  4   | `skillNinja.includeLocalSkills`    | `true`           | ローカルスキルも instruction file に含める            |
+|  5   | `skillNinja.skillsDirectory`       | `.github/skills` | スキルをインストールするディレクトリ                  |
+|  6   | `skillNinja.githubToken`           | `""`             | GitHub Token（API 制限緩和用）                        |
+|  7   | `skillNinja.language`              | `auto`           | UI 言語（auto / en / ja）                             |
+
+> 💡 設定画面では上記の順序で表示されます
 
 ### Instruction File オプション
 
@@ -203,9 +220,11 @@ GitHub Copilot の **Agent Mode** では、自動的に MCP ツールとして�
 
 ## GitHub Token 設定
 
-API 制限を緩和するには GitHub Token を設定してください：
+API レート制限を緩和するには GitHub Token を設定してください：
 
 ### 方法 1: VS Code 設定
+
+設定画面から `Agent Skill Ninja: GitHub Token` を探し、トークンを入力：
 
 ```json
 {
@@ -213,13 +232,15 @@ API 制限を緩和するには GitHub Token を設定してください：
 }
 ```
 
+👉 [GitHub Token を作成する](https://github.com/settings/tokens/new?description=Agent%20Skill%20Ninja&scopes=repo,read:org)（必要なスコープ: `repo`, `read:org`）
+
 ### 方法 2: GitHub CLI（推奨）
 
 ```bash
 gh auth login
 ```
 
-> 💡 gh CLI がインストールされていれば自動でトークンを取得します
+> 💡 GitHub CLI がインストールされていれば自動でトークンを取得します（設定不要）
 
 ## Development
 
