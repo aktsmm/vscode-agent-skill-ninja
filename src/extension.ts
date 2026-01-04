@@ -84,6 +84,34 @@ export function activate(context: vscode.ExtensionContext) {
     showCollapseAll: true,
   });
 
+  // ダブルクリックでインストール機能
+  let lastClickTime = 0;
+  let lastClickedItem: string | undefined;
+
+  // ダブルクリック検出用コマンド
+  const doubleClickCmd = vscode.commands.registerCommand(
+    "skillNinja.onSkillClick",
+    async (skill: Skill) => {
+      if (!skill) return;
+
+      // インストール済みの場合は無視
+      if (browseProvider.isSkillInstalled(skill.name)) return;
+
+      const now = Date.now();
+      const itemId = `${skill.source}/${skill.name}`;
+
+      // 同じアイテムを500ms以内にクリック → ダブルクリック
+      if (lastClickedItem === itemId && now - lastClickTime < 500) {
+        await vscode.commands.executeCommand("skillNinja.install", skill);
+        lastClickTime = 0;
+        lastClickedItem = undefined;
+      } else {
+        lastClickTime = now;
+        lastClickedItem = itemId;
+      }
+    }
+  );
+
   // 設定変更を監視してビューをリフレッシュ
   const configWatcher = vscode.workspace.onDidChangeConfiguration(async (e) => {
     if (e.affectsConfiguration("skillNinja.language")) {
@@ -676,6 +704,112 @@ export function activate(context: vscode.ExtensionContext) {
           ? `${installed.length} 個のスキルを削除しました`
           : `Deleted ${installed.length} skills`
       );
+    }
+  );
+
+  // Command: Install Bundle (全スキル一括インストール)
+  const installBundleCmd = vscode.commands.registerCommand(
+    "skillNinja.installBundle",
+    async (item?: SkillTreeItem) => {
+      const wsFolder = vscode.workspace.workspaceFolders?.[0];
+      if (!wsFolder) {
+        vscode.window.showErrorMessage(messages.noWorkspace());
+        return;
+      }
+
+      const bundle = item?.bundle;
+      if (!bundle) {
+        vscode.window.showErrorMessage(
+          isJapanese() ? "バンドル情報がありません" : "No bundle information"
+        );
+        return;
+      }
+
+      const index = await loadSkillIndex(context);
+
+      // インストール順序を決定（installOrderがあればそれを使用、なければskills配列）
+      const installOrder = bundle.installOrder || bundle.skills;
+
+      // 確認ダイアログ
+      const confirm = await vscode.window.showInformationMessage(
+        isJapanese()
+          ? `「${bundle.name}」の ${installOrder.length} 個のスキルをインストールしますか？`
+          : `Install ${installOrder.length} skills from "${bundle.name}"?`,
+        { modal: true },
+        isJapanese() ? "インストール" : "Install"
+      );
+
+      if (!confirm) {
+        return;
+      }
+
+      await vscode.window.withProgress(
+        {
+          location: vscode.ProgressLocation.Notification,
+          title: isJapanese()
+            ? `${bundle.name} をインストール中...`
+            : `Installing ${bundle.name}...`,
+          cancellable: false,
+        },
+        async (progress) => {
+          let completed = 0;
+          let failed = 0;
+
+          for (const skillName of installOrder) {
+            progress.report({
+              message: `${skillName} (${completed + 1}/${installOrder.length})`,
+              increment: 100 / installOrder.length,
+            });
+
+            // スキルを検索
+            const skill = index.skills.find(
+              (s: Skill) => s.name === skillName && s.source === bundle.source
+            );
+
+            if (skill) {
+              try {
+                await installSkill(skill, wsFolder.uri, context);
+                recentlyInstalled.add(skill.name);
+              } catch (error) {
+                console.error(`Failed to install ${skillName}:`, error);
+                failed++;
+              }
+            } else {
+              console.warn(`Skill not found in index: ${skillName}`);
+              failed++;
+            }
+            completed++;
+          }
+
+          // 結果を表示
+          if (failed > 0) {
+            vscode.window.showWarningMessage(
+              isJapanese()
+                ? `${bundle.name}: ${completed - failed}/${
+                    installOrder.length
+                  } 個インストール完了（${failed} 個失敗）`
+                : `${bundle.name}: ${completed - failed}/${
+                    installOrder.length
+                  } installed (${failed} failed)`
+            );
+          } else {
+            vscode.window.showInformationMessage(
+              isJapanese()
+                ? `${bundle.name} のインストール完了（${installOrder.length} 個のスキル）`
+                : `${bundle.name} installed (${installOrder.length} skills)`
+            );
+          }
+        }
+      );
+
+      // Instruction ファイルを更新
+      const config = vscode.workspace.getConfiguration("skillNinja");
+      if (config.get<boolean>("autoUpdateInstruction")) {
+        await updateInstructionFile(wsFolder.uri, context);
+      }
+
+      workspaceProvider.refresh();
+      browseProvider.refresh();
     }
   );
 
@@ -1672,6 +1806,7 @@ Add examples here
     reinstallAllCmd,
     reinstallCmd,
     uninstallAllCmd,
+    installBundleCmd,
     uninstallMultipleCmd,
     reinstallMultipleCmd,
     showInstalledCmd,
@@ -1693,6 +1828,7 @@ Add examples here
     openInstructionFileCmd,
     openSettingsCmd,
     openSkillFolderCmd,
+    doubleClickCmd,
     configWatcher,
     installedTreeView,
     browseTreeView

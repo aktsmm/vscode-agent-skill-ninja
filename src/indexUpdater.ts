@@ -2,7 +2,13 @@
 // GitHub API を使用してスキルを検索・更新
 
 import * as vscode from "vscode";
-import { SkillIndex, Skill, Source, saveSkillIndex } from "./skillIndex";
+import {
+  SkillIndex,
+  Skill,
+  Source,
+  Bundle,
+  saveSkillIndex,
+} from "./skillIndex";
 import { messages } from "./i18n";
 
 /**
@@ -119,8 +125,9 @@ async function githubFetch(url: string, token?: string): Promise<Response> {
  */
 export async function scanRepositoryForSkills(
   repoUrl: string,
-  token?: string
-): Promise<{ skills: Skill[]; source: Source } | null> {
+  token?: string,
+  preferredBranch?: string // skill-index.json で指定されたブランチ
+): Promise<{ skills: Skill[]; source: Source; bundles?: Bundle[] } | null> {
   // URLからowner/repoを抽出
   const match = repoUrl.match(/github\.com\/([^/]+)\/([^/]+)/);
   if (!match) {
@@ -130,28 +137,47 @@ export async function scanRepositoryForSkills(
   const [, owner, repo] = match;
   const repoName = repo.replace(/\.git$/, "");
 
+  // ブランチを決定: 指定されたブランチ → デフォルトブランチを取得
+  let branch = preferredBranch;
+  if (!branch) {
+    // GitHub API でデフォルトブランチを取得
+    const repoInfoUrl = `https://api.github.com/repos/${owner}/${repoName}`;
+    const repoInfoResponse = await githubFetch(repoInfoUrl, token);
+    if (repoInfoResponse.ok) {
+      const repoInfo = (await repoInfoResponse.json()) as {
+        default_branch: string;
+      };
+      branch = repoInfo.default_branch;
+    } else {
+      branch = "main"; // フォールバック
+    }
+  }
+
   // リポジトリのツリーを取得
-  const treeUrl = `https://api.github.com/repos/${owner}/${repoName}/git/trees/main?recursive=1`;
+  const treeUrl = `https://api.github.com/repos/${owner}/${repoName}/git/trees/${branch}?recursive=1`;
   const response = await githubFetch(treeUrl, token);
 
   if (!response.ok) {
-    if (response.status === 404) {
-      // mainブランチがない場合はmasterを試す
-      const masterUrl = `https://api.github.com/repos/${owner}/${repoName}/git/trees/master?recursive=1`;
-      const masterResponse = await githubFetch(masterUrl, token);
-      if (!masterResponse.ok) {
-        throw new Error(`Repository not found: ${owner}/${repoName}`);
+    if (response.status === 404 && !preferredBranch) {
+      // 指定ブランチがない場合のみ別のブランチを試す
+      const fallbackBranch = branch === "main" ? "master" : "main";
+      const fallbackUrl = `https://api.github.com/repos/${owner}/${repoName}/git/trees/${fallbackBranch}?recursive=1`;
+      const fallbackResponse = await githubFetch(fallbackUrl, token);
+      if (fallbackResponse.ok) {
+        const fallbackData = (await fallbackResponse.json()) as {
+          tree: Array<{ path: string; type: string }>;
+        };
+        return processTreeResponse(
+          fallbackData,
+          owner,
+          repoName,
+          repoUrl,
+          fallbackBranch,
+          token
+        );
       }
-      const masterData = (await masterResponse.json()) as {
-        tree: Array<{ path: string; type: string }>;
-      };
-      return processTreeResponse(
-        masterData,
-        owner,
-        repoName,
-        repoUrl,
-        "master",
-        token
+      throw new Error(
+        `Repository or branch not found: ${owner}/${repoName} (branch: ${branch})`
       );
     }
     if (response.status === 403) {
@@ -170,7 +196,7 @@ export async function scanRepositoryForSkills(
     owner,
     repoName,
     repoUrl,
-    "main",
+    branch,
     token
   );
 }
@@ -185,7 +211,7 @@ async function processTreeResponse(
   repoUrl: string,
   branch: string,
   _token?: string
-): Promise<{ skills: Skill[]; source: Source }> {
+): Promise<{ skills: Skill[]; source: Source; bundles?: Bundle[] }> {
   // SKILL.md ファイルを探す（どのディレクトリでも可）
   const skillFiles = data.tree.filter(
     (item) =>
@@ -213,7 +239,9 @@ async function processTreeResponse(
   }
 
   // ComposioHQ/awesome-claude-skills リポジトリの特別処理: トップレベルディレクトリをスキル扱い
-  const isComposioRepo = repoName.toLowerCase().includes("awesome-claude-skills");
+  const isComposioRepo = repoName
+    .toLowerCase()
+    .includes("awesome-claude-skills");
   if (isComposioRepo) {
     const composioSkills = scanComposioSkills(data, owner, repoName);
     const source: Source = {
@@ -237,13 +265,24 @@ async function processTreeResponse(
         const content = await contentResponse.text();
         const skillInfo = parseSkillFrontmatter(content, file.path);
         if (skillInfo) {
-          skills.push({
+          const skill: Skill = {
             name: skillInfo.name,
             source: `${owner}-${repoName}`,
             path: file.path.replace("/SKILL.md", ""),
             categories: skillInfo.categories || [],
             description: skillInfo.description || "",
-          });
+          };
+          // Bundle/Framework対応フィールドを追加（存在する場合のみ）
+          if (skillInfo.standalone !== undefined) {
+            skill.standalone = skillInfo.standalone;
+          }
+          if (skillInfo.requires?.length) {
+            skill.requires = skillInfo.requires;
+          }
+          if (skillInfo.bundle) {
+            skill.bundle = skillInfo.bundle;
+          }
+          skills.push(skill);
         }
       }
     } catch {
@@ -251,6 +290,9 @@ async function processTreeResponse(
       console.warn(`Failed to fetch skill: ${file.path}`);
     }
   }
+
+  // bundle.json を検出してBundle定義を取得
+  const bundles = await scanBundleJson(data, owner, repoName, branch);
 
   const source: Source = {
     id: `${owner}-${repoName}`,
@@ -260,7 +302,75 @@ async function processTreeResponse(
     description: `User added repository: ${owner}/${repoName}`,
   };
 
-  return { skills, source };
+  return { skills, source, bundles };
+}
+
+/**
+ * bundle.json を検出してBundle定義を取得
+ * リポジトリルートまたは特定のパスにあるbundle.jsonを読み込む
+ */
+async function scanBundleJson(
+  data: { tree: Array<{ path: string; type: string }> },
+  owner: string,
+  repoName: string,
+  branch: string
+): Promise<Bundle[]> {
+  // bundle.json ファイルを探す（ルートまたはどこでも）
+  const bundleFiles = data.tree.filter(
+    (item) =>
+      item.type === "blob" &&
+      (item.path === "bundle.json" || item.path.endsWith("/bundle.json"))
+  );
+
+  const bundles: Bundle[] = [];
+  const sourceId = `${owner}-${repoName}`;
+
+  for (const file of bundleFiles) {
+    try {
+      const rawUrl = `https://raw.githubusercontent.com/${owner}/${repoName}/${branch}/${file.path}`;
+      const contentResponse = await fetch(rawUrl);
+      if (contentResponse.ok) {
+        const content = await contentResponse.text();
+        const bundleData = JSON.parse(content);
+
+        // 単一のBundle定義の場合
+        if (bundleData.id && bundleData.name && bundleData.skills) {
+          bundles.push({
+            id: bundleData.id,
+            name: bundleData.name,
+            source: sourceId,
+            description: bundleData.description || "",
+            description_ja: bundleData.description_ja,
+            skills: bundleData.skills,
+            installOrder: bundleData.installOrder,
+            coreSkill: bundleData.coreSkill,
+          });
+        }
+
+        // 複数のBundle定義（bundles配列）の場合
+        if (Array.isArray(bundleData.bundles)) {
+          for (const b of bundleData.bundles) {
+            if (b.id && b.name && b.skills) {
+              bundles.push({
+                id: b.id,
+                name: b.name,
+                source: sourceId,
+                description: b.description || "",
+                description_ja: b.description_ja,
+                skills: b.skills,
+                installOrder: b.installOrder,
+                coreSkill: b.coreSkill,
+              });
+            }
+          }
+        }
+      }
+    } catch (error) {
+      console.warn(`Failed to parse bundle.json: ${file.path}`, error);
+    }
+  }
+
+  return bundles;
 }
 
 /**
@@ -273,6 +383,11 @@ async function scanClaudeCommands(
   repoName: string,
   branch: string
 ): Promise<Skill[]> {
+  console.log(
+    `[Skill Ninja] scanClaudeCommands: ${owner}/${repoName} branch=${branch}`
+  );
+  console.log(`[Skill Ninja] Total tree items: ${data.tree.length}`);
+
   // .claude/commands/ 配下の .md ファイルを取得
   const commandFiles = data.tree.filter(
     (item) =>
@@ -280,6 +395,8 @@ async function scanClaudeCommands(
       item.path.startsWith(".claude/commands/") &&
       item.path.endsWith(".md")
   );
+
+  console.log(`[Skill Ninja] Found ${commandFiles.length} command files`);
 
   const skills: Skill[] = [];
 
@@ -379,7 +496,14 @@ function scanComposioSkills(
 function parseSkillFrontmatter(
   content: string,
   filePath: string
-): { name: string; description: string; categories: string[] } | null {
+): {
+  name: string;
+  description: string;
+  categories: string[];
+  standalone?: boolean;
+  requires?: string[];
+  bundle?: string;
+} | null {
   // frontmatter を抽出
   const frontmatterMatch = content.match(/^---\n([\s\S]*?)\n---/);
 
@@ -390,6 +514,11 @@ function parseSkillFrontmatter(
       /^description:\s*["']?([^"'\n]+)["']?/m
     );
     const categoriesMatch = frontmatter.match(/^categories:\s*\[([^\]]+)\]/m);
+
+    // Bundle/Framework 対応: standalone, requires, bundle
+    const standaloneMatch = frontmatter.match(/^standalone:\s*(true|false)/m);
+    const requiresMatch = frontmatter.match(/^requires:\s*\[([^\]]+)\]/m);
+    const bundleMatch = frontmatter.match(/^bundle:\s*["']?([^"'\n]+)["']?/m);
 
     const name = nameMatch?.[1]?.trim();
     if (!name) {
@@ -410,10 +539,20 @@ function parseSkillFrontmatter(
         .map((c) => c.trim().replace(/["']/g, ""));
     }
 
+    let requires: string[] | undefined;
+    if (requiresMatch) {
+      requires = requiresMatch[1]
+        .split(",")
+        .map((r) => r.trim().replace(/["']/g, ""));
+    }
+
     return {
       name,
       description: descMatch?.[1]?.trim() || "",
       categories,
+      standalone: standaloneMatch ? standaloneMatch[1] === "true" : undefined,
+      requires,
+      bundle: bundleMatch?.[1]?.trim(),
     };
   }
 
@@ -449,6 +588,7 @@ export async function updateIndexFromSources(
   }
 
   const updatedSkills: Skill[] = [];
+  const updatedBundles: Bundle[] = [];
   const totalSources = currentIndex.sources.length;
 
   for (const source of currentIndex.sources) {
@@ -458,7 +598,12 @@ export async function updateIndexFromSources(
         increment: (1 / totalSources) * 100,
       });
 
-      const result = await scanRepositoryForSkills(source.url, token);
+      // ソースに設定されたブランチを使用
+      const result = await scanRepositoryForSkills(
+        source.url,
+        token,
+        source.branch
+      );
       if (result) {
         // 既存の説明があれば保持、なければGitHubから取得した説明を使用
         // source ID は既存の source.id を使用（GitHub から生成された ID ではなく）
@@ -474,6 +619,16 @@ export async function updateIndexFromSources(
             description: existingDesc || skill.description,
           });
         }
+
+        // Bundlesもマージ（source ID を修正）
+        if (result.bundles?.length) {
+          for (const bundle of result.bundles) {
+            updatedBundles.push({
+              ...bundle,
+              source: source.id,
+            });
+          }
+        }
       }
     } catch (error) {
       console.warn(`Failed to update source ${source.id}:`, error);
@@ -482,13 +637,25 @@ export async function updateIndexFromSources(
         (s) => s.source === source.id
       );
       updatedSkills.push(...existingSkills);
+      // 既存のBundlesも保持
+      const existingBundles = (currentIndex.bundles || []).filter(
+        (b) => b.source === source.id
+      );
+      updatedBundles.push(...existingBundles);
     }
   }
+
+  // 既存のBundles（バンドル版から来たもの）を保持しつつ、新規を追加
+  const existingBundleIds = new Set(updatedBundles.map((b) => b.id));
+  const preservedBundles = (currentIndex.bundles || []).filter(
+    (b) => !existingBundleIds.has(b.id)
+  );
 
   const updatedIndex: SkillIndex = {
     ...currentIndex,
     lastUpdated: new Date().toISOString().split("T")[0],
     skills: updatedSkills,
+    bundles: [...preservedBundles, ...updatedBundles],
   };
 
   // 保存
@@ -534,11 +701,18 @@ export async function addSource(
   );
   const updatedSkills = [...existingSkills, ...result.skills];
 
+  // Bundlesもマージ
+  const existingBundles = (currentIndex.bundles || []).filter(
+    (b) => b.source !== result.source.id
+  );
+  const updatedBundles = [...existingBundles, ...(result.bundles || [])];
+
   const updatedIndex: SkillIndex = {
     ...currentIndex,
     lastUpdated: new Date().toISOString().split("T")[0],
     sources: updatedSources,
     skills: updatedSkills,
+    bundles: updatedBundles.length > 0 ? updatedBundles : currentIndex.bundles,
   };
 
   // 保存
@@ -573,11 +747,17 @@ export async function removeSource(
     (s) => s.source !== sourceId
   );
 
+  // Bundlesも除外
+  const updatedBundles = (currentIndex.bundles || []).filter(
+    (b) => b.source !== sourceId
+  );
+
   const updatedIndex: SkillIndex = {
     ...currentIndex,
     lastUpdated: new Date().toISOString().split("T")[0],
     sources: updatedSources,
     skills: updatedSkills,
+    bundles: updatedBundles.length > 0 ? updatedBundles : undefined,
   };
 
   // 保存

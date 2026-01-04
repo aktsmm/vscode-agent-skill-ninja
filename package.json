@@ -511,6 +511,12 @@
         "title": "%command.openSettings%",
         "category": "Agent Skill Ninja",
         "icon": "$(gear)"
+      },
+      {
+        "command": "skillNinja.installBundle",
+        "title": "Install Bundle",
+        "category": "Agent Skill Ninja",
+        "icon": "$(cloud-download)"
       }
     ],
     "menus": {
@@ -653,6 +659,11 @@
           "command": "skillNinja.unregisterLocalSkill",
           "when": "view == skillNinja.installedView && viewItem == localSkill",
           "group": "navigation"
+        },
+        {
+          "command": "skillNinja.installBundle",
+          "when": "view == skillNinja.browseView && viewItem == bundle",
+          "group": "inline"
         }
       ]
     },

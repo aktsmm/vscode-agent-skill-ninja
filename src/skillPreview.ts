@@ -123,6 +123,24 @@ function getWebviewContent(
     ? ""
     : `<button class="btn-secondary" onclick="addSource()">Add Source</button>`;
 
+  // standalone: false の場合は警告を表示
+  const standaloneWarning =
+    skill.standalone === false
+      ? `<div class="warning">
+          <strong>⚠️ Warning:</strong> This skill requires other skills to work properly.
+          ${
+            skill.requires?.length
+              ? `<br><strong>Requires:</strong> ${skill.requires.join(", ")}`
+              : ""
+          }
+          ${
+            skill.bundle
+              ? `<br><strong>Bundle:</strong> ${skill.bundle} (Install full bundle recommended)`
+              : ""
+          }
+        </div>`
+      : "";
+
   return `<!DOCTYPE html>
 <html lang="en">
 <head>
@@ -219,6 +237,15 @@ function getWebviewContent(
     li {
       margin: 5px 0;
     }
+    .warning {
+      background-color: var(--vscode-inputValidation-warningBackground);
+      border: 1px solid var(--vscode-inputValidation-warningBorder);
+      color: var(--vscode-inputValidation-warningForeground);
+      padding: 12px 16px;
+      border-radius: 6px;
+      margin-bottom: 20px;
+      line-height: 1.6;
+    }
   </style>
 </head>
 <body>
@@ -243,8 +270,11 @@ function getWebviewContent(
     skill.stars
       ? ` | <strong>Stars:</strong> ⭐ ${skill.stars.toLocaleString()}`
       : ""
-  }${skill.isOrg ? " | 🏢 Organization" : ""}
+  }${skill.isOrg ? " | 🏢 Organization" : ""}${
+    skill.bundle ? ` | <strong>Bundle:</strong> ${skill.bundle}` : ""
+  }
   </div>
+  ${standaloneWarning}
   <div class="content">
     ${htmlContent}
   </div>

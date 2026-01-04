@@ -836,7 +836,10 @@
       "path": "Packs/kai-agents-skill/src/skills/Agents",
       "categories": ["agents", "automation"],
       "description": "Agents",
-      "description_ja": "AIエージェント構築・管理"
+      "description_ja": "AIエージェント構築・管理",
+      "standalone": false,
+      "requires": ["CORE"],
+      "bundle": "pai-kai"
     },
     {
       "name": "Art",
@@ -844,7 +847,10 @@
       "path": "Packs/kai-art-skill/src/skills/Art",
       "categories": ["creative", "art"],
       "description": "Art",
-      "description_ja": "アート生成・クリエイティブ"
+      "description_ja": "アート生成・クリエイティブ",
+      "standalone": false,
+      "requires": ["CORE"],
+      "bundle": "pai-kai"
     },
     {
       "name": "CORE",
@@ -852,7 +858,9 @@
       "path": "Packs/kai-core-install/src/skills/CORE",
       "categories": ["core", "infrastructure"],
       "description": "CORE",
-      "description_ja": "PAIコアインフラストラクチャ"
+      "description_ja": "PAIコアインフラストラクチャ",
+      "standalone": true,
+      "bundle": "pai-kai"
     },
     {
       "name": "CreateSkill",
@@ -860,7 +868,10 @@
       "path": "Packs/kai-core-install/src/skills/CreateSkill",
       "categories": ["meta", "skill-creation"],
       "description": "CreateSkill",
-      "description_ja": "新しいスキルを作成"
+      "description_ja": "新しいスキルを作成",
+      "standalone": false,
+      "requires": ["CORE"],
+      "bundle": "pai-kai"
     },
     {
       "name": "Prompting",
@@ -868,7 +879,10 @@
       "path": "Packs/kai-prompting-skill/src/skills/Prompting",
       "categories": ["prompting", "llm"],
       "description": "Prompting",
-      "description_ja": "プロンプトエンジニアリング"
+      "description_ja": "プロンプトエンジニアリング",
+      "standalone": false,
+      "requires": ["CORE"],
+      "bundle": "pai-kai"
     },
     {
       "name": "coding-tutor",
@@ -1095,6 +1109,18 @@
       "id": "azure",
       "name": "Azure",
       "description": "Microsoft Azure・クラウドインフラ"
+    }
+  ],
+  "bundles": [
+    {
+      "id": "pai-kai",
+      "name": "PAI Kai Bundle",
+      "source": "pai-packs",
+      "description": "Complete PAI infrastructure - Core, Agents, Art, Prompting",
+      "description_ja": "PAI完全セット - コア・エージェント・アート・プロンプティング",
+      "skills": ["CORE", "Agents", "Art", "CreateSkill", "Prompting"],
+      "installOrder": ["CORE", "Agents", "Art", "CreateSkill", "Prompting"],
+      "coreSkill": "CORE"
     }
   ]
 }

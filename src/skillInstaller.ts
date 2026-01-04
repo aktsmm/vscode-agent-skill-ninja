@@ -156,6 +156,51 @@ export async function installSkill(
           console.log(`[Skill Ninja] Saved as SKILL.md`);
         } catch (error) {
           console.error(`[Skill Ninja] Failed to download ${rawUrl}:`, error);
+          const errorMsg =
+            error instanceof Error ? error.message : String(error);
+
+          // 404エラーの場合はインストールをキャンセル（フォールバック作らない）
+          if (errorMsg.includes("404")) {
+            // 作成したフォルダを削除
+            try {
+              await vscode.workspace.fs.delete(skillPath, { recursive: true });
+            } catch {
+              // 削除失敗は無視
+            }
+
+            // バグレポートオプションを提供
+            const updateIndex = isJapanese()
+              ? "インデックス更新"
+              : "Update Index";
+            const reportBug = isJapanese() ? "バグ報告" : "Report Bug";
+
+            const choice = await vscode.window.showErrorMessage(
+              isJapanese()
+                ? `スキル "${skill.name}" が見つかりません。\nスキルインデックスの情報が古い可能性があります。`
+                : `Skill "${skill.name}" not found.\nThe skill index may be outdated.`,
+              updateIndex,
+              reportBug
+            );
+
+            if (choice === updateIndex) {
+              // Update Index from Sources コマンドを実行
+              await vscode.commands.executeCommand(
+                "skillNinja.updateIndexFromSources"
+              );
+            } else if (choice === reportBug) {
+              // バグレポートを作成
+              await openBugReport(skill, source, rawUrl, "404 Not Found");
+            }
+
+            throw new Error(`Skill not found: ${skill.name}`);
+          }
+
+          // その他のエラーはフォールバック版を作成
+          vscode.window.showWarningMessage(
+            isJapanese()
+              ? `スキル "${skill.name}" のダウンロードに失敗しました。フォールバック版を作成します。\nエラー: ${errorMsg}`
+              : `Failed to download skill "${skill.name}". Creating fallback version.\nError: ${errorMsg}`
+          );
           await createFallbackSkillMd(skillPath, skill);
         }
       } else {
@@ -209,6 +254,96 @@ export async function installSkill(
     metaPath,
     Buffer.from(JSON.stringify(meta, null, 2), "utf-8")
   );
+
+  // インストール後の検証: SKILL.md が空またはフォールバック版かチェック
+  await validateInstalledSkill(skillPath, skill, source);
+}
+
+/**
+ * インストールされたスキルを検証し、問題があればバグレポートを提案
+ */
+async function validateInstalledSkill(
+  skillPath: vscode.Uri,
+  skill: Skill,
+  source?: Source
+): Promise<void> {
+  const skillMdPath = vscode.Uri.joinPath(skillPath, "SKILL.md");
+
+  try {
+    const content = await vscode.workspace.fs.readFile(skillMdPath);
+    const text = Buffer.from(content).toString("utf-8");
+
+    // フォールバック版の検出（テンプレート形式）
+    const isFallback =
+      text.includes(`Source: ${skill.source}`) &&
+      !text.includes("---") && // frontmatter がない
+      text.split("\n").filter((l) => l.trim()).length <= 5; // 5行以下
+
+    // 空または非常に短いコンテンツ
+    const isEmpty = text.trim().length < 50;
+
+    if (isFallback || isEmpty) {
+      console.warn(
+        `[Skill Ninja] Skill "${skill.name}" appears to be a fallback or empty`
+      );
+
+      const reportBug = isJapanese() ? "バグ報告" : "Report Bug";
+      const ignore = isJapanese() ? "無視" : "Ignore";
+
+      const choice = await vscode.window.showWarningMessage(
+        isJapanese()
+          ? `スキル "${skill.name}" のインストールに問題がある可能性があります。\nSKILL.md の内容が不完全です。`
+          : `Skill "${skill.name}" may not have installed correctly.\nSKILL.md content appears incomplete.`,
+        reportBug,
+        ignore
+      );
+
+      if (choice === reportBug) {
+        // GitHub Issue 作成リンクを開く
+        const extensionVersion =
+          vscode.extensions.getExtension("yamapan.agent-skill-ninja")
+            ?.packageJSON?.version || "unknown";
+
+        // ソース情報を取得
+        const repoUrl = source?.url || "unknown";
+        const branch = source?.branch || "default";
+
+        const issueTitle = `[Bug] Skill install incomplete: ${skill.name}`;
+        const issueBody =
+          `## Issue\n` +
+          `Skill "${skill.name}" from source "${skill.source}" was not installed correctly.\n\n` +
+          `## Expected\n` +
+          `SKILL.md should contain the full skill content.\n\n` +
+          `## Actual\n` +
+          `SKILL.md contains only fallback/template content (${text.length} bytes).\n\n` +
+          `## Skill Details\n` +
+          `- Name: ${skill.name}\n` +
+          `- Source ID: ${skill.source}\n` +
+          `- Path: ${skill.path || "unknown"}\n` +
+          `- Repository: ${repoUrl}\n` +
+          `- Branch: ${branch}\n\n` +
+          `## Environment\n` +
+          `- Extension Version: ${extensionVersion}\n` +
+          `- VS Code: ${vscode.version}\n` +
+          `- OS: ${process.platform}\n\n` +
+          `## SKILL.md Content (first 200 chars)\n` +
+          `\`\`\`\n${text.substring(0, 200)}\n\`\`\``;
+
+        // URLパラメータをエンコード
+        const params = new URLSearchParams({
+          title: issueTitle,
+          body: issueBody,
+        });
+        const issueUrl = `https://github.com/aktsmm/vscode-agent-skill-ninja/issues/new?${params.toString()}`;
+        await vscode.env.openExternal(vscode.Uri.parse(issueUrl));
+      }
+    }
+  } catch (error) {
+    console.error(
+      `[Skill Ninja] Failed to validate skill "${skill.name}":`,
+      error
+    );
+  }
 }
 
 /**
@@ -500,17 +635,69 @@ Source: ${skill.source}
 }
 
 /**
+ * バグレポートを GitHub Issue として開く
+ */
+async function openBugReport(
+  skill: Skill,
+  source: Source | undefined,
+  url: string,
+  errorType: string
+): Promise<void> {
+  const extensionVersion =
+    vscode.extensions.getExtension("yamapan.agent-skill-ninja")?.packageJSON
+      ?.version || "unknown";
+
+  const repoUrl = source?.url || "unknown";
+  const branch = source?.branch || "default";
+
+  const issueTitle = `[Bug] Skill not found: ${skill.name}`;
+  const issueBody =
+    `## Issue\n` +
+    `Skill "${skill.name}" from source "${skill.source}" could not be downloaded.\n\n` +
+    `## Error\n` +
+    `${errorType}\n\n` +
+    `## Skill Details\n` +
+    `- Name: ${skill.name}\n` +
+    `- Source ID: ${skill.source}\n` +
+    `- Path: ${skill.path || "unknown"}\n` +
+    `- Repository: ${repoUrl}\n` +
+    `- Branch: ${branch}\n` +
+    `- Failed URL: ${url}\n\n` +
+    `## Environment\n` +
+    `- Extension Version: ${extensionVersion}\n` +
+    `- VS Code: ${vscode.version}\n` +
+    `- OS: ${process.platform}\n\n` +
+    `## Possible Cause\n` +
+    `The skill index may contain outdated paths that no longer exist in the repository.`;
+
+  const params = new URLSearchParams({
+    title: issueTitle,
+    body: issueBody,
+  });
+  const issueUrl = `https://github.com/aktsmm/vscode-agent-skill-ninja/issues/new?${params.toString()}`;
+  await vscode.env.openExternal(vscode.Uri.parse(issueUrl));
+}
+
+/**
  * URL からファイル内容を取得
  */
 async function fetchFileContent(url: string, token?: string): Promise<string> {
   // VS Code の fetch API を使用（Node.js 18+ の fetch）
   const headers: Record<string, string> = {};
-  if (token) {
+  // raw.githubusercontent.com は Token 不要（公開リポジトリ）
+  // Token を付けると逆にエラーになることがある
+  if (token && !url.includes("raw.githubusercontent.com")) {
     headers["Authorization"] = `token ${token}`;
   }
   const response = await fetch(url, { headers });
   if (!response.ok) {
-    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+    throw new Error(
+      `HTTP ${response.status}: ${response.statusText} (URL: ${url})`
+    );
   }
-  return await response.text();
+  const text = await response.text();
+  if (!text || text.trim().length === 0) {
+    throw new Error(`Empty response from ${url}`);
+  }
+  return text;
 }

@@ -16,6 +16,10 @@ export interface Skill {
   stars?: number; // GitHub stars count
   owner?: string; // Repository owner (user or org)
   isOrg?: boolean; // Whether owner is an organization
+  // Bundle/Framework 対応
+  standalone?: boolean; // false = 単体では動作しない（デフォルト true）
+  requires?: string[]; // 依存スキル名のリスト
+  bundle?: string; // 所属 Bundle ID
 }
 
 /**
@@ -46,6 +50,18 @@ export interface Category {
   description: string;
 }
 
+// Bundle情報の型定義
+export interface Bundle {
+  id: string;
+  name: string;
+  source: string; // ソースID
+  description: string;
+  description_ja?: string;
+  skills: string[]; // 含まれるスキル名のリスト
+  installOrder?: string[]; // インストール順序（依存解決済み）
+  coreSkill?: string; // コアスキル（最初にインストール必須）
+}
+
 // インデックス全体の型定義
 export interface SkillIndex {
   version: string;
@@ -53,6 +69,7 @@ export interface SkillIndex {
   sources: Source[];
   skills: Skill[];
   categories: Category[];
+  bundles?: Bundle[]; // Bundle一覧
 }
 
 /**

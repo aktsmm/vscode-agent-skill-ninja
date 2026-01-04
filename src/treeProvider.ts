@@ -7,6 +7,7 @@ import {
   Skill,
   loadSkillIndex,
   Source,
+  Bundle,
   getLocalizedDescription,
 } from "./skillIndex";
 import { getInstalledSkillsWithMeta } from "./skillInstaller";
@@ -270,6 +271,13 @@ export class BrowseSkillsProvider
     this._onDidChangeTreeData.fire();
   }
 
+  /**
+   * スキルがインストール済みかどうかを確認
+   */
+  isSkillInstalled(skillName: string): boolean {
+    return this.installedSkillNames.has(skillName.toLowerCase());
+  }
+
   getTreeItem(element: SkillTreeItem): vscode.TreeItem {
     return element;
   }
@@ -298,17 +306,39 @@ export class BrowseSkillsProvider
       // お気に入りセクション
       const favorites = this.context.globalState.get<string[]>("favorites", []);
       if (favorites.length > 0) {
-        const favItem = new SkillTreeItem(
-          isJapanese() ? "お気に入り" : "Favorites",
-          `${favorites.length} skills`,
+        // 実際にインデックスに存在するお気に入りスキルの数をカウント
+        const favoriteSkillCount = this.skillIndex.skills.filter((skill) =>
+          favorites.includes(getSkillId(skill))
+        ).length;
+
+        if (favoriteSkillCount > 0) {
+          const favItem = new SkillTreeItem(
+            isJapanese() ? "お気に入り" : "Favorites",
+            `${favoriteSkillCount} skills`,
+            vscode.TreeItemCollapsibleState.Collapsed,
+            "favorites"
+          );
+          favItem.iconPath = new vscode.ThemeIcon(
+            "star-full",
+            new vscode.ThemeColor("charts.yellow")
+          );
+          items.push(favItem);
+        }
+      }
+
+      // Bundlesセクション（Bundleがあれば表示）
+      if (this.skillIndex.bundles && this.skillIndex.bundles.length > 0) {
+        const bundleItem = new SkillTreeItem(
+          isJapanese() ? "バンドル" : "Bundles",
+          `${this.skillIndex.bundles.length} bundles`,
           vscode.TreeItemCollapsibleState.Collapsed,
-          "favorites"
+          "bundleSection"
         );
-        favItem.iconPath = new vscode.ThemeIcon(
-          "star-full",
-          new vscode.ThemeColor("charts.yellow")
+        bundleItem.iconPath = new vscode.ThemeIcon(
+          "package",
+          new vscode.ThemeColor("charts.purple")
         );
-        items.push(favItem);
+        items.push(bundleItem);
       }
 
       // ソース一覧（タイプ順: official → awesome-list → community）
@@ -350,6 +380,82 @@ export class BrowseSkillsProvider
       return items;
     }
 
+    // Bundleセクション配下: Bundle一覧
+    if (element.contextValue === "bundleSection") {
+      const isJa = isJapanese();
+      return (this.skillIndex.bundles || []).map((bundle) => {
+        const item = new SkillTreeItem(
+          bundle.name,
+          isJa && bundle.description_ja
+            ? bundle.description_ja
+            : bundle.description,
+          vscode.TreeItemCollapsibleState.Collapsed,
+          "bundle",
+          undefined,
+          undefined,
+          bundle
+        );
+        item.iconPath = new vscode.ThemeIcon(
+          "package",
+          new vscode.ThemeColor("charts.purple")
+        );
+        return item;
+      });
+    }
+
+    // Bundle配下: そのBundleのスキル一覧
+    if (element.contextValue === "bundle" && element.bundle) {
+      const isJa = isJapanese();
+      const bundleSkills = this.skillIndex.skills.filter(
+        (skill) => skill.bundle === element.bundle!.id
+      );
+
+      return bundleSkills.map((skill) => {
+        const isInstalled = this.installedSkillNames.has(
+          skill.name.toLowerCase()
+        );
+        const isCore = skill.name === element.bundle!.coreSkill;
+        const prefix = isCore ? "⭐ " : skill.standalone === false ? "🔗 " : "";
+
+        const item = new SkillTreeItem(
+          isInstalled ? `✓ ${prefix}${skill.name}` : `${prefix}${skill.name}`,
+          getLocalizedDescription(skill, isJa),
+          vscode.TreeItemCollapsibleState.None,
+          "skill",
+          skill
+        );
+
+        if (isInstalled) {
+          item.iconPath = new vscode.ThemeIcon(
+            "package",
+            new vscode.ThemeColor("charts.green")
+          );
+        } else {
+          item.iconPath = new vscode.ThemeIcon("package");
+          const singleClickInstall = vscode.workspace
+            .getConfiguration("skillNinja")
+            .get<boolean>("singleClickInstall", false);
+          item.command = {
+            command: singleClickInstall
+              ? "skillNinja.install"
+              : "skillNinja.onSkillClick",
+            title: "Install Skill",
+            arguments: [skill],
+          };
+        }
+
+        // 依存関係をツールチップに表示
+        if (skill.requires?.length) {
+          item.tooltip = `${skill.name}\n${getLocalizedDescription(
+            skill,
+            isJa
+          )}\n\n${isJa ? "依存:" : "Requires:"} ${skill.requires.join(", ")}`;
+        }
+
+        return item;
+      });
+    }
+
     // Favorites 配下
     if (element.contextValue === "favorites") {
       const favorites = this.context.globalState.get<string[]>("favorites", []);
@@ -376,17 +482,17 @@ export class BrowseSkillsProvider
           );
         } else {
           item.iconPath = new vscode.ThemeIcon("package");
-          // シングルクリックインストールが有効な場合のみコマンドを設定
+          // シングルクリックインストールが有効な場合は直接インストール、そうでなければダブルクリック検出
           const singleClickInstall = vscode.workspace
             .getConfiguration("skillNinja")
             .get<boolean>("singleClickInstall", false);
-          if (singleClickInstall) {
-            item.command = {
-              command: "skillNinja.install",
-              title: "Install Skill",
-              arguments: [skill],
-            };
-          }
+          item.command = {
+            command: singleClickInstall
+              ? "skillNinja.install"
+              : "skillNinja.onSkillClick",
+            title: "Install Skill",
+            arguments: [skill],
+          };
         }
         return item;
       });
@@ -417,17 +523,17 @@ export class BrowseSkillsProvider
           );
         } else {
           item.iconPath = new vscode.ThemeIcon("package");
-          // シングルクリックインストールが有効な場合のみコマンドを設定
+          // シングルクリックインストールが有効な場合は直接インストール、そうでなければダブルクリック検出
           const singleClickInstall = vscode.workspace
             .getConfiguration("skillNinja")
             .get<boolean>("singleClickInstall", false);
-          if (singleClickInstall) {
-            item.command = {
-              command: "skillNinja.install",
-              title: "Install Skill",
-              arguments: [skill],
-            };
-          }
+          item.command = {
+            command: singleClickInstall
+              ? "skillNinja.install"
+              : "skillNinja.onSkillClick",
+            title: "Install Skill",
+            arguments: [skill],
+          };
         }
         return item;
       });
@@ -454,7 +560,8 @@ export class SkillTreeItem extends vscode.TreeItem {
     public readonly collapsibleState: vscode.TreeItemCollapsibleState,
     public readonly contextValue: string,
     public readonly skill?: Skill,
-    public readonly source?: Source
+    public readonly source?: Source,
+    public readonly bundle?: Bundle
   ) {
     super(label, collapsibleState);
     this.description = description;
@@ -467,6 +574,8 @@ export class SkillTreeItem extends vscode.TreeItem {
       this.iconPath = new vscode.ThemeIcon("package");
     } else if (contextValue === "installedSkill") {
       this.iconPath = new vscode.ThemeIcon("check");
+    } else if (contextValue === "bundle") {
+      this.iconPath = new vscode.ThemeIcon("package");
     }
 
     // ツールチップ
@@ -479,6 +588,14 @@ export class SkillTreeItem extends vscode.TreeItem {
       }`;
     } else if (source) {
       this.tooltip = `${source.name}\n${source.description}\n${source.url}`;
+    } else if (bundle) {
+      const isJa = isJapanese();
+      const skillsLabel = isJa ? "スキル" : "Skills";
+      this.tooltip = `${bundle.name}\n${
+        isJa && bundle.description_ja
+          ? bundle.description_ja
+          : bundle.description
+      }\n${skillsLabel}: ${bundle.skills.join(", ")}`;
     }
   }
 }
