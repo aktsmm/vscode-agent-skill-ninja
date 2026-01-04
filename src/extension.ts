@@ -1092,6 +1092,12 @@ export function activate(context: vscode.ExtensionContext) {
       // 引数で URL が渡された場合はそれを使用、なければ入力を求める
       let repoUrl = urlArg;
 
+      // 渡された URL のバリデーション
+      if (repoUrl && !repoUrl.match(/github\.com\/[^/]+\/[^/]+/)) {
+        vscode.window.showErrorMessage(messages.invalidRepoUrl());
+        return;
+      }
+
       if (!repoUrl) {
         repoUrl = await vscode.window.showInputBox({
           prompt: messages.enterRepoUrl(),

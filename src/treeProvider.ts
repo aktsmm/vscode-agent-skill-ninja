@@ -345,7 +345,7 @@ export class BrowseSkillsProvider
         (s) => s.type === "awesome-list"
       );
       const communitySources = this.skillIndex.sources.filter(
-        (s) => s.type === "community" || !s.type
+        (s) => s.type === "community" || s.type === "user-added" || !s.type
       );
 
       // ヘルパー関数: ソースをツリーアイテムに変換
@@ -367,6 +367,11 @@ export class BrowseSkillsProvider
           item.iconPath = new vscode.ThemeIcon(
             "star",
             new vscode.ThemeColor("charts.yellow")
+          );
+        } else if (source.type === "user-added") {
+          item.iconPath = new vscode.ThemeIcon(
+            "repo-forked",
+            new vscode.ThemeColor("charts.green")
           );
         } else {
           item.iconPath = new vscode.ThemeIcon("repo");

@@ -377,7 +377,23 @@ export async function showSkillPreview(
           case "install": {
             // インデックスにない場合は先にソースを追加
             if (!isInIndex) {
-              const repoUrl = `https://github.com/${skill.source}`;
+              // skill.source が owner/repo 形式か source ID 形式かを判定
+              let repoUrl: string;
+              if (skill.source.includes("/")) {
+                // owner/repo 形式（検索結果から）
+                repoUrl = `https://github.com/${skill.source}`;
+              } else {
+                // source ID 形式（インデックスから）→ ソース情報からURLを取得
+                const sourceInfo = sources.find((s) => s.id === skill.source);
+                if (sourceInfo) {
+                  repoUrl = sourceInfo.url;
+                } else {
+                  vscode.window.showErrorMessage(
+                    `Source not found: ${skill.source}. Please add the source manually.`
+                  );
+                  return;
+                }
+              }
               await vscode.commands.executeCommand(
                 "skillNinja.addSource",
                 repoUrl
@@ -404,7 +420,23 @@ export async function showSkillPreview(
           }
           case "addSource": {
             // ソースのみ追加
-            const repoUrl = `https://github.com/${skill.source}`;
+            // skill.source が owner/repo 形式か source ID 形式かを判定
+            let repoUrl: string;
+            if (skill.source.includes("/")) {
+              // owner/repo 形式（検索結果から）
+              repoUrl = `https://github.com/${skill.source}`;
+            } else {
+              // source ID 形式（インデックスから）→ ソース情報からURLを取得
+              const sourceInfo = sources.find((s) => s.id === skill.source);
+              if (sourceInfo) {
+                repoUrl = sourceInfo.url;
+              } else {
+                vscode.window.showErrorMessage(
+                  `Source not found: ${skill.source}. Please add the source manually.`
+                );
+                return;
+              }
+            }
             await vscode.commands.executeCommand(
               "skillNinja.addSource",
               repoUrl
@@ -419,9 +451,23 @@ export async function showSkillPreview(
                 // blob URL を tree URL に変換
                 url = skill.url.replace("/blob/", "/tree/");
               } else if (skill.source && skill.path) {
-                // source が owner/repo 形式の場合
+                // source が owner/repo 形式か source ID 形式かを判定
                 const branch = "main";
-                url = `https://github.com/${skill.source}/tree/${branch}/${skill.path}`;
+                if (skill.source.includes("/")) {
+                  // owner/repo 形式（検索結果から）
+                  url = `https://github.com/${skill.source}/tree/${branch}/${skill.path}`;
+                } else {
+                  // source ID 形式（インデックスから）→ ソース情報からURLを取得
+                  const sourceInfo = sources.find((s) => s.id === skill.source);
+                  if (sourceInfo) {
+                    const match = sourceInfo.url.match(
+                      /github\.com\/([^/]+\/[^/]+)/
+                    );
+                    if (match) {
+                      url = `https://github.com/${match[1]}/tree/${branch}/${skill.path}`;
+                    }
+                  }
+                }
               }
             }
             if (url) {

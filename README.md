@@ -190,12 +190,13 @@ Or search for **"Agent Skill Ninja"** in VS Code Extensions (`Ctrl+Shift+X`)
 
 ### Search Tips 💡
 
-| Example             | Effect                                 |
-| ------------------- | -------------------------------------- |
-| `azure devops`      | Multiple keywords, ranked by relevance |
-| `azure-env-builder` | Exact name match                       |
-| `user:anthropics`   | All skills from a user                 |
-| `owner/repo`        | All skills in a repo                   |
+| Example            | Effect                                 |
+| ------------------ | -------------------------------------- |
+| `azure`            | Keyword search                         |
+| `azure devops`     | Multiple keywords, ranked by relevance |
+| `username keyword` | First word searched as username        |
+| `user:anthropics`  | Explicit user search                   |
+| `repo:owner/repo`  | Repository search                      |
 
 > 📝 If no results found, keywords are automatically reduced and retried.
 

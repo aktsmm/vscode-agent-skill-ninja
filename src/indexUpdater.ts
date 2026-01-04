@@ -800,12 +800,44 @@ export async function searchGitHub(
     (k) => k.length >= 3 || /^[a-z0-9]+$/i.test(k)
   );
 
+  // user: または repo: プレフィックスを抽出
+  const userMatch = query.match(/\buser:([^\s]+)/i);
+  const repoMatch = query.match(/\brepo:([^\s]+)/i);
+  let userPrefix = userMatch ? `user:${userMatch[1]}` : "";
+  const repoPrefix = repoMatch ? `repo:${repoMatch[1]}` : "";
+
+  // プレフィックスを除いたキーワード
+  let keywordsWithoutPrefix = keywords.filter(
+    (k) => !k.startsWith("user:") && !k.startsWith("repo:")
+  );
+
+  // 単一キーワードがユーザー名っぽいかどうかを判定する関数
+  const looksLikeUsername = (keyword: string): boolean => {
+    return (
+      /^[a-z][a-z0-9-]*$/i.test(keyword) &&
+      keyword.length >= 3 &&
+      keyword.length <= 39 &&
+      !keyword.includes("--")
+    );
+  };
+
   // 検索クエリを生成する関数
   const buildSearchQueries = (kws: string[]): string[] => {
     const queries: string[] = [];
-    if (query.startsWith("user:") || query.startsWith("repo:")) {
-      queries.push(`filename:SKILL.md ${query}`);
+
+    // user: または repo: が明示的に指定されている場合
+    if (userPrefix || repoPrefix) {
+      const prefix = userPrefix || repoPrefix;
+      if (keywordsWithoutPrefix.length > 0) {
+        // プレフィックス + キーワード
+        const orQuery = keywordsWithoutPrefix.join(" OR ");
+        queries.push(`filename:SKILL.md ${prefix} ${orQuery}`);
+        queries.push(`filename:SKILL.md ${prefix} ${orQuery} in:path`);
+      }
+      // プレフィックスのみ（全スキル取得）
+      queries.push(`filename:SKILL.md ${prefix}`);
     } else if (query.includes("/")) {
+      // owner/repo 形式
       queries.push(`filename:SKILL.md repo:${query}`);
     } else if (kws.length > 1) {
       const orQuery = kws.join(" OR ");
@@ -872,16 +904,62 @@ export async function searchGitHub(
     };
   }
 
-  // Phase 1: 検索実行（0件ならフォールバック）
-  let searchQueries = buildSearchQueries(keywords);
-  let searchItems = await executeSearch(searchQueries);
+  // Phase 1: 検索実行
+  let searchItems: GitHubSearchItem[] = [];
 
-  // フォールバック: 0件なら1単語ずつ減らして再検索
-  let fallbackKeywords = [...keywords];
-  while (searchItems.length === 0 && fallbackKeywords.length > 1) {
-    fallbackKeywords.pop(); // 最後のキーワードを削除
-    searchQueries = buildSearchQueries(fallbackKeywords);
+  // 最初のキーワードがユーザー名っぽい & 明示的プレフィックスなし → 通常検索と user: 検索を並列実行
+  const firstKeyword = keywordsWithoutPrefix[0];
+  const shouldParallelSearch =
+    !userPrefix &&
+    !repoPrefix &&
+    !query.includes("/") &&
+    keywordsWithoutPrefix.length >= 1 &&
+    looksLikeUsername(firstKeyword);
+
+  if (shouldParallelSearch) {
+    // 通常検索クエリ
+    const normalQueries = buildSearchQueries(keywords);
+
+    // user: 検索クエリ（最初のキーワードをユーザー名として扱う）
+    const remainingKeywords = keywordsWithoutPrefix.slice(1);
+    let userQueries: string[];
+    if (remainingKeywords.length > 0) {
+      const orQuery = remainingKeywords.join(" OR ");
+      userQueries = [
+        `filename:SKILL.md user:${firstKeyword} ${orQuery}`,
+        `filename:SKILL.md user:${firstKeyword} ${orQuery} in:path`,
+        `filename:SKILL.md user:${firstKeyword}`,
+      ];
+    } else {
+      userQueries = [`filename:SKILL.md user:${firstKeyword}`];
+    }
+
+    // 並列実行してマージ
+    const [normalResults, userResults] = await Promise.all([
+      executeSearch(normalQueries),
+      executeSearch(userQueries),
+    ]);
+
+    // 重複排除してマージ
+    const seen = new Set<string>();
+    for (const item of [...normalResults, ...userResults]) {
+      const key = `${item.repository.full_name}:${item.path}`;
+      if (!seen.has(key)) {
+        seen.add(key);
+        searchItems.push(item);
+      }
+    }
+  } else {
+    let searchQueries = buildSearchQueries(keywords);
     searchItems = await executeSearch(searchQueries);
+
+    // フォールバック: 0件なら1単語ずつ減らして再検索
+    let fallbackKeywords = [...keywords];
+    while (searchItems.length === 0 && fallbackKeywords.length > 1) {
+      fallbackKeywords.pop();
+      searchQueries = buildSearchQueries(fallbackKeywords);
+      searchItems = await executeSearch(searchQueries);
+    }
   }
 
   // リポジトリ情報のキャッシュ（同じリポジトリからの複数スキルで重複APIコールを防ぐ）
