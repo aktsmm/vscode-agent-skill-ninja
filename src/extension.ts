@@ -1129,7 +1129,8 @@ export function activate(context: vscode.ExtensionContext) {
         vscode.window.showInformationMessage(
           messages.sourceAdded(result.addedSkills)
         );
-        browseProvider.refresh();
+        // 更新されたインデックスを直接設定
+        browseProvider.setIndex(skillIndex);
       } catch (error: unknown) {
         const errorMessage =
           error instanceof Error ? error.message : String(error);
@@ -1195,7 +1196,18 @@ export function activate(context: vscode.ExtensionContext) {
           interface WebSearchQuickPickItem extends vscode.QuickPickItem {
             result: (typeof results)[0];
             action?: string;
+            buttons?: vscode.QuickInputButton[];
           }
+
+          // アイテムボタンの定義
+          const openGitHubButton: vscode.QuickInputButton = {
+            iconPath: new vscode.ThemeIcon("link-external"),
+            tooltip: messages.actionOpenGitHub(),
+          };
+          const copyUrlButton: vscode.QuickInputButton = {
+            iconPath: new vscode.ThemeIcon("copy"),
+            tooltip: isJapanese() ? "URLをコピー" : "Copy URL",
+          };
 
           // スター数でソート（人気順）
           const sortedResults = [...results].sort((a, b) => {
@@ -1239,14 +1251,52 @@ export function activate(context: vscode.ExtensionContext) {
                   detail:
                     r.description + (r.stars ? ` (${r.stars} stars)` : ""),
                   result: r,
+                  buttons: [openGitHubButton, copyUrlButton],
                 };
               }),
             ];
 
-            const selected = await vscode.window.showQuickPick(items, {
-              placeHolder: messages.searchResultsCount(results.length),
-              matchOnDescription: true,
-              matchOnDetail: true,
+            // createQuickPick API でボタン対応
+            const quickPick =
+              vscode.window.createQuickPick<WebSearchQuickPickItem>();
+            quickPick.items = items;
+            quickPick.placeholder = messages.searchResultsCount(results.length);
+            quickPick.matchOnDescription = true;
+            quickPick.matchOnDetail = true;
+
+            const selected = await new Promise<
+              WebSearchQuickPickItem | undefined
+            >((resolve) => {
+              quickPick.onDidAccept(() => {
+                resolve(quickPick.selectedItems[0]);
+                quickPick.hide();
+              });
+              quickPick.onDidHide(() => {
+                resolve(undefined);
+                quickPick.dispose();
+              });
+              quickPick.onDidTriggerItemButton(async (e) => {
+                const item = e.item;
+                const branch = item.result.defaultBranch || "main";
+                const skillPath = item.result.path
+                  ? `/tree/${branch}/${item.result.path}`
+                  : "";
+                const url = `${item.result.repoUrl}${skillPath}`;
+
+                if (e.button === openGitHubButton) {
+                  // GitHub を開く（QuickPick は閉じない）
+                  await vscode.env.openExternal(vscode.Uri.parse(url));
+                } else if (e.button === copyUrlButton) {
+                  // URL をクリップボードにコピー
+                  await vscode.env.clipboard.writeText(url);
+                  vscode.window.showInformationMessage(
+                    isJapanese()
+                      ? `URLをコピーしました: ${item.result.name}`
+                      : `URL copied: ${item.result.name}`
+                  );
+                }
+              });
+              quickPick.show();
             });
 
             if (!selected) {
@@ -1276,6 +1326,10 @@ export function activate(context: vscode.ExtensionContext) {
                   value: "open",
                 },
                 {
+                  label: `$(copy) ${isJapanese() ? "URLをコピー" : "Copy URL"}`,
+                  value: "copy-url",
+                },
+                {
                   label: `$(arrow-left) ${messages.actionBack()}`,
                   value: "back",
                 },
@@ -1297,12 +1351,13 @@ export function activate(context: vscode.ExtensionContext) {
               const urlPath = pathEndsWithMd
                 ? selected.result.path
                 : `${selected.result.path}/SKILL.md`;
+              const branch = selected.result.defaultBranch || "main";
               const skill: Skill = {
                 name: selected.result.name,
                 description: selected.result.description || "",
                 source: selected.result.repo,
-                url: `${selected.result.repoUrl}/blob/HEAD/${urlPath}`,
-                rawUrl: `https://raw.githubusercontent.com/${selected.result.repo}/HEAD/${urlPath}`,
+                url: `${selected.result.repoUrl}/blob/${branch}/${urlPath}`,
+                rawUrl: `https://raw.githubusercontent.com/${selected.result.repo}/${branch}/${urlPath}`,
                 path: selected.result.path,
                 categories: [],
                 stars: selected.result.stars,
@@ -1310,6 +1365,8 @@ export function activate(context: vscode.ExtensionContext) {
                 isOrg: selected.result.isOrg,
               };
               await showSkillPreview(skill, context);
+              // 結果一覧に戻る
+              continue;
             } else if (action.value === "add-source") {
               await vscode.commands.executeCommand(
                 "skillNinja.addSource",
@@ -1318,11 +1375,28 @@ export function activate(context: vscode.ExtensionContext) {
               selectMore = false;
               continueSearch = false;
             } else if (action.value === "open") {
+              const branch = selected.result.defaultBranch || "main";
               const skillPath = selected.result.path
-                ? `/tree/HEAD/${selected.result.path}`
+                ? `/tree/${branch}/${selected.result.path}`
                 : "";
               const url = `${selected.result.repoUrl}${skillPath}`;
               await vscode.env.openExternal(vscode.Uri.parse(url));
+              // 結果一覧に戻る
+              continue;
+            } else if (action.value === "copy-url") {
+              const branch = selected.result.defaultBranch || "main";
+              const skillPath = selected.result.path
+                ? `/tree/${branch}/${selected.result.path}`
+                : "";
+              const url = `${selected.result.repoUrl}${skillPath}`;
+              await vscode.env.clipboard.writeText(url);
+              vscode.window.showInformationMessage(
+                isJapanese()
+                  ? `URLをコピーしました: ${selected.result.name}`
+                  : `URL copied: ${selected.result.name}`
+              );
+              // 結果一覧に戻る
+              continue;
             }
           }
         } catch (error: unknown) {
@@ -1927,31 +2001,31 @@ Add examples here
 
       const issueTitle = isJapanese ? "[バグ報告] " : "[Bug] ";
       const issueBody = isJapanese
-        ? `## 問題の説明\n` +
+        ? `**問題の説明**\n` +
           `<!-- 発生したバグについて説明してください -->\n\n` +
-          `## 再現手順\n` +
+          `**再現手順**\n` +
           `1. \n2. \n3. \n\n` +
-          `## 期待される動作\n` +
+          `**期待される動作**\n` +
           `<!-- どのような動作を期待していましたか？ -->\n\n` +
-          `## 実際の動作\n` +
+          `**実際の動作**\n` +
           `<!-- 実際に何が起こりましたか？ -->\n\n` +
-          `## スクリーンショット\n` +
+          `**スクリーンショット**\n` +
           `<!-- 可能であれば、問題がわかるスクリーンショットを添付してください -->\n\n` +
-          `## 環境\n` +
+          `**環境**\n` +
           `- 拡張機能バージョン: ${extensionVersion}\n` +
           `- VS Code: ${vscode.version}\n` +
           `- OS: ${process.platform}\n`
-        : `## Issue Description\n` +
+        : `**Issue Description**\n` +
           `<!-- Please describe the bug you encountered -->\n\n` +
-          `## Steps to Reproduce\n` +
+          `**Steps to Reproduce**\n` +
           `1. \n2. \n3. \n\n` +
-          `## Expected Behavior\n` +
+          `**Expected Behavior**\n` +
           `<!-- What did you expect to happen? -->\n\n` +
-          `## Actual Behavior\n` +
+          `**Actual Behavior**\n` +
           `<!-- What actually happened? -->\n\n` +
-          `## Screenshots\n` +
+          `**Screenshots**\n` +
           `<!-- If possible, please attach screenshots that show the issue -->\n\n` +
-          `## Environment\n` +
+          `**Environment**\n` +
           `- Extension Version: ${extensionVersion}\n` +
           `- VS Code: ${vscode.version}\n` +
           `- OS: ${process.platform}\n`;

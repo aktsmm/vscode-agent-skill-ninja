@@ -274,6 +274,15 @@ export class BrowseSkillsProvider
   }
 
   /**
+   * インデックスを直接設定してリフレッシュ
+   */
+  setIndex(index: SkillIndex): void {
+    this.skillIndex = index;
+    this.installedSkillNames.clear();
+    this._onDidChangeTreeData.fire();
+  }
+
+  /**
    * スキルがインストール済みかどうかを確認
    */
   isSkillInstalled(skillName: string): boolean {
@@ -328,17 +337,19 @@ export class BrowseSkillsProvider
         }
       }
 
-      // ソース一覧（タイプ順: official → awesome-list → community）
-      const sortedSources = [...this.skillIndex.sources].sort((a, b) => {
-        const priority: Record<string, number> = {
-          official: 0,
-          "awesome-list": 1,
-          community: 2,
-        };
-        return (priority[a.type] ?? 99) - (priority[b.type] ?? 99);
-      });
+      // ソースをタイプ別に分類
+      const officialSources = this.skillIndex.sources.filter(
+        (s) => s.type === "official"
+      );
+      const awesomeSources = this.skillIndex.sources.filter(
+        (s) => s.type === "awesome-list"
+      );
+      const communitySources = this.skillIndex.sources.filter(
+        (s) => s.type === "community" || !s.type
+      );
 
-      for (const source of sortedSources) {
+      // ヘルパー関数: ソースをツリーアイテムに変換
+      const createSourceItem = (source: Source) => {
         const item = new SkillTreeItem(
           source.name,
           `${this.getSkillCountForSource(source.id)} skills`,
@@ -347,7 +358,6 @@ export class BrowseSkillsProvider
           undefined,
           source
         );
-        // ソースタイプによってアイコンを変更
         if (source.type === "official") {
           item.iconPath = new vscode.ThemeIcon(
             "verified",
@@ -361,10 +371,20 @@ export class BrowseSkillsProvider
         } else {
           item.iconPath = new vscode.ThemeIcon("repo");
         }
-        items.push(item);
+        return item;
+      };
+
+      // 1. 公式ソース (official)
+      for (const source of officialSources) {
+        items.push(createSourceItem(source));
       }
 
-      // Bundlesセクション（Bundleがあれば表示）- ソースの下に表示
+      // 2. スターソース (awesome-list)
+      for (const source of awesomeSources) {
+        items.push(createSourceItem(source));
+      }
+
+      // 3. バンドル（スターとその他の間）
       if (this.skillIndex.bundles && this.skillIndex.bundles.length > 0) {
         const bundleItem = new SkillTreeItem(
           isJapanese() ? "バンドル" : "Bundles",
@@ -377,6 +397,11 @@ export class BrowseSkillsProvider
           new vscode.ThemeColor("charts.purple")
         );
         items.push(bundleItem);
+      }
+
+      // 4. その他のソース (community)
+      for (const source of communitySources) {
+        items.push(createSourceItem(source));
       }
 
       return items;

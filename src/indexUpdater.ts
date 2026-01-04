@@ -212,12 +212,13 @@ async function processTreeResponse(
   branch: string,
   _token?: string
 ): Promise<{ skills: Skill[]; source: Source; bundles?: Bundle[] }> {
-  // SKILL.md ファイルを探す（どのディレクトリでも可）
-  const skillFiles = data.tree.filter(
-    (item) =>
-      item.type === "blob" &&
-      (item.path.endsWith("/SKILL.md") || item.path === "SKILL.md")
-  );
+  // SKILL.md / skill.md ファイルを探す（どのディレクトリでも可、大文字小文字両対応）
+  const skillFiles = data.tree.filter((item) => {
+    if (item.type !== "blob") return false;
+    const lowerPath = item.path.toLowerCase();
+    // 正確に skill.md で終わるもののみ（blockskill.md 等を除外）
+    return lowerPath === "skill.md" || lowerPath.endsWith("/skill.md");
+  });
 
   // PRPs-agentic-eng リポジトリの特別処理: .claude/commands/**/*.md をスキャン
   const isPRPsRepo = repoName.toLowerCase().includes("prps-agentic");
@@ -773,7 +774,7 @@ export async function removeSource(
 
 /**
  * GitHub でスキルを検索
- * クエリがユーザー名/リポジトリ名に見える場合は user: や repo: で検索
+ * 複数の検索戦略を組み合わせて精度を向上
  */
 export async function searchGitHub(
   query: string,
@@ -787,43 +788,81 @@ export async function searchGitHub(
     description: string;
     stars?: number;
     isOrg?: boolean;
+    defaultBranch?: string;
   }>
 > {
-  // 複数の検索クエリを実行して結果をマージ
-  // 1. キーワード検索: {query} filename:SKILL.md
-  // 2. ユーザー/オーナー検索: filename:SKILL.md user:{query}
-  const searchQueries: string[] = [];
+  // クエリをキーワードに分割（3文字以上のみ、ノイズ削減）
+  const rawKeywords = query
+    .toLowerCase()
+    .split(/\s+/)
+    .filter((k) => k.length > 0);
+  const keywords = rawKeywords.filter(
+    (k) => k.length >= 3 || /^[a-z0-9]+$/i.test(k)
+  );
 
-  if (query.startsWith("user:") || query.startsWith("repo:")) {
-    // 明示的なフィルター: filename:SKILL.md user:xxx
-    searchQueries.push(`filename:SKILL.md ${query}`);
-  } else if (query.includes("/")) {
-    // owner/repo 形式: filename:SKILL.md repo:xxx/yyy
-    searchQueries.push(`filename:SKILL.md repo:${query}`);
-  } else {
-    // 一般検索: 複数パターンで検索
-    // 1. キーワードがSKILL.md内にある
-    searchQueries.push(`${query} filename:SKILL.md`);
-    // 2. ユーザー名/組織名として検索
-    searchQueries.push(`filename:SKILL.md user:${query}`);
-  }
-
-  // 全クエリの結果をマージ（重複排除）
-  const allResults = new Map<
-    string,
-    {
-      name: string;
-      repo: string;
-      repoUrl: string;
-      path: string;
-      description: string;
-      stars?: number;
-      isOrg?: boolean;
+  // 検索クエリを生成する関数
+  const buildSearchQueries = (kws: string[]): string[] => {
+    const queries: string[] = [];
+    if (query.startsWith("user:") || query.startsWith("repo:")) {
+      queries.push(`filename:SKILL.md ${query}`);
+    } else if (query.includes("/")) {
+      queries.push(`filename:SKILL.md repo:${query}`);
+    } else if (kws.length > 1) {
+      const orQuery = kws.join(" OR ");
+      queries.push(`filename:SKILL.md ${orQuery}`);
+      queries.push(`filename:SKILL.md ${orQuery} in:path`);
+    } else if (kws.length === 1) {
+      queries.push(`filename:SKILL.md ${kws[0]}`);
+      queries.push(`filename:SKILL.md ${kws[0]} in:path`);
     }
-  >();
+    return queries;
+  };
 
-  // リポジトリ情報のキャッシュ（同じリポジトリからの複数スキルで重複APIコールを防ぐ）
-  const repoInfoCache = new Map<string, { stars: number; isOrg: boolean }>();
+  // 検索実行関数（フォールバック対応）
+  const executeSearch = async (
+    searchQueries: string[]
+  ): Promise<GitHubSearchItem[]> => {
+    const items: GitHubSearchItem[] = [];
+    const seen = new Set<string>();
+
+    for (const searchQuery of searchQueries) {
+      try {
+        const searchUrl = `https://api.github.com/search/code?q=${encodeURIComponent(
+          searchQuery
+        )}&per_page=100`;
+        const response = await githubFetch(searchUrl, token);
+
+        if (!response.ok) {
+          if (response.status === 403) {
+            throw new Error(
+              "GitHub API rate limit exceeded. Please authenticate with a GitHub token."
+            );
+          }
+          if (response.status === 401) {
+            throw new Error("GitHub authentication required for code search.");
+          }
+          continue;
+        }
+
+        const data = (await response.json()) as {
+          items: GitHubSearchItem[];
+          total_count: number;
+        };
+        for (const item of data.items || []) {
+          const key = `${item.repository.full_name}:${item.path}`;
+          if (!seen.has(key)) {
+            seen.add(key);
+            items.push(item);
+          }
+        }
+      } catch (error) {
+        if (searchQueries.indexOf(searchQuery) === 0) {
+          throw error;
+        }
+      }
+    }
+    return items;
+  };
 
   interface GitHubSearchItem {
     path: string;
@@ -833,88 +872,240 @@ export async function searchGitHub(
     };
   }
 
-  for (const searchQuery of searchQueries) {
-    try {
-      // GitHub Code Search API
-      const searchUrl = `https://api.github.com/search/code?q=${encodeURIComponent(
-        searchQuery
-      )}&per_page=30`;
+  // Phase 1: 検索実行（0件ならフォールバック）
+  let searchQueries = buildSearchQueries(keywords);
+  let searchItems = await executeSearch(searchQueries);
 
-      const response = await githubFetch(searchUrl, token);
-
-      if (!response.ok) {
-        if (response.status === 403) {
-          throw new Error(
-            "GitHub API rate limit exceeded. Please authenticate with a GitHub token."
-          );
-        }
-        if (response.status === 401) {
-          throw new Error("GitHub authentication required for code search.");
-        }
-        // 他のエラーは無視して次のクエリへ
-        continue;
-      }
-
-      const data = (await response.json()) as {
-        items: GitHubSearchItem[];
-        total_count: number;
-      };
-
-      for (const item of data.items || []) {
-        // 重複チェック（repo + path の組み合わせでユニーク）
-        const key = `${item.repository.full_name}:${item.path}`;
-        if (allResults.has(key)) {
-          continue;
-        }
-
-        const pathParts = item.path.split("/");
-        // SKILL.md がルートにある場合はリポジトリ名を使用
-        const skillName =
-          pathParts.length > 1
-            ? pathParts[pathParts.length - 2]
-            : item.repository.full_name.split("/")[1];
-
-        // リポジトリ情報を取得（キャッシュがなければAPI呼び出し）
-        let repoInfo = repoInfoCache.get(item.repository.full_name);
-        if (!repoInfo) {
-          try {
-            const repoApiUrl = `https://api.github.com/repos/${item.repository.full_name}`;
-            const repoResponse = await githubFetch(repoApiUrl, token);
-            if (repoResponse.ok) {
-              const repoData = (await repoResponse.json()) as {
-                stargazers_count: number;
-                owner: { type: string };
-              };
-              repoInfo = {
-                stars: repoData.stargazers_count,
-                isOrg: repoData.owner.type === "Organization",
-              };
-              repoInfoCache.set(item.repository.full_name, repoInfo);
-            }
-          } catch {
-            // リポジトリ情報取得に失敗しても続行
-          }
-        }
-
-        allResults.set(key, {
-          name: skillName,
-          repo: item.repository.full_name,
-          repoUrl: item.repository.html_url,
-          path: item.path.replace("/SKILL.md", "").replace("SKILL.md", ""),
-          description: `From ${item.repository.full_name}`,
-          stars: repoInfo?.stars,
-          isOrg: repoInfo?.isOrg,
-        });
-      }
-    } catch (error) {
-      // 最初のクエリでエラーの場合は投げる、2つ目以降は無視
-      if (searchQueries.indexOf(searchQuery) === 0) {
-        throw error;
-      }
-    }
+  // フォールバック: 0件なら1単語ずつ減らして再検索
+  let fallbackKeywords = [...keywords];
+  while (searchItems.length === 0 && fallbackKeywords.length > 1) {
+    fallbackKeywords.pop(); // 最後のキーワードを削除
+    searchQueries = buildSearchQueries(fallbackKeywords);
+    searchItems = await executeSearch(searchQueries);
   }
 
-  return Array.from(allResults.values());
+  // リポジトリ情報のキャッシュ（同じリポジトリからの複数スキルで重複APIコールを防ぐ）
+  const repoInfoCache = new Map<
+    string,
+    { stars: number; isOrg: boolean; defaultBranch: string }
+  >();
+
+  // Phase 2: 検索結果の基本情報を収集（既に取得済みのsearchItemsを使用）
+  interface BasicResult {
+    name: string;
+    repo: string;
+    repoUrl: string;
+    path: string;
+    itemPath: string;
+    stars?: number;
+    isOrg?: boolean;
+    defaultBranch: string;
+  }
+
+  // SKILL.mdフィルタリング
+  const validItems = searchItems.filter((item) => {
+    const lowerPath = item.path.toLowerCase();
+    return lowerPath === "skill.md" || lowerPath.endsWith("/skill.md");
+  });
+
+  // 重複排除してユニークなリポジトリリストを作成
+  const uniqueRepos = [
+    ...new Set(validItems.map((item) => item.repository.full_name)),
+  ];
+
+  // リポジトリ情報を並列取得（最大10並列）
+  const REPO_BATCH_SIZE = 10;
+  for (let i = 0; i < uniqueRepos.length; i += REPO_BATCH_SIZE) {
+    const batch = uniqueRepos.slice(i, i + REPO_BATCH_SIZE);
+    await Promise.all(
+      batch.map(async (repoName) => {
+        if (repoInfoCache.has(repoName)) return;
+        try {
+          const repoApiUrl = `https://api.github.com/repos/${repoName}`;
+          const repoResponse = await githubFetch(repoApiUrl, token);
+          if (repoResponse.ok) {
+            const repoData = (await repoResponse.json()) as {
+              stargazers_count: number;
+              owner: { type: string };
+              default_branch: string;
+            };
+            repoInfoCache.set(repoName, {
+              stars: repoData.stargazers_count,
+              isOrg: repoData.owner.type === "Organization",
+              defaultBranch: repoData.default_branch || "main",
+            });
+          }
+        } catch {
+          // 失敗しても続行
+        }
+      })
+    );
+  }
+
+  // BasicResultsを構築
+  const basicResults: BasicResult[] = [];
+  const seenKeys = new Set<string>();
+
+  for (const item of validItems) {
+    const key = `${item.repository.full_name}:${item.path}`;
+    if (seenKeys.has(key)) continue;
+    seenKeys.add(key);
+
+    const pathParts = item.path.split("/");
+    const skillName =
+      pathParts.length > 1
+        ? pathParts[pathParts.length - 2]
+        : item.repository.full_name.split("/")[1];
+
+    const repoInfo = repoInfoCache.get(item.repository.full_name);
+
+    basicResults.push({
+      name: skillName,
+      repo: item.repository.full_name,
+      repoUrl: item.repository.html_url,
+      path: item.path.replace(/\/SKILL\.md$/i, "").replace(/^SKILL\.md$/i, ""),
+      itemPath: item.path,
+      stars: repoInfo?.stars,
+      isOrg: repoInfo?.isOrg,
+      defaultBranch: repoInfo?.defaultBranch || "main",
+    });
+  }
+
+  // Phase 3: スコアリング（SKILL.md取得前に仮ランキング）
+  let rankedResults = basicResults;
+  if (keywords.length > 1) {
+    rankedResults = basicResults
+      .map((result) => {
+        const searchText =
+          `${result.name} ${result.path} ${result.repo}`.toLowerCase();
+        let score = 0;
+        for (const keyword of keywords) {
+          if (searchText.includes(keyword)) {
+            score++;
+            if (result.name.toLowerCase().includes(keyword)) {
+              score += 2;
+            }
+          }
+        }
+        if (result.stars && result.stars > 100) {
+          score += 1;
+        }
+        return { ...result, score };
+      })
+      .sort((a, b) => {
+        const aScore = (a as { score?: number }).score || 0;
+        const bScore = (b as { score?: number }).score || 0;
+        if (bScore !== aScore) return bScore - aScore;
+        return (b.stars || 0) - (a.stars || 0);
+      });
+  }
+
+  // Phase 4: 上位50件のみSKILL.md取得して再スコアリング（並列処理で高速化）
+  const MAX_FETCH = 50;
+  const topResults = rankedResults.slice(0, MAX_FETCH);
+
+  const fetchSkillContent = async (
+    result: BasicResult & { score?: number }
+  ): Promise<{
+    name: string;
+    repo: string;
+    repoUrl: string;
+    path: string;
+    description: string;
+    stars?: number;
+    isOrg?: boolean;
+    defaultBranch?: string;
+    score?: number;
+  }> => {
+    let skillDescription = `From ${result.repo}`;
+    let skillNameFromMeta = result.name;
+
+    try {
+      const rawUrl = `https://raw.githubusercontent.com/${result.repo}/${result.defaultBranch}/${result.itemPath}`;
+      const contentResponse = await githubFetch(rawUrl, token);
+      if (contentResponse.ok) {
+        const content = await contentResponse.text();
+        const frontmatterMatch = content.match(/^---\s*\n([\s\S]*?)\n---/);
+        if (frontmatterMatch) {
+          const frontmatter = frontmatterMatch[1];
+          const descMatch = frontmatter.match(
+            /^description:\s*(?:\|\s*\n([\s\S]*?)(?=\n\w|\n---)|(.+))/m
+          );
+          if (descMatch) {
+            const desc = (descMatch[1] || descMatch[2] || "").trim();
+            if (desc) {
+              const firstLine = desc.split("\n")[0].trim();
+              skillDescription =
+                firstLine.length > 100
+                  ? firstLine.substring(0, 100) + "..."
+                  : firstLine;
+            }
+          }
+          const nameMatch = frontmatter.match(/^name:\s*(.+)/m);
+          if (nameMatch) {
+            skillNameFromMeta = nameMatch[1].trim();
+          }
+        }
+      }
+    } catch {
+      // 失敗してもデフォルト description を使用
+    }
+
+    // Description を含めて再スコアリング（複数キーワードの場合）
+    let finalScore = result.score || 0;
+    if (keywords.length > 1) {
+      const descLower = skillDescription.toLowerCase();
+      for (const keyword of keywords) {
+        if (descLower.includes(keyword)) {
+          finalScore += 1; // description にキーワードがあれば +1
+        }
+      }
+    }
+
+    return {
+      name: skillNameFromMeta,
+      repo: result.repo,
+      repoUrl: result.repoUrl,
+      path: result.path,
+      description: skillDescription,
+      stars: result.stars,
+      isOrg: result.isOrg,
+      defaultBranch: result.defaultBranch,
+      score: finalScore,
+    };
+  };
+
+  // 並列実行（最大10同時）
+  const BATCH_SIZE = 10;
+  const fetchedResults: Array<{
+    name: string;
+    repo: string;
+    repoUrl: string;
+    path: string;
+    description: string;
+    stars?: number;
+    isOrg?: boolean;
+    defaultBranch?: string;
+    score?: number;
+  }> = [];
+
+  for (let i = 0; i < topResults.length; i += BATCH_SIZE) {
+    const batch = topResults.slice(i, i + BATCH_SIZE);
+    const batchResults = await Promise.all(batch.map(fetchSkillContent));
+    fetchedResults.push(...batchResults);
+  }
+
+  // 最終スコアでソート（複数キーワードの場合）
+  if (keywords.length > 1) {
+    fetchedResults.sort((a, b) => {
+      const aScore = a.score || 0;
+      const bScore = b.score || 0;
+      if (bScore !== aScore) return bScore - aScore;
+      return (b.stars || 0) - (a.stars || 0);
+    });
+  }
+
+  return fetchedResults;
 }
 
 /**

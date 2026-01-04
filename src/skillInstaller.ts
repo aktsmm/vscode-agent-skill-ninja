@@ -310,23 +310,23 @@ async function validateInstalledSkill(
 
         const issueTitle = `[Bug] Skill install incomplete: ${skill.name}`;
         const issueBody =
-          `## Issue\n` +
+          `**Issue**\n` +
           `Skill "${skill.name}" from source "${skill.source}" was not installed correctly.\n\n` +
-          `## Expected\n` +
+          `**Expected**\n` +
           `SKILL.md should contain the full skill content.\n\n` +
-          `## Actual\n` +
+          `**Actual**\n` +
           `SKILL.md contains only fallback/template content (${text.length} bytes).\n\n` +
-          `## Skill Details\n` +
+          `**Skill Details**\n` +
           `- Name: ${skill.name}\n` +
           `- Source ID: ${skill.source}\n` +
           `- Path: ${skill.path || "unknown"}\n` +
           `- Repository: ${repoUrl}\n` +
           `- Branch: ${branch}\n\n` +
-          `## Environment\n` +
+          `**Environment**\n` +
           `- Extension Version: ${extensionVersion}\n` +
           `- VS Code: ${vscode.version}\n` +
           `- OS: ${process.platform}\n\n` +
-          `## SKILL.md Content (first 200 chars)\n` +
+          `**SKILL.md Content (first 200 chars)**\n` +
           `\`\`\`\n${text.substring(0, 200)}\n\`\`\``;
 
         // URLパラメータをエンコード
@@ -652,22 +652,22 @@ async function openBugReport(
 
   const issueTitle = `[Bug] Skill not found: ${skill.name}`;
   const issueBody =
-    `## Issue\n` +
+    `**Issue**\n` +
     `Skill "${skill.name}" from source "${skill.source}" could not be downloaded.\n\n` +
-    `## Error\n` +
+    `**Error**\n` +
     `${errorType}\n\n` +
-    `## Skill Details\n` +
+    `**Skill Details**\n` +
     `- Name: ${skill.name}\n` +
     `- Source ID: ${skill.source}\n` +
     `- Path: ${skill.path || "unknown"}\n` +
     `- Repository: ${repoUrl}\n` +
     `- Branch: ${branch}\n` +
     `- Failed URL: ${url}\n\n` +
-    `## Environment\n` +
+    `**Environment**\n` +
     `- Extension Version: ${extensionVersion}\n` +
     `- VS Code: ${vscode.version}\n` +
     `- OS: ${process.platform}\n\n` +
-    `## Possible Cause\n` +
+    `**Possible Cause**\n` +
     `The skill index may contain outdated paths that no longer exist in the repository.`;
 
   const params = new URLSearchParams({

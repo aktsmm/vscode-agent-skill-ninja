@@ -412,9 +412,24 @@ export async function showSkillPreview(
             break;
           }
           case "openGitHub": {
-            const url = getSkillGitHubUrl(skill, sources);
+            let url = getSkillGitHubUrl(skill, sources);
+            // フォールバック: skill.url または source/path から直接構築
+            if (!url) {
+              if (skill.url) {
+                // blob URL を tree URL に変換
+                url = skill.url.replace("/blob/", "/tree/");
+              } else if (skill.source && skill.path) {
+                // source が owner/repo 形式の場合
+                const branch = "main";
+                url = `https://github.com/${skill.source}/tree/${branch}/${skill.path}`;
+              }
+            }
             if (url) {
               await vscode.env.openExternal(vscode.Uri.parse(url));
+            } else {
+              vscode.window.showWarningMessage(
+                `GitHub URL could not be determined for ${skill.name}`
+              );
             }
             break;
           }

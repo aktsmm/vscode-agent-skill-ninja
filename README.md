@@ -27,7 +27,10 @@
 
 ### 🔍 Skill Search & Discovery
 
-- Search **59+ skills** by keyword (local & GitHub)
+- Search **100+ skills** by keyword (local & GitHub)
+- **Multi-keyword Search** - Scored by name, path, description relevance
+- **Parallel Fetch** - Fast results with 50 concurrent requests
+- **Fallback Search** - Auto-retry with fewer keywords if no results
 - Search results with descriptions & category tags
 - ⭐ Star counts & organization badges
 - Install / Preview / Favorite directly from search results
@@ -184,6 +187,17 @@ Or search for **"Agent Skill Ninja"** in VS Code Extensions (`Ctrl+Shift+X`)
 3. Select skill → Choose action (Install / Preview / Favorite / GitHub)
 4. Done! Auto-registered in instruction file
 ```
+
+### Search Tips 💡
+
+| Example             | Effect                                 |
+| ------------------- | -------------------------------------- |
+| `azure devops`      | Multiple keywords, ranked by relevance |
+| `azure-env-builder` | Exact name match                       |
+| `user:anthropics`   | All skills from a user                 |
+| `owner/repo`        | All skills in a repo                   |
+
+> 📝 If no results found, keywords are automatically reduced and retried.
 
 ## Copilot Chat
 
