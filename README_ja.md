@@ -77,20 +77,9 @@
 - Webview でスキルプレビュー
 - お気に入り機能
 
-## Screenshots
+## Demo
 
-> 📸 スクリーンショットは近日追加予定
-
-<!--
-### サイドバー
-![Sidebar](docs/screenshots/sidebar.png)
-
-### スキル検索
-![Search](docs/screenshots/search.png)
-
-### インストール確認
-![Install](docs/screenshots/install.png)
--->
+![Demo](docs/screenshots/demo.gif)
 
 ## Installation
 

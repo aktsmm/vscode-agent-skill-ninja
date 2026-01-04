@@ -81,20 +81,9 @@
 - Skill preview in Webview
 - Favorites feature
 
-## Screenshots
+## Demo
 
-> 📸 Screenshots coming soon
-
-<!--
-### Sidebar
-![Sidebar](docs/screenshots/sidebar.png)
-
-### Skill Search
-![Search](docs/screenshots/search.png)
-
-### Install Confirmation
-![Install](docs/screenshots/install.png)
--->
+![Demo](docs/screenshots/demo.gif)
 
 ## Installation
 
