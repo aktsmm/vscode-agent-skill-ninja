@@ -247,6 +247,14 @@ GitHub Copilot の **Agent Mode** では、自動的に MCP ツールとして�
 - 🌟 **おすすめスキル**: 検索結果から最適なスキルを推奨
 - 📅 **インデックス更新情報**: 最終更新日と古い場合の警告
 - ⚙️ **設定連動**: `autoUpdateInstruction` / `includeLocalSkills` を尊重
+- 🎯 **トークン効率**: MCP ツール経由で操作することで、会話コンテキストを節約
+
+### MCP ツールを無効化
+
+MCP ツールが不要な場合は、GitHub Copilot Chat のツール一覧からオフにできます：
+
+1. Copilot Chat パネル → ⚙️ → Tools
+2. 「Agent Skill Ninja」のツールをトグルオフ
 
 ## Settings
 

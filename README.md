@@ -251,6 +251,14 @@ In GitHub Copilot's **Agent Mode**, tools are automatically available.
 - 🌟 **Recommended Skills**: Suggests best skills from search results
 - 📅 **Index Update Info**: Shows last update date with warnings if outdated
 - ⚙️ **Settings Integration**: Respects `autoUpdateInstruction` / `includeLocalSkills`
+- 🎯 **Token Efficiency**: Save conversation context by using MCP tools
+
+### Disable MCP Tools
+
+If you don't need MCP tools, you can disable them from GitHub Copilot Chat:
+
+1. Copilot Chat panel → ⚙️ → Tools
+2. Toggle off "Agent Skill Ninja" tools
 
 ## Settings
 
