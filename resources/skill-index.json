@@ -1,5 +1,5 @@
 {
-  "version": "1.7.0",
+  "version": "1.8.0",
   "lastUpdated": "2026-01-04",
   "sources": [
     {
@@ -82,15 +82,15 @@
       "name": "algorithmic-art",
       "source": "anthropics-skills",
       "path": "skills/algorithmic-art",
-      "categories": ["creative", "art"],
+      "categories": [],
       "description": "Generate algorithmic art and creative visualizations",
-      "description_ja": "アルゴリズミックアートの生成"
+      "description_ja": "アルゴリズミックアートとクリエイティブな可視化を生成"
     },
     {
       "name": "brand-guidelines",
       "source": "anthropics-skills",
       "path": "skills/brand-guidelines",
-      "categories": ["design", "branding"],
+      "categories": [],
       "description": "Create and manage brand guidelines",
       "description_ja": "ブランドガイドラインの作成・管理"
     },
@@ -98,473 +98,249 @@
       "name": "canvas-design",
       "source": "anthropics-skills",
       "path": "skills/canvas-design",
-      "categories": ["design", "creative"],
+      "categories": [],
       "description": "Create canvas designs and layouts",
-      "description_ja": "キャンバスデザインの作成"
+      "description_ja": "キャンバスデザインとレイアウトの作成"
     },
     {
       "name": "doc-coauthoring",
       "source": "anthropics-skills",
       "path": "skills/doc-coauthoring",
-      "categories": ["document", "collaboration"],
+      "categories": [],
       "description": "Collaborative document co-authoring",
-      "description_ja": "ドキュメントの共同執筆"
+      "description_ja": "共同ドキュメント作成"
     },
     {
       "name": "docx",
       "source": "anthropics-skills",
       "path": "skills/docx",
-      "categories": ["document", "office"],
+      "categories": [],
       "description": "Process Word documents (.docx)",
-      "description_ja": "Word ドキュメント (.docx) の処理"
-    },
-    {
-      "name": "pdf",
-      "source": "anthropics-skills",
-      "path": "skills/pdf",
-      "categories": ["document"],
-      "description": "Process PDF files",
-      "description_ja": "PDF ファイルの処理"
-    },
-    {
-      "name": "pptx",
-      "source": "anthropics-skills",
-      "path": "skills/pptx",
-      "categories": ["document", "office", "presentation"],
-      "description": "Process PowerPoint presentations (.pptx)",
-      "description_ja": "PowerPoint (.pptx) の処理"
-    },
-    {
-      "name": "xlsx",
-      "source": "anthropics-skills",
-      "path": "skills/xlsx",
-      "categories": ["document", "office", "data"],
-      "description": "Process Excel spreadsheets (.xlsx)",
-      "description_ja": "Excel (.xlsx) の処理"
+      "description_ja": "Word文書（.docx）の処理"
     },
     {
       "name": "frontend-design",
       "source": "anthropics-skills",
       "path": "skills/frontend-design",
-      "categories": ["web", "design", "frontend"],
+      "categories": [],
       "description": "Create frontend designs and UI layouts",
-      "description_ja": "フロントエンドデザインの作成"
-    },
-    {
-      "name": "web-artifacts-builder",
-      "source": "anthropics-skills",
-      "path": "skills/web-artifacts-builder",
-      "categories": ["web", "frontend"],
-      "description": "Build web artifacts and components",
-      "description_ja": "Web アーティファクトのビルド"
-    },
-    {
-      "name": "webapp-testing",
-      "source": "anthropics-skills",
-      "path": "skills/webapp-testing",
-      "categories": ["web", "testing"],
-      "description": "Test web applications",
-      "description_ja": "Web アプリケーションのテスト"
-    },
-    {
-      "name": "mcp-builder",
-      "source": "anthropics-skills",
-      "path": "skills/mcp-builder",
-      "categories": ["mcp", "development"],
-      "description": "Build MCP (Model Context Protocol) servers",
-      "description_ja": "MCP サーバーの構築"
-    },
-    {
-      "name": "skill-creator",
-      "source": "anthropics-skills",
-      "path": "skills/skill-creator",
-      "categories": ["meta", "development"],
-      "description": "Create new agent skills",
-      "description_ja": "新しいスキルの作成ガイド"
-    },
-    {
-      "name": "slack-gif-creator",
-      "source": "anthropics-skills",
-      "path": "skills/slack-gif-creator",
-      "categories": ["creative", "communication"],
-      "description": "Create GIFs for Slack",
-      "description_ja": "Slack 用 GIF の作成"
-    },
-    {
-      "name": "theme-factory",
-      "source": "anthropics-skills",
-      "path": "skills/theme-factory",
-      "categories": ["design", "theming"],
-      "description": "Create and manage themes",
-      "description_ja": "テーマの作成"
+      "description_ja": "フロントエンドデザインとUIレイアウトの作成"
     },
     {
       "name": "internal-comms",
       "source": "anthropics-skills",
       "path": "skills/internal-comms",
-      "categories": ["communication", "business"],
+      "categories": [],
       "description": "Internal communications management",
-      "description_ja": "社内コミュニケーション"
+      "description_ja": "社内コミュニケーション管理"
     },
     {
-      "name": "template",
+      "name": "mcp-builder",
+      "source": "anthropics-skills",
+      "path": "skills/mcp-builder",
+      "categories": [],
+      "description": "Build MCP (Model Context Protocol) servers",
+      "description_ja": "MCP（Model Context Protocol）サーバーの構築"
+    },
+    {
+      "name": "pdf",
+      "source": "anthropics-skills",
+      "path": "skills/pdf",
+      "categories": [],
+      "description": "Process PDF files",
+      "description_ja": "PDFファイルの処理"
+    },
+    {
+      "name": "pptx",
+      "source": "anthropics-skills",
+      "path": "skills/pptx",
+      "categories": [],
+      "description": "Process PowerPoint presentations (.pptx)",
+      "description_ja": "PowerPointプレゼンテーション（.pptx）の処理"
+    },
+    {
+      "name": "skill-creator",
+      "source": "anthropics-skills",
+      "path": "skills/skill-creator",
+      "categories": [],
+      "description": "Create new agent skills",
+      "description_ja": "新しいエージェントスキルの作成"
+    },
+    {
+      "name": "slack-gif-creator",
+      "source": "anthropics-skills",
+      "path": "skills/slack-gif-creator",
+      "categories": [],
+      "description": "Create GIFs for Slack",
+      "description_ja": "Slack用GIFの作成"
+    },
+    {
+      "name": "theme-factory",
+      "source": "anthropics-skills",
+      "path": "skills/theme-factory",
+      "categories": [],
+      "description": "Create and manage themes",
+      "description_ja": "テーマの作成・管理"
+    },
+    {
+      "name": "web-artifacts-builder",
+      "source": "anthropics-skills",
+      "path": "skills/web-artifacts-builder",
+      "categories": [],
+      "description": "Build web artifacts and components",
+      "description_ja": "Webアーティファクトとコンポーネントの構築"
+    },
+    {
+      "name": "webapp-testing",
+      "source": "anthropics-skills",
+      "path": "skills/webapp-testing",
+      "categories": [],
+      "description": "Test web applications",
+      "description_ja": "Webアプリケーションのテスト"
+    },
+    {
+      "name": "xlsx",
+      "source": "anthropics-skills",
+      "path": "skills/xlsx",
+      "categories": [],
+      "description": "Process Excel spreadsheets (.xlsx)",
+      "description_ja": "Excelスプレッドシート（.xlsx）の処理"
+    },
+    {
+      "name": "template-skill",
       "source": "anthropics-skills",
       "path": "template",
-      "categories": ["meta"],
-      "description": "Template",
+      "categories": [],
+      "description": "Replace with description of the skill and when Claude should use it.",
       "description_ja": "スキルテンプレート"
-    },
-    {
-      "name": "brainstorming",
-      "source": "obra-superpowers",
-      "path": "skills/brainstorming",
-      "categories": ["planning", "ideation"],
-      "description": "Brainstorming",
-      "description_ja": "ブレインストーミングの実施"
-    },
-    {
-      "name": "writing-plans",
-      "source": "obra-superpowers",
-      "path": "skills/writing-plans",
-      "categories": ["planning", "documentation"],
-      "description": "Writing Plans",
-      "description_ja": "計画書の作成"
-    },
-    {
-      "name": "executing-plans",
-      "source": "obra-superpowers",
-      "path": "skills/executing-plans",
-      "categories": ["planning", "execution"],
-      "description": "Executing Plans",
-      "description_ja": "計画の実行"
-    },
-    {
-      "name": "test-driven-development",
-      "source": "obra-superpowers",
-      "path": "skills/test-driven-development",
-      "categories": ["development", "testing", "tdd"],
-      "description": "Test-driven development (TDD)",
-      "description_ja": "テスト駆動開発 (TDD)"
-    },
-    {
-      "name": "systematic-debugging",
-      "source": "obra-superpowers",
-      "path": "skills/systematic-debugging",
-      "categories": ["development", "debugging"],
-      "description": "Systematic Debugging",
-      "description_ja": "体系的なデバッグ手法"
-    },
-    {
-      "name": "subagent-driven-development",
-      "source": "obra-superpowers",
-      "path": "skills/subagent-driven-development",
-      "categories": ["development", "agents"],
-      "description": "Subagent Driven Development",
-      "description_ja": "サブエージェント駆動開発"
-    },
-    {
-      "name": "dispatching-parallel-agents",
-      "source": "obra-superpowers",
-      "path": "skills/dispatching-parallel-agents",
-      "categories": ["development", "agents", "parallel"],
-      "description": "Dispatching Parallel Agents",
-      "description_ja": "並列エージェントのディスパッチ"
-    },
-    {
-      "name": "using-git-worktrees",
-      "source": "obra-superpowers",
-      "path": "skills/using-git-worktrees",
-      "categories": ["git", "development"],
-      "description": "Using Git Worktrees",
-      "description_ja": "Git worktree の活用"
-    },
-    {
-      "name": "receiving-code-review",
-      "source": "obra-superpowers",
-      "path": "skills/receiving-code-review",
-      "categories": ["git", "code-review"],
-      "description": "Receiving Code Review",
-      "description_ja": "コードレビューの受け取り方"
-    },
-    {
-      "name": "requesting-code-review",
-      "source": "obra-superpowers",
-      "path": "skills/requesting-code-review",
-      "categories": ["git", "code-review"],
-      "description": "Requesting Code Review",
-      "description_ja": "コードレビューのリクエスト"
-    },
-    {
-      "name": "finishing-a-development-branch",
-      "source": "obra-superpowers",
-      "path": "skills/finishing-a-development-branch",
-      "categories": ["git", "development"],
-      "description": "Finishing A Development Branch",
-      "description_ja": "開発ブランチの完了処理"
-    },
-    {
-      "name": "verification-before-completion",
-      "source": "obra-superpowers",
-      "path": "skills/verification-before-completion",
-      "categories": ["quality", "verification"],
-      "description": "Verification Before Completion",
-      "description_ja": "完了前の検証"
-    },
-    {
-      "name": "writing-skills",
-      "source": "obra-superpowers",
-      "path": "skills/writing-skills",
-      "categories": ["meta", "development"],
-      "description": "Writing Skills",
-      "description_ja": "スキルの書き方"
-    },
-    {
-      "name": "using-superpowers",
-      "source": "obra-superpowers",
-      "path": "skills/using-superpowers",
-      "categories": ["meta"],
-      "description": "Using Superpowers",
-      "description_ja": "Superpowers の使い方"
-    },
-    {
-      "name": "context-fundamentals",
-      "source": "context-engineering-skills",
-      "path": "skills/context-fundamentals",
-      "categories": ["context-engineering", "fundamentals"],
-      "description": "Context engineering fundamentals",
-      "description_ja": "コンテキストエンジニアリングの基礎"
-    },
-    {
-      "name": "context-optimization",
-      "source": "context-engineering-skills",
-      "path": "skills/context-optimization",
-      "categories": ["context-engineering", "optimization"],
-      "description": "Optimize context usage",
-      "description_ja": "コンテキスト最適化テクニック"
-    },
-    {
-      "name": "context-compression",
-      "source": "context-engineering-skills",
-      "path": "skills/context-compression",
-      "categories": ["context-engineering", "compression"],
-      "description": "Compress context efficiently",
-      "description_ja": "コンテキスト圧縮・要約"
-    },
-    {
-      "name": "context-degradation",
-      "source": "context-engineering-skills",
-      "path": "skills/context-degradation",
-      "categories": ["context-engineering", "quality"],
-      "description": "Handle context degradation",
-      "description_ja": "コンテキスト劣化の理解と対策"
-    },
-    {
-      "name": "memory-systems",
-      "source": "context-engineering-skills",
-      "path": "skills/memory-systems",
-      "categories": ["context-engineering", "memory"],
-      "description": "Memory system design",
-      "description_ja": "メモリシステム設計"
-    },
-    {
-      "name": "multi-agent-patterns",
-      "source": "context-engineering-skills",
-      "path": "skills/multi-agent-patterns",
-      "categories": ["context-engineering", "agents"],
-      "description": "Multi-agent design patterns",
-      "description_ja": "マルチエージェントパターン"
-    },
-    {
-      "name": "tool-design",
-      "source": "context-engineering-skills",
-      "path": "skills/tool-design",
-      "categories": ["context-engineering", "tools"],
-      "description": "Design agent tools",
-      "description_ja": "ツール設計パターン"
-    },
-    {
-      "name": "evaluation",
-      "source": "context-engineering-skills",
-      "path": "skills/evaluation",
-      "categories": ["context-engineering", "testing"],
-      "description": "Evaluate agent performance",
-      "description_ja": "評価・テスト手法"
-    },
-    {
-      "name": "advanced-evaluation",
-      "source": "context-engineering-skills",
-      "path": "skills/advanced-evaluation",
-      "categories": ["context-engineering", "testing"],
-      "description": "Advanced evaluation techniques",
-      "description_ja": "高度な評価テクニック"
-    },
-    {
-      "name": "project-development",
-      "source": "context-engineering-skills",
-      "path": "skills/project-development",
-      "categories": ["context-engineering", "development"],
-      "description": "Project development workflow",
-      "description_ja": "プロジェクト開発フロー"
-    },
-    {
-      "name": "book-sft-pipeline",
-      "source": "context-engineering-skills",
-      "path": "examples/book-sft-pipeline",
-      "categories": ["context-engineering", "example"],
-      "description": "Book SFT pipeline",
-      "description_ja": "Book SFTパイプラインの例"
-    },
-    {
-      "name": "digital-brain-skill",
-      "source": "context-engineering-skills",
-      "path": "examples/digital-brain-skill",
-      "categories": ["context-engineering", "example"],
-      "description": "Digital brain and knowledge management",
-      "description_ja": "デジタルブレインスキルの例"
-    },
-    {
-      "name": "artifacts-builder",
-      "source": "composio-awesome",
-      "path": "artifacts-builder",
-      "categories": ["web", "frontend"],
-      "description": "Artifacts Builder",
-      "description_ja": "アーティファクトビルダー"
-    },
-    {
-      "name": "changelog-generator",
-      "source": "composio-awesome",
-      "path": "changelog-generator",
-      "categories": ["documentation", "git"],
-      "description": "Changelog Generator",
-      "description_ja": "CHANGELOG の自動生成"
-    },
-    {
-      "name": "content-research-writer",
-      "source": "composio-awesome",
-      "path": "content-research-writer",
-      "categories": ["writing", "research"],
-      "description": "Content Research Writer",
-      "description_ja": "コンテンツリサーチ・ライティング"
-    },
-    {
-      "name": "developer-growth-analysis",
-      "source": "composio-awesome",
-      "path": "developer-growth-analysis",
-      "categories": ["analytics", "development"],
-      "description": "Developer Growth Analysis",
-      "description_ja": "開発者成長分析"
-    },
-    {
-      "name": "docx (ComposioHQ)",
-      "source": "composio-awesome",
-      "path": "document-skills/docx",
-      "categories": ["document", "office"],
-      "description": "Docx (ComposioHQ)",
-      "description_ja": "Word ドキュメント (.docx) 処理"
-    },
-    {
-      "name": "pdf (ComposioHQ)",
-      "source": "composio-awesome",
-      "path": "document-skills/pdf",
-      "categories": ["document"],
-      "description": "Pdf (ComposioHQ)",
-      "description_ja": "PDF ファイル処理"
-    },
-    {
-      "name": "pptx (ComposioHQ)",
-      "source": "composio-awesome",
-      "path": "document-skills/pptx",
-      "categories": ["document", "office", "presentation"],
-      "description": "Pptx (ComposioHQ)",
-      "description_ja": "PowerPoint (.pptx) 処理"
-    },
-    {
-      "name": "xlsx (ComposioHQ)",
-      "source": "composio-awesome",
-      "path": "document-skills/xlsx",
-      "categories": ["document", "office", "data"],
-      "description": "Xlsx (ComposioHQ)",
-      "description_ja": "Excel (.xlsx) 処理"
-    },
-    {
-      "name": "domain-name-brainstormer",
-      "source": "composio-awesome",
-      "path": "domain-name-brainstormer",
-      "categories": ["ideation", "business"],
-      "description": "Brainstorm domain names",
-      "description_ja": "ドメイン名のブレインストーミング"
-    },
-    {
-      "name": "file-organizer",
-      "source": "composio-awesome",
-      "path": "file-organizer",
-      "categories": ["utility", "organization"],
-      "description": "Organize files and directories",
-      "description_ja": "ファイル整理"
-    },
-    {
-      "name": "image-enhancer",
-      "source": "composio-awesome",
-      "path": "image-enhancer",
-      "categories": ["image", "creative"],
-      "description": "Enhance and edit images",
-      "description_ja": "画像の強化・編集"
-    },
-    {
-      "name": "invoice-organizer",
-      "source": "composio-awesome",
-      "path": "invoice-organizer",
-      "categories": ["business", "finance"],
-      "description": "Organize and manage invoices",
-      "description_ja": "請求書の整理"
-    },
-    {
-      "name": "lead-research-assistant",
-      "source": "composio-awesome",
-      "path": "lead-research-assistant",
-      "categories": ["research", "business"],
-      "description": "Research leads and contacts",
-      "description_ja": "リード調査アシスタント"
-    },
-    {
-      "name": "meeting-insights-analyzer",
-      "source": "composio-awesome",
-      "path": "meeting-insights-analyzer",
-      "categories": ["business", "analytics"],
-      "description": "Analyze meeting insights",
-      "description_ja": "会議インサイト分析"
-    },
-    {
-      "name": "raffle-winner-picker",
-      "source": "composio-awesome",
-      "path": "raffle-winner-picker",
-      "categories": ["utility"],
-      "description": "Pick raffle winners randomly",
-      "description_ja": "抽選ツール"
-    },
-    {
-      "name": "video-downloader",
-      "source": "composio-awesome",
-      "path": "video-downloader",
-      "categories": ["utility", "media"],
-      "description": "Download and process videos",
-      "description_ja": "動画ダウンローダー"
-    },
-    {
-      "name": "competitive-ads-extractor",
-      "source": "composio-awesome",
-      "path": "competitive-ads-extractor",
-      "categories": ["business", "marketing"],
-      "description": "Extract competitive advertising data",
-      "description_ja": "競合広告の抽出・分析"
     },
     {
       "name": "webapp-testing",
       "source": "github-awesome-copilot",
       "path": "skills/webapp-testing",
-      "categories": ["web", "testing"],
+      "categories": [],
       "description": "Test web applications",
-      "description_ja": "Web アプリケーションのテスト (GitHub Copilot)"
+      "description_ja": "Webアプリケーションのテスト"
+    },
+    {
+      "name": "brainstorming",
+      "source": "obra-superpowers",
+      "path": "skills/brainstorming",
+      "categories": [],
+      "description": "Brainstorming",
+      "description_ja": "ブレインストーミング"
+    },
+    {
+      "name": "dispatching-parallel-agents",
+      "source": "obra-superpowers",
+      "path": "skills/dispatching-parallel-agents",
+      "categories": [],
+      "description": "Dispatching Parallel Agents",
+      "description_ja": "並列エージェントのディスパッチ"
+    },
+    {
+      "name": "executing-plans",
+      "source": "obra-superpowers",
+      "path": "skills/executing-plans",
+      "categories": [],
+      "description": "Executing Plans",
+      "description_ja": "計画の実行"
+    },
+    {
+      "name": "finishing-a-development-branch",
+      "source": "obra-superpowers",
+      "path": "skills/finishing-a-development-branch",
+      "categories": [],
+      "description": "Finishing A Development Branch",
+      "description_ja": "開発ブランチの完了"
+    },
+    {
+      "name": "receiving-code-review",
+      "source": "obra-superpowers",
+      "path": "skills/receiving-code-review",
+      "categories": [],
+      "description": "Receiving Code Review",
+      "description_ja": "コードレビューの受信"
+    },
+    {
+      "name": "requesting-code-review",
+      "source": "obra-superpowers",
+      "path": "skills/requesting-code-review",
+      "categories": [],
+      "description": "Requesting Code Review",
+      "description_ja": "コードレビューの依頼"
+    },
+    {
+      "name": "subagent-driven-development",
+      "source": "obra-superpowers",
+      "path": "skills/subagent-driven-development",
+      "categories": [],
+      "description": "Subagent Driven Development",
+      "description_ja": "サブエージェント駆動開発"
+    },
+    {
+      "name": "systematic-debugging",
+      "source": "obra-superpowers",
+      "path": "skills/systematic-debugging",
+      "categories": [],
+      "description": "Systematic Debugging",
+      "description_ja": "体系的デバッグ"
+    },
+    {
+      "name": "test-driven-development",
+      "source": "obra-superpowers",
+      "path": "skills/test-driven-development",
+      "categories": [],
+      "description": "Test-driven development (TDD)",
+      "description_ja": "テスト駆動開発（TDD）"
+    },
+    {
+      "name": "using-git-worktrees",
+      "source": "obra-superpowers",
+      "path": "skills/using-git-worktrees",
+      "categories": [],
+      "description": "Using Git Worktrees",
+      "description_ja": "Git Worktreeの活用"
+    },
+    {
+      "name": "using-superpowers",
+      "source": "obra-superpowers",
+      "path": "skills/using-superpowers",
+      "categories": [],
+      "description": "Using Superpowers",
+      "description_ja": "Superpowersの活用"
+    },
+    {
+      "name": "verification-before-completion",
+      "source": "obra-superpowers",
+      "path": "skills/verification-before-completion",
+      "categories": [],
+      "description": "Verification Before Completion",
+      "description_ja": "完了前の検証"
+    },
+    {
+      "name": "writing-plans",
+      "source": "obra-superpowers",
+      "path": "skills/writing-plans",
+      "categories": [],
+      "description": "Writing Plans",
+      "description_ja": "計画の作成"
+    },
+    {
+      "name": "writing-skills",
+      "source": "obra-superpowers",
+      "path": "skills/writing-skills",
+      "categories": [],
+      "description": "Writing Skills",
+      "description_ja": "スキルの作成"
+    },
+    {
+      "name": "artifacts-builder",
+      "source": "composio-awesome",
+      "path": "artifacts-builder",
+      "categories": ["community"],
+      "description": "Artifacts Builder",
+      "description_ja": "アーティファクトビルダー"
     },
     {
       "name": "brand-guidelines",
@@ -572,7 +348,7 @@
       "path": "brand-guidelines",
       "categories": ["community"],
       "description": "Create and manage brand guidelines",
-      "description_ja": "ブランドガイドライン管理"
+      "description_ja": "ブランドガイドラインの作成・管理"
     },
     {
       "name": "canvas-design",
@@ -580,7 +356,71 @@
       "path": "canvas-design",
       "categories": ["community"],
       "description": "Create canvas designs and layouts",
-      "description_ja": "キャンバスデザイン作成"
+      "description_ja": "キャンバスデザインとレイアウトの作成"
+    },
+    {
+      "name": "changelog-generator",
+      "source": "composio-awesome",
+      "path": "changelog-generator",
+      "categories": ["community"],
+      "description": "Changelog Generator",
+      "description_ja": "変更履歴（Changelog）の生成"
+    },
+    {
+      "name": "competitive-ads-extractor",
+      "source": "composio-awesome",
+      "path": "competitive-ads-extractor",
+      "categories": ["community"],
+      "description": "Extract competitive advertising data",
+      "description_ja": "競合広告データの抽出"
+    },
+    {
+      "name": "content-research-writer",
+      "source": "composio-awesome",
+      "path": "content-research-writer",
+      "categories": ["community"],
+      "description": "Content Research Writer",
+      "description_ja": "コンテンツリサーチ＆ライティング"
+    },
+    {
+      "name": "developer-growth-analysis",
+      "source": "composio-awesome",
+      "path": "developer-growth-analysis",
+      "categories": ["community"],
+      "description": "Developer Growth Analysis",
+      "description_ja": "開発者成長分析"
+    },
+    {
+      "name": "document-skills",
+      "source": "composio-awesome",
+      "path": "document-skills",
+      "categories": ["community"],
+      "description": "document-skills skill",
+      "description_ja": "ドキュメント処理スキル"
+    },
+    {
+      "name": "domain-name-brainstormer",
+      "source": "composio-awesome",
+      "path": "domain-name-brainstormer",
+      "categories": ["community"],
+      "description": "Brainstorm domain names",
+      "description_ja": "ドメイン名のブレインストーミング"
+    },
+    {
+      "name": "file-organizer",
+      "source": "composio-awesome",
+      "path": "file-organizer",
+      "categories": ["community"],
+      "description": "Organize files and directories",
+      "description_ja": "ファイルとディレクトリの整理"
+    },
+    {
+      "name": "image-enhancer",
+      "source": "composio-awesome",
+      "path": "image-enhancer",
+      "categories": ["community"],
+      "description": "Enhance and edit images",
+      "description_ja": "画像の補正・編集"
     },
     {
       "name": "internal-comms",
@@ -591,6 +431,22 @@
       "description_ja": "社内コミュニケーション管理"
     },
     {
+      "name": "invoice-organizer",
+      "source": "composio-awesome",
+      "path": "invoice-organizer",
+      "categories": ["community"],
+      "description": "Organize and manage invoices",
+      "description_ja": "請求書の整理・管理"
+    },
+    {
+      "name": "lead-research-assistant",
+      "source": "composio-awesome",
+      "path": "lead-research-assistant",
+      "categories": ["community"],
+      "description": "Research leads and contacts",
+      "description_ja": "リード・連絡先のリサーチ"
+    },
+    {
       "name": "mcp-builder",
       "source": "composio-awesome",
       "path": "mcp-builder",
@@ -599,12 +455,28 @@
       "description_ja": "MCPサーバーの構築"
     },
     {
+      "name": "meeting-insights-analyzer",
+      "source": "composio-awesome",
+      "path": "meeting-insights-analyzer",
+      "categories": ["community"],
+      "description": "Analyze meeting insights",
+      "description_ja": "会議インサイトの分析"
+    },
+    {
+      "name": "raffle-winner-picker",
+      "source": "composio-awesome",
+      "path": "raffle-winner-picker",
+      "categories": ["community"],
+      "description": "Pick raffle winners randomly",
+      "description_ja": "抽選で当選者を選択"
+    },
+    {
       "name": "skill-creator",
       "source": "composio-awesome",
       "path": "skill-creator",
       "categories": ["community"],
       "description": "Create new agent skills",
-      "description_ja": "新しいスキルの作成"
+      "description_ja": "新しいエージェントスキルの作成"
     },
     {
       "name": "skill-share",
@@ -612,7 +484,7 @@
       "path": "skill-share",
       "categories": ["community"],
       "description": "Share skills across teams",
-      "description_ja": "スキルの共有"
+      "description_ja": "チーム間でスキルを共有"
     },
     {
       "name": "slack-gif-creator",
@@ -620,7 +492,7 @@
       "path": "slack-gif-creator",
       "categories": ["community"],
       "description": "Create GIFs for Slack",
-      "description_ja": "Slack用GIF作成"
+      "description_ja": "Slack用GIFの作成"
     },
     {
       "name": "template-skill",
@@ -628,7 +500,7 @@
       "path": "template-skill",
       "categories": ["community"],
       "description": "Template for creating new skills",
-      "description_ja": "スキルテンプレート"
+      "description_ja": "新規スキル作成用テンプレート"
     },
     {
       "name": "theme-factory",
@@ -636,7 +508,15 @@
       "path": "theme-factory",
       "categories": ["community"],
       "description": "Create and manage themes",
-      "description_ja": "テーマ作成・管理"
+      "description_ja": "テーマの作成・管理"
+    },
+    {
+      "name": "video-downloader",
+      "source": "composio-awesome",
+      "path": "video-downloader",
+      "categories": ["community"],
+      "description": "Download and process videos",
+      "description_ja": "動画のダウンロード・処理"
     },
     {
       "name": "webapp-testing",
@@ -644,251 +524,197 @@
       "path": "webapp-testing",
       "categories": ["community"],
       "description": "Test web applications",
-      "description_ja": "Webアプリテスト"
+      "description_ja": "Webアプリケーションのテスト"
     },
     {
-      "name": "refactor-simple",
-      "source": "prps-agentic",
-      "path": ".claude/commands/code-quality/refactor-simple.md",
-      "categories": ["code-quality", "refactoring"],
-      "description": "Refactor Simple",
-      "description_ja": "シンプルなリファクタリングタスク"
+      "name": "context-engineering-collection",
+      "source": "context-engineering-skills",
+      "path": "SKILL.md",
+      "categories": [],
+      "description": "A comprehensive collection of Agent Skills for context engineering, multi-agent architectures, and production agent systems. Use when building, optimizing, or debugging agent systems that require effective context management.",
+      "description_ja": "コンテキストエンジニアリング、マルチエージェントアーキテクチャ、本番エージェントシステム向けのスキル集"
     },
     {
-      "name": "review-general",
-      "source": "prps-agentic",
-      "path": ".claude/commands/code-quality/review-general.md",
-      "categories": ["code-quality", "review"],
-      "description": "Review General",
-      "description_ja": "一般的なコードレビュー"
+      "name": "book-sft-pipeline",
+      "source": "context-engineering-skills",
+      "path": "examples/book-sft-pipeline",
+      "categories": [],
+      "description": "Book SFT pipeline",
+      "description_ja": "書籍SFTパイプライン"
     },
     {
-      "name": "review-staged-unstaged",
-      "source": "prps-agentic",
-      "path": ".claude/commands/code-quality/review-staged-unstaged.md",
-      "categories": ["code-quality", "review", "git"],
-      "description": "Review Staged Unstaged",
-      "description_ja": "Gitの変更ファイルをレビュー"
+      "name": "digital-brain",
+      "source": "context-engineering-skills",
+      "path": "examples/digital-brain-skill",
+      "categories": [],
+      "description": "This skill should be used when the user asks to",
+      "description_ja": "デジタルブレイン"
     },
     {
-      "name": "create-pr",
-      "source": "prps-agentic",
-      "path": ".claude/commands/development/create-pr.md",
-      "categories": ["development", "git"],
-      "description": "Create Pr",
-      "description_ja": "プルリクエストを作成"
+      "name": "advanced-evaluation",
+      "source": "context-engineering-skills",
+      "path": "skills/advanced-evaluation",
+      "categories": [],
+      "description": "Advanced evaluation techniques",
+      "description_ja": "高度な評価テクニック"
     },
     {
-      "name": "debug-RCA",
-      "source": "prps-agentic",
-      "path": ".claude/commands/development/debug-RCA.md",
-      "categories": ["development", "debugging"],
-      "description": "Debug RCA",
-      "description_ja": "デバッグ・根本原因分析"
+      "name": "context-compression",
+      "source": "context-engineering-skills",
+      "path": "skills/context-compression",
+      "categories": [],
+      "description": "Compress context efficiently",
+      "description_ja": "コンテキストの効率的な圧縮"
     },
     {
-      "name": "new-dev-branch",
-      "source": "prps-agentic",
-      "path": ".claude/commands/development/new-dev-branch.md",
-      "categories": ["development", "git"],
-      "description": "New Dev Branch",
-      "description_ja": "新しい開発ブランチを作成"
+      "name": "context-degradation",
+      "source": "context-engineering-skills",
+      "path": "skills/context-degradation",
+      "categories": [],
+      "description": "Handle context degradation",
+      "description_ja": "コンテキスト劣化への対応"
     },
     {
-      "name": "onboarding",
-      "source": "prps-agentic",
-      "path": ".claude/commands/development/onboarding.md",
-      "categories": ["development", "documentation"],
-      "description": "Onboarding",
-      "description_ja": "新メンバーオンボーディング"
+      "name": "context-fundamentals",
+      "source": "context-engineering-skills",
+      "path": "skills/context-fundamentals",
+      "categories": [],
+      "description": "Context engineering fundamentals",
+      "description_ja": "コンテキストエンジニアリングの基礎"
     },
     {
-      "name": "prime-core",
-      "source": "prps-agentic",
-      "path": ".claude/commands/development/prime-core.md",
-      "categories": ["development", "context"],
-      "description": "Prime Core",
-      "description_ja": "Claudeにプロジェクトコンテキストを注入"
+      "name": "context-optimization",
+      "source": "context-engineering-skills",
+      "path": "skills/context-optimization",
+      "categories": [],
+      "description": "Optimize context usage",
+      "description_ja": "コンテキスト使用の最適化"
     },
     {
-      "name": "smart-commit",
-      "source": "prps-agentic",
-      "path": ".claude/commands/development/smart-commit.md",
-      "categories": ["development", "git"],
-      "description": "Smart Commit",
-      "description_ja": "スマートなコミットメッセージ生成"
+      "name": "evaluation",
+      "source": "context-engineering-skills",
+      "path": "skills/evaluation",
+      "categories": [],
+      "description": "Evaluate agent performance",
+      "description_ja": "エージェントパフォーマンスの評価"
     },
     {
-      "name": "conflict-resolver-general",
-      "source": "prps-agentic",
-      "path": ".claude/commands/git-operations/conflict-resolver-general.md",
-      "categories": ["git", "conflict"],
-      "description": "Conflict Resolver General",
-      "description_ja": "一般的なGitコンフリクト解決"
+      "name": "memory-systems",
+      "source": "context-engineering-skills",
+      "path": "skills/memory-systems",
+      "categories": [],
+      "description": "Memory system design",
+      "description_ja": "メモリシステムの設計"
     },
     {
-      "name": "conflict-resolver-specific",
-      "source": "prps-agentic",
-      "path": ".claude/commands/git-operations/conflict-resolver-specific.md",
-      "categories": ["git", "conflict"],
-      "description": "Conflict Resolver Specific",
-      "description_ja": "特定ファイルのコンフリクト解決"
+      "name": "multi-agent-patterns",
+      "source": "context-engineering-skills",
+      "path": "skills/multi-agent-patterns",
+      "categories": [],
+      "description": "Multi-agent design patterns",
+      "description_ja": "マルチエージェント設計パターン"
     },
     {
-      "name": "smart-resolver",
-      "source": "prps-agentic",
-      "path": ".claude/commands/git-operations/smart-resolver.md",
-      "categories": ["git", "conflict"],
-      "description": "Smart Resolver",
-      "description_ja": "スマートなコンフリクト解決"
+      "name": "project-development",
+      "source": "context-engineering-skills",
+      "path": "skills/project-development",
+      "categories": [],
+      "description": "Project development workflow",
+      "description_ja": "プロジェクト開発ワークフロー"
     },
     {
-      "name": "prp-base-create",
-      "source": "prps-agentic",
-      "path": ".claude/commands/prp-commands/prp-base-create.md",
-      "categories": ["prp", "planning"],
-      "description": "Prp Base Create",
-      "description_ja": "PRPベーステンプレート作成"
+      "name": "tool-design",
+      "source": "context-engineering-skills",
+      "path": "skills/tool-design",
+      "categories": [],
+      "description": "Design agent tools",
+      "description_ja": "エージェントツールの設計"
     },
     {
-      "name": "prp-base-execute",
-      "source": "prps-agentic",
-      "path": ".claude/commands/prp-commands/prp-base-execute.md",
-      "categories": ["prp", "execution"],
-      "description": "Prp Base Execute",
-      "description_ja": "PRPベースを実行"
+      "name": "skill-template",
+      "source": "context-engineering-skills",
+      "path": "template",
+      "categories": [],
+      "description": "Template for creating new Agent Skills for context engineering. Use this template when adding new skills to the collection.",
+      "description_ja": "コンテキストエンジニアリング向けスキルテンプレート"
     },
     {
-      "name": "prp-planning-create",
-      "source": "prps-agentic",
-      "path": ".claude/commands/prp-commands/prp-planning-create.md",
-      "categories": ["prp", "planning"],
-      "description": "Prp Planning Create",
-      "description_ja": "PRPプランニングドキュメント作成"
+      "name": "Browser Automation",
+      "source": "pai-packs",
+      "path": "Deprecated/Skills/BrowserAutomation",
+      "categories": [],
+      "description": "Automate web browser interactions using natural language via CLI commands. Use when the user asks to browse websites, navigate web pages, extract data from websites, take screenshots, fill forms, click buttons, or interact with web applications. Triggers include",
+      "description_ja": "CLIコマンドでWebブラウザ操作を自動化"
     },
     {
-      "name": "prp-spec-create",
-      "source": "prps-agentic",
-      "path": ".claude/commands/prp-commands/prp-spec-create.md",
-      "categories": ["prp", "specification"],
-      "description": "Prp Spec Create",
-      "description_ja": "PRP仕様書作成"
+      "name": "CoreAlgorithm",
+      "source": "pai-packs",
+      "path": "Deprecated/Skills/CoreAlgorithm",
+      "categories": [],
+      "description": "Universal 7-phase execution pattern for all substantive work. USE WHEN substantive task, workflow execution, Core Algorithm, OBSERVE THINK PLAN BUILD EXECUTE VERIFY LEARN, OR execution pattern needed. The meta-skill that all other skills implement.",
+      "description_ja": "7フェーズ実行パターン（観察・思考・計画・構築・実行・検証・学習）"
     },
     {
-      "name": "prp-spec-execute",
-      "source": "prps-agentic",
-      "path": ".claude/commands/prp-commands/prp-spec-execute.md",
-      "categories": ["prp", "execution"],
-      "description": "Prp Spec Execute",
-      "description_ja": "PRP仕様書を実行"
-    },
-    {
-      "name": "prp-core-create",
-      "source": "prps-agentic",
-      "path": ".claude/commands/prp-core/prp-core-create.md",
-      "categories": ["prp", "core"],
-      "description": "Prp Core Create",
-      "description_ja": "PRP Core作成"
-    },
-    {
-      "name": "prp-core-execute",
-      "source": "prps-agentic",
-      "path": ".claude/commands/prp-core/prp-core-execute.md",
-      "categories": ["prp", "core", "execution"],
-      "description": "Prp Core Execute",
-      "description_ja": "PRP Coreを実行"
-    },
-    {
-      "name": "prp-core-run-all",
-      "source": "prps-agentic",
-      "path": ".claude/commands/prp-core/prp-core-run-all.md",
-      "categories": ["prp", "core", "automation"],
-      "description": "Prp Core Run All",
-      "description_ja": "PRP Coreワークフロー全体を実行"
-    },
-    {
-      "name": "prp-core-review",
-      "source": "prps-agentic",
-      "path": ".claude/commands/prp-core/prp-core-review.md",
-      "categories": ["prp", "core", "review"],
-      "description": "Prp Core Review",
-      "description_ja": "PRP Coreレビュー"
-    },
-    {
-      "name": "prp-core-commit",
-      "source": "prps-agentic",
-      "path": ".claude/commands/prp-core/prp-core-commit.md",
-      "categories": ["prp", "core", "git"],
-      "description": "Prp Core Commit",
-      "description_ja": "PRP Coreコミット"
-    },
-    {
-      "name": "prp-core-pr",
-      "source": "prps-agentic",
-      "path": ".claude/commands/prp-core/prp-core-pr.md",
-      "categories": ["prp", "core", "git"],
-      "description": "Prp Core Pr",
-      "description_ja": "PRP Core PR作成"
+      "name": "Prompting",
+      "source": "pai-packs",
+      "path": "Deprecated/Skills/Prompting",
+      "categories": [],
+      "description": "Prompting",
+      "description_ja": "プロンプティング"
     },
     {
       "name": "Agents",
       "source": "pai-packs",
       "path": "Packs/kai-agents-skill/src/skills/Agents",
-      "categories": ["agents", "automation"],
+      "categories": [],
       "description": "Agents",
-      "description_ja": "AIエージェント構築・管理",
-      "standalone": false,
-      "requires": ["CORE"],
-      "bundle": "pai-kai"
+      "description_ja": "エージェント"
     },
     {
       "name": "Art",
       "source": "pai-packs",
       "path": "Packs/kai-art-skill/src/skills/Art",
-      "categories": ["creative", "art"],
+      "categories": [],
       "description": "Art",
-      "description_ja": "アート生成・クリエイティブ",
-      "standalone": false,
-      "requires": ["CORE"],
-      "bundle": "pai-kai"
+      "description_ja": "アート"
+    },
+    {
+      "name": "Browser",
+      "source": "pai-packs",
+      "path": "Packs/kai-browser-skill",
+      "categories": [],
+      "description": "Code-first browser automation and web verification. USE WHEN browser, screenshot, navigate, web testing, verify UI, VERIFY phase. Replaces Playwright MCP with 99% token savings.",
+      "description_ja": "コードファーストのブラウザ自動化とWeb検証"
     },
     {
       "name": "CORE",
       "source": "pai-packs",
       "path": "Packs/kai-core-install/src/skills/CORE",
-      "categories": ["core", "infrastructure"],
+      "categories": [],
       "description": "CORE",
-      "description_ja": "PAIコアインフラストラクチャ",
-      "standalone": true,
-      "bundle": "pai-kai"
+      "description_ja": "コア"
     },
     {
       "name": "CreateSkill",
       "source": "pai-packs",
       "path": "Packs/kai-core-install/src/skills/CreateSkill",
-      "categories": ["meta", "skill-creation"],
+      "categories": [],
       "description": "CreateSkill",
-      "description_ja": "新しいスキルを作成",
-      "standalone": false,
-      "requires": ["CORE"],
-      "bundle": "pai-kai"
+      "description_ja": "スキル作成"
     },
     {
       "name": "Prompting",
       "source": "pai-packs",
       "path": "Packs/kai-prompting-skill/src/skills/Prompting",
-      "categories": ["prompting", "llm"],
+      "categories": [],
       "description": "Prompting",
-      "description_ja": "プロンプトエンジニアリング",
-      "standalone": false,
-      "requires": ["CORE"],
-      "bundle": "pai-kai"
+      "description_ja": "プロンプティング"
     },
     {
       "name": "coding-tutor",
       "source": "compound-engineering",
       "path": "plugins/coding-tutor/skills/coding-tutor",
-      "categories": ["education", "coding"],
+      "categories": [],
       "description": "Coding Tutor",
       "description_ja": "コーディングチューター"
     },
@@ -896,7 +722,7 @@
       "name": "agent-native-architecture",
       "source": "compound-engineering",
       "path": "plugins/compound-engineering/skills/agent-native-architecture",
-      "categories": ["architecture", "agents"],
+      "categories": [],
       "description": "Agent Native Architecture",
       "description_ja": "エージェントネイティブアーキテクチャ"
     },
@@ -904,31 +730,31 @@
       "name": "andrew-kane-gem-writer",
       "source": "compound-engineering",
       "path": "plugins/compound-engineering/skills/andrew-kane-gem-writer",
-      "categories": ["ruby", "gems"],
+      "categories": [],
       "description": "Andrew Kane Gem Writer",
-      "description_ja": "Ruby Gem作成スタイル"
+      "description_ja": "Andrew Kane流Gem作成"
     },
     {
       "name": "compound-docs",
       "source": "compound-engineering",
       "path": "plugins/compound-engineering/skills/compound-docs",
-      "categories": ["documentation"],
+      "categories": [],
       "description": "Compound Docs",
-      "description_ja": "Compound Engineeringドキュメント"
+      "description_ja": "Compoundドキュメント"
     },
     {
-      "name": "create-agent-skills",
+      "name": "creating-agent-skills",
       "source": "compound-engineering",
       "path": "plugins/compound-engineering/skills/create-agent-skills",
-      "categories": ["meta", "skill-creation"],
-      "description": "Create Agent Skills",
-      "description_ja": "エージェントスキル作成"
+      "categories": [],
+      "description": "Expert guidance for creating, writing, and refining Claude Code Skills. Use when working with SKILL.md files, authoring new skills, improving existing skills, or understanding skill structure and best practices.",
+      "description_ja": "Claude Codeスキルの作成・改善ガイダンス"
     },
     {
       "name": "dhh-rails-style",
       "source": "compound-engineering",
       "path": "plugins/compound-engineering/skills/dhh-rails-style",
-      "categories": ["ruby", "rails", "style"],
+      "categories": [],
       "description": "Dhh Rails Style",
       "description_ja": "DHH流Railsスタイル"
     },
@@ -936,7 +762,7 @@
       "name": "dhh-ruby-style",
       "source": "compound-engineering",
       "path": "plugins/compound-engineering/skills/dhh-ruby-style",
-      "categories": ["ruby", "style"],
+      "categories": [],
       "description": "Dhh Ruby Style",
       "description_ja": "DHH流Rubyスタイル"
     },
@@ -944,39 +770,39 @@
       "name": "dspy-ruby",
       "source": "compound-engineering",
       "path": "plugins/compound-engineering/skills/dspy-ruby",
-      "categories": ["ruby", "dspy", "llm"],
+      "categories": [],
       "description": "Dspy Ruby",
-      "description_ja": "DSPy Ruby統合"
+      "description_ja": "DSPy Ruby"
     },
     {
       "name": "every-style-editor",
       "source": "compound-engineering",
       "path": "plugins/compound-engineering/skills/every-style-editor",
-      "categories": ["editor", "style"],
+      "categories": [],
       "description": "Every Style Editor",
-      "description_ja": "Everyスタイルエディター"
+      "description_ja": "Everyスタイルエディタ"
     },
     {
       "name": "file-todos",
       "source": "compound-engineering",
       "path": "plugins/compound-engineering/skills/file-todos",
-      "categories": ["productivity", "todos"],
+      "categories": [],
       "description": "File Todos",
-      "description_ja": "ファイル内TODO管理"
+      "description_ja": "ファイルTODO管理"
     },
     {
       "name": "frontend-design",
       "source": "compound-engineering",
       "path": "plugins/compound-engineering/skills/frontend-design",
-      "categories": ["frontend", "design"],
+      "categories": [],
       "description": "Create frontend designs and UI layouts",
-      "description_ja": "フロントエンドデザイン"
+      "description_ja": "フロントエンドデザインとUIレイアウトの作成"
     },
     {
       "name": "gemini-imagegen",
       "source": "compound-engineering",
       "path": "plugins/compound-engineering/skills/gemini-imagegen",
-      "categories": ["creative", "image-generation"],
+      "categories": [],
       "description": "Gemini Imagegen",
       "description_ja": "Gemini画像生成"
     },
@@ -984,131 +810,515 @@
       "name": "git-worktree",
       "source": "compound-engineering",
       "path": "plugins/compound-engineering/skills/git-worktree",
-      "categories": ["git", "worktree"],
+      "categories": [],
       "description": "Git Worktree",
-      "description_ja": "Git Worktree管理"
+      "description_ja": "Git Worktree"
     },
     {
       "name": "skill-creator",
       "source": "compound-engineering",
       "path": "plugins/compound-engineering/skills/skill-creator",
-      "categories": ["meta", "skill-creation"],
+      "categories": [],
       "description": "Create new agent skills",
-      "description_ja": "スキルクリエーター"
+      "description_ja": "新しいエージェントスキルの作成"
     },
     {
-      "name": "cloudflare-manager",
+      "name": "code-quality/refactor-simple",
+      "source": "prps-agentic",
+      "path": ".claude/commands/code-quality/refactor-simple.md",
+      "categories": ["code-quality", "claude-code", "prp"],
+      "description": "Claude Code command: code-quality/refactor-simple",
+      "description_ja": "シンプルなリファクタリング"
+    },
+    {
+      "name": "code-quality/review-general",
+      "source": "prps-agentic",
+      "path": ".claude/commands/code-quality/review-general.md",
+      "categories": ["code-quality", "claude-code", "prp"],
+      "description": "Code Review",
+      "description_ja": "コードレビュー"
+    },
+    {
+      "name": "code-quality/review-staged-unstaged",
+      "source": "prps-agentic",
+      "path": ".claude/commands/code-quality/review-staged-unstaged.md",
+      "categories": ["code-quality", "claude-code", "prp"],
+      "description": "Code Review #[number]",
+      "description_ja": "ステージ済み/未ステージのコードレビュー"
+    },
+    {
+      "name": "development/create-pr",
+      "source": "prps-agentic",
+      "path": ".claude/commands/development/create-pr.md",
+      "categories": ["development", "claude-code", "prp"],
+      "description": "Create Pull Request",
+      "description_ja": "プルリクエストの作成"
+    },
+    {
+      "name": "development/debug-RCA",
+      "source": "prps-agentic",
+      "path": ".claude/commands/development/debug-RCA.md",
+      "categories": ["development", "claude-code", "prp"],
+      "description": "Debug Issue",
+      "description_ja": "デバッグ（根本原因分析）"
+    },
+    {
+      "name": "development/new-dev-branch",
+      "source": "prps-agentic",
+      "path": ".claude/commands/development/new-dev-branch.md",
+      "categories": ["development", "claude-code", "prp"],
+      "description": "Claude Code command: development/new-dev-branch",
+      "description_ja": "新規開発ブランチの作成"
+    },
+    {
+      "name": "development/onboarding",
+      "source": "prps-agentic",
+      "path": ".claude/commands/development/onboarding.md",
+      "categories": ["development", "claude-code", "prp"],
+      "description": "Claude Code command: development/onboarding",
+      "description_ja": "オンボーディング"
+    },
+    {
+      "name": "development/prime-core",
+      "source": "prps-agentic",
+      "path": ".claude/commands/development/prime-core.md",
+      "categories": ["development", "claude-code", "prp"],
+      "description": "Prime Context for Claude Code",
+      "description_ja": "Claude Codeのコンテキスト準備"
+    },
+    {
+      "name": "development/smart-commit",
+      "source": "prps-agentic",
+      "path": ".claude/commands/development/smart-commit.md",
+      "categories": ["development", "claude-code", "prp"],
+      "description": "Analyze changes and create a smart git commit",
+      "description_ja": "変更を分析してスマートなgitコミットを作成"
+    },
+    {
+      "name": "git-operations/conflict-resolver-general",
+      "source": "prps-agentic",
+      "path": ".claude/commands/git-operations/conflict-resolver-general.md",
+      "categories": ["git-operations", "claude-code", "prp"],
+      "description": "Claude Code command: git-operations/conflict-resolver-general",
+      "description_ja": "一般的なコンフリクト解決"
+    },
+    {
+      "name": "git-operations/conflict-resolver-specific",
+      "source": "prps-agentic",
+      "path": ".claude/commands/git-operations/conflict-resolver-specific.md",
+      "categories": ["git-operations", "claude-code", "prp"],
+      "description": "Claude Code command: git-operations/conflict-resolver-specific",
+      "description_ja": "特定ファイルのコンフリクト解決"
+    },
+    {
+      "name": "git-operations/smart-resolver",
+      "source": "prps-agentic",
+      "path": ".claude/commands/git-operations/smart-resolver.md",
+      "categories": ["git-operations", "claude-code", "prp"],
+      "description": "Claude Code command: git-operations/smart-resolver",
+      "description_ja": "スマートリゾルバー"
+    },
+    {
+      "name": "prp-commands/api-contract-define",
+      "source": "prps-agentic",
+      "path": ".claude/commands/prp-commands/api-contract-define.md",
+      "categories": ["prp-commands", "claude-code", "prp"],
+      "description": "Define API Contract Between Backend and Frontend",
+      "description_ja": "バックエンド・フロントエンド間のAPIコントラクト定義"
+    },
+    {
+      "name": "prp-commands/prp-base-create",
+      "source": "prps-agentic",
+      "path": ".claude/commands/prp-commands/prp-base-create.md",
+      "categories": ["prp-commands", "claude-code", "prp"],
+      "description": "Create BASE PRP",
+      "description_ja": "BASE PRPの作成"
+    },
+    {
+      "name": "prp-commands/prp-base-execute",
+      "source": "prps-agentic",
+      "path": ".claude/commands/prp-commands/prp-base-execute.md",
+      "categories": ["prp-commands", "claude-code", "prp"],
+      "description": "Execute BASE PRP",
+      "description_ja": "BASE PRPの実行"
+    },
+    {
+      "name": "prp-commands/prp-planning-create",
+      "source": "prps-agentic",
+      "path": ".claude/commands/prp-commands/prp-planning-create.md",
+      "categories": ["prp-commands", "claude-code", "prp"],
+      "description": "Create PLANNING PRP (Advanced)",
+      "description_ja": "PLANNING PRPの作成（上級）"
+    },
+    {
+      "name": "prp-commands/prp-poc-create-parallel",
+      "source": "prps-agentic",
+      "path": ".claude/commands/prp-commands/prp-poc-create-parallel.md",
+      "categories": ["prp-commands", "claude-code", "prp"],
+      "description": "Create Parallel React POCs",
+      "description_ja": "並列React POCの作成"
+    },
+    {
+      "name": "prp-commands/prp-poc-execute-parallel",
+      "source": "prps-agentic",
+      "path": ".claude/commands/prp-commands/prp-poc-execute-parallel.md",
+      "categories": ["prp-commands", "claude-code", "prp"],
+      "description": "Execute Parallel React POCs",
+      "description_ja": "並列React POCの実行"
+    },
+    {
+      "name": "prp-commands/prp-spec-create",
+      "source": "prps-agentic",
+      "path": ".claude/commands/prp-commands/prp-spec-create.md",
+      "categories": ["prp-commands", "claude-code", "prp"],
+      "description": "Create SPEC PRP (Advanced)",
+      "description_ja": "SPEC PRPの作成（上級）"
+    },
+    {
+      "name": "prp-commands/prp-spec-execute",
+      "source": "prps-agentic",
+      "path": ".claude/commands/prp-commands/prp-spec-execute.md",
+      "categories": ["prp-commands", "claude-code", "prp"],
+      "description": "Execute SPEC PRP",
+      "description_ja": "SPEC PRPの実行"
+    },
+    {
+      "name": "prp-commands/prp-story-create",
+      "source": "prps-agentic",
+      "path": ".claude/commands/prp-commands/prp-story-create.md",
+      "categories": ["prp-commands", "claude-code", "prp"],
+      "description": "Convert user story/task into executable PRP with deep codebase analysis",
+      "description_ja": "ユーザーストーリーを実行可能なPRPに変換"
+    },
+    {
+      "name": "prp-commands/prp-story-execute",
+      "source": "prps-agentic",
+      "path": ".claude/commands/prp-commands/prp-story-execute.md",
+      "categories": ["prp-commands", "claude-code", "prp"],
+      "description": "Execute a Story PRP with focused task implementation",
+      "description_ja": "Story PRPの実行"
+    },
+    {
+      "name": "prp-commands/prp-task-create",
+      "source": "prps-agentic",
+      "path": ".claude/commands/prp-commands/prp-task-create.md",
+      "categories": ["prp-commands", "claude-code", "prp"],
+      "description": "Create TASK PRP (Advanced)",
+      "description_ja": "TASK PRPの作成（上級）"
+    },
+    {
+      "name": "prp-commands/prp-task-execute",
+      "source": "prps-agentic",
+      "path": ".claude/commands/prp-commands/prp-task-execute.md",
+      "categories": ["prp-commands", "claude-code", "prp"],
+      "description": "Execute TASK PRP",
+      "description_ja": "TASK PRPの実行"
+    },
+    {
+      "name": "prp-commands/prp-ts-create",
+      "source": "prps-agentic",
+      "path": ".claude/commands/prp-commands/prp-ts-create.md",
+      "categories": ["prp-commands", "claude-code", "prp"],
+      "description": "Create TypeScript PRP",
+      "description_ja": "TypeScript PRPの作成"
+    },
+    {
+      "name": "prp-commands/prp-ts-execute",
+      "source": "prps-agentic",
+      "path": ".claude/commands/prp-commands/prp-ts-execute.md",
+      "categories": ["prp-commands", "claude-code", "prp"],
+      "description": "Execute TypeScript PRP",
+      "description_ja": "TypeScript PRPの実行"
+    },
+    {
+      "name": "prp-commands/task-list-init",
+      "source": "prps-agentic",
+      "path": ".claude/commands/prp-commands/task-list-init.md",
+      "categories": ["prp-commands", "claude-code", "prp"],
+      "description": "Claude Code command: prp-commands/task-list-init",
+      "description_ja": "タスクリストの初期化"
+    },
+    {
+      "name": "prp-core/prp-core-commit",
+      "source": "prps-agentic",
+      "path": ".claude/commands/prp-core/prp-core-commit.md",
+      "categories": ["prp-core", "claude-code", "prp"],
+      "description": "Create Git Commit",
+      "description_ja": "Gitコミットの作成"
+    },
+    {
+      "name": "prp-core/prp-core-create",
+      "source": "prps-agentic",
+      "path": ".claude/commands/prp-core/prp-core-create.md",
+      "categories": ["prp-core", "claude-code", "prp"],
+      "description": "Create comprehensive feature PRP with deep codebase analysis and research",
+      "description_ja": "深いコードベース分析を伴う包括的なフィーチャーPRPの作成"
+    },
+    {
+      "name": "prp-core/prp-core-execute",
+      "source": "prps-agentic",
+      "path": ".claude/commands/prp-core/prp-core-execute.md",
+      "categories": ["prp-core", "claude-code", "prp"],
+      "description": "Execute a feature PRP until fully complete",
+      "description_ja": "フィーチャーPRPを完了まで実行"
+    },
+    {
+      "name": "prp-core/prp-core-new-branch",
+      "source": "prps-agentic",
+      "path": ".claude/commands/prp-core/prp-core-new-branch.md",
+      "categories": ["prp-core", "claude-code", "prp"],
+      "description": "Create Git Branch",
+      "description_ja": "Gitブランチの作成"
+    },
+    {
+      "name": "prp-core/prp-core-pr",
+      "source": "prps-agentic",
+      "path": ".claude/commands/prp-core/prp-core-pr.md",
+      "categories": ["prp-core", "claude-code", "prp"],
+      "description": "Create Pull Request",
+      "description_ja": "プルリクエストの作成"
+    },
+    {
+      "name": "prp-core/prp-core-review",
+      "source": "prps-agentic",
+      "path": ".claude/commands/prp-core/prp-core-review.md",
+      "categories": ["prp-core", "claude-code", "prp"],
+      "description": "Code Review",
+      "description_ja": "コードレビュー"
+    },
+    {
+      "name": "prp-core/prp-core-run-all",
+      "source": "prps-agentic",
+      "path": ".claude/commands/prp-core/prp-core-run-all.md",
+      "categories": ["prp-core", "claude-code", "prp"],
+      "description": "Run all prp core commands in sequence from feature request to pr",
+      "description_ja": "フィーチャーリクエストからPRまで全PRPコアコマンドを順次実行"
+    },
+    {
+      "name": "rapid-development/experimental/create-base-prp-parallel",
+      "source": "prps-agentic",
+      "path": ".claude/commands/rapid-development/experimental/create-base-prp-parallel.md",
+      "categories": ["rapid-development", "claude-code", "prp"],
+      "description": "Create BASE PRP with Parallel Research",
+      "description_ja": "並列リサーチ付きBASE PRPの作成"
+    },
+    {
+      "name": "rapid-development/experimental/create-planning-parallel",
+      "source": "prps-agentic",
+      "path": ".claude/commands/rapid-development/experimental/create-planning-parallel.md",
+      "categories": ["rapid-development", "claude-code", "prp"],
+      "description": "Create PLANNING PRP (Parallel Research)",
+      "description_ja": "PLANNING PRPの作成（並列リサーチ）"
+    },
+    {
+      "name": "rapid-development/experimental/hackathon-prp-parallel",
+      "source": "prps-agentic",
+      "path": ".claude/commands/rapid-development/experimental/hackathon-prp-parallel.md",
+      "categories": ["rapid-development", "claude-code", "prp"],
+      "description": "Generate and execute a hackathon implementation using massive parallel agents fo",
+      "description_ja": "大規模並列エージェントでハッカソン実装を生成・実行"
+    },
+    {
+      "name": "rapid-development/experimental/hackathon-research",
+      "source": "prps-agentic",
+      "path": ".claude/commands/rapid-development/experimental/hackathon-research.md",
+      "categories": ["rapid-development", "claude-code", "prp"],
+      "description": "Hackathon Multi-Option Research",
+      "description_ja": "ハッカソン向け複数オプションリサーチ"
+    },
+    {
+      "name": "rapid-development/experimental/parallel-prp-creation",
+      "source": "prps-agentic",
+      "path": ".claude/commands/rapid-development/experimental/parallel-prp-creation.md",
+      "categories": ["rapid-development", "claude-code", "prp"],
+      "description": "Create multiple PRP variations in parallel for comparative analysis and implemen",
+      "description_ja": "比較分析用に複数のPRPバリエーションを並列作成"
+    },
+    {
+      "name": "rapid-development/experimental/prp-analyze-run",
+      "source": "prps-agentic",
+      "path": ".claude/commands/rapid-development/experimental/prp-analyze-run.md",
+      "categories": ["rapid-development", "claude-code", "prp"],
+      "description": "Analyze PRP Results",
+      "description_ja": "PRP結果の分析"
+    },
+    {
+      "name": "rapid-development/experimental/prp-validate",
+      "source": "prps-agentic",
+      "path": ".claude/commands/rapid-development/experimental/prp-validate.md",
+      "categories": ["rapid-development", "claude-code", "prp"],
+      "description": "Validate PRP",
+      "description_ja": "PRPの検証"
+    },
+    {
+      "name": "rapid-development/experimental/user-story-rapid",
+      "source": "prps-agentic",
+      "path": ".claude/commands/rapid-development/experimental/user-story-rapid.md",
+      "categories": ["rapid-development", "claude-code", "prp"],
+      "description": "Analyze User Story and Create Implementation Plan",
+      "description_ja": "ユーザーストーリーを分析し実装計画を作成"
+    },
+    {
+      "name": "typescript/TS-create-base-prp",
+      "source": "prps-agentic",
+      "path": ".claude/commands/typescript/TS-create-base-prp.md",
+      "categories": ["typescript", "claude-code", "prp"],
+      "description": "Create BASE PRP",
+      "description_ja": "TypeScript BASE PRPの作成"
+    },
+    {
+      "name": "typescript/TS-execute-base-prp",
+      "source": "prps-agentic",
+      "path": ".claude/commands/typescript/TS-execute-base-prp.md",
+      "categories": ["typescript", "claude-code", "prp"],
+      "description": "Execute BASE PRP",
+      "description_ja": "TypeScript BASE PRPの実行"
+    },
+    {
+      "name": "typescript/TS-review-general",
+      "source": "prps-agentic",
+      "path": ".claude/commands/typescript/TS-review-general.md",
+      "categories": ["typescript", "claude-code", "prp"],
+      "description": "General TypeScript/Astro Codebase Review",
+      "description_ja": "TypeScript/Astroコードベースの一般レビュー"
+    },
+    {
+      "name": "typescript/TS-review-staged-unstaged",
+      "source": "prps-agentic",
+      "path": ".claude/commands/typescript/TS-review-staged-unstaged.md",
+      "categories": ["typescript", "claude-code", "prp"],
+      "description": "TypeScript/Astro Code Review #[number]",
+      "description_ja": "TypeScript/Astroステージ済み/未ステージコードレビュー"
+    },
+    {
+      "name": "Cloudflare Manager",
       "source": "claude-command-suite",
       "path": ".claude/skills/cloudflare-manager",
-      "categories": ["cloud", "cloudflare"],
-      "description": "Cloudflare Manager",
-      "description_ja": "Cloudflare管理"
+      "categories": [],
+      "description": "Comprehensive Cloudflare account management for deploying Workers, KV Storage, R2, Pages, DNS, and Routes. Use when deploying cloudflare services, managing worker containers, configuring KV/R2 storage, or setting up DNS/routing. Requires CLOUDFLARE_API_KEY in .env and Bun runtime with dependencies installed.",
+      "description_ja": "Cloudflareアカウント管理（Workers、KV、R2、Pages、DNS、Routes）"
     },
     {
-      "name": "linear-todo-sync",
+      "name": "Linear Todo Sync",
       "source": "claude-command-suite",
       "path": ".claude/skills/linear-todo-sync",
-      "categories": ["productivity", "linear", "sync"],
-      "description": "Linear Todo Sync",
-      "description_ja": "Linear TODO同期"
-    },
-    {
-      "name": "build-skill",
-      "source": "claude-command-suite",
-      "path": ".claude/commands/skills/build-skill.md",
-      "categories": ["meta", "skill-creation"],
-      "description": "Build Skill",
-      "description_ja": "スキルをビルド"
-    },
-    {
-      "name": "package-skill",
-      "source": "claude-command-suite",
-      "path": ".claude/commands/skills/package-skill.md",
-      "categories": ["meta", "packaging"],
-      "description": "Package Skill",
-      "description_ja": "スキルをパッケージ化"
+      "categories": [],
+      "description": "This skill fetches open tasks assigned to the user from the Linear API and generates a markdown todo list file in the project root. This skill should be used when the user asks about their work items, wants to see what they need to work on, or requests to load/sync their Linear tasks. Requires Python 3.7+, requests, mdutils, and python-dotenv packages. Requires LINEAR_API_KEY in .env file.",
+      "description_ja": "Linear APIからタスクを取得しMarkdownのTODOリストを生成"
     }
   ],
   "categories": [
     {
       "id": "development",
-      "name": "開発",
-      "description": "ソフトウェア開発関連"
+      "name": "Development",
+      "name_ja": "開発",
+      "description": "Software development related",
+      "description_ja": "ソフトウェア開発関連"
     },
     {
       "id": "testing",
-      "name": "テスト",
-      "description": "テスト・品質保証"
+      "name": "Testing",
+      "name_ja": "テスト",
+      "description": "Testing and QA",
+      "description_ja": "テスト・品質保証"
     },
     {
       "id": "document",
-      "name": "ドキュメント",
-      "description": "ドキュメント処理"
+      "name": "Document",
+      "name_ja": "ドキュメント",
+      "description": "Document processing",
+      "description_ja": "ドキュメント処理"
     },
     {
       "id": "office",
       "name": "Office",
-      "description": "Microsoft Office 関連"
+      "name_ja": "Office",
+      "description": "Microsoft Office related",
+      "description_ja": "Microsoft Office 関連"
     },
     {
       "id": "web",
       "name": "Web",
-      "description": "Web 開発"
+      "name_ja": "Web",
+      "description": "Web development",
+      "description_ja": "Web 開発"
     },
     {
       "id": "frontend",
-      "name": "フロントエンド",
-      "description": "フロントエンド開発"
+      "name": "Frontend",
+      "name_ja": "フロントエンド",
+      "description": "Frontend development",
+      "description_ja": "フロントエンド開発"
     },
     {
       "id": "design",
-      "name": "デザイン",
-      "description": "デザイン・UI/UX"
+      "name": "Design",
+      "name_ja": "デザイン",
+      "description": "Design and UI/UX",
+      "description_ja": "デザイン・UI/UX"
     },
     {
       "id": "creative",
-      "name": "クリエイティブ",
-      "description": "クリエイティブ・アート"
+      "name": "Creative",
+      "name_ja": "クリエイティブ",
+      "description": "Creative and Art",
+      "description_ja": "クリエイティブ・アート"
     },
     {
       "id": "git",
       "name": "Git",
-      "description": "Git・バージョン管理"
+      "name_ja": "Git",
+      "description": "Git and version control",
+      "description_ja": "Git・バージョン管理"
     },
     {
       "id": "planning",
-      "name": "計画",
-      "description": "プロジェクト計画"
+      "name": "Planning",
+      "name_ja": "計画",
+      "description": "Project planning",
+      "description_ja": "プロジェクト計画"
     },
     {
       "id": "agents",
-      "name": "エージェント",
-      "description": "AI エージェント関連"
+      "name": "Agents",
+      "name_ja": "エージェント",
+      "description": "AI Agents related",
+      "description_ja": "AI エージェント関連"
     },
     {
       "id": "mcp",
       "name": "MCP",
-      "description": "Model Context Protocol"
+      "name_ja": "MCP",
+      "description": "Model Context Protocol",
+      "description_ja": "Model Context Protocol"
     },
     {
       "id": "business",
-      "name": "ビジネス",
-      "description": "ビジネス・業務"
+      "name": "Business",
+      "name_ja": "ビジネス",
+      "description": "Business operations",
+      "description_ja": "ビジネス・業務"
     },
     {
       "id": "utility",
-      "name": "ユーティリティ",
-      "description": "汎用ツール"
+      "name": "Utility",
+      "name_ja": "ユーティリティ",
+      "description": "General purpose tools",
+      "description_ja": "汎用ツール"
     },
     {
       "id": "meta",
-      "name": "メタ",
-      "description": "スキル作成・管理"
+      "name": "Meta",
+      "name_ja": "メタ",
+      "description": "Skill creation and management",
+      "description_ja": "スキル作成・管理"
     },
     {
       "id": "azure",
       "name": "Azure",
-      "description": "Microsoft Azure・クラウドインフラ"
+      "name_ja": "Azure",
+      "description": "Microsoft Azure and Cloud Infrastructure",
+      "description_ja": "Microsoft Azure・クラウドインフラ"
     }
   ],
   "bundles": [
@@ -1121,6 +1331,31 @@
       "skills": ["CORE", "Agents", "Art", "CreateSkill", "Prompting"],
       "installOrder": ["CORE", "Agents", "Art", "CreateSkill", "Prompting"],
       "coreSkill": "CORE"
+    },
+    {
+      "id": "prp-core",
+      "name": "PRP Core Bundle",
+      "source": "prps-agentic",
+      "description": "Core PRP workflow patterns (create/execute/commit/review/pr)",
+      "description_ja": "PRPコアワークフロー（作成・実行・コミット・レビュー・PR）",
+      "skills": [
+        "prp-core/prp-core-create",
+        "prp-core/prp-core-execute",
+        "prp-core/prp-core-commit",
+        "prp-core/prp-core-review",
+        "prp-core/prp-core-pr",
+        "prp-core/prp-core-new-branch",
+        "prp-core/prp-core-run-all"
+      ],
+      "installOrder": [
+        "prp-core/prp-core-create",
+        "prp-core/prp-core-execute",
+        "prp-core/prp-core-commit",
+        "prp-core/prp-core-review",
+        "prp-core/prp-core-pr",
+        "prp-core/prp-core-new-branch",
+        "prp-core/prp-core-run-all"
+      ]
     }
   ]
 }

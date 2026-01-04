@@ -123,6 +123,13 @@ function getWebviewContent(
     ? ""
     : `<button class="btn-secondary" onclick="addSource()">Add Source</button>`;
 
+  // インデックスにないスキルはお気に入り機能が使えないので非表示
+  const favoriteButton = isInIndex
+    ? `<button class="btn-star ${starClass}" onclick="toggleFavorite()">
+        ${starIcon}
+      </button>`
+    : "";
+
   // standalone: false の場合は警告を表示
   const standaloneWarning =
     skill.standalone === false
@@ -252,9 +259,7 @@ function getWebviewContent(
   <div class="header">
     <h1 class="title">${skill.name}</h1>
     <div class="actions">
-      <button class="btn-star ${starClass}" onclick="toggleFavorite()">
-        ${starIcon}
-      </button>
+      ${favoriteButton}
       <button class="btn-primary" onclick="install()">
         Install
       </button>

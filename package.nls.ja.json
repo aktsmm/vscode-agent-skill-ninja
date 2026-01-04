@@ -48,7 +48,6 @@
   "config.outputFormat.cursor": "Cursor Rules（.cursor/rules/）",
   "config.outputFormat.windsurf": "Windsurf Rules（.windsurfrules）",
   "config.outputFormat.cline": "Cline Rules（.clinerules）",
-  "config.enableToolDetection.markdownDescription": "**ツール自動検出** - ワークスペース内の AI ツールを検出し、適切なフォーマットを提案",
   "config.singleClickInstall.description": "シングルクリックでインストール（デフォルト: ダブルクリック）",
   "view.workspace": "ワークスペーススキル",
   "view.browse": "リモートスキル",
@@ -58,5 +57,10 @@
   "command.createSkill": "新規スキル作成",
   "command.updateInstruction": "インストラクションファイルを更新",
   "command.openInstructionFile": "インストラクションファイルを開く",
-  "command.openSettings": "設定を開く"
+  "command.openSettings": "設定を開く",
+  "command.resetSettings": "初期化",
+  "command.copyUrl": "URLをコピー",
+  "command.copyPath": "パスをコピー",
+  "command.openInTerminal": "ターミナルで開く",
+  "command.reportBug": "バグを報告"
 }

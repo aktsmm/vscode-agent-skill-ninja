@@ -8,7 +8,9 @@ import {
   loadSkillIndex,
   Source,
   Bundle,
+  Category,
   getLocalizedDescription,
+  getLocalizedCategoryNames,
 } from "./skillIndex";
 import { getInstalledSkillsWithMeta } from "./skillInstaller";
 import { LocalSkill, scanLocalSkills } from "./localSkillScanner";
@@ -326,21 +328,6 @@ export class BrowseSkillsProvider
         }
       }
 
-      // Bundlesセクション（Bundleがあれば表示）
-      if (this.skillIndex.bundles && this.skillIndex.bundles.length > 0) {
-        const bundleItem = new SkillTreeItem(
-          isJapanese() ? "バンドル" : "Bundles",
-          `${this.skillIndex.bundles.length} bundles`,
-          vscode.TreeItemCollapsibleState.Collapsed,
-          "bundleSection"
-        );
-        bundleItem.iconPath = new vscode.ThemeIcon(
-          "package",
-          new vscode.ThemeColor("charts.purple")
-        );
-        items.push(bundleItem);
-      }
-
       // ソース一覧（タイプ順: official → awesome-list → community）
       const sortedSources = [...this.skillIndex.sources].sort((a, b) => {
         const priority: Record<string, number> = {
@@ -377,6 +364,21 @@ export class BrowseSkillsProvider
         items.push(item);
       }
 
+      // Bundlesセクション（Bundleがあれば表示）- ソースの下に表示
+      if (this.skillIndex.bundles && this.skillIndex.bundles.length > 0) {
+        const bundleItem = new SkillTreeItem(
+          isJapanese() ? "バンドル" : "Bundles",
+          `${this.skillIndex.bundles.length} bundles`,
+          vscode.TreeItemCollapsibleState.Collapsed,
+          "bundleSection"
+        );
+        bundleItem.iconPath = new vscode.ThemeIcon(
+          "package",
+          new vscode.ThemeColor("charts.purple")
+        );
+        items.push(bundleItem);
+      }
+
       return items;
     }
 
@@ -406,9 +408,39 @@ export class BrowseSkillsProvider
     // Bundle配下: そのBundleのスキル一覧
     if (element.contextValue === "bundle" && element.bundle) {
       const isJa = isJapanese();
-      const bundleSkills = this.skillIndex.skills.filter(
-        (skill) => skill.bundle === element.bundle!.id
+      // bundle.skills 配列にあるスキル名でマッチング
+      const bundleSkillNames = element.bundle.skills || [];
+      let bundleSkills = this.skillIndex.skills.filter(
+        (skill) =>
+          bundleSkillNames.includes(skill.name) ||
+          bundleSkillNames.includes(skill.path) ||
+          bundleSkillNames.some(
+            (bName: string) =>
+              skill.name.toLowerCase() === bName.toLowerCase() ||
+              skill.path.toLowerCase().includes(bName.toLowerCase())
+          )
       );
+
+      // マッチするスキルがない場合、同じソースのスキルを表示
+      if (bundleSkills.length === 0 && element.bundle.source) {
+        bundleSkills = this.skillIndex.skills.filter(
+          (skill) => skill.source === element.bundle!.source
+        );
+      }
+
+      // それでもない場合はメッセージを表示
+      if (bundleSkills.length === 0) {
+        return [
+          new SkillTreeItem(
+            isJa ? "スキルが見つかりません" : "No skills found",
+            isJa
+              ? "このバンドルのスキルはインデックスに登録されていません"
+              : "Skills for this bundle are not indexed",
+            vscode.TreeItemCollapsibleState.None,
+            "placeholder"
+          ),
+        ];
+      }
 
       return bundleSkills.map((skill) => {
         const isInstalled = this.installedSkillNames.has(
@@ -422,7 +454,10 @@ export class BrowseSkillsProvider
           getLocalizedDescription(skill, isJa),
           vscode.TreeItemCollapsibleState.None,
           "skill",
-          skill
+          skill,
+          undefined,
+          undefined,
+          this.skillIndex?.categories
         );
 
         if (isInstalled) {
@@ -473,7 +508,10 @@ export class BrowseSkillsProvider
           getLocalizedDescription(skill, isJa),
           vscode.TreeItemCollapsibleState.None,
           "skill",
-          skill
+          skill,
+          undefined,
+          undefined,
+          this.skillIndex?.categories
         );
         if (isInstalled) {
           item.iconPath = new vscode.ThemeIcon(
@@ -513,7 +551,10 @@ export class BrowseSkillsProvider
           getLocalizedDescription(skill, isJa),
           vscode.TreeItemCollapsibleState.None,
           "skill",
-          skill
+          skill,
+          undefined,
+          undefined,
+          this.skillIndex?.categories
         );
         // インストール済みは緑色アイコン
         if (isInstalled) {
@@ -561,7 +602,8 @@ export class SkillTreeItem extends vscode.TreeItem {
     public readonly contextValue: string,
     public readonly skill?: Skill,
     public readonly source?: Source,
-    public readonly bundle?: Bundle
+    public readonly bundle?: Bundle,
+    public readonly categories?: Category[]
   ) {
     super(label, collapsibleState);
     this.description = description;
@@ -583,11 +625,21 @@ export class SkillTreeItem extends vscode.TreeItem {
       const isJa = isJapanese();
       const categoriesLabel = isJa ? "カテゴリ" : "Categories";
       const localizedDesc = getLocalizedDescription(skill, isJa);
-      this.tooltip = `${skill.name}\n${localizedDesc}\n${categoriesLabel}: ${
-        skill.categories?.join(", ") || ""
-      }`;
+      // カテゴリー名をローカライズ
+      const categoryNames =
+        skill.categories && categories
+          ? getLocalizedCategoryNames(skill.categories, categories, isJa)
+          : skill.categories || [];
+      this.tooltip = `${
+        skill.name
+      }\n${localizedDesc}\n${categoriesLabel}: ${categoryNames.join(", ")}`;
     } else if (source) {
-      this.tooltip = `${source.name}\n${source.description}\n${source.url}`;
+      const isJa = isJapanese();
+      const localizedDesc =
+        isJa && source.description_ja
+          ? source.description_ja
+          : source.description;
+      this.tooltip = `${source.name}\n${localizedDesc}\n${source.url}`;
     } else if (bundle) {
       const isJa = isJapanese();
       const skillsLabel = isJa ? "スキル" : "Skills";

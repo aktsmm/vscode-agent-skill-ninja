@@ -513,10 +513,40 @@
         "icon": "$(gear)"
       },
       {
+        "command": "skillNinja.resetSettings",
+        "title": "%command.resetSettings%",
+        "category": "Agent Skill Ninja",
+        "icon": "$(clear-all)"
+      },
+      {
         "command": "skillNinja.installBundle",
         "title": "Install Bundle",
         "category": "Agent Skill Ninja",
         "icon": "$(cloud-download)"
+      },
+      {
+        "command": "skillNinja.copyUrl",
+        "title": "%command.copyUrl%",
+        "category": "Agent Skill Ninja",
+        "icon": "$(link)"
+      },
+      {
+        "command": "skillNinja.copyPath",
+        "title": "%command.copyPath%",
+        "category": "Agent Skill Ninja",
+        "icon": "$(copy)"
+      },
+      {
+        "command": "skillNinja.openInTerminal",
+        "title": "%command.openInTerminal%",
+        "category": "Agent Skill Ninja",
+        "icon": "$(terminal)"
+      },
+      {
+        "command": "skillNinja.reportBug",
+        "title": "%command.reportBug%",
+        "category": "Agent Skill Ninja",
+        "icon": "$(bug)"
       }
     ],
     "menus": {
@@ -532,7 +562,7 @@
           "group": "navigation@2"
         },
         {
-          "command": "skillNinja.refresh",
+          "command": "skillNinja.reinstallAll",
           "when": "view == skillNinja.installedView",
           "group": "navigation@3"
         },
@@ -542,24 +572,34 @@
           "group": "navigation@4"
         },
         {
-          "command": "skillNinja.reinstallAll",
+          "command": "skillNinja.uninstallAll",
           "when": "view == skillNinja.installedView",
           "group": "actions@1"
         },
         {
-          "command": "skillNinja.uninstallAll",
+          "command": "skillNinja.uninstallMultiple",
           "when": "view == skillNinja.installedView",
           "group": "actions@2"
         },
         {
-          "command": "skillNinja.uninstallMultiple",
+          "command": "skillNinja.reinstallMultiple",
           "when": "view == skillNinja.installedView",
           "group": "actions@3"
         },
         {
-          "command": "skillNinja.reinstallMultiple",
+          "command": "skillNinja.refresh",
           "when": "view == skillNinja.installedView",
-          "group": "actions@4"
+          "group": "z_refresh@1"
+        },
+        {
+          "command": "skillNinja.resetSettings",
+          "when": "view == skillNinja.installedView",
+          "group": "z_reset@1"
+        },
+        {
+          "command": "skillNinja.reportBug",
+          "when": "view == skillNinja.installedView",
+          "group": "z_reset@2"
         },
         {
           "command": "skillNinja.search",
@@ -580,28 +620,6 @@
           "command": "skillNinja.addSource",
           "when": "view == skillNinja.browseView",
           "group": "navigation@4"
-        }
-      ],
-      "view/title/context": [
-        {
-          "command": "skillNinja.refresh",
-          "when": "view == skillNinja.installedView || view == skillNinja.browseView"
-        },
-        {
-          "command": "skillNinja.uninstallMultiple",
-          "when": "view == skillNinja.installedView"
-        },
-        {
-          "command": "skillNinja.reinstallMultiple",
-          "when": "view == skillNinja.installedView"
-        },
-        {
-          "command": "skillNinja.refreshLocal",
-          "when": "view == skillNinja.localView"
-        },
-        {
-          "command": "skillNinja.createSkill",
-          "when": "view == skillNinja.localView"
         }
       ],
       "view/item/context": [
@@ -664,6 +682,21 @@
           "command": "skillNinja.installBundle",
           "when": "view == skillNinja.browseView && viewItem == bundle",
           "group": "inline"
+        },
+        {
+          "command": "skillNinja.copyUrl",
+          "when": "view == skillNinja.browseView && (viewItem == skill || viewItem == source)",
+          "group": "navigation@1"
+        },
+        {
+          "command": "skillNinja.copyPath",
+          "when": "view == skillNinja.installedView && (viewItem == installedSkill || viewItem == localSkill)",
+          "group": "navigation@1"
+        },
+        {
+          "command": "skillNinja.openInTerminal",
+          "when": "view == skillNinja.installedView && (viewItem == installedSkill || viewItem == localSkill)",
+          "group": "navigation@2"
         }
       ]
     },
@@ -756,16 +789,10 @@
           ],
           "markdownDescription": "%config.outputFormat.markdownDescription%"
         },
-        "skillNinja.enableToolDetection": {
-          "type": "boolean",
-          "default": true,
-          "order": 9,
-          "markdownDescription": "%config.enableToolDetection.markdownDescription%"
-        },
         "skillNinja.singleClickInstall": {
           "type": "boolean",
           "default": false,
-          "order": 10,
+          "order": 9,
           "description": "%config.singleClickInstall.description%"
         }
       }

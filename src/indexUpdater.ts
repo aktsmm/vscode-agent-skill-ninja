@@ -672,6 +672,11 @@ export async function addSource(
   currentIndex: SkillIndex,
   repoUrl: string
 ): Promise<{ index: SkillIndex; addedSkills: number }> {
+  // repoUrlが文字列かどうか検証
+  if (!repoUrl || typeof repoUrl !== "string") {
+    throw new Error("repoUrl must be a valid string");
+  }
+
   const config = vscode.workspace.getConfiguration("skillNinja");
   const token = config.get<string>("githubToken");
 
@@ -784,40 +789,41 @@ export async function searchGitHub(
     isOrg?: boolean;
   }>
 > {
-  // クエリ形式: "{query} filename:SKILL.md" (gh search code と同じ)
-  // - キーワード検索が最も汎用的
-  // - user:xxx や repo:xxx/yyy はそのまま渡す
-  let searchQuery: string;
+  // 複数の検索クエリを実行して結果をマージ
+  // 1. キーワード検索: {query} filename:SKILL.md
+  // 2. ユーザー/オーナー検索: filename:SKILL.md user:{query}
+  const searchQueries: string[] = [];
 
   if (query.startsWith("user:") || query.startsWith("repo:")) {
     // 明示的なフィルター: filename:SKILL.md user:xxx
-    searchQuery = `filename:SKILL.md ${query}`;
+    searchQueries.push(`filename:SKILL.md ${query}`);
   } else if (query.includes("/")) {
     // owner/repo 形式: filename:SKILL.md repo:xxx/yyy
-    searchQuery = `filename:SKILL.md repo:${query}`;
+    searchQueries.push(`filename:SKILL.md repo:${query}`);
   } else {
-    // 一般検索: {query} filename:SKILL.md (キーワード検索)
-    searchQuery = `${query} filename:SKILL.md`;
+    // 一般検索: 複数パターンで検索
+    // 1. キーワードがSKILL.md内にある
+    searchQueries.push(`${query} filename:SKILL.md`);
+    // 2. ユーザー名/組織名として検索
+    searchQueries.push(`filename:SKILL.md user:${query}`);
   }
 
-  // GitHub Code Search API
-  const searchUrl = `https://api.github.com/search/code?q=${encodeURIComponent(
-    searchQuery
-  )}&per_page=30`;
-
-  const response = await githubFetch(searchUrl, token);
-
-  if (!response.ok) {
-    if (response.status === 403) {
-      throw new Error(
-        "GitHub API rate limit exceeded. Please authenticate with a GitHub token."
-      );
+  // 全クエリの結果をマージ（重複排除）
+  const allResults = new Map<
+    string,
+    {
+      name: string;
+      repo: string;
+      repoUrl: string;
+      path: string;
+      description: string;
+      stars?: number;
+      isOrg?: boolean;
     }
-    if (response.status === 401) {
-      throw new Error("GitHub authentication required for code search.");
-    }
-    throw new Error(`GitHub API error: ${response.status}`);
-  }
+  >();
+
+  // リポジトリ情報のキャッシュ（同じリポジトリからの複数スキルで重複APIコールを防ぐ）
+  const repoInfoCache = new Map<string, { stars: number; isOrg: boolean }>();
 
   interface GitHubSearchItem {
     path: string;
@@ -827,66 +833,88 @@ export async function searchGitHub(
     };
   }
 
-  const data = (await response.json()) as {
-    items: GitHubSearchItem[];
-    total_count: number;
-  };
+  for (const searchQuery of searchQueries) {
+    try {
+      // GitHub Code Search API
+      const searchUrl = `https://api.github.com/search/code?q=${encodeURIComponent(
+        searchQuery
+      )}&per_page=30`;
 
-  // リポジトリ情報のキャッシュ（同じリポジトリからの複数スキルで重複APIコールを防ぐ）
-  const repoInfoCache = new Map<string, { stars: number; isOrg: boolean }>();
+      const response = await githubFetch(searchUrl, token);
 
-  const results: Array<{
-    name: string;
-    repo: string;
-    repoUrl: string;
-    path: string;
-    description: string;
-    stars?: number;
-    isOrg?: boolean;
-  }> = [];
-
-  for (const item of data.items || []) {
-    const pathParts = item.path.split("/");
-    // SKILL.md がルートにある場合はリポジトリ名を使用
-    const skillName =
-      pathParts.length > 1
-        ? pathParts[pathParts.length - 2]
-        : item.repository.full_name.split("/")[1];
-
-    // リポジトリ情報を取得（キャッシュがなければAPI呼び出し）
-    let repoInfo = repoInfoCache.get(item.repository.full_name);
-    if (!repoInfo) {
-      try {
-        const repoApiUrl = `https://api.github.com/repos/${item.repository.full_name}`;
-        const repoResponse = await githubFetch(repoApiUrl, token);
-        if (repoResponse.ok) {
-          const repoData = (await repoResponse.json()) as {
-            stargazers_count: number;
-            owner: { type: string };
-          };
-          repoInfo = {
-            stars: repoData.stargazers_count,
-            isOrg: repoData.owner.type === "Organization",
-          };
-          repoInfoCache.set(item.repository.full_name, repoInfo);
+      if (!response.ok) {
+        if (response.status === 403) {
+          throw new Error(
+            "GitHub API rate limit exceeded. Please authenticate with a GitHub token."
+          );
         }
-      } catch {
-        // リポジトリ情報取得に失敗しても続行
+        if (response.status === 401) {
+          throw new Error("GitHub authentication required for code search.");
+        }
+        // 他のエラーは無視して次のクエリへ
+        continue;
+      }
+
+      const data = (await response.json()) as {
+        items: GitHubSearchItem[];
+        total_count: number;
+      };
+
+      for (const item of data.items || []) {
+        // 重複チェック（repo + path の組み合わせでユニーク）
+        const key = `${item.repository.full_name}:${item.path}`;
+        if (allResults.has(key)) {
+          continue;
+        }
+
+        const pathParts = item.path.split("/");
+        // SKILL.md がルートにある場合はリポジトリ名を使用
+        const skillName =
+          pathParts.length > 1
+            ? pathParts[pathParts.length - 2]
+            : item.repository.full_name.split("/")[1];
+
+        // リポジトリ情報を取得（キャッシュがなければAPI呼び出し）
+        let repoInfo = repoInfoCache.get(item.repository.full_name);
+        if (!repoInfo) {
+          try {
+            const repoApiUrl = `https://api.github.com/repos/${item.repository.full_name}`;
+            const repoResponse = await githubFetch(repoApiUrl, token);
+            if (repoResponse.ok) {
+              const repoData = (await repoResponse.json()) as {
+                stargazers_count: number;
+                owner: { type: string };
+              };
+              repoInfo = {
+                stars: repoData.stargazers_count,
+                isOrg: repoData.owner.type === "Organization",
+              };
+              repoInfoCache.set(item.repository.full_name, repoInfo);
+            }
+          } catch {
+            // リポジトリ情報取得に失敗しても続行
+          }
+        }
+
+        allResults.set(key, {
+          name: skillName,
+          repo: item.repository.full_name,
+          repoUrl: item.repository.html_url,
+          path: item.path.replace("/SKILL.md", "").replace("SKILL.md", ""),
+          description: `From ${item.repository.full_name}`,
+          stars: repoInfo?.stars,
+          isOrg: repoInfo?.isOrg,
+        });
+      }
+    } catch (error) {
+      // 最初のクエリでエラーの場合は投げる、2つ目以降は無視
+      if (searchQueries.indexOf(searchQuery) === 0) {
+        throw error;
       }
     }
-
-    results.push({
-      name: skillName,
-      repo: item.repository.full_name,
-      repoUrl: item.repository.html_url,
-      path: item.path.replace("/SKILL.md", "").replace("SKILL.md", ""),
-      description: `From ${item.repository.full_name}`,
-      stars: repoInfo?.stars,
-      isOrg: repoInfo?.isOrg,
-    });
   }
 
-  return results;
+  return Array.from(allResults.values());
 }
 
 /**

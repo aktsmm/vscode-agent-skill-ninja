@@ -356,8 +356,6 @@ export async function resolveOutputFormat(
 ): Promise<{ format: OutputFormat; instructionFile: string }> {
   const config = vscode.workspace.getConfiguration("skillNinja");
   const outputFormat = config.get<string>("outputFormat") || "auto";
-  const enableToolDetection =
-    config.get<boolean>("enableToolDetection") ?? true;
 
   // ユーザーが設定した instructionFile を取得
   const userInstructionFile =
@@ -382,15 +380,13 @@ export async function resolveOutputFormat(
     };
   }
 
-  // auto の場合は format のみ検出（instructionFile はユーザー設定を維持）
-  if (enableToolDetection) {
-    const result = await detectAITools(workspaceUri);
-    if (result.detectedTools.length > 0) {
-      return {
-        format: result.recommendedFormat,
-        instructionFile,
-      };
-    }
+  // auto の場合は format を検出（instructionFile はユーザー設定を維持）
+  const result = await detectAITools(workspaceUri);
+  if (result.detectedTools.length > 0) {
+    return {
+      format: result.recommendedFormat,
+      instructionFile,
+    };
   }
 
   // 検出できなかった場合はデフォルト

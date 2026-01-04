@@ -48,6 +48,12 @@ const jaMessages: Record<string, string> = {
   authRequired:
     "GitHub認証が必要です。API制限を回避するために認証を設定してください。",
   openSettings: "設定を開く",
+  resetSettingsTitle: "設定の初期化",
+  resetSettingsPrompt: "初期化する項目を選択してください",
+  resetCache: "キャッシュをクリア",
+  resetAllSettings: "すべての設定をリセット",
+  resetAllIncludingToken: "すべての設定をリセット（トークン含む）",
+  resetComplete: "✅ 初期化が完了しました。VS Codeを再起動してください。",
   authWithGhCli: "gh CLIで認証",
   installedFolder: "インストール済み",
   rateLimitExceeded:
@@ -126,6 +132,12 @@ const enMessages: Record<string, string> = {
   authRequired:
     "GitHub authentication required. Please configure authentication to avoid API rate limits.",
   openSettings: "Open Settings",
+  resetSettingsTitle: "Reset Settings",
+  resetSettingsPrompt: "Select items to reset",
+  resetCache: "Clear Cache",
+  resetAllSettings: "Reset All Settings",
+  resetAllIncludingToken: "Reset All Settings (including token)",
+  resetComplete: "✅ Reset complete. Please restart VS Code.",
   authWithGhCli: "Authenticate with gh CLI",
   installedFolder: "Installed",
   rateLimitExceeded:
@@ -266,6 +278,14 @@ export const messages = {
   authRequired: () => localize("authRequired"),
   openSettings: () => localize("openSettings"),
   authWithGhCli: () => localize("authWithGhCli"),
+
+  // 初期化
+  resetSettingsTitle: () => localize("resetSettingsTitle"),
+  resetSettingsPrompt: () => localize("resetSettingsPrompt"),
+  resetCache: () => localize("resetCache"),
+  resetAllSettings: () => localize("resetAllSettings"),
+  resetAllIncludingToken: () => localize("resetAllIncludingToken"),
+  resetComplete: () => localize("resetComplete"),
 
   // TreeView
   installedFolder: () => localize("installedFolder"),

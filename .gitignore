@@ -3,3 +3,4 @@ dist/
 *.vsix
 .vscode-test/
 output_blog_tips/
+output_retro/

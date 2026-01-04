@@ -108,7 +108,7 @@ references:
 ## 出力先
 
 ```
-/output/sessions/YYYY-MM-DD_セッション名.md
+/output_retro/sessions/YYYY-MM-DD_セッション名.md
 ```
 
-例: `/output/sessions/2026-01-04_skill-finder更新.md`
+例: `/output_retro/sessions/2026-01-04_skill-finder更新.md`

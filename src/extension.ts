@@ -75,7 +75,7 @@ export function activate(context: vscode.ExtensionContext) {
     "skillNinja.installedView",
     {
       treeDataProvider: workspaceProvider,
-      showCollapseAll: true,
+      showCollapseAll: false,
     }
   );
 
@@ -1799,6 +1799,172 @@ Add examples here
     }
   );
 
+  // Command: Reset settings
+  const resetSettingsCmd = vscode.commands.registerCommand(
+    "skillNinja.resetSettings",
+    async () => {
+      const options = [
+        { label: messages.resetCache(), value: "cache" },
+        { label: messages.resetAllSettings(), value: "settings" },
+        { label: messages.resetAllIncludingToken(), value: "all" },
+      ];
+
+      const selected = await vscode.window.showQuickPick(options, {
+        placeHolder: messages.resetSettingsPrompt(),
+        title: messages.resetSettingsTitle(),
+      });
+
+      if (!selected) {
+        return;
+      }
+
+      const config = vscode.workspace.getConfiguration("skillNinja");
+
+      // キャッシュをクリア（GlobalStorage内のファイル削除）
+      if (
+        selected.value === "cache" ||
+        selected.value === "settings" ||
+        selected.value === "all"
+      ) {
+        const globalStoragePath = context.globalStorageUri.fsPath;
+        try {
+          await vscode.workspace.fs.delete(vscode.Uri.file(globalStoragePath), {
+            recursive: true,
+          });
+        } catch {
+          // フォルダが存在しない場合は無視
+        }
+      }
+
+      // 設定をリセット（トークン以外）
+      if (selected.value === "settings" || selected.value === "all") {
+        await config.update(
+          "language",
+          undefined,
+          vscode.ConfigurationTarget.Global
+        );
+      }
+
+      // トークンもリセット
+      if (selected.value === "all") {
+        await config.update(
+          "githubToken",
+          undefined,
+          vscode.ConfigurationTarget.Global
+        );
+      }
+
+      const restart = await vscode.window.showInformationMessage(
+        messages.resetComplete(),
+        "Reload Window"
+      );
+      if (restart === "Reload Window") {
+        await vscode.commands.executeCommand("workbench.action.reloadWindow");
+      }
+    }
+  );
+
+  // Command: Copy URL (for Browse view)
+  const copyUrlCmd = vscode.commands.registerCommand(
+    "skillNinja.copyUrl",
+    async (item: SkillTreeItem) => {
+      if (!item.skill) {
+        return;
+      }
+
+      // スキルのGitHub URLを構築
+      const currentIndex = await loadSkillIndex(context);
+      const source = currentIndex.sources.find(
+        (s) => s.id === item.skill!.source
+      );
+      if (source) {
+        const branch = source.branch || "main";
+        const url = `${source.url}/tree/${branch}/${item.skill.path}`;
+        await vscode.env.clipboard.writeText(url);
+        vscode.window.showInformationMessage(`Copied: ${url}`);
+      }
+    }
+  );
+
+  // Command: Copy Path (for Installed/Local skills)
+  const copyPathCmd = vscode.commands.registerCommand(
+    "skillNinja.copyPath",
+    async (item: SkillTreeItem) => {
+      if (item.resourceUri) {
+        const path = item.resourceUri.fsPath;
+        await vscode.env.clipboard.writeText(path);
+        vscode.window.showInformationMessage(`Copied: ${path}`);
+      }
+    }
+  );
+
+  // Command: Open in Terminal (for Installed/Local skills)
+  const openInTerminalCmd = vscode.commands.registerCommand(
+    "skillNinja.openInTerminal",
+    async (item: SkillTreeItem) => {
+      if (item.resourceUri) {
+        const folderPath = item.resourceUri.fsPath;
+        const terminal = vscode.window.createTerminal({
+          name: `Skill: ${item.label}`,
+          cwd: folderPath,
+        });
+        terminal.show();
+      }
+    }
+  );
+
+  // Command: Report Bug
+  const reportBugCmd = vscode.commands.registerCommand(
+    "skillNinja.reportBug",
+    async () => {
+      const extensionVersion =
+        vscode.extensions.getExtension("yamapan.agent-skill-ninja")?.packageJSON
+          ?.version || "unknown";
+
+      const config = vscode.workspace.getConfiguration("skillNinja");
+      const language = config.get<string>("language", "en");
+      const isJapanese = language === "ja";
+
+      const issueTitle = isJapanese ? "[バグ報告] " : "[Bug] ";
+      const issueBody = isJapanese
+        ? `## 問題の説明\n` +
+          `<!-- 発生したバグについて説明してください -->\n\n` +
+          `## 再現手順\n` +
+          `1. \n2. \n3. \n\n` +
+          `## 期待される動作\n` +
+          `<!-- どのような動作を期待していましたか？ -->\n\n` +
+          `## 実際の動作\n` +
+          `<!-- 実際に何が起こりましたか？ -->\n\n` +
+          `## スクリーンショット\n` +
+          `<!-- 可能であれば、問題がわかるスクリーンショットを添付してください -->\n\n` +
+          `## 環境\n` +
+          `- 拡張機能バージョン: ${extensionVersion}\n` +
+          `- VS Code: ${vscode.version}\n` +
+          `- OS: ${process.platform}\n`
+        : `## Issue Description\n` +
+          `<!-- Please describe the bug you encountered -->\n\n` +
+          `## Steps to Reproduce\n` +
+          `1. \n2. \n3. \n\n` +
+          `## Expected Behavior\n` +
+          `<!-- What did you expect to happen? -->\n\n` +
+          `## Actual Behavior\n` +
+          `<!-- What actually happened? -->\n\n` +
+          `## Screenshots\n` +
+          `<!-- If possible, please attach screenshots that show the issue -->\n\n` +
+          `## Environment\n` +
+          `- Extension Version: ${extensionVersion}\n` +
+          `- VS Code: ${vscode.version}\n` +
+          `- OS: ${process.platform}\n`;
+
+      // Use URLSearchParams for proper encoding
+      const params = new URLSearchParams();
+      params.set("title", issueTitle);
+      params.set("body", issueBody);
+      const issueUrl = `https://github.com/aktsmm/vscode-agent-skill-ninja/issues/new?${params.toString()}`;
+      await vscode.env.openExternal(vscode.Uri.parse(issueUrl));
+    }
+  );
+
   context.subscriptions.push(
     searchCmd,
     installCmd,
@@ -1827,6 +1993,11 @@ Add examples here
     updateInstructionCmd,
     openInstructionFileCmd,
     openSettingsCmd,
+    resetSettingsCmd,
+    copyUrlCmd,
+    copyPathCmd,
+    openInTerminalCmd,
+    reportBugCmd,
     openSkillFolderCmd,
     doubleClickCmd,
     configWatcher,

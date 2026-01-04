@@ -32,6 +32,29 @@ export function getLocalizedDescription(skill: Skill, isJa: boolean): string {
   return skill.description;
 }
 
+/**
+ * カテゴリーIDの配列を言語に応じた表示名に変換
+ * @param categoryIds カテゴリーIDの配列
+ * @param categories カテゴリーマスター
+ * @param isJa 日本語表示するかどうか
+ */
+export function getLocalizedCategoryNames(
+  categoryIds: string[],
+  categories: Category[],
+  isJa: boolean
+): string[] {
+  return categoryIds.map((id) => {
+    const category = categories.find((c) => c.id === id);
+    if (!category) {
+      return id; // マスターにない場合はIDをそのまま返す
+    }
+    if (isJa && category.name_ja) {
+      return category.name_ja;
+    }
+    return category.name;
+  });
+}
+
 // ソース情報の型定義
 export interface Source {
   id: string;
@@ -47,7 +70,9 @@ export interface Source {
 export interface Category {
   id: string;
   name: string;
+  name_ja?: string;
   description: string;
+  description_ja?: string;
 }
 
 // Bundle情報の型定義

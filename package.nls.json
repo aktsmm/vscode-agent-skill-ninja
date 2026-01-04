@@ -48,7 +48,6 @@
   "config.outputFormat.cursor": "Cursor Rules (.cursor/rules/)",
   "config.outputFormat.windsurf": "Windsurf Rules (.windsurfrules)",
   "config.outputFormat.cline": "Cline Rules (.clinerules)",
-  "config.enableToolDetection.markdownDescription": "**Enable tool detection** - Automatically detect AI tools in workspace and suggest appropriate format",
   "config.singleClickInstall.description": "Install skills with single click (default: double click)",
   "view.workspace": "Workspace Skills",
   "view.browse": "Remote Skills",
@@ -58,5 +57,10 @@
   "command.createSkill": "Create New Skill",
   "command.updateInstruction": "Update Instruction File",
   "command.openInstructionFile": "Open Instruction File",
-  "command.openSettings": "Open Settings"
+  "command.openSettings": "Open Settings",
+  "command.resetSettings": "Reset Settings",
+  "command.copyUrl": "Copy URL",
+  "command.copyPath": "Copy Path",
+  "command.openInTerminal": "Open in Terminal",
+  "command.reportBug": "Report a Bug"
 }
