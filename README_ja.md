@@ -40,7 +40,7 @@
 - **インストール通知** - 🆕 バッジ、ステータスバー表示、ツリービューで自動選択
 - **フォルダを開く** - インストール済みスキルのフォルダにクイックアクセス
 
-### � マルチツール対応
+### 🔧 マルチツール対応
 
 - ワークスペース内の AI ツールを**自動検出**（Cursor, Windsurf, Cline, Claude Code, GitHub Copilot）
 - 検出されたツールに基づいて出力形式を自動選択
@@ -51,7 +51,7 @@
   - Windsurf Rules（.windsurfrules）
   - Cline Rules（.clinerules）
 
-### �🏠 ローカルスキル管理
+### 🏠 ローカルスキル管理
 
 - ワークスペース内の **SKILL.md** を自動検出
 - instruction file へ自動同期（`includeLocalSkills` 設定で制御）
