@@ -318,7 +318,9 @@ instruction file には管理セクションが追加されます：
 
 ## GitHub Token 設定
 
-API レート制限を緩和するには GitHub Token を設定してください：
+> ⚠️ **重要**: GitHub 検索を使用するには GitHub Token が**必須**です。未設定の場合、API レート制限（60 リクエスト/時間）により検索がすぐに失敗します。
+
+検索機能を有効にするには GitHub Token を設定してください：
 
 ### 方法 1: VS Code 設定
 

@@ -322,7 +322,9 @@ The instruction file contains a managed section:
 
 ## GitHub Token Setup
 
-Set up a GitHub Token to increase API rate limits:
+> ⚠️ **Important**: GitHub Token is **required** for GitHub Search. Without it, API rate limits (60 requests/hour) will be exhausted quickly and searches will fail.
+
+Set up a GitHub Token to enable full search functionality:
 
 ### Option 1: VS Code Settings
 
