@@ -54,6 +54,7 @@
   "command.registerLocalSkill": "Register in AGENTS.md",
   "command.unregisterLocalSkill": "Unregister from AGENTS.md",
   "command.openSkillFolder": "Open Skill Folder",
+  "command.editWhenToUse": "Edit When to Use",
   "command.createSkill": "Create New Skill",
   "command.updateInstruction": "Update Instruction File",
   "command.openInstructionFile": "Open Instruction File",

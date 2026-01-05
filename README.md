@@ -39,10 +39,14 @@
 
 - One-click installation to `.github/skills/`
 - Auto-update **instruction file** (AGENTS.md / copilot-instructions.md / CLAUDE.md)
+- **Table Format** - Skills displayed in table with "When to Use" column
+- **Auto-extract "When to Use"** - Extracted from SKILL.md `## When to Use` section
+- **Edit Description** - Right-click to customize skill description
 - Uninstall functionality
-- **Reinstall All** - Batch reinstall from latest source
+- **Reinstall All** - Batch reinstall from latest source (with auto index update)
 - **Install Feedback** - 🆕 badge, status bar notification, auto-select in tree view
 - **Open Folder** - Quick access to installed skill folder
+- **Index Integrity Check** - Auto-detect missing skills and prompt for index update
 
 ### � Multi-Tool Support
 

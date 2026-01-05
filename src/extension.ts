@@ -54,9 +54,53 @@ export function activate(context: vscode.ExtensionContext) {
   );
   context.subscriptions.push(statusBarItem);
 
-  loadSkillIndex(context).then((index: SkillIndex) => {
+  loadSkillIndex(context).then(async (index: SkillIndex) => {
     skillIndex = index;
     console.log(`Loaded ${index.skills.length} skills from index`);
+
+    // インストール済みスキルのインデックス整合性チェック
+    if (workspaceFolder) {
+      const installedMeta = await getInstalledSkillsWithMeta(
+        workspaceFolder.uri
+      );
+      const missingSkills: string[] = [];
+      for (const meta of installedMeta) {
+        let skill = index.skills.find(
+          (s: Skill) => s.name === meta.name && s.source === meta.source
+        );
+        if (!skill && meta.source === "unknown") {
+          skill = index.skills.find((s: Skill) => s.name === meta.name);
+        }
+        if (!skill) {
+          missingSkills.push(meta.name);
+        }
+      }
+
+      if (missingSkills.length > 0) {
+        const message = isJapanese()
+          ? `⚠️ ${
+              missingSkills.length
+            } 個のスキルがインデックスに見つかりません: ${missingSkills
+              .slice(0, 3)
+              .join(", ")}${missingSkills.length > 3 ? "..." : ""}`
+          : `⚠️ ${
+              missingSkills.length
+            } skill(s) not found in index: ${missingSkills
+              .slice(0, 3)
+              .join(", ")}${missingSkills.length > 3 ? "..." : ""}`;
+
+        const action = await vscode.window.showWarningMessage(
+          message,
+          isJapanese() ? "インデックスを更新" : "Update Index",
+          isJapanese() ? "無視" : "Ignore"
+        );
+
+        if (action === (isJapanese() ? "インデックスを更新" : "Update Index")) {
+          skillIndex = await updateIndexFromSources(context, index);
+          browseProvider.refresh();
+        }
+      }
+    }
   });
 
   const workspaceFolder = vscode.workspace.workspaceFolders?.[0];
@@ -229,6 +273,143 @@ export function activate(context: vscode.ExtensionContext) {
       );
 
       await vscode.commands.executeCommand("revealFileInOS", folderPath);
+    }
+  );
+
+  // Command: Edit "When to Use" description
+  const editWhenToUseCmd = vscode.commands.registerCommand(
+    "skillNinja.editWhenToUse",
+    async (item: SkillTreeItem) => {
+      if (!workspaceFolder) {
+        vscode.window.showErrorMessage(messages.noWorkspace());
+        return;
+      }
+
+      const skill = item.skill;
+      if (!skill?.name) {
+        return;
+      }
+
+      const config = vscode.workspace.getConfiguration("skillNinja");
+      const skillsDir =
+        config.get<string>("skillsDirectory") || ".github/skills";
+
+      // メタデータファイルのパス
+      const metaPath = vscode.Uri.joinPath(
+        workspaceFolder.uri,
+        skillsDir,
+        skill.name,
+        ".skill-meta.json"
+      );
+
+      // SKILL.md のパス
+      const skillMdPath = vscode.Uri.joinPath(
+        workspaceFolder.uri,
+        skillsDir,
+        skill.name,
+        "SKILL.md"
+      );
+
+      // 既存のメタデータを読み込む（なければ生成）
+      let meta: {
+        name: string;
+        source: string;
+        description: string;
+        description_ja?: string;
+        whenToUse?: string;
+        customWhenToUse?: string;
+        categories: string[];
+        installedAt: string;
+      };
+      try {
+        const content = await vscode.workspace.fs.readFile(metaPath);
+        meta = JSON.parse(Buffer.from(content).toString("utf-8"));
+      } catch {
+        // メタデータがない場合は SKILL.md から生成
+        try {
+          const skillMdContent = await vscode.workspace.fs.readFile(
+            skillMdPath
+          );
+          const text = Buffer.from(skillMdContent).toString("utf-8");
+
+          // frontmatter から description を抽出
+          let description = "";
+          const frontmatterMatch = text.match(/^---\n([\s\S]*?)\n---/);
+          if (frontmatterMatch) {
+            const descMatch = frontmatterMatch[1].match(
+              /^description:\s*["']?([^"'\n]+)["']?/m
+            );
+            if (descMatch) {
+              description = descMatch[1].trim();
+            }
+          }
+
+          meta = {
+            name: skill.name,
+            source: "unknown",
+            description: description,
+            categories: [],
+            installedAt: new Date().toISOString(),
+          };
+        } catch {
+          vscode.window.showErrorMessage(
+            isJapanese()
+              ? "スキルファイルが見つかりません"
+              : "Skill file not found"
+          );
+          return;
+        }
+      }
+
+      // 現在の値を取得（カスタム > whenToUse > description）
+      const currentValue =
+        meta.customWhenToUse || meta.whenToUse || meta.description || "";
+
+      // 入力ダイアログを表示
+      const newValue = await vscode.window.showInputBox({
+        title: isJapanese()
+          ? `${skill.name} の説明を編集`
+          : `Edit description for ${skill.name}`,
+        prompt: isJapanese()
+          ? "AGENTS.md に表示される説明文を入力してください（空にするとデフォルトに戻ります）"
+          : "Enter the description shown in AGENTS.md (leave empty to reset to default)",
+        value: currentValue,
+        placeHolder: isJapanese()
+          ? "例: エージェントワークフローの設計・レビュー・改善"
+          : "e.g., Design, review, and improve agent workflows",
+      });
+
+      // キャンセルされた場合
+      if (newValue === undefined) {
+        return;
+      }
+
+      // メタデータを更新
+      if (newValue.trim() === "") {
+        // 空の場合はカスタム値を削除
+        delete meta.customWhenToUse;
+      } else {
+        meta.customWhenToUse = newValue.trim();
+      }
+
+      // 保存
+      await vscode.workspace.fs.writeFile(
+        metaPath,
+        Buffer.from(JSON.stringify(meta, null, 2), "utf-8")
+      );
+
+      // AGENTS.md を更新
+      if (config.get<boolean>("autoUpdateInstruction")) {
+        await updateInstructionFile(workspaceFolder.uri, context);
+      }
+
+      vscode.window.showInformationMessage(
+        isJapanese()
+          ? `${skill.name} の説明を更新しました`
+          : `Updated description for ${skill.name}`
+      );
+
+      workspaceProvider.refresh();
     }
   );
 
@@ -472,7 +653,58 @@ export function activate(context: vscode.ExtensionContext) {
         return;
       }
 
-      const index = await loadSkillIndex(context);
+      let index = await loadSkillIndex(context);
+
+      // インデックスに見つからないスキルがあるかチェック
+      const missingSkills: string[] = [];
+      for (const meta of installedMeta) {
+        let skill = index.skills.find(
+          (s: Skill) => s.name === meta.name && s.source === meta.source
+        );
+        if (!skill && meta.source === "unknown") {
+          skill = index.skills.find((s: Skill) => s.name === meta.name);
+        }
+        if (!skill) {
+          missingSkills.push(meta.name);
+        }
+      }
+
+      // 見つからないスキルがある場合、インデックス更新を提案
+      if (missingSkills.length > 0) {
+        const tryUpdate = await vscode.window.showWarningMessage(
+          isJapanese()
+            ? `${
+                missingSkills.length
+              } 個のスキルがインデックスに見つかりません（${missingSkills
+                .slice(0, 3)
+                .join(", ")}${
+                missingSkills.length > 3 ? "..." : ""
+              }）。インデックスを更新しますか？`
+            : `${
+                missingSkills.length
+              } skill(s) not found in index (${missingSkills
+                .slice(0, 3)
+                .join(", ")}${
+                missingSkills.length > 3 ? "..." : ""
+              }). Update index now?`,
+          isJapanese() ? "更新する" : "Update",
+          isJapanese() ? "スキップ" : "Skip"
+        );
+
+        if (tryUpdate === (isJapanese() ? "更新する" : "Update")) {
+          await vscode.window.withProgress(
+            {
+              location: vscode.ProgressLocation.Notification,
+              title: isJapanese()
+                ? "インデックスを更新中..."
+                : "Updating index...",
+            },
+            async (progress) => {
+              index = await updateIndexFromSources(context, index, progress);
+            }
+          );
+        }
+      }
 
       await vscode.window.withProgress(
         {
@@ -561,7 +793,7 @@ export function activate(context: vscode.ExtensionContext) {
       }
 
       // インデックスからスキル情報を取得
-      const index = await loadSkillIndex(context);
+      let index = await loadSkillIndex(context);
       // source が "unknown" の場合は name だけで検索
       let fullSkill = index.skills.find(
         (s: Skill) => s.name === meta.name && s.source === meta.source
@@ -571,13 +803,46 @@ export function activate(context: vscode.ExtensionContext) {
         fullSkill = index.skills.find((s: Skill) => s.name === meta.name);
       }
 
+      // インデックスに見つからない場合は自動で更新を試みる
       if (!fullSkill) {
-        vscode.window.showErrorMessage(
+        const tryUpdate = await vscode.window.showWarningMessage(
           isJapanese()
-            ? `${skill.name} がインデックスに見つかりません。インデックスを更新してください。`
-            : `${skill.name} not found in index. Please update the index.`
+            ? `${skill.name} がインデックスに見つかりません。インデックスを更新しますか？`
+            : `${skill.name} not found in index. Update index now?`,
+          isJapanese() ? "更新する" : "Update",
+          isJapanese() ? "キャンセル" : "Cancel"
         );
-        return;
+
+        if (tryUpdate === (isJapanese() ? "更新する" : "Update")) {
+          await vscode.window.withProgress(
+            {
+              location: vscode.ProgressLocation.Notification,
+              title: isJapanese()
+                ? "インデックスを更新中..."
+                : "Updating index...",
+            },
+            async (progress) => {
+              index = await updateIndexFromSources(context, index, progress);
+            }
+          );
+
+          // 再検索
+          fullSkill = index.skills.find(
+            (s: Skill) => s.name === meta.name && s.source === meta.source
+          );
+          if (!fullSkill && meta.source === "unknown") {
+            fullSkill = index.skills.find((s: Skill) => s.name === meta.name);
+          }
+        }
+
+        if (!fullSkill) {
+          vscode.window.showErrorMessage(
+            isJapanese()
+              ? `${skill.name} がインデックスに見つかりません。ソースリポジトリを確認してください。`
+              : `${skill.name} not found in index. Please check source repositories.`
+          );
+          return;
+        }
       }
 
       try {
@@ -2079,6 +2344,7 @@ Add examples here
     openInTerminalCmd,
     reportBugCmd,
     openSkillFolderCmd,
+    editWhenToUseCmd,
     doubleClickCmd,
     configWatcher,
     installedTreeView,

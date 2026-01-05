@@ -54,6 +54,7 @@
   "command.registerLocalSkill": "AGENTS.md に登録",
   "command.unregisterLocalSkill": "AGENTS.md から削除",
   "command.openSkillFolder": "スキルフォルダを開く",
+  "command.editWhenToUse": "説明を編集",
   "command.createSkill": "新規スキル作成",
   "command.updateInstruction": "インストラクションファイルを更新",
   "command.openInstructionFile": "インストラクションファイルを開く",

@@ -162,31 +162,43 @@ ${MARKER_END}`;
 
 The following skills are available in this workspace.
 
+| Skill | When to Use |
+|-------|-------------|
 `;
 
   // インストール済みスキル
   if (hasInstalled) {
-    const installedList = installedSkills
+    const installedRows = installedSkills
       .map((skill) => {
-        const desc = skill.description ? ` - ${skill.description}` : "";
-        return `- [${skill.name}](${skillsDir}/${skill.name}/SKILL.md)${desc}`;
+        // 優先順位: customWhenToUse > whenToUse > description
+        const whenToUse =
+          skill.customWhenToUse || skill.whenToUse || skill.description || "";
+        // テーブル内のパイプ文字をエスケープ
+        const safeDesc = whenToUse.replace(/\|/g, "\\|");
+        return `| [${skill.name}](${skillsDir}/${skill.name}/SKILL.md) | ${safeDesc} |`;
       })
       .join("\n");
-    content += installedList + "\n";
+    content += installedRows + "\n";
   }
 
   // ローカルスキル
   if (hasLocal) {
     if (hasInstalled) {
-      content += "\n### Local Skills\n\n";
+      content += `
+### Local Skills
+
+| Skill | When to Use |
+|-------|-------------|
+`;
     }
-    const localList = localSkills
+    const localRows = localSkills
       .map((skill) => {
-        const desc = skill.description ? ` - ${skill.description}` : "";
-        return `- [${skill.name}](${skill.relativePath}/SKILL.md)${desc}`;
+        const desc = skill.description || "";
+        const safeDesc = desc.replace(/\|/g, "\\|");
+        return `| [${skill.name}](${skill.relativePath}/SKILL.md) | ${safeDesc} |`;
       })
       .join("\n");
-    content += localList + "\n";
+    content += localRows + "\n";
   }
 
   content += `\n${MARKER_END}`;
@@ -206,7 +218,7 @@ function generateCursorRulesSection(
     ...installedSkills.map((s) => ({
       name: s.name,
       path: `${skillsDir}/${s.name}/SKILL.md`,
-      description: s.description || "",
+      description: s.customWhenToUse || s.whenToUse || s.description || "",
     })),
     ...localSkills.map((s) => ({
       name: s.name,
@@ -260,7 +272,7 @@ function generateWindsurfRulesSection(
     ...installedSkills.map((s) => ({
       name: s.name,
       path: `${skillsDir}/${s.name}/SKILL.md`,
-      description: s.description || "",
+      description: s.customWhenToUse || s.whenToUse || s.description || "",
     })),
     ...localSkills.map((s) => ({
       name: s.name,
@@ -307,7 +319,7 @@ function generateClineRulesSection(
     ...installedSkills.map((s) => ({
       name: s.name,
       path: `${skillsDir}/${s.name}/SKILL.md`,
-      description: s.description || "",
+      description: s.customWhenToUse || s.whenToUse || s.description || "",
     })),
     ...localSkills.map((s) => ({
       name: s.name,

@@ -241,12 +241,30 @@ export async function installSkill(
     }
   }
 
+  // "When to Use" セクションを抽出
+  const skillMdPath = vscode.Uri.joinPath(skillPath, "SKILL.md");
+  const whenToUse = await extractWhenToUseFromSkillMd(skillMdPath);
+
+  // 既存のメタデータからカスタム値を保持
   const metaPath = vscode.Uri.joinPath(skillPath, ".skill-meta.json");
-  const meta = {
+  let existingCustomWhenToUse: string | undefined;
+  try {
+    const existingContent = await vscode.workspace.fs.readFile(metaPath);
+    const existingMeta = JSON.parse(
+      Buffer.from(existingContent).toString("utf-8")
+    );
+    existingCustomWhenToUse = existingMeta.customWhenToUse;
+  } catch {
+    // 既存のメタデータがない場合は無視
+  }
+
+  const meta: SkillMeta = {
     name: skill.name,
     source: skill.source,
     description: description,
     description_ja: skill.description_ja,
+    whenToUse: whenToUse || undefined,
+    customWhenToUse: existingCustomWhenToUse, // ユーザーのカスタム値を保持
     categories: skill.categories,
     installedAt: new Date().toISOString(),
   };
@@ -425,6 +443,8 @@ export interface SkillMeta {
   source: string;
   description: string;
   description_ja?: string;
+  whenToUse?: string; // SKILL.md の "When to Use" セクションから抽出
+  customWhenToUse?: string; // ユーザーがカスタマイズした説明（最優先）
   categories: string[];
   installedAt: string;
 }
@@ -465,10 +485,13 @@ export async function getInstalledSkillsWithMeta(
         );
         const { name, description } =
           await extractNameAndDescriptionFromSkillMd(skillMdPath, folderName);
+        // When to Use セクションも抽出
+        const whenToUse = await extractWhenToUseFromSkillMd(skillMdPath);
         metas.push({
           name,
           source: "unknown", // メタデータがない古い形式
           description,
+          whenToUse: whenToUse || undefined,
           categories: [],
           installedAt: "",
         });
@@ -571,7 +594,7 @@ function extractDescriptionFromFrontmatter(frontmatter: string): string {
   }
 
   // 長い説明は切り詰める（AGENTS.md 用に短くする）
-  const maxLength = 80;
+  const maxLength = 200;
   if (description.length > maxLength) {
     const periodIndex = description.indexOf("。");
     const dotIndex = description.indexOf(". ");
@@ -609,6 +632,133 @@ async function extractDescriptionFromSkillMd(
     }
 
     return extractDescriptionFromFrontmatter(frontmatterMatch[1]);
+  } catch {
+    return "";
+  }
+}
+
+/**
+ * SKILL.md ファイルから "When to Use" セクションを抽出する
+ * ## When to Use または ## いつ使うか などのセクションを検出し、内容を返す
+ * セクションがない場合は、# タイトルの次の段落を使用
+ */
+async function extractWhenToUseFromSkillMd(
+  skillMdUri: vscode.Uri
+): Promise<string> {
+  try {
+    const content = await vscode.workspace.fs.readFile(skillMdUri);
+    const text = Buffer.from(content).toString("utf-8");
+
+    // "When to Use" セクションを検出（英語・日本語対応）
+    const sectionMatch = text.match(
+      /^##\s*(When to Use|When To Use|いつ使うか|使用タイミング|Usage|使い方)\s*\n([\s\S]*?)(?=\n##\s|\n---|\n\*\*|$)/im
+    );
+
+    let sectionContent = "";
+
+    if (sectionMatch) {
+      sectionContent = sectionMatch[2].trim();
+    } else {
+      // フォールバック: # タイトルの次の段落を抽出
+      // frontmatter をスキップ
+      let bodyText = text;
+      const frontmatterMatch = text.match(/^---\n[\s\S]*?\n---\n*/);
+      if (frontmatterMatch) {
+        bodyText = text.substring(frontmatterMatch[0].length);
+      }
+
+      // # タイトル行を見つけて、その後の最初の段落を取得
+      const lines = bodyText.split("\n");
+      let foundTitle = false;
+      const paragraphLines: string[] = [];
+
+      for (const line of lines) {
+        const trimmed = line.trim();
+
+        if (!foundTitle) {
+          // # で始まるタイトル行を探す
+          if (/^#\s+/.test(trimmed)) {
+            foundTitle = true;
+          }
+          continue;
+        }
+
+        // タイトル後の空行をスキップ
+        if (!trimmed) {
+          if (paragraphLines.length > 0) {
+            // 段落が終わった
+            break;
+          }
+          continue;
+        }
+
+        // 次のセクション（## など）に到達したら終了
+        if (/^#/.test(trimmed)) {
+          break;
+        }
+
+        // コードブロック、リスト等はスキップ
+        if (/^```/.test(trimmed) || /^[-*]\s+\*\*/.test(trimmed)) {
+          break;
+        }
+
+        paragraphLines.push(trimmed);
+
+        // 最大2行まで
+        if (paragraphLines.length >= 2) {
+          break;
+        }
+      }
+
+      sectionContent = paragraphLines.join(" ");
+    }
+
+    if (!sectionContent) {
+      return "";
+    }
+
+    // リスト形式の場合、最初の数項目を抽出
+    const lines = sectionContent.split("\n");
+    const bulletPoints: string[] = [];
+
+    for (const line of lines) {
+      const trimmed = line.trim();
+      // リスト項目を検出（- や * や 数字. で始まる行）
+      if (/^[-*•]\s+/.test(trimmed) || /^\d+\.\s+/.test(trimmed)) {
+        // マーカーを除去して内容のみ取得
+        const itemContent = trimmed
+          .replace(/^[-*•]\s+/, "")
+          .replace(/^\d+\.\s+/, "");
+        bulletPoints.push(itemContent);
+      } else if (
+        trimmed &&
+        !trimmed.startsWith("#") &&
+        bulletPoints.length === 0
+      ) {
+        // 段落テキストの場合（リストがまだない場合）
+        bulletPoints.push(trimmed);
+      }
+
+      // 最大3項目まで
+      if (bulletPoints.length >= 3) {
+        break;
+      }
+    }
+
+    if (bulletPoints.length === 0) {
+      return "";
+    }
+
+    // 短い形式で結合
+    let result = bulletPoints.join("; ");
+
+    // 長すぎる場合は切り詰め
+    const maxLength = 200;
+    if (result.length > maxLength) {
+      result = result.substring(0, maxLength - 3) + "...";
+    }
+
+    return result;
   } catch {
     return "";
   }

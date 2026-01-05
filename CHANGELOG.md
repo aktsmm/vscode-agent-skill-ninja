@@ -7,6 +7,29 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.3.3] - 2026-01-05
+
+### Added
+
+- 📊 **Table Format for AGENTS.md** - Skills now displayed in table with "Skill" and "When to Use" columns
+- 🔍 **Auto-extract "When to Use"** - Automatically extracts from `## When to Use` section in SKILL.md
+- ✏️ **Edit Description** - Right-click installed skill → "Edit When to Use" to customize description
+- 🔄 **Auto Index Update on Reinstall** - Prompts to update index when skills not found
+- 🚀 **Startup Index Check** - Detects missing skills at startup and offers index update
+
+### Improved
+
+- 📝 **Fallback Description** - If no `## When to Use` section, extracts first paragraph after title
+- 💾 **Preserve Custom Descriptions** - `customWhenToUse` preserved on skill reinstall
+- 📏 **Longer Descriptions** - Increased max length from 80/120 to 200 characters
+- 🔧 **Auto-generate Metadata** - Creates `.skill-meta.json` for legacy skills when editing
+- 🎯 **Cursor/Windsurf/Cline Support** - All output formats now use whenToUse priority
+
+### Fixed
+
+- 🐛 Fixed metadata not found error when editing old skills without `.skill-meta.json`
+- 🐛 Fixed index update function signature errors
+
 ## [0.1.0] - 2026-01-03
 
 ### Added

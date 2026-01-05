@@ -2,7 +2,7 @@
   "name": "agent-skill-ninja",
   "displayName": "%displayName%",
   "description": "%description%",
-  "version": "0.3.2",
+  "version": "0.3.3",
   "publisher": "yamapan",
   "license": "CC-BY-NC-4.0",
   "icon": "resources/icon.png",
@@ -399,6 +399,12 @@
         "icon": "$(checklist)"
       },
       {
+        "command": "skillNinja.editWhenToUse",
+        "title": "%command.editWhenToUse%",
+        "category": "Agent Skill Ninja",
+        "icon": "$(edit)"
+      },
+      {
         "command": "skillNinja.openSkillFile",
         "title": "%command.openSkillFile%",
         "category": "Agent Skill Ninja",
@@ -652,6 +658,11 @@
           "command": "skillNinja.reinstall",
           "when": "view == skillNinja.installedView && viewItem == installedSkill",
           "group": "inline"
+        },
+        {
+          "command": "skillNinja.editWhenToUse",
+          "when": "view == skillNinja.installedView && viewItem == installedSkill",
+          "group": "navigation"
         },
         {
           "command": "skillNinja.openSkillFolder",
