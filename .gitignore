@@ -5,3 +5,5 @@ dist/
 output_blog_tips/
 output_retro/
 scripts/test-*.js
+.github/skills/
+.github/prompts/
