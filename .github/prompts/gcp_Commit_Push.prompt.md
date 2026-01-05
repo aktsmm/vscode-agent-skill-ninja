@@ -19,3 +19,12 @@
 ```
 [カテゴリ] 変更内容の要約（25文字以内）
 ```
+
+## VS Code 拡張公開時の追加手順
+
+VS Code 拡張を公開する場合は、以下も実行：
+
+7. `npx vsce package` で VSIX パッケージ作成
+8. `npx vsce publish` で Marketplace に公開
+9. `gh release create vX.X.X <vsix-file> --title "vX.X.X - タイトル" --notes "<リリースノート>"` で GitHub Release 作成
+10. Marketplace URL と GitHub Release URL を表示
