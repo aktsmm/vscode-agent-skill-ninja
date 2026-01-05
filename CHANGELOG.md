@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.3.6] - 2026-01-05
+
+### Improved
+
+- 💡 **MCP Tool Suggestions** - All MCP tools now show "Next Actions" suggestions after execution
+- 🛡️ **No Auto-Execution** - Agent will NOT automatically execute suggested actions, waits for user choice
+
 ## [0.3.5] - 2026-01-05
 
 ### Changed
