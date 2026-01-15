@@ -1353,9 +1353,11 @@ export function activate(context: vscode.ExtensionContext) {
   // Command: Add source
   const addSourceCmd = vscode.commands.registerCommand(
     "skillNinja.addSource",
-    async (urlArg?: string) => {
+    async (urlArg?: string | unknown) => {
       // 引数で URL が渡された場合はそれを使用、なければ入力を求める
-      let repoUrl = urlArg;
+      // TreeViewから呼ばれた場合、urlArgがオブジェクトになる可能性があるため型チェック
+      let repoUrl: string | undefined =
+        typeof urlArg === "string" ? urlArg : undefined;
 
       // 渡された URL のバリデーション
       if (repoUrl && !repoUrl.match(/github\.com\/[^/]+\/[^/]+/)) {
