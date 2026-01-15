@@ -7,3 +7,5 @@ output_retro/
 scripts/test-*.js
 .github/skills/
 .github/prompts/
+.github/instructions/
+.github/copilot-instructions.md
