@@ -49,7 +49,7 @@
   "config.outputFormat.windsurf": "Windsurf Rules（.windsurfrules）",
   "config.outputFormat.cline": "Cline Rules（.clinerules）",
   "config.singleClickInstall.description": "シングルクリックでインストール（デフォルト: ダブルクリック）",
-  "config.versionInfo.markdownDescription": "---\n\n### ℹ️ バージョン情報\n\n| 項目 | 値 |\n|------|------|\n| 拡張機能 | **0.3.7** |\n| スキルインデックス | **v1.9.0** |\n| 最終更新 | 2026-01-15 |\n| スキル数 | 164 |\n| ソース数 | 9 |\n\n[📋 変更履歴](https://github.com/aktsmm/vscode-agent-skill-ninja/blob/main/CHANGELOG.md) · [🐛 バグ報告](https://github.com/aktsmm/vscode-agent-skill-ninja/issues)",
+  "config.versionInfo.markdownDescription": "---\n\n### ℹ️ バージョン情報\n\n| 項目 | 値 |\n|------|------|\n| 拡張機能 | **0.3.8** |\n| スキルインデックス | **v1.9.0** |\n| 最終更新 | 2026-01-15 |\n| スキル数 | 164 |\n| ソース数 | 9 |\n\n[📋 変更履歴](https://github.com/aktsmm/vscode-agent-skill-ninja/blob/main/CHANGELOG.md) · [🐛 バグ報告](https://github.com/aktsmm/vscode-agent-skill-ninja/issues)",
   "view.workspace": "ワークスペーススキル",
   "view.browse": "リモートスキル",
   "command.registerLocalSkill": "AGENTS.md に登録",

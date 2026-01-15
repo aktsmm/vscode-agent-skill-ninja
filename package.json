@@ -2,7 +2,7 @@
   "name": "agent-skill-ninja",
   "displayName": "%displayName%",
   "description": "%description%",
-  "version": "0.3.7",
+  "version": "0.3.8",
   "publisher": "yamapan",
   "license": "CC-BY-NC-4.0",
   "icon": "resources/icon.png",
