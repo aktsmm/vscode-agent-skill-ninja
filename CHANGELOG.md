@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.3.7] - 2026-01-15
+
+### Added
+
+- ℹ️ **Version Info in Settings** - View extension version, skill index version, and stats directly in VS Code settings
+
 ## [0.3.6] - 2026-01-05
 
 ### Improved
