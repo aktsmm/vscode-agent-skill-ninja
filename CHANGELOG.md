@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.3.9] - 2026-01-15
+
+### Fixed
+
+- 🐛 **Add Source Command** - TreeView からソースの追加を実行した際に `m.match is not a function` エラーが発生する問題を修正
+
 ## [0.3.8] - 2026-01-15
 
 ### Added
