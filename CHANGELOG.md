@@ -12,6 +12,40 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 
 - ℹ️ **Version Info in Settings** - View extension version, skill index version, and stats directly in VS Code settings
+- 📦 **Skill Index v1.9.0** - Updated with 23 new skills (141 → 164 total)
+
+### New Skills Added
+
+**GitHub Awesome Copilot (9 new):**
+- `appinsights-instrumentation` - Application Insights計装
+- `azure-resource-visualizer` - Azureリソース可視化
+- `azure-role-selector` - Azure RBACロール選択
+- `github-issues` - GitHub Issue管理
+- `nuget-manager` - NuGetパッケージ管理
+- `snowflake-semanticview` - Snowflakeセマンティックビュー
+- `vscode-ext-commands` - VS Code拡張コマンド作成
+- `vscode-ext-localization` - VS Code拡張ローカライズ
+- `web-design-reviewer` - Webデザインレビュー
+
+**PAI Packs (5 new):**
+- `pai-algorithm-skill` - 構造化タスク実行
+- `pai-hook-system` - イベント駆動自動化
+- `pai-observability-server` - エージェント監視
+- `pai-upgrades-skill` - システムアップデート
+- `pai-voice-system` - 音声インタラクション
+
+**Context Engineering (6 new):**
+- `bdi-mental-states` - BDIメンタルステート
+- `filesystem-context` - ファイルシステムコンテキスト
+- `hosted-agents` - ホステッドエージェント
+- `memory-systems` - メモリシステム
+- `multi-agent-patterns` - マルチエージェントパターン
+- `project-development` - プロジェクト開発ワークフロー
+
+**ComposioHQ (3 new):**
+- `connect-apps` - アプリ接続・統合
+- `langsmith-fetch` - LangSmithデータ取得
+- `tailored-resume-generator` - カスタマイズ履歴書生成
 
 ## [0.3.6] - 2026-01-05
 

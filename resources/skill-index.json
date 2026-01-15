@@ -1,6 +1,6 @@
 {
-  "version": "1.8.0",
-  "lastUpdated": "2026-01-04",
+  "version": "1.9.0",
+  "lastUpdated": "2026-01-15",
   "sources": [
     {
       "id": "anthropics-skills",
@@ -218,9 +218,81 @@
       "name": "webapp-testing",
       "source": "github-awesome-copilot",
       "path": "skills/webapp-testing",
-      "categories": [],
+      "categories": ["testing"],
       "description": "Test web applications",
       "description_ja": "Webアプリケーションのテスト"
+    },
+    {
+      "name": "appinsights-instrumentation",
+      "source": "github-awesome-copilot",
+      "path": "skills/appinsights-instrumentation",
+      "categories": ["azure", "monitoring"],
+      "description": "Add Application Insights instrumentation to your app",
+      "description_ja": "アプリにApplication Insightsの計装を追加"
+    },
+    {
+      "name": "azure-resource-visualizer",
+      "source": "github-awesome-copilot",
+      "path": "skills/azure-resource-visualizer",
+      "categories": ["azure", "visualization"],
+      "description": "Visualize Azure resources and architecture",
+      "description_ja": "Azureリソースとアーキテクチャの可視化"
+    },
+    {
+      "name": "azure-role-selector",
+      "source": "github-awesome-copilot",
+      "path": "skills/azure-role-selector",
+      "categories": ["azure", "security"],
+      "description": "Select appropriate Azure RBAC roles",
+      "description_ja": "適切なAzure RBACロールの選択"
+    },
+    {
+      "name": "github-issues",
+      "source": "github-awesome-copilot",
+      "path": "skills/github-issues",
+      "categories": ["github", "project-management"],
+      "description": "Manage GitHub issues and workflows",
+      "description_ja": "GitHub Issueとワークフローの管理"
+    },
+    {
+      "name": "nuget-manager",
+      "source": "github-awesome-copilot",
+      "path": "skills/nuget-manager",
+      "categories": ["dotnet", "package-management"],
+      "description": "Manage NuGet packages in .NET projects",
+      "description_ja": ".NETプロジェクトのNuGetパッケージ管理"
+    },
+    {
+      "name": "snowflake-semanticview",
+      "source": "github-awesome-copilot",
+      "path": "skills/snowflake-semanticview",
+      "categories": ["database", "analytics"],
+      "description": "Create Snowflake semantic views",
+      "description_ja": "Snowflakeセマンティックビューの作成"
+    },
+    {
+      "name": "vscode-ext-commands",
+      "source": "github-awesome-copilot",
+      "path": "skills/vscode-ext-commands",
+      "categories": ["vscode", "extension"],
+      "description": "Create VS Code extension commands",
+      "description_ja": "VS Code拡張機能のコマンド作成"
+    },
+    {
+      "name": "vscode-ext-localization",
+      "source": "github-awesome-copilot",
+      "path": "skills/vscode-ext-localization",
+      "categories": ["vscode", "i18n"],
+      "description": "Localize VS Code extensions",
+      "description_ja": "VS Code拡張機能のローカライズ"
+    },
+    {
+      "name": "web-design-reviewer",
+      "source": "github-awesome-copilot",
+      "path": "skills/web-design-reviewer",
+      "categories": ["design", "review"],
+      "description": "Review web designs and provide feedback",
+      "description_ja": "Webデザインのレビューとフィードバック"
     },
     {
       "name": "brainstorming",
@@ -527,6 +599,30 @@
       "description_ja": "Webアプリケーションのテスト"
     },
     {
+      "name": "connect-apps",
+      "source": "composio-awesome",
+      "path": "connect-apps",
+      "categories": ["community", "integration"],
+      "description": "Connect and integrate apps",
+      "description_ja": "アプリの接続・統合"
+    },
+    {
+      "name": "langsmith-fetch",
+      "source": "composio-awesome",
+      "path": "langsmith-fetch",
+      "categories": ["community", "langchain"],
+      "description": "Fetch data from LangSmith",
+      "description_ja": "LangSmithからデータを取得"
+    },
+    {
+      "name": "tailored-resume-generator",
+      "source": "composio-awesome",
+      "path": "tailored-resume-generator",
+      "categories": ["community", "career"],
+      "description": "Generate tailored resumes for job applications",
+      "description_ja": "求人応募用のカスタマイズ履歴書を生成"
+    },
+    {
       "name": "context-engineering-collection",
       "source": "context-engineering-skills",
       "path": "SKILL.md",
@@ -639,6 +735,54 @@
       "description_ja": "コンテキストエンジニアリング向けスキルテンプレート"
     },
     {
+      "name": "bdi-mental-states",
+      "source": "context-engineering-skills",
+      "path": "skills/bdi-mental-states",
+      "categories": ["agent", "architecture"],
+      "description": "BDI (Beliefs-Desires-Intentions) mental states for agent reasoning",
+      "description_ja": "エージェント推論のためのBDI（信念-欲求-意図）メンタルステート"
+    },
+    {
+      "name": "filesystem-context",
+      "source": "context-engineering-skills",
+      "path": "skills/filesystem-context",
+      "categories": ["context", "filesystem"],
+      "description": "Manage filesystem context for agents",
+      "description_ja": "エージェントのファイルシステムコンテキスト管理"
+    },
+    {
+      "name": "hosted-agents",
+      "source": "context-engineering-skills",
+      "path": "skills/hosted-agents",
+      "categories": ["agent", "deployment"],
+      "description": "Deploy and manage hosted agents",
+      "description_ja": "ホステッドエージェントのデプロイと管理"
+    },
+    {
+      "name": "memory-systems",
+      "source": "context-engineering-skills",
+      "path": "skills/memory-systems",
+      "categories": ["agent", "memory"],
+      "description": "Implement memory systems for agents",
+      "description_ja": "エージェントのメモリシステム実装"
+    },
+    {
+      "name": "multi-agent-patterns",
+      "source": "context-engineering-skills",
+      "path": "skills/multi-agent-patterns",
+      "categories": ["agent", "architecture"],
+      "description": "Multi-agent coordination and communication patterns",
+      "description_ja": "マルチエージェント協調・通信パターン"
+    },
+    {
+      "name": "project-development",
+      "source": "context-engineering-skills",
+      "path": "skills/project-development",
+      "categories": ["development", "workflow"],
+      "description": "Agent-assisted project development workflows",
+      "description_ja": "エージェント支援によるプロジェクト開発ワークフロー"
+    },
+    {
       "name": "Browser Automation",
       "source": "pai-packs",
       "path": "Deprecated/Skills/BrowserAutomation",
@@ -709,6 +853,46 @@
       "categories": [],
       "description": "Prompting",
       "description_ja": "プロンプティング"
+    },
+    {
+      "name": "pai-algorithm-skill",
+      "source": "pai-packs",
+      "path": "Packs/pai-algorithm-skill",
+      "categories": ["agent", "workflow"],
+      "description": "PAI Algorithm skill for structured task execution",
+      "description_ja": "構造化タスク実行のためのPAIアルゴリズムスキル"
+    },
+    {
+      "name": "pai-hook-system",
+      "source": "pai-packs",
+      "path": "Packs/pai-hook-system",
+      "categories": ["agent", "automation"],
+      "description": "PAI Hook system for event-driven automation",
+      "description_ja": "イベント駆動自動化のためのPAIフックシステム"
+    },
+    {
+      "name": "pai-observability-server",
+      "source": "pai-packs",
+      "path": "Packs/pai-observability-server",
+      "categories": ["monitoring", "mcp"],
+      "description": "PAI Observability server for monitoring agent systems",
+      "description_ja": "エージェントシステム監視のためのPAI Observabilityサーバー"
+    },
+    {
+      "name": "pai-upgrades-skill",
+      "source": "pai-packs",
+      "path": "Packs/pai-upgrades-skill",
+      "categories": ["agent", "maintenance"],
+      "description": "PAI Upgrades skill for system updates",
+      "description_ja": "システムアップデートのためのPAIアップグレードスキル"
+    },
+    {
+      "name": "pai-voice-system",
+      "source": "pai-packs",
+      "path": "Packs/pai-voice-system",
+      "categories": ["voice", "accessibility"],
+      "description": "PAI Voice system for voice interactions",
+      "description_ja": "音声インタラクションのためのPAI Voiceシステム"
     },
     {
       "name": "coding-tutor",
