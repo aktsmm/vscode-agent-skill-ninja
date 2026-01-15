@@ -17,17 +17,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### New Skills Added
 
 **GitHub Awesome Copilot (9 new):**
-- `appinsights-instrumentation` - Application Insights計装
-- `azure-resource-visualizer` - Azureリソース可視化
-- `azure-role-selector` - Azure RBACロール選択
-- `github-issues` - GitHub Issue管理
-- `nuget-manager` - NuGetパッケージ管理
-- `snowflake-semanticview` - Snowflakeセマンティックビュー
-- `vscode-ext-commands` - VS Code拡張コマンド作成
-- `vscode-ext-localization` - VS Code拡張ローカライズ
-- `web-design-reviewer` - Webデザインレビュー
+
+- `appinsights-instrumentation` - Application Insights 計装
+- `azure-resource-visualizer` - Azure リソース可視化
+- `azure-role-selector` - Azure RBAC ロール選択
+- `github-issues` - GitHub Issue 管理
+- `nuget-manager` - NuGet パッケージ管理
+- `snowflake-semanticview` - Snowflake セマンティックビュー
+- `vscode-ext-commands` - VS Code 拡張コマンド作成
+- `vscode-ext-localization` - VS Code 拡張ローカライズ
+- `web-design-reviewer` - Web デザインレビュー
 
 **PAI Packs (5 new):**
+
 - `pai-algorithm-skill` - 構造化タスク実行
 - `pai-hook-system` - イベント駆動自動化
 - `pai-observability-server` - エージェント監視
@@ -35,7 +37,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `pai-voice-system` - 音声インタラクション
 
 **Context Engineering (6 new):**
-- `bdi-mental-states` - BDIメンタルステート
+
+- `bdi-mental-states` - BDI メンタルステート
 - `filesystem-context` - ファイルシステムコンテキスト
 - `hosted-agents` - ホステッドエージェント
 - `memory-systems` - メモリシステム
@@ -43,8 +46,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `project-development` - プロジェクト開発ワークフロー
 
 **ComposioHQ (3 new):**
+
 - `connect-apps` - アプリ接続・統合
-- `langsmith-fetch` - LangSmithデータ取得
+- `langsmith-fetch` - LangSmith データ取得
 - `tailored-resume-generator` - カスタマイズ履歴書生成
 
 ## [0.3.6] - 2026-01-05
