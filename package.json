@@ -805,6 +805,11 @@
           "default": false,
           "order": 9,
           "description": "%config.singleClickInstall.description%"
+        },
+        "skillNinja.versionInfo": {
+          "type": "null",
+          "order": 100,
+          "markdownDescription": "%config.versionInfo.markdownDescription%"
         }
       }
     }

@@ -49,6 +49,7 @@
   "config.outputFormat.windsurf": "Windsurf Rules (.windsurfrules)",
   "config.outputFormat.cline": "Cline Rules (.clinerules)",
   "config.singleClickInstall.description": "Install skills with single click (default: double click)",
+  "config.versionInfo.markdownDescription": "---\n\n### ℹ️ Version Info\n\n| Item | Value |\n|------|-------|\n| Extension | **0.3.6** |\n| Skill Index | **v1.8.0** |\n| Last Updated | 2026-01-04 |\n| Skills | 141 |\n| Sources | 9 |\n\n[📋 Changelog](https://github.com/aktsmm/vscode-agent-skill-ninja/blob/main/CHANGELOG.md) · [🐛 Report Bug](https://github.com/aktsmm/vscode-agent-skill-ninja/issues)",
   "view.workspace": "Workspace Skills",
   "view.browse": "Remote Skills",
   "command.registerLocalSkill": "Register in AGENTS.md",
