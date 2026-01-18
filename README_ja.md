@@ -106,6 +106,7 @@ ext install yamapan.agent-skill-ninja
 | Source                                                                                                                        | Type         | 説明                                |
 | ----------------------------------------------------------------------------------------------------------------------------- | ------------ | ----------------------------------- |
 | [anthropics/skills](https://github.com/anthropics/skills)                                                                     | 🏢 Official  | Anthropic 公式 Claude Skills        |
+| [openai/skills](https://github.com/openai/skills)                                                                             | 🏢 Official  | OpenAI 公式 Codex Skills (1.7k+ ⭐) |
 | [github/awesome-copilot](https://github.com/github/awesome-copilot)                                                           | 🏢 Official  | GitHub 公式 Copilot リソース        |
 | [ComposioHQ/awesome-claude-skills](https://github.com/ComposioHQ/awesome-claude-skills)                                       | 📋 Curated   | Claude Skills キュレーションリスト  |
 | [obra/superpowers](https://github.com/obra/superpowers)                                                                       | 👥 Community | 高品質スキル・エージェント集        |

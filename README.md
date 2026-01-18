@@ -110,6 +110,7 @@ Or search for **"Agent Skill Ninja"** in VS Code Extensions (`Ctrl+Shift+X`)
 | Source                                                                                                                        | Type         | Description                         |
 | ----------------------------------------------------------------------------------------------------------------------------- | ------------ | ----------------------------------- |
 | [anthropics/skills](https://github.com/anthropics/skills)                                                                     | 🏢 Official  | Anthropic official Claude Skills    |
+| [openai/skills](https://github.com/openai/skills)                                                                             | 🏢 Official  | OpenAI official Codex Skills (1.7k+ ⭐) |
 | [github/awesome-copilot](https://github.com/github/awesome-copilot)                                                           | 🏢 Official  | GitHub official Copilot resources   |
 | [ComposioHQ/awesome-claude-skills](https://github.com/ComposioHQ/awesome-claude-skills)                                       | 📋 Curated   | Curated Claude Skills list          |
 | [obra/superpowers](https://github.com/obra/superpowers)                                                                       | 👥 Community | High-quality skills & agents        |
