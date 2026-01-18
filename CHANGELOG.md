@@ -7,6 +7,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.4.0] - 2026-01-19
+
+### Added
+
+- 🆕 **OpenAI Skills (Official)** - Added official OpenAI Codex Skills repository as a new source (1.7k+ Stars)
+- 📦 **Skill Index v1.10.0** - Added 6 new skills from OpenAI (164 → 170 total)
+
+### New Skills Added
+
+**OpenAI Skills (6 new):**
+
+- `skill-creator` - Codex スキル作成ガイド
+- `skill-installer` - スキルのインストール
+- `linear` - Linear 連携（イシュー・プロジェクト管理）
+- `create-plan` - コーディングタスク用プラン作成
+- `notion-knowledge-capture` - Notion ナレッジ保存
+- `notion-spec-to-implementation` - Notion 仕様→実装変換
+
 ## [0.3.9] - 2026-01-15
 
 ### Fixed
