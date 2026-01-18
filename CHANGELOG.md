@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.4.1] - 2026-01-19
+
+### Changed
+
+- 📝 **Bilingual Changelog** - Updated changelog to English/Japanese bilingual format / チェンジログを日英併記に変更
+
 ## [0.4.0] - 2026-01-19
 
 ### Added
@@ -18,62 +24,62 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 **OpenAI Skills (6 new):**
 
-- `skill-creator` - Codex スキル作成ガイド
-- `skill-installer` - スキルのインストール
-- `linear` - Linear 連携（イシュー・プロジェクト管理）
-- `create-plan` - コーディングタスク用プラン作成
-- `notion-knowledge-capture` - Notion ナレッジ保存
-- `notion-spec-to-implementation` - Notion 仕様→実装変換
+- `skill-creator` - Guide for creating Codex skills / Codex スキル作成ガイド
+- `skill-installer` - Install skills from curated list or GitHub / スキルのインストール
+- `linear` - Manage issues, projects & workflows in Linear / Linear 連携
+- `create-plan` - Create concise plans for coding tasks / プラン作成
+- `notion-knowledge-capture` - Capture and organize knowledge in Notion / Notion ナレッジ保存
+- `notion-spec-to-implementation` - Convert Notion specs to implementation / 仕様→実装変換
 
 ## [0.3.9] - 2026-01-15
 
 ### Fixed
 
-- 🐛 **Add Source Command** - TreeView からソースの追加を実行した際に `m.match is not a function` エラーが発生する問題を修正
+- 🐛 **Add Source Command** - Fixed `m.match is not a function` error when adding source from TreeView / TreeView からソース追加時のエラーを修正
 
 ## [0.3.8] - 2026-01-15
 
 ### Added
 
-- ℹ️ **Version Info in Settings** - View extension version, skill index version, and stats directly in VS Code settings
-- 📦 **Skill Index v1.9.0** - Updated with 23 new skills (141 → 164 total)
+- ℹ️ **Version Info in Settings** - View extension version, skill index version, and stats directly in VS Code settings / 設定画面でバージョン情報を表示
+- 📦 **Skill Index v1.9.0** - Updated with 23 new skills (141 → 164 total) / 23個の新スキル追加
 
 ### New Skills Added
 
 **GitHub Awesome Copilot (9 new):**
 
-- `appinsights-instrumentation` - Application Insights 計装
-- `azure-resource-visualizer` - Azure リソース可視化
-- `azure-role-selector` - Azure RBAC ロール選択
-- `github-issues` - GitHub Issue 管理
-- `nuget-manager` - NuGet パッケージ管理
-- `snowflake-semanticview` - Snowflake セマンティックビュー
-- `vscode-ext-commands` - VS Code 拡張コマンド作成
-- `vscode-ext-localization` - VS Code 拡張ローカライズ
-- `web-design-reviewer` - Web デザインレビュー
+- `appinsights-instrumentation` - Application Insights instrumentation / 計装
+- `azure-resource-visualizer` - Azure resource visualization / リソース可視化
+- `azure-role-selector` - Azure RBAC role selection / ロール選択
+- `github-issues` - GitHub Issue management / Issue 管理
+- `nuget-manager` - NuGet package management / パッケージ管理
+- `snowflake-semanticview` - Snowflake semantic view / セマンティックビュー
+- `vscode-ext-commands` - VS Code extension commands / 拡張コマンド作成
+- `vscode-ext-localization` - VS Code extension localization / 拡張ローカライズ
+- `web-design-reviewer` - Web design review / デザインレビュー
 
 **PAI Packs (5 new):**
 
-- `pai-algorithm-skill` - 構造化タスク実行
-- `pai-hook-system` - イベント駆動自動化
-- `pai-observability-server` - エージェント監視
-- `pai-upgrades-skill` - システムアップデート
-- `pai-voice-system` - 音声インタラクション
+- `pai-algorithm-skill` - Structured task execution / 構造化タスク実行
+- `pai-hook-system` - Event-driven automation / イベント駆動自動化
+- `pai-observability-server` - Agent monitoring / エージェント監視
+- `pai-upgrades-skill` - System updates / システムアップデート
+- `pai-voice-system` - Voice interaction / 音声インタラクション
 
 **Context Engineering (6 new):**
 
-- `bdi-mental-states` - BDI メンタルステート
-- `filesystem-context` - ファイルシステムコンテキスト
-- `hosted-agents` - ホステッドエージェント
-- `memory-systems` - メモリシステム
-- `multi-agent-patterns` - マルチエージェントパターン
-- `project-development` - プロジェクト開発ワークフロー
+- `bdi-mental-states` - BDI mental states / メンタルステート
+- `filesystem-context` - Filesystem context / ファイルシステムコンテキスト
+- `hosted-agents` - Hosted agents / ホステッドエージェント
+- `memory-systems` - Memory systems / メモリシステム
+- `multi-agent-patterns` - Multi-agent patterns / マルチエージェントパターン
+- `project-development` - Project development workflow / プロジェクト開発
 
 **ComposioHQ (3 new):**
 
-- `connect-apps` - アプリ接続・統合
-- `langsmith-fetch` - LangSmith データ取得
-- `tailored-resume-generator` - カスタマイズ履歴書生成
+- `connect-apps` - App connection & integration / アプリ接続・統合
+- `langsmith-fetch` - LangSmith data fetching / データ取得
+- `tailored-resume-generator` - Customized resume generation / 履歴書生成
 
 ## [0.3.6] - 2026-01-05
 
