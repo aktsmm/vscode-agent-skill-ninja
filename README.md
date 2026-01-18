@@ -107,18 +107,18 @@ Or search for **"Agent Skill Ninja"** in VS Code Extensions (`Ctrl+Shift+X`)
 
 ## Included Skill Sources
 
-| Source                                                                                                                        | Type         | Description                         |
-| ----------------------------------------------------------------------------------------------------------------------------- | ------------ | ----------------------------------- |
-| [anthropics/skills](https://github.com/anthropics/skills)                                                                     | 🏢 Official  | Anthropic official Claude Skills    |
+| Source                                                                                                                        | Type         | Description                             |
+| ----------------------------------------------------------------------------------------------------------------------------- | ------------ | --------------------------------------- |
+| [anthropics/skills](https://github.com/anthropics/skills)                                                                     | 🏢 Official  | Anthropic official Claude Skills        |
 | [openai/skills](https://github.com/openai/skills)                                                                             | 🏢 Official  | OpenAI official Codex Skills (1.7k+ ⭐) |
-| [github/awesome-copilot](https://github.com/github/awesome-copilot)                                                           | 🏢 Official  | GitHub official Copilot resources   |
-| [ComposioHQ/awesome-claude-skills](https://github.com/ComposioHQ/awesome-claude-skills)                                       | 📋 Curated   | Curated Claude Skills list          |
-| [obra/superpowers](https://github.com/obra/superpowers)                                                                       | 👥 Community | High-quality skills & agents        |
-| [muratcankoylan/Agent-Skills-for-Context-Engineering](https://github.com/muratcankoylan/Agent-Skills-for-Context-Engineering) | 👥 Community | Context Engineering skills (5k+ ⭐) |
-| [danielmiessler/Personal_AI_Infrastructure](https://github.com/danielmiessler/Personal_AI_Infrastructure)                     | 👥 Community | PAI Packs - Skills & Features       |
-| [EveryInc/compound-engineering-plugin](https://github.com/EveryInc/compound-engineering-plugin)                               | 👥 Community | Compound Engineering (3.5k+ ⭐)     |
-| [Wirasm/PRPs-agentic-eng](https://github.com/Wirasm/PRPs-agentic-eng)                                                         | 👥 Community | PRP (Prompt Recipe Patterns)        |
-| [qdhenry/Claude-Command-Suite](https://github.com/qdhenry/Claude-Command-Suite)                                               | 👥 Community | Claude commands & skills            |
+| [github/awesome-copilot](https://github.com/github/awesome-copilot)                                                           | 🏢 Official  | GitHub official Copilot resources       |
+| [ComposioHQ/awesome-claude-skills](https://github.com/ComposioHQ/awesome-claude-skills)                                       | 📋 Curated   | Curated Claude Skills list              |
+| [obra/superpowers](https://github.com/obra/superpowers)                                                                       | 👥 Community | High-quality skills & agents            |
+| [muratcankoylan/Agent-Skills-for-Context-Engineering](https://github.com/muratcankoylan/Agent-Skills-for-Context-Engineering) | 👥 Community | Context Engineering skills (5k+ ⭐)     |
+| [danielmiessler/Personal_AI_Infrastructure](https://github.com/danielmiessler/Personal_AI_Infrastructure)                     | 👥 Community | PAI Packs - Skills & Features           |
+| [EveryInc/compound-engineering-plugin](https://github.com/EveryInc/compound-engineering-plugin)                               | 👥 Community | Compound Engineering (3.5k+ ⭐)         |
+| [Wirasm/PRPs-agentic-eng](https://github.com/Wirasm/PRPs-agentic-eng)                                                         | 👥 Community | PRP (Prompt Recipe Patterns)            |
+| [qdhenry/Claude-Command-Suite](https://github.com/qdhenry/Claude-Command-Suite)                                               | 👥 Community | Claude commands & skills                |
 
 > 💡 Use `Update Index` command to fetch the latest skills
 
