@@ -1,6 +1,6 @@
 {
-  "version": "1.9.0",
-  "lastUpdated": "2026-01-15",
+  "version": "1.10.0",
+  "lastUpdated": "2026-01-19",
   "sources": [
     {
       "id": "anthropics-skills",
@@ -9,6 +9,14 @@
       "type": "official",
       "description": "Official Claude Skills repository by Anthropic",
       "description_ja": "Anthropic 公式の Claude Skills リポジトリ"
+    },
+    {
+      "id": "openai-skills",
+      "name": "OpenAI Skills (Official)",
+      "url": "https://github.com/openai/skills",
+      "type": "official",
+      "description": "Official Codex Skills Catalog by OpenAI (1.7k+ Stars)",
+      "description_ja": "OpenAI 公式の Codex Skills カタログ（1.7k+ Stars）"
     },
     {
       "id": "github-awesome-copilot",
@@ -78,6 +86,54 @@
     }
   ],
   "skills": [
+    {
+      "name": "skill-creator",
+      "source": "openai-skills",
+      "path": "skills/.system/skill-creator",
+      "categories": ["development", "automation"],
+      "description": "Guide for creating effective Codex skills with specialized knowledge, workflows, or tool integrations",
+      "description_ja": "Codex スキルの作成ガイド（ワークフロー・ツール統合）"
+    },
+    {
+      "name": "skill-installer",
+      "source": "openai-skills",
+      "path": "skills/.system/skill-installer",
+      "categories": ["development", "automation"],
+      "description": "Install Codex skills from curated list or GitHub repositories",
+      "description_ja": "キュレーション済みリストやGitHubからCodexスキルをインストール"
+    },
+    {
+      "name": "linear",
+      "source": "openai-skills",
+      "path": "skills/.experimental/linear",
+      "categories": ["project-management", "productivity"],
+      "description": "Manage issues, projects & team workflows in Linear",
+      "description_ja": "Linear でイシュー・プロジェクト・チームワークフローを管理"
+    },
+    {
+      "name": "create-plan",
+      "source": "openai-skills",
+      "path": "skills/.experimental/create-plan",
+      "categories": ["productivity", "planning"],
+      "description": "Create a concise plan for coding tasks",
+      "description_ja": "コーディングタスク用の簡潔なプランを作成"
+    },
+    {
+      "name": "notion-knowledge-capture",
+      "source": "openai-skills",
+      "path": "skills/.curated/notion-knowledge-capture",
+      "categories": ["documentation", "productivity"],
+      "description": "Capture and organize knowledge in Notion (how-to guides, FAQs, decision records, wikis)",
+      "description_ja": "Notion にナレッジを整理・保存（ガイド・FAQ・意思決定記録・Wiki）"
+    },
+    {
+      "name": "notion-spec-to-implementation",
+      "source": "openai-skills",
+      "path": "skills/.curated/notion-spec-to-implementation",
+      "categories": ["development", "documentation"],
+      "description": "Convert Notion specifications to implementation code",
+      "description_ja": "Notion の仕様書をコード実装に変換"
+    },
     {
       "name": "algorithmic-art",
       "source": "anthropics-skills",
