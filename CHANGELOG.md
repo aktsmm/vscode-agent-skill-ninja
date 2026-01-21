@@ -7,6 +7,28 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.4.3] - 2026-01-21
+
+### Added
+
+- 📦 **Skill Index v1.11.0** - Added 8 new skills from GitHub awesome-copilot and OpenAI (170 → 178 total)
+
+### New Skills Added
+
+**GitHub Awesome Copilot (5 new):**
+
+- `azure-static-web-apps` - Create, configure, deploy Azure Static Web Apps / SWA CLI でデプロイ
+- `make-skill-template` - Create new Agent Skills from prompts/templates / スキル作成テンプレート
+- `microsoft-code-reference` - Look up Microsoft API references with MS Learn MCP / API参照・SDK検証
+- `microsoft-docs` - Query official Microsoft documentation / Microsoft公式ドキュメント検索
+
+**OpenAI Skills (4 new):**
+
+- `gh-address-comments` - Address PR review comments using gh CLI / PRレビューコメント対応
+- `gh-fix-ci` - Inspect and fix failing GitHub Actions checks / CI失敗の調査と修正
+- `notion-meeting-intelligence` - Prepare meeting materials with Notion context / 会議資料準備
+- `notion-research-documentation` - Research Notion content and produce reports / リサーチドキュメント作成
+
 ## [0.4.2] - 2026-01-19
 
 ### Fixed

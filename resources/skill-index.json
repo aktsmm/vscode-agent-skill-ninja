@@ -1,6 +1,6 @@
 {
-  "version": "1.10.0",
-  "lastUpdated": "2026-01-19",
+  "version": "1.11.0",
+  "lastUpdated": "2026-01-21",
   "sources": [
     {
       "id": "anthropics-skills",
@@ -133,6 +133,38 @@
       "categories": ["development", "documentation"],
       "description": "Convert Notion specifications to implementation code",
       "description_ja": "Notion の仕様書をコード実装に変換"
+    },
+    {
+      "name": "gh-address-comments",
+      "source": "openai-skills",
+      "path": "skills/.curated/gh-address-comments",
+      "categories": ["github", "code-review"],
+      "description": "Address PR review comments using gh CLI with automatic authentication check",
+      "description_ja": "gh CLIでPRレビューコメントに対応（自動認証チェック付き）"
+    },
+    {
+      "name": "gh-fix-ci",
+      "source": "openai-skills",
+      "path": "skills/.curated/gh-fix-ci",
+      "categories": ["github", "ci-cd"],
+      "description": "Inspect failing PR checks, fetch GitHub Actions logs, and implement fixes",
+      "description_ja": "失敗したPRチェックを調査し、GitHub Actionsログを取得して修正を実装"
+    },
+    {
+      "name": "notion-meeting-intelligence",
+      "source": "openai-skills",
+      "path": "skills/.curated/notion-meeting-intelligence",
+      "categories": ["productivity", "notion"],
+      "description": "Prepare meeting materials with Notion context and Codex research",
+      "description_ja": "Notionコンテキストとリサーチで会議資料を準備"
+    },
+    {
+      "name": "notion-research-documentation",
+      "source": "openai-skills",
+      "path": "skills/.curated/notion-research-documentation",
+      "categories": ["documentation", "notion"],
+      "description": "Research across Notion and synthesize into structured documentation",
+      "description_ja": "Notionから情報を収集し構造化されたドキュメントに統合"
     },
     {
       "name": "algorithmic-art",
@@ -349,6 +381,38 @@
       "categories": ["design", "review"],
       "description": "Review web designs and provide feedback",
       "description_ja": "Webデザインのレビューとフィードバック"
+    },
+    {
+      "name": "azure-static-web-apps",
+      "source": "github-awesome-copilot",
+      "path": "skills/azure-static-web-apps",
+      "categories": ["azure", "web"],
+      "description": "Create, configure, and deploy Azure Static Web Apps using SWA CLI",
+      "description_ja": "SWA CLIでAzure Static Web Appsの作成・設定・デプロイ"
+    },
+    {
+      "name": "make-skill-template",
+      "source": "github-awesome-copilot",
+      "path": "skills/make-skill-template",
+      "categories": ["meta", "development"],
+      "description": "Create new Agent Skills for GitHub Copilot from prompts or by duplicating templates",
+      "description_ja": "プロンプトやテンプレートからGitHub Copilot用のAgent Skillsを作成"
+    },
+    {
+      "name": "microsoft-code-reference",
+      "source": "github-awesome-copilot",
+      "path": "skills/microsoft-code-reference",
+      "categories": ["azure", "documentation"],
+      "description": "Look up Microsoft API references, find code samples, and verify SDK code using MS Learn MCP",
+      "description_ja": "Microsoft API参照・コードサンプル検索・SDK検証（MS Learn MCP使用）"
+    },
+    {
+      "name": "microsoft-docs",
+      "source": "github-awesome-copilot",
+      "path": "skills/microsoft-docs",
+      "categories": ["azure", "documentation"],
+      "description": "Query official Microsoft documentation for Azure, .NET, Microsoft 365, and more",
+      "description_ja": "Azure、.NET、Microsoft 365などのMicrosoft公式ドキュメントを検索"
     },
     {
       "name": "brainstorming",
