@@ -38,9 +38,7 @@ export interface WorkspaceSkill {
  * - ローカルスキル (それ以外の SKILL.md)
  * を統合表示
  */
-export class WorkspaceSkillsProvider
-  implements vscode.TreeDataProvider<SkillTreeItem>
-{
+export class WorkspaceSkillsProvider implements vscode.TreeDataProvider<SkillTreeItem> {
   private _onDidChangeTreeData = new vscode.EventEmitter<
     SkillTreeItem | undefined | null | void
   >();
@@ -49,7 +47,7 @@ export class WorkspaceSkillsProvider
 
   constructor(
     private workspaceUri: vscode.Uri | undefined,
-    private recentlyInstalled?: Set<string>
+    private recentlyInstalled?: Set<string>,
   ) {}
 
   refresh(): void {
@@ -88,7 +86,7 @@ export class WorkspaceSkillsProvider
               ? "「スキルを検索」でインストールしてください"
               : "Use 'Search Skills' to install skills",
             vscode.TreeItemCollapsibleState.None,
-            "placeholder"
+            "placeholder",
           ),
         ];
       }
@@ -140,7 +138,7 @@ export class WorkspaceSkillsProvider
             fullPath: skill.fullPath,
             relativePath: skill.relativePath,
             isRegistered: skill.isRegistered,
-          } as Skill & Partial<LocalSkill>
+          } as Skill & Partial<LocalSkill>,
         );
 
         item.iconPath = new vscode.ThemeIcon(iconId, iconColor);
@@ -154,12 +152,12 @@ export class WorkspaceSkillsProvider
             ? "インストール済み"
             : "Installed"
           : skill.isRegistered
-          ? isJapanese()
-            ? "ローカル（登録済み）"
-            : "Local (Registered)"
-          : isJapanese()
-          ? "ローカル（未登録）"
-          : "Local (Not registered)";
+            ? isJapanese()
+              ? "ローカル（登録済み）"
+              : "Local (Registered)"
+            : isJapanese()
+              ? "ローカル（未登録）"
+              : "Local (Not registered)";
         const noDesc = isJapanese() ? "説明なし" : "No description";
         const pathLabel = isJapanese() ? "パス" : "Path";
         const statusLabel = isJapanese() ? "状態" : "Status";
@@ -258,9 +256,7 @@ export const LocalSkillsProvider = WorkspaceSkillsProvider;
 /**
  * ブラウズ用ツリービュー（ソース別）
  */
-export class BrowseSkillsProvider
-  implements vscode.TreeDataProvider<SkillTreeItem>
-{
+export class BrowseSkillsProvider implements vscode.TreeDataProvider<SkillTreeItem> {
   private _onDidChangeTreeData = new vscode.EventEmitter<
     SkillTreeItem | undefined | null | void
   >();
@@ -308,7 +304,7 @@ export class BrowseSkillsProvider
       if (wsFolder) {
         const installedMeta = await getInstalledSkillsWithMeta(wsFolder.uri);
         installedMeta.forEach((meta) =>
-          this.installedSkillNames.add(meta.name.toLowerCase())
+          this.installedSkillNames.add(meta.name.toLowerCase()),
         );
       }
     }
@@ -322,7 +318,7 @@ export class BrowseSkillsProvider
       if (favorites.length > 0) {
         // 実際にインデックスに存在するお気に入りスキルの数をカウント
         const favoriteSkillCount = this.skillIndex.skills.filter((skill) =>
-          favorites.includes(getSkillId(skill))
+          favorites.includes(getSkillId(skill)),
         ).length;
 
         if (favoriteSkillCount > 0) {
@@ -330,11 +326,11 @@ export class BrowseSkillsProvider
             isJapanese() ? "お気に入り" : "Favorites",
             `${favoriteSkillCount} skills`,
             vscode.TreeItemCollapsibleState.Collapsed,
-            "favorites"
+            "favorites",
           );
           favItem.iconPath = new vscode.ThemeIcon(
             "star-full",
-            new vscode.ThemeColor("charts.yellow")
+            new vscode.ThemeColor("charts.yellow"),
           );
           items.push(favItem);
         }
@@ -342,13 +338,13 @@ export class BrowseSkillsProvider
 
       // ソースをタイプ別に分類
       const officialSources = this.skillIndex.sources.filter(
-        (s) => s.type === "official"
+        (s) => s.type === "official",
       );
       const awesomeSources = this.skillIndex.sources.filter(
-        (s) => s.type === "awesome-list"
+        (s) => s.type === "awesome-list",
       );
       const communitySources = this.skillIndex.sources.filter(
-        (s) => s.type === "community" || s.type === "user-added" || !s.type
+        (s) => s.type === "community" || s.type === "user-added" || !s.type,
       );
 
       // ヘルパー関数: ソースをツリーアイテムに変換
@@ -359,22 +355,22 @@ export class BrowseSkillsProvider
           vscode.TreeItemCollapsibleState.Collapsed,
           "source",
           undefined,
-          source
+          source,
         );
         if (source.type === "official") {
           item.iconPath = new vscode.ThemeIcon(
             "verified",
-            new vscode.ThemeColor("charts.blue")
+            new vscode.ThemeColor("charts.blue"),
           );
         } else if (source.type === "awesome-list") {
           item.iconPath = new vscode.ThemeIcon(
             "star",
-            new vscode.ThemeColor("charts.yellow")
+            new vscode.ThemeColor("charts.yellow"),
           );
         } else if (source.type === "user-added") {
           item.iconPath = new vscode.ThemeIcon(
             "repo-forked",
-            new vscode.ThemeColor("charts.green")
+            new vscode.ThemeColor("charts.green"),
           );
         } else {
           item.iconPath = new vscode.ThemeIcon("repo");
@@ -398,11 +394,11 @@ export class BrowseSkillsProvider
           isJapanese() ? "バンドル" : "Bundles",
           `${this.skillIndex.bundles.length} bundles`,
           vscode.TreeItemCollapsibleState.Collapsed,
-          "bundleSection"
+          "bundleSection",
         );
         bundleItem.iconPath = new vscode.ThemeIcon(
           "package",
-          new vscode.ThemeColor("charts.purple")
+          new vscode.ThemeColor("charts.purple"),
         );
         items.push(bundleItem);
       }
@@ -428,11 +424,11 @@ export class BrowseSkillsProvider
           "bundle",
           undefined,
           undefined,
-          bundle
+          bundle,
         );
         item.iconPath = new vscode.ThemeIcon(
           "package",
-          new vscode.ThemeColor("charts.purple")
+          new vscode.ThemeColor("charts.purple"),
         );
         return item;
       });
@@ -450,14 +446,14 @@ export class BrowseSkillsProvider
           bundleSkillNames.some(
             (bName: string) =>
               skill.name.toLowerCase() === bName.toLowerCase() ||
-              skill.path.toLowerCase().includes(bName.toLowerCase())
-          )
+              skill.path.toLowerCase().includes(bName.toLowerCase()),
+          ),
       );
 
       // マッチするスキルがない場合、同じソースのスキルを表示
       if (bundleSkills.length === 0 && element.bundle.source) {
         bundleSkills = this.skillIndex.skills.filter(
-          (skill) => skill.source === element.bundle!.source
+          (skill) => skill.source === element.bundle!.source,
         );
       }
 
@@ -470,14 +466,14 @@ export class BrowseSkillsProvider
               ? "このバンドルのスキルはインデックスに登録されていません"
               : "Skills for this bundle are not indexed",
             vscode.TreeItemCollapsibleState.None,
-            "placeholder"
+            "placeholder",
           ),
         ];
       }
 
       return bundleSkills.map((skill) => {
         const isInstalled = this.installedSkillNames.has(
-          skill.name.toLowerCase()
+          skill.name.toLowerCase(),
         );
         const isCore = skill.name === element.bundle!.coreSkill;
         const prefix = isCore ? "⭐ " : skill.standalone === false ? "🔗 " : "";
@@ -490,13 +486,13 @@ export class BrowseSkillsProvider
           skill,
           undefined,
           undefined,
-          this.skillIndex?.categories
+          this.skillIndex?.categories,
         );
 
         if (isInstalled) {
           item.iconPath = new vscode.ThemeIcon(
             "package",
-            new vscode.ThemeColor("charts.green")
+            new vscode.ThemeColor("charts.green"),
           );
         } else {
           item.iconPath = new vscode.ThemeIcon("package");
@@ -516,7 +512,7 @@ export class BrowseSkillsProvider
         if (skill.requires?.length) {
           item.tooltip = `${skill.name}\n${getLocalizedDescription(
             skill,
-            isJa
+            isJa,
           )}\n\n${isJa ? "依存:" : "Requires:"} ${skill.requires.join(", ")}`;
         }
 
@@ -529,12 +525,12 @@ export class BrowseSkillsProvider
       const favorites = this.context.globalState.get<string[]>("favorites", []);
       const isJa = isJapanese();
       const favoriteSkills = this.skillIndex.skills.filter((skill) =>
-        favorites.includes(getSkillId(skill))
+        favorites.includes(getSkillId(skill)),
       );
 
       return favoriteSkills.map((skill) => {
         const isInstalled = this.installedSkillNames.has(
-          skill.name.toLowerCase()
+          skill.name.toLowerCase(),
         );
         const item = new SkillTreeItem(
           isInstalled ? `✓ ${skill.name}` : skill.name,
@@ -544,12 +540,12 @@ export class BrowseSkillsProvider
           skill,
           undefined,
           undefined,
-          this.skillIndex?.categories
+          this.skillIndex?.categories,
         );
         if (isInstalled) {
           item.iconPath = new vscode.ThemeIcon(
             "package",
-            new vscode.ThemeColor("charts.green")
+            new vscode.ThemeColor("charts.green"),
           );
         } else {
           item.iconPath = new vscode.ThemeIcon("package");
@@ -572,12 +568,12 @@ export class BrowseSkillsProvider
     if (element.contextValue === "source" && element.source) {
       // ソース配下: そのソースのスキル一覧
       const skills = this.skillIndex.skills.filter(
-        (s) => s.source === element.source!.id
+        (s) => s.source === element.source!.id,
       );
       const isJa = isJapanese();
       return skills.map((skill) => {
         const isInstalled = this.installedSkillNames.has(
-          skill.name.toLowerCase()
+          skill.name.toLowerCase(),
         );
         const item = new SkillTreeItem(
           isInstalled ? `✓ ${skill.name}` : skill.name,
@@ -587,13 +583,13 @@ export class BrowseSkillsProvider
           skill,
           undefined,
           undefined,
-          this.skillIndex?.categories
+          this.skillIndex?.categories,
         );
         // インストール済みは緑色アイコン
         if (isInstalled) {
           item.iconPath = new vscode.ThemeIcon(
             "package",
-            new vscode.ThemeColor("charts.green")
+            new vscode.ThemeColor("charts.green"),
           );
         } else {
           item.iconPath = new vscode.ThemeIcon("package");
@@ -636,7 +632,7 @@ export class SkillTreeItem extends vscode.TreeItem {
     public readonly skill?: Skill,
     public readonly source?: Source,
     public readonly bundle?: Bundle,
-    public readonly categories?: Category[]
+    public readonly categories?: Category[],
   ) {
     super(label, collapsibleState);
     this.description = description;
