@@ -145,6 +145,9 @@ export class WorkspaceSkillsProvider
 
         item.iconPath = new vscode.ThemeIcon(iconId, iconColor);
 
+        // resourceUri を設定（パスコピー用）
+        item.resourceUri = vscode.Uri.file(skill.fullPath);
+
         // ツールチップ
         const statusText = skill.isInstalled
           ? isJapanese()
