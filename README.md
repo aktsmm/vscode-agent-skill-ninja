@@ -382,7 +382,7 @@ npm run lint
 
 ## License
 
-[CC BY-NC 4.0](https://creativecommons.org/licenses/by-nc/4.0/) © [yamapan](https://github.com/aktsmm)
+[CC BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/) © [yamapan](https://github.com/aktsmm)
 
 - Free for non-commercial use, modification, and redistribution
 - Commercial use requires permission
@@ -399,3 +399,4 @@ npm run lint
 ## Author
 
 yamapan (https://github.com/aktsmm)
+
