@@ -13,7 +13,7 @@ async function listGitHubDirectory(
   repo: string,
   path: string,
   branch: string = "main",
-  token?: string
+  token?: string,
 ): Promise<{ name: string; type: string; download_url: string | null }[]> {
   const url = `https://api.github.com/repos/${owner}/${repo}/contents/${path}?ref=${branch}`;
   const headers: Record<string, string> = {
@@ -42,10 +42,10 @@ async function downloadDirectory(
   remotePath: string,
   localPath: vscode.Uri,
   branch: string = "main",
-  token?: string
+  token?: string,
 ): Promise<void> {
   console.log(
-    `[Skill Ninja] Downloading directory: ${owner}/${repo}/${remotePath} (branch: ${branch})`
+    `[Skill Ninja] Downloading directory: ${owner}/${repo}/${remotePath} (branch: ${branch})`,
   );
 
   const entries = await listGitHubDirectory(
@@ -53,7 +53,7 @@ async function downloadDirectory(
     repo,
     remotePath,
     branch,
-    token
+    token,
   );
   console.log(`[Skill Ninja] Found ${entries.length} entries`);
 
@@ -65,7 +65,7 @@ async function downloadDirectory(
       const content = await fetchFileContent(entry.download_url, token);
       await vscode.workspace.fs.writeFile(
         localFilePath,
-        Buffer.from(content, "utf-8")
+        Buffer.from(content, "utf-8"),
       );
     } else if (entry.type === "dir") {
       await vscode.workspace.fs.createDirectory(localFilePath);
@@ -75,7 +75,7 @@ async function downloadDirectory(
         `${remotePath}/${entry.name}`,
         localFilePath,
         branch,
-        token
+        token,
       );
     }
   }
@@ -101,7 +101,7 @@ function sanitizeSkillName(name: string): string {
 export async function installSkill(
   skill: Skill,
   workspaceUri: vscode.Uri,
-  context: vscode.ExtensionContext
+  context: vscode.ExtensionContext,
 ): Promise<void> {
   const config = vscode.workspace.getConfiguration("skillNinja");
   const skillsDir = config.get<string>("skillsDirectory") || ".github/skills";
@@ -134,7 +134,7 @@ export async function installSkill(
 
       console.log(`[Skill Ninja] Installing skill: ${skill.name}`);
       console.log(
-        `[Skill Ninja] Owner: ${owner}, Repo: ${repo}, Branch: ${branch}`
+        `[Skill Ninja] Owner: ${owner}, Repo: ${repo}, Branch: ${branch}`,
       );
       console.log(`[Skill Ninja] Remote path: ${remotePath}`);
 
@@ -151,7 +151,7 @@ export async function installSkill(
           const skillMdPath = vscode.Uri.joinPath(skillPath, "SKILL.md");
           await vscode.workspace.fs.writeFile(
             skillMdPath,
-            Buffer.from(content, "utf-8")
+            Buffer.from(content, "utf-8"),
           );
           console.log(`[Skill Ninja] Saved as SKILL.md`);
         } catch (error) {
@@ -179,13 +179,13 @@ export async function installSkill(
                 ? `スキル "${skill.name}" が見つかりません。\nスキルインデックスの情報が古い可能性があります。`
                 : `Skill "${skill.name}" not found.\nThe skill index may be outdated.`,
               updateIndex,
-              reportBug
+              reportBug,
             );
 
             if (choice === updateIndex) {
               // Update Index from Sources コマンドを実行
               await vscode.commands.executeCommand(
-                "skillNinja.updateIndexFromSources"
+                "skillNinja.updateIndexFromSources",
               );
             } else if (choice === reportBug) {
               // バグレポートを作成
@@ -199,7 +199,7 @@ export async function installSkill(
           vscode.window.showWarningMessage(
             isJapanese()
               ? `スキル "${skill.name}" のダウンロードに失敗しました。フォールバック版を作成します。\nエラー: ${errorMsg}`
-              : `Failed to download skill "${skill.name}". Creating fallback version.\nError: ${errorMsg}`
+              : `Failed to download skill "${skill.name}". Creating fallback version.\nError: ${errorMsg}`,
           );
           await createFallbackSkillMd(skillPath, skill);
         }
@@ -212,19 +212,41 @@ export async function installSkill(
             remotePath,
             skillPath,
             branch,
-            token
+            token,
           );
           // SKILL.md がなければ作成
           try {
             await vscode.workspace.fs.stat(
-              vscode.Uri.joinPath(skillPath, "SKILL.md")
+              vscode.Uri.joinPath(skillPath, "SKILL.md"),
             );
           } catch {
             await createFallbackSkillMd(skillPath, skill);
           }
         } catch (error) {
           console.error(`[Skill Ninja] Failed to download directory:`, error);
-          await createFallbackSkillMd(skillPath, skill);
+          // Don't overwrite SKILL.md with fallback if it was already downloaded
+          const skillMdPath = vscode.Uri.joinPath(skillPath, "SKILL.md");
+          let skillMdExists = false;
+          try {
+            const stat = await vscode.workspace.fs.stat(skillMdPath);
+            // Consider valid if > 100 bytes
+            skillMdExists = stat.size > 100;
+          } catch {
+            // File does not exist
+          }
+          if (!skillMdExists) {
+            await createFallbackSkillMd(skillPath, skill);
+          } else {
+            console.log(
+              `[Skill Ninja] SKILL.md already exists, skipping fallback creation`,
+            );
+            // Notify user that some subdirectory files may be missing
+            vscode.window.showWarningMessage(
+              isJapanese()
+                ? `スキル "${skill.name}" の一部のファイルがダウンロードできませんでした。SKILL.md は正常にインストールされています。`
+                : `Some files for skill "${skill.name}" could not be downloaded. SKILL.md was installed successfully.`,
+            );
+          }
         }
       }
     }
@@ -251,7 +273,7 @@ export async function installSkill(
   try {
     const existingContent = await vscode.workspace.fs.readFile(metaPath);
     const existingMeta = JSON.parse(
-      Buffer.from(existingContent).toString("utf-8")
+      Buffer.from(existingContent).toString("utf-8"),
     );
     existingCustomWhenToUse = existingMeta.customWhenToUse;
   } catch {
@@ -270,7 +292,7 @@ export async function installSkill(
   };
   await vscode.workspace.fs.writeFile(
     metaPath,
-    Buffer.from(JSON.stringify(meta, null, 2), "utf-8")
+    Buffer.from(JSON.stringify(meta, null, 2), "utf-8"),
   );
 
   // インストール後の検証: SKILL.md が空またはフォールバック版かチェック
@@ -283,7 +305,7 @@ export async function installSkill(
 async function validateInstalledSkill(
   skillPath: vscode.Uri,
   skill: Skill,
-  source?: Source
+  source?: Source,
 ): Promise<void> {
   const skillMdPath = vscode.Uri.joinPath(skillPath, "SKILL.md");
 
@@ -302,7 +324,7 @@ async function validateInstalledSkill(
 
     if (isFallback || isEmpty) {
       console.warn(
-        `[Skill Ninja] Skill "${skill.name}" appears to be a fallback or empty`
+        `[Skill Ninja] Skill "${skill.name}" appears to be a fallback or empty`,
       );
 
       const reportBug = isJapanese() ? "バグ報告" : "Report Bug";
@@ -313,7 +335,7 @@ async function validateInstalledSkill(
           ? `スキル "${skill.name}" のインストールに問題がある可能性があります。\nSKILL.md の内容が不完全です。`
           : `Skill "${skill.name}" may not have installed correctly.\nSKILL.md content appears incomplete.`,
         reportBug,
-        ignore
+        ignore,
       );
 
       if (choice === reportBug) {
@@ -359,7 +381,7 @@ async function validateInstalledSkill(
   } catch (error) {
     console.error(
       `[Skill Ninja] Failed to validate skill "${skill.name}":`,
-      error
+      error,
     );
   }
 }
@@ -369,7 +391,7 @@ async function validateInstalledSkill(
  */
 export async function uninstallSkill(
   skillName: string,
-  workspaceUri: vscode.Uri
+  workspaceUri: vscode.Uri,
 ): Promise<void> {
   const config = vscode.workspace.getConfiguration("skillNinja");
   const skillsDir = config.get<string>("skillsDirectory") || ".github/skills";
@@ -398,7 +420,7 @@ export async function uninstallSkill(
  */
 export async function uninstallSkillByPath(
   relativePath: string,
-  workspaceUri: vscode.Uri
+  workspaceUri: vscode.Uri,
 ): Promise<void> {
   // relativePath は "folder/SKILL.md" 形式
   // 親フォルダを取得
@@ -416,7 +438,7 @@ export async function uninstallSkillByPath(
  * インストール済みスキルの一覧を取得
  */
 export async function getInstalledSkills(
-  workspaceUri: vscode.Uri
+  workspaceUri: vscode.Uri,
 ): Promise<string[]> {
   const config = vscode.workspace.getConfiguration("skillNinja");
   const skillsDir = config.get<string>("skillsDirectory") || ".github/skills";
@@ -453,7 +475,7 @@ export interface SkillMeta {
  * インストール済みスキルのメタデータを取得
  */
 export async function getInstalledSkillsWithMeta(
-  workspaceUri: vscode.Uri
+  workspaceUri: vscode.Uri,
 ): Promise<SkillMeta[]> {
   const config = vscode.workspace.getConfiguration("skillNinja");
   const skillsDir = config.get<string>("skillsDirectory") || ".github/skills";
@@ -462,7 +484,7 @@ export async function getInstalledSkillsWithMeta(
   try {
     const entries = await vscode.workspace.fs.readDirectory(skillsPath);
     const dirs = entries.filter(
-      ([, type]) => type === vscode.FileType.Directory
+      ([, type]) => type === vscode.FileType.Directory,
     );
 
     const metas: SkillMeta[] = [];
@@ -470,7 +492,7 @@ export async function getInstalledSkillsWithMeta(
       const metaPath = vscode.Uri.joinPath(
         skillsPath,
         folderName,
-        ".skill-meta.json"
+        ".skill-meta.json",
       );
       try {
         const content = await vscode.workspace.fs.readFile(metaPath);
@@ -481,7 +503,7 @@ export async function getInstalledSkillsWithMeta(
         const skillMdPath = vscode.Uri.joinPath(
           skillsPath,
           folderName,
-          "SKILL.md"
+          "SKILL.md",
         );
         const { name, description } =
           await extractNameAndDescriptionFromSkillMd(skillMdPath, folderName);
@@ -510,7 +532,7 @@ export async function getInstalledSkillsWithMeta(
  */
 async function extractNameAndDescriptionFromSkillMd(
   skillMdUri: vscode.Uri,
-  fallbackName: string
+  fallbackName: string,
 ): Promise<{ name: string; description: string }> {
   try {
     const content = await vscode.workspace.fs.readFile(skillMdUri);
@@ -569,7 +591,7 @@ function extractDescriptionFromFrontmatter(frontmatter: string): string {
 
   // ダブルクォート対応
   const doubleQuoteMatch = frontmatter.match(
-    /^description:\s*"([^"]*(?:""[^"]*)*)"/m
+    /^description:\s*"([^"]*(?:""[^"]*)*)"/m,
   );
   if (doubleQuoteMatch) {
     description = doubleQuoteMatch[1].replace(/""/g, '"');
@@ -578,7 +600,7 @@ function extractDescriptionFromFrontmatter(frontmatter: string): string {
   // シングルクォート対応
   if (!description) {
     const singleQuoteMatch = frontmatter.match(
-      /^description:\s*'([^']*(?:''[^']*)*)'/m
+      /^description:\s*'([^']*(?:''[^']*)*)'/m,
     );
     if (singleQuoteMatch) {
       description = singleQuoteMatch[1].replace(/''/g, "'");
@@ -602,8 +624,8 @@ function extractDescriptionFromFrontmatter(frontmatter: string): string {
       periodIndex !== -1 && periodIndex < maxLength
         ? periodIndex + 1
         : dotIndex !== -1 && dotIndex < maxLength
-        ? dotIndex + 1
-        : maxLength;
+          ? dotIndex + 1
+          : maxLength;
 
     description = description.substring(0, cutIndex).trim();
     if (description.length === maxLength) {
@@ -619,7 +641,7 @@ function extractDescriptionFromFrontmatter(frontmatter: string): string {
  * frontmatter の description フィールドを読み取り、長い場合は切り詰める
  */
 async function extractDescriptionFromSkillMd(
-  skillMdUri: vscode.Uri
+  skillMdUri: vscode.Uri,
 ): Promise<string> {
   try {
     const content = await vscode.workspace.fs.readFile(skillMdUri);
@@ -643,7 +665,7 @@ async function extractDescriptionFromSkillMd(
  * セクションがない場合は、# タイトルの次の段落を使用
  */
 async function extractWhenToUseFromSkillMd(
-  skillMdUri: vscode.Uri
+  skillMdUri: vscode.Uri,
 ): Promise<string> {
   try {
     const content = await vscode.workspace.fs.readFile(skillMdUri);
@@ -651,7 +673,7 @@ async function extractWhenToUseFromSkillMd(
 
     // "When to Use" セクションを検出（英語・日本語対応）
     const sectionMatch = text.match(
-      /^##\s*(When to Use|When To Use|いつ使うか|使用タイミング|Usage|使い方)\s*\n([\s\S]*?)(?=\n##\s|\n---|\n\*\*|$)/im
+      /^##\s*(When to Use|When To Use|いつ使うか|使用タイミング|Usage|使い方)\s*\n([\s\S]*?)(?=\n##\s|\n---|\n\*\*|$)/im,
     );
 
     let sectionContent = "";
@@ -769,7 +791,7 @@ async function extractWhenToUseFromSkillMd(
  */
 async function createFallbackSkillMd(
   skillPath: vscode.Uri,
-  skill: Skill
+  skill: Skill,
 ): Promise<void> {
   const content = `# ${skill.name}
 
@@ -780,7 +802,7 @@ Source: ${skill.source}
   const skillMdPath = vscode.Uri.joinPath(skillPath, "SKILL.md");
   await vscode.workspace.fs.writeFile(
     skillMdPath,
-    Buffer.from(content, "utf-8")
+    Buffer.from(content, "utf-8"),
   );
 }
 
@@ -791,7 +813,7 @@ async function openBugReport(
   skill: Skill,
   source: Source | undefined,
   url: string,
-  errorType: string
+  errorType: string,
 ): Promise<void> {
   const extensionVersion =
     vscode.extensions.getExtension("yamapan.agent-skill-ninja")?.packageJSON
@@ -842,7 +864,7 @@ async function fetchFileContent(url: string, token?: string): Promise<string> {
   const response = await fetch(url, { headers });
   if (!response.ok) {
     throw new Error(
-      `HTTP ${response.status}: ${response.statusText} (URL: ${url})`
+      `HTTP ${response.status}: ${response.statusText} (URL: ${url})`,
     );
   }
   const text = await response.text();

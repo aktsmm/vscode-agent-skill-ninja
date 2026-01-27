@@ -2,7 +2,7 @@
   "name": "agent-skill-ninja",
   "displayName": "%displayName%",
   "description": "%description%",
-  "version": "0.4.5",
+  "version": "0.4.6",
   "publisher": "yamapan",
   "license": "CC-BY-NC-SA-4.0",
   "icon": "resources/icon.png",
@@ -842,4 +842,3 @@
     "vscode-nls": "^5.2.0"
   }
 }
-
