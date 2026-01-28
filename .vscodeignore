@@ -7,3 +7,6 @@ tsconfig.json
 **/*.ts
 **/*.map
 node_modules/**
+
+# Exclude .github folder from package
+.github/
