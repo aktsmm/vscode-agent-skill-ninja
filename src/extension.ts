@@ -202,6 +202,9 @@ export function activate(context: vscode.ExtensionContext) {
               ".github/copilot-instructions.md",
               ".github/instructions/SkillList.instructions.md",
               "CLAUDE.md",
+              ".cursor/rules/skills.mdc",
+              ".windsurfrules",
+              ".clinerules",
             ];
             for (const file of candidateFiles) {
               try {
