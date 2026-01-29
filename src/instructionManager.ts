@@ -185,7 +185,9 @@ The following skills are available in this workspace.
         }
         // テーブル内のパイプ文字をエスケープ
         const safeDesc = whenToUse.replace(/\|/g, "\\|");
-        return `| [${skill.name}](${skillsDir}/${skill.name}/SKILL.md) | ${safeDesc} |`;
+        // relativePath がある場合はそれを使用、なければ name を使用
+        const skillPath = skill.relativePath || skill.name;
+        return `| [${skill.name}](${skillsDir}/${skillPath}/SKILL.md) | ${safeDesc} |`;
       })
       .join("\n");
     content += installedRows + "\n";
@@ -227,7 +229,7 @@ function generateCursorRulesSection(
   const allSkills = [
     ...installedSkills.map((s) => ({
       name: s.name,
-      path: `${skillsDir}/${s.name}/SKILL.md`,
+      path: `${skillsDir}/${s.relativePath || s.name}/SKILL.md`,
       description: s.customWhenToUse || s.whenToUse || s.description || "",
     })),
     ...localSkills.map((s) => ({
@@ -281,7 +283,7 @@ function generateWindsurfRulesSection(
   const allSkills = [
     ...installedSkills.map((s) => ({
       name: s.name,
-      path: `${skillsDir}/${s.name}/SKILL.md`,
+      path: `${skillsDir}/${s.relativePath || s.name}/SKILL.md`,
       description: s.customWhenToUse || s.whenToUse || s.description || "",
     })),
     ...localSkills.map((s) => ({
@@ -328,7 +330,7 @@ function generateClineRulesSection(
   const allSkills = [
     ...installedSkills.map((s) => ({
       name: s.name,
-      path: `${skillsDir}/${s.name}/SKILL.md`,
+      path: `${skillsDir}/${s.relativePath || s.name}/SKILL.md`,
       description: s.customWhenToUse || s.whenToUse || s.description || "",
     })),
     ...localSkills.map((s) => ({

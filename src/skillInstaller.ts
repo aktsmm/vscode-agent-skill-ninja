@@ -469,6 +469,64 @@ export interface SkillMeta {
   customWhenToUse?: string; // ユーザーがカスタマイズした説明（最優先）
   categories: string[];
   installedAt: string;
+  relativePath?: string; // ネストされたスキルのパス（例: "document-skills/docx"）
+}
+
+/**
+ * ディレクトリ内のスキルを再帰的にスキャン
+ * SKILL.md を持つフォルダをスキルとして検出
+ * サブフォルダに SKILL.md がある場合は個別のスキルとして扱う
+ */
+async function scanSkillsRecursively(
+  basePath: vscode.Uri,
+  currentPath: vscode.Uri,
+  relativePath: string,
+  results: Array<{ folderName: string; relativePath: string; metaPath: vscode.Uri; skillMdPath: vscode.Uri }>,
+  depth: number = 0,
+): Promise<void> {
+  // 最大深度を制限（無限ループ防止）
+  if (depth > 3) return;
+
+  try {
+    const entries = await vscode.workspace.fs.readDirectory(currentPath);
+    const dirs = entries.filter(
+      ([, type]) => type === vscode.FileType.Directory,
+    );
+
+    for (const [folderName] of dirs) {
+      // 隠しフォルダはスキップ
+      if (folderName.startsWith(".")) continue;
+
+      const subPath = vscode.Uri.joinPath(currentPath, folderName);
+      const skillMdPath = vscode.Uri.joinPath(subPath, "SKILL.md");
+      const metaPath = vscode.Uri.joinPath(subPath, ".skill-meta.json");
+      const subRelativePath = relativePath ? `${relativePath}/${folderName}` : folderName;
+
+      // SKILL.md が存在するか確認
+      let hasSkillMd = false;
+      try {
+        await vscode.workspace.fs.stat(skillMdPath);
+        hasSkillMd = true;
+      } catch {
+        // SKILL.md がない
+      }
+
+      if (hasSkillMd) {
+        // このフォルダはスキル
+        results.push({
+          folderName,
+          relativePath: subRelativePath,
+          metaPath,
+          skillMdPath,
+        });
+      }
+
+      // サブフォルダも再帰的にスキャン
+      await scanSkillsRecursively(basePath, subPath, subRelativePath, results, depth + 1);
+    }
+  } catch {
+    // ディレクトリ読み取りエラー
+  }
 }
 
 /**
@@ -563,6 +621,7 @@ export async function refreshSkillMetadata(
 
 /**
  * インストール済みスキルのメタデータを取得
+ * サブフォルダも再帰的にスキャンしてネストされたスキルも検出
  */
 export async function getInstalledSkillsWithMeta(
   workspaceUri: vscode.Uri,
@@ -572,33 +631,34 @@ export async function getInstalledSkillsWithMeta(
   const skillsPath = vscode.Uri.joinPath(workspaceUri, skillsDir);
 
   try {
-    const entries = await vscode.workspace.fs.readDirectory(skillsPath);
-    const dirs = entries.filter(
-      ([, type]) => type === vscode.FileType.Directory,
-    );
+    // 再帰的にスキルをスキャン
+    const skillEntries: Array<{
+      folderName: string;
+      relativePath: string;
+      metaPath: vscode.Uri;
+      skillMdPath: vscode.Uri;
+    }> = [];
+    await scanSkillsRecursively(skillsPath, skillsPath, "", skillEntries);
 
     const metas: SkillMeta[] = [];
-    for (const [folderName] of dirs) {
-      const metaPath = vscode.Uri.joinPath(
-        skillsPath,
-        folderName,
-        ".skill-meta.json",
-      );
+    for (const entry of skillEntries) {
       try {
-        const content = await vscode.workspace.fs.readFile(metaPath);
+        const content = await vscode.workspace.fs.readFile(entry.metaPath);
         const meta = JSON.parse(Buffer.from(content).toString("utf-8"));
+        // relativePath を追加（メタデータにない場合）
+        if (!meta.relativePath) {
+          meta.relativePath = entry.relativePath;
+        }
         metas.push(meta);
       } catch {
         // メタデータがない場合は SKILL.md から name と description を読み取る
-        const skillMdPath = vscode.Uri.joinPath(
-          skillsPath,
-          folderName,
-          "SKILL.md",
-        );
         const { name, description } =
-          await extractNameAndDescriptionFromSkillMd(skillMdPath, folderName);
+          await extractNameAndDescriptionFromSkillMd(
+            entry.skillMdPath,
+            entry.folderName,
+          );
         // When to Use セクションも抽出
-        const whenToUse = await extractWhenToUseFromSkillMd(skillMdPath);
+        const whenToUse = await extractWhenToUseFromSkillMd(entry.skillMdPath);
         metas.push({
           name,
           source: "unknown", // メタデータがない古い形式
@@ -606,6 +666,7 @@ export async function getInstalledSkillsWithMeta(
           whenToUse: whenToUse || undefined,
           categories: [],
           installedAt: "",
+          relativePath: entry.relativePath,
         });
       }
     }
