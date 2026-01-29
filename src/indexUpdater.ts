@@ -36,6 +36,100 @@ async function getGhCliToken(): Promise<string | null> {
 }
 
 /**
+ * LICENSE.txt を取得してライセンス名を抽出
+ */
+async function fetchAndExtractLicense(
+  owner: string,
+  repo: string,
+  skillDir: string,
+  branch: string,
+): Promise<string | null> {
+  // 試すファイル名のリスト
+  const licenseFiles = ["LICENSE.txt", "LICENSE", "LICENSE.md"];
+
+  for (const filename of licenseFiles) {
+    try {
+      const rawUrl = `https://raw.githubusercontent.com/${owner}/${repo}/${branch}/${skillDir}/${filename}`;
+      const response = await fetch(rawUrl);
+      if (response.ok) {
+        const content = await response.text();
+        const license = extractLicenseFromContent(content);
+        if (license) {
+          return license;
+        }
+      }
+    } catch {
+      // 取得失敗は無視
+    }
+  }
+  return null;
+}
+
+/**
+ * LICENSE ファイルの内容からライセンス名を抽出
+ */
+function extractLicenseFromContent(content: string): string | null {
+  const firstLines = content.substring(0, 2000).toLowerCase();
+
+  // パターンマッチング（優先度順）
+  const patterns: [RegExp, string][] = [
+    // MIT
+    [/mit license/i, "MIT"],
+    [/permission is hereby granted, free of charge/i, "MIT"],
+    // Apache 2.0
+    [/apache license,?\s*version 2\.0/i, "Apache-2.0"],
+    [/apache-2\.0/i, "Apache-2.0"],
+    // GPL
+    [/gnu general public license.*version 3/i, "GPL-3.0"],
+    [/gpl-3\.0/i, "GPL-3.0"],
+    [/gnu general public license.*version 2/i, "GPL-2.0"],
+    // LGPL
+    [/gnu lesser general public license/i, "LGPL"],
+    // BSD
+    [/bsd 3-clause/i, "BSD-3-Clause"],
+    [/bsd 2-clause/i, "BSD-2-Clause"],
+    [/redistribution and use in source and binary forms/i, "BSD"],
+    // Creative Commons
+    [/cc by-nc-sa 4\.0/i, "CC BY-NC-SA 4.0"],
+    [
+      /creative commons attribution-noncommercial-sharealike 4\.0/i,
+      "CC BY-NC-SA 4.0",
+    ],
+    [/cc by-nc 4\.0/i, "CC BY-NC 4.0"],
+    [/creative commons attribution-noncommercial 4\.0/i, "CC BY-NC 4.0"],
+    [/cc by-sa 4\.0/i, "CC BY-SA 4.0"],
+    [/cc by 4\.0/i, "CC BY 4.0"],
+    [/cc0/i, "CC0"],
+    // ISC
+    [/isc license/i, "ISC"],
+    // Mozilla
+    [/mozilla public license/i, "MPL-2.0"],
+    // Unlicense
+    [/unlicense/i, "Unlicense"],
+    // Anthropic Proprietary
+    [/© \d+ anthropic/i, "Anthropic Proprietary"],
+    [/anthropic.*all rights reserved/i, "Anthropic Proprietary"],
+    // Proprietary
+    [/proprietary/i, "Proprietary"],
+    [/all rights reserved/i, "Proprietary"],
+  ];
+
+  for (const [pattern, licenseName] of patterns) {
+    if (pattern.test(firstLines)) {
+      return licenseName;
+    }
+  }
+
+  // 1行目にライセンス名が書いてある場合（例: "# MIT License"）
+  const firstLine = content.split("\n")[0].replace(/^#\s*/, "").trim();
+  if (firstLine.length < 50 && firstLine.length > 2) {
+    return firstLine;
+  }
+
+  return null;
+}
+
+/**
  * 有効な GitHub トークンを取得（設定 → gh CLI の順で試行）
  */
 async function getGitHubToken(): Promise<string | undefined> {
@@ -284,8 +378,26 @@ async function processTreeResponse(
             skill.bundle = skillInfo.bundle;
           }
           // メタデータフィールドを追加
-          if (skillInfo.license) {
-            skill.license = skillInfo.license;
+          let license = skillInfo.license;
+          // license が曖昧な場合は LICENSE.txt から抽出を試行
+          if (
+            !license ||
+            license.toLowerCase().includes("license.txt") ||
+            license.toLowerCase().includes("complete terms")
+          ) {
+            const skillDir = file.path.replace("/SKILL.md", "");
+            const extractedLicense = await fetchAndExtractLicense(
+              owner,
+              repoName,
+              skillDir,
+              branch,
+            );
+            if (extractedLicense) {
+              license = extractedLicense;
+            }
+          }
+          if (license) {
+            skill.license = license;
           }
           if (skillInfo.author) {
             skill.author = skillInfo.author;
