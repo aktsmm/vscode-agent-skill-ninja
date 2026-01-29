@@ -57,13 +57,16 @@ The key improvement is the **IMPORTANT prompt** that instructs agents to priorit
 This prompt is **automatically added to all output formats** (markdown, compressed-index, markdown-with-index).
 
 ### Key Features
+
 - **IMPORTANT Prompt** - Instructs agents to prioritize skill files over pre-trained knowledge
-- **Compressed Table** - Skill name, path, and "When to Use" in a compact format
+- **Compressed Table** - Skill name, path, and description in a compact format
 - **All Formats Supported** - The IMPORTANT prompt is added to markdown and compressed-index formats
 
 ### Example Output (AGENTS.md)
+
 ```markdown
 <!-- skill-ninja-START -->
+
 ## Agent Skills (Compressed Index)
 
 > **IMPORTANT**: Prefer skill-led reasoning over pre-training-led reasoning.
@@ -71,15 +74,18 @@ This prompt is **automatically added to all output formats** (markdown, compress
 
 ### Skills Index
 
-| Skill | Path | When to Use |
-|-------|------|-------------|
+| Skill                                | Path   | Description                    |
+| ------------------------------------ | ------ | ------------------------------ |
 | [docx](.github/skills/docx/SKILL.md) | `docx` | Process Word documents (.docx) |
-| [pdf](.github/skills/pdf/SKILL.md) | `pdf` | Extract text, create PDFs |
+| [pdf](.github/skills/pdf/SKILL.md)   | `pdf`  | Extract text, create PDFs      |
+
 ...
+
 <!-- skill-ninja-END -->
 ```
 
 ### How to Enable
+
 Settings → **Output Format** → `Compressed Index`
 
 ---
@@ -168,18 +174,18 @@ Or search for **"Agent Skill Ninja"** in VS Code Extensions (`Ctrl+Shift+X`)
 
 ## 📚 Included Skill Sources
 
-| Source                                                                                                                        | Type       | Description                             |
-| ----------------------------------------------------------------------------------------------------------------------------- | ---------- | --------------------------------------- |
-| [anthropics/skills](https://github.com/anthropics/skills)                                                                     | Official   | Anthropic official Claude Skills        |
-| [openai/skills](https://github.com/openai/skills)                                                                             | Official   | OpenAI official Codex Skills (1.7k+)    |
-| [github/awesome-copilot](https://github.com/github/awesome-copilot)                                                           | Official   | GitHub official Copilot resources       |
-| [ComposioHQ/awesome-claude-skills](https://github.com/ComposioHQ/awesome-claude-skills)                                       | Curated    | Curated Claude Skills list              |
-| [obra/superpowers](https://github.com/obra/superpowers)                                                                       | Community  | High-quality skills & agents            |
-| [muratcankoylan/Agent-Skills-for-Context-Engineering](https://github.com/muratcankoylan/Agent-Skills-for-Context-Engineering) | Community  | Context Engineering skills (5k+)        |
-| [danielmiessler/Personal_AI_Infrastructure](https://github.com/danielmiessler/Personal_AI_Infrastructure)                     | Community  | PAI Packs - Skills & Features           |
-| [EveryInc/compound-engineering-plugin](https://github.com/EveryInc/compound-engineering-plugin)                               | Community  | Compound Engineering (3.5k+)            |
-| [Wirasm/PRPs-agentic-eng](https://github.com/Wirasm/PRPs-agentic-eng)                                                         | Community  | PRP (Prompt Recipe Patterns)            |
-| [qdhenry/Claude-Command-Suite](https://github.com/qdhenry/Claude-Command-Suite)                                               | Community  | Claude commands & skills                |
+| Source                                                                                                                        | Type      | Description                          |
+| ----------------------------------------------------------------------------------------------------------------------------- | --------- | ------------------------------------ |
+| [anthropics/skills](https://github.com/anthropics/skills)                                                                     | Official  | Anthropic official Claude Skills     |
+| [openai/skills](https://github.com/openai/skills)                                                                             | Official  | OpenAI official Codex Skills (1.7k+) |
+| [github/awesome-copilot](https://github.com/github/awesome-copilot)                                                           | Official  | GitHub official Copilot resources    |
+| [ComposioHQ/awesome-claude-skills](https://github.com/ComposioHQ/awesome-claude-skills)                                       | Curated   | Curated Claude Skills list           |
+| [obra/superpowers](https://github.com/obra/superpowers)                                                                       | Community | High-quality skills & agents         |
+| [muratcankoylan/Agent-Skills-for-Context-Engineering](https://github.com/muratcankoylan/Agent-Skills-for-Context-Engineering) | Community | Context Engineering skills (5k+)     |
+| [danielmiessler/Personal_AI_Infrastructure](https://github.com/danielmiessler/Personal_AI_Infrastructure)                     | Community | PAI Packs - Skills & Features        |
+| [EveryInc/compound-engineering-plugin](https://github.com/EveryInc/compound-engineering-plugin)                               | Community | Compound Engineering (3.5k+)         |
+| [Wirasm/PRPs-agentic-eng](https://github.com/Wirasm/PRPs-agentic-eng)                                                         | Community | PRP (Prompt Recipe Patterns)         |
+| [qdhenry/Claude-Command-Suite](https://github.com/qdhenry/Claude-Command-Suite)                                               | Community | Claude commands & skills             |
 
 > Use `Update Index` command to fetch the latest skills
 
@@ -203,15 +209,15 @@ Or search for **"Agent Skill Ninja"** in VS Code Extensions (`Ctrl+Shift+X`)
 
 ### Icon Legend
 
-| Icon                  | Meaning                                          |
-| --------------------- | ------------------------------------------------ |
-| check (green)         | Installed skill                                  |
-| circle (yellow)       | Local skill (not registered in instruction file) |
-| NEW badge             | Recently installed (temporary badge)             |
-| star-full (yellow)    | Favorites section                                |
-| verified (blue)       | Official source (Anthropic, GitHub)              |
-| star (yellow)         | Curated awesome-list                             |
-| repo                  | Community repository                             |
+| Icon               | Meaning                                          |
+| ------------------ | ------------------------------------------------ |
+| check (green)      | Installed skill                                  |
+| circle (yellow)    | Local skill (not registered in instruction file) |
+| NEW badge          | Recently installed (temporary badge)             |
+| star-full (yellow) | Favorites section                                |
+| verified (blue)    | Official source (Anthropic, GitHub)              |
+| star (yellow)      | Curated awesome-list                             |
+| repo               | Community repository                             |
 
 ### Command Palette
 

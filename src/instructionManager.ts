@@ -342,16 +342,37 @@ function generateCompressedIndexSection(
   localSkills: LocalSkill[],
   skillsDir: string,
 ): string {
+  // Description + When to Use を連結する関数（各80文字、合計160文字）
+  const buildDescription = (
+    description?: string,
+    whenToUse?: string,
+  ): string => {
+    const desc = description?.trim() || "";
+    const when = whenToUse?.trim() || "";
+
+    if (!desc && !when) return "";
+    if (!desc) return when.length > 160 ? when.substring(0, 157) + "..." : when;
+    if (!when) return desc.length > 160 ? desc.substring(0, 157) + "..." : desc;
+
+    // 両方ある場合は連結
+    const shortDesc = desc.length > 80 ? desc.substring(0, 77) + "..." : desc;
+    const shortWhen = when.length > 80 ? when.substring(0, 77) + "..." : when;
+    const combined = `${shortDesc} | ${shortWhen}`;
+    return combined.length > 160
+      ? combined.substring(0, 157) + "..."
+      : combined;
+  };
+
   const allSkills = [
     ...installedSkills.map((s) => ({
       name: s.name,
       path: s.relativePath || s.name,
-      description: s.customWhenToUse || s.whenToUse || s.description || "",
+      description: buildDescription(s.description, s.customWhenToUse || s.whenToUse),
     })),
     ...localSkills.map((s) => ({
       name: s.name,
       path: s.relativePath,
-      description: s.description || "",
+      description: buildDescription(s.description, undefined),
     })),
   ];
 
@@ -373,7 +394,7 @@ ${MARKER_END}`;
 
 ### Skills Index
 
-| Skill | Path | When to Use |
+| Skill | Path | Description |
 |-------|------|-------------|
 `;
 
@@ -447,7 +468,7 @@ The following skills are available in this workspace.
   content += `
 ### Skills Index (Compressed)
 
-| Skill | Path | When to Use |
+| Skill | Path | Description |
 |-------|------|-------------|
 `;
 

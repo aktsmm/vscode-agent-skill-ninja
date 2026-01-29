@@ -53,13 +53,16 @@
 このプロンプトは **全ての出力形式に自動追加** されます（markdown, compressed-index, markdown-with-index）。
 
 ### 主な特徴
+
 - **IMPORTANT プロンプト** - エージェントにスキルファイルを優先するよう指示
-- **圧縮テーブル形式** - スキル名、パス、「いつ使うか」をコンパクトに
+- **圧縮テーブル形式** - スキル名、パス、説明をコンパクトに
 - **全形式対応** - IMPORTANT プロンプトは markdown と compressed-index 形式の両方に追加
 
 ### 出力例 (AGENTS.md)
+
 ```markdown
 <!-- skill-ninja-START -->
+
 ## Agent Skills (Compressed Index)
 
 > **IMPORTANT**: Prefer skill-led reasoning over pre-training-led reasoning.
@@ -67,15 +70,18 @@
 
 ### Skills Index
 
-| Skill | Path | When to Use |
-|-------|------|-------------|
+| Skill                                | Path   | Description                    |
+| ------------------------------------ | ------ | ------------------------------ |
 | [docx](.github/skills/docx/SKILL.md) | `docx` | Process Word documents (.docx) |
-| [pdf](.github/skills/pdf/SKILL.md) | `pdf` | Extract text, create PDFs |
+| [pdf](.github/skills/pdf/SKILL.md)   | `pdf`  | Extract text, create PDFs      |
+
 ...
+
 <!-- skill-ninja-END -->
 ```
 
 ### 有効化方法
+
 設定 → **Output Format (出力フォーマット)** → `Compressed Index (圧縮インデックス)`
 
 ---
@@ -164,18 +170,18 @@ ext install yamapan.agent-skill-ninja
 
 ## 📚 Included Skill Sources
 
-| Source                                                                                                                        | Type       | 説明                                |
-| ----------------------------------------------------------------------------------------------------------------------------- | ---------- | ----------------------------------- |
-| [anthropics/skills](https://github.com/anthropics/skills)                                                                     | Official   | Anthropic 公式 Claude Skills        |
-| [openai/skills](https://github.com/openai/skills)                                                                             | Official   | OpenAI 公式 Codex Skills (1.7k+)    |
-| [github/awesome-copilot](https://github.com/github/awesome-copilot)                                                           | Official   | GitHub 公式 Copilot リソース        |
-| [ComposioHQ/awesome-claude-skills](https://github.com/ComposioHQ/awesome-claude-skills)                                       | Curated    | Claude Skills キュレーションリスト  |
-| [obra/superpowers](https://github.com/obra/superpowers)                                                                       | Community  | 高品質スキル・エージェント集        |
-| [muratcankoylan/Agent-Skills-for-Context-Engineering](https://github.com/muratcankoylan/Agent-Skills-for-Context-Engineering) | Community  | Context Engineering スキル (5k+)    |
-| [danielmiessler/Personal_AI_Infrastructure](https://github.com/danielmiessler/Personal_AI_Infrastructure)                     | Community  | PAI Packs - スキル・フィーチャー集  |
-| [EveryInc/compound-engineering-plugin](https://github.com/EveryInc/compound-engineering-plugin)                               | Community  | Compound Engineering (3.5k+)        |
-| [Wirasm/PRPs-agentic-eng](https://github.com/Wirasm/PRPs-agentic-eng)                                                         | Community  | PRP (Prompt Recipe Patterns)        |
-| [qdhenry/Claude-Command-Suite](https://github.com/qdhenry/Claude-Command-Suite)                                               | Community  | Claude コマンド・スキル集           |
+| Source                                                                                                                        | Type      | 説明                               |
+| ----------------------------------------------------------------------------------------------------------------------------- | --------- | ---------------------------------- |
+| [anthropics/skills](https://github.com/anthropics/skills)                                                                     | Official  | Anthropic 公式 Claude Skills       |
+| [openai/skills](https://github.com/openai/skills)                                                                             | Official  | OpenAI 公式 Codex Skills (1.7k+)   |
+| [github/awesome-copilot](https://github.com/github/awesome-copilot)                                                           | Official  | GitHub 公式 Copilot リソース       |
+| [ComposioHQ/awesome-claude-skills](https://github.com/ComposioHQ/awesome-claude-skills)                                       | Curated   | Claude Skills キュレーションリスト |
+| [obra/superpowers](https://github.com/obra/superpowers)                                                                       | Community | 高品質スキル・エージェント集       |
+| [muratcankoylan/Agent-Skills-for-Context-Engineering](https://github.com/muratcankoylan/Agent-Skills-for-Context-Engineering) | Community | Context Engineering スキル (5k+)   |
+| [danielmiessler/Personal_AI_Infrastructure](https://github.com/danielmiessler/Personal_AI_Infrastructure)                     | Community | PAI Packs - スキル・フィーチャー集 |
+| [EveryInc/compound-engineering-plugin](https://github.com/EveryInc/compound-engineering-plugin)                               | Community | Compound Engineering (3.5k+)       |
+| [Wirasm/PRPs-agentic-eng](https://github.com/Wirasm/PRPs-agentic-eng)                                                         | Community | PRP (Prompt Recipe Patterns)       |
+| [qdhenry/Claude-Command-Suite](https://github.com/qdhenry/Claude-Command-Suite)                                               | Community | Claude コマンド・スキル集          |
 
 > `Update Index` コマンドで最新のスキルを取得できます
 
@@ -199,15 +205,15 @@ ext install yamapan.agent-skill-ninja
 
 ### アイコン凡例
 
-| アイコン          | 意味                                      |
-| ----------------- | ----------------------------------------- |
-| check (緑)        | インストール済みスキル                    |
-| circle (黄)       | ローカルスキル（instruction file 未登録） |
-| NEW badge         | 最近インストール（一時的なバッジ）        |
-| star-full (黄)    | お気に入りセクション                      |
-| verified (青)     | 公式ソース（Anthropic, GitHub）           |
-| star (黄)         | キュレーション awesome-list               |
-| repo              | コミュニティリポジトリ                    |
+| アイコン       | 意味                                      |
+| -------------- | ----------------------------------------- |
+| check (緑)     | インストール済みスキル                    |
+| circle (黄)    | ローカルスキル（instruction file 未登録） |
+| NEW badge      | 最近インストール（一時的なバッジ）        |
+| star-full (黄) | お気に入りセクション                      |
+| verified (青)  | 公式ソース（Anthropic, GitHub）           |
+| star (黄)      | キュレーション awesome-list               |
+| repo           | コミュニティリポジトリ                    |
 
 ### コマンドパレット
 
