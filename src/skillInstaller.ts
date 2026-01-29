@@ -664,126 +664,196 @@ async function extractDescriptionFromSkillMd(
  * ## When to Use または ## いつ使うか などのセクションを検出し、内容を返す
  * セクションがない場合は、# タイトルの次の段落を使用
  */
+/**
+ * SKILL.md ファイルから "When to Use" セクションを抽出する
+ * 箇条書き・テーブル・段落形式に対応
+ */
 async function extractWhenToUseFromSkillMd(
   skillMdUri: vscode.Uri,
 ): Promise<string> {
   try {
     const content = await vscode.workspace.fs.readFile(skillMdUri);
     const text = Buffer.from(content).toString("utf-8");
+    return parseWhenToUseFromText(text);
+  } catch {
+    return "";
+  }
+}
 
-    // "When to Use" セクションを検出（英語・日本語対応）
-    const sectionMatch = text.match(
-      /^##\s*(When to Use|When To Use|いつ使うか|使用タイミング|Usage|使い方)\s*\n([\s\S]*?)(?=\n##\s|\n---|\n\*\*|$)/im,
-    );
+/**
+ * テキストから "When to Use" セクションを抽出する（純粋関数・テスト可能）
+ * @param text SKILL.md のテキスト内容
+ * @returns 抽出された When to Use 文字列（最大200文字）
+ */
+export function parseWhenToUseFromText(text: string): string {
+  // "When to Use" セクションを検出（英語・日本語対応）
+  // 終了条件: 次の ## セクション、--- 区切り、または EOF
+  // m フラグを使わず \n## で行頭をマッチさせる（$ がマルチラインで各行末にマッチするのを防ぐ）
+  const sectionMatch = text.match(
+    /\n##\s*(When to Use|When To Use|いつ使うか|使用タイミング|Usage|使い方)\s*\n([\s\S]*?)(?=\n##\s|\n---\n|\n*$)/i,
+  );
 
-    let sectionContent = "";
+  let sectionContent = "";
 
-    if (sectionMatch) {
-      sectionContent = sectionMatch[2].trim();
-    } else {
-      // フォールバック: # タイトルの次の段落を抽出
-      // frontmatter をスキップ
-      let bodyText = text;
-      const frontmatterMatch = text.match(/^---\n[\s\S]*?\n---\n*/);
-      if (frontmatterMatch) {
-        bodyText = text.substring(frontmatterMatch[0].length);
-      }
-
-      // # タイトル行を見つけて、その後の最初の段落を取得
-      const lines = bodyText.split("\n");
-      let foundTitle = false;
-      const paragraphLines: string[] = [];
-
-      for (const line of lines) {
-        const trimmed = line.trim();
-
-        if (!foundTitle) {
-          // # で始まるタイトル行を探す
-          if (/^#\s+/.test(trimmed)) {
-            foundTitle = true;
-          }
-          continue;
-        }
-
-        // タイトル後の空行をスキップ
-        if (!trimmed) {
-          if (paragraphLines.length > 0) {
-            // 段落が終わった
-            break;
-          }
-          continue;
-        }
-
-        // 次のセクション（## など）に到達したら終了
-        if (/^#/.test(trimmed)) {
-          break;
-        }
-
-        // コードブロック、リスト等はスキップ
-        if (/^```/.test(trimmed) || /^[-*]\s+\*\*/.test(trimmed)) {
-          break;
-        }
-
-        paragraphLines.push(trimmed);
-
-        // 最大2行まで
-        if (paragraphLines.length >= 2) {
-          break;
-        }
-      }
-
-      sectionContent = paragraphLines.join(" ");
+  if (sectionMatch) {
+    sectionContent = sectionMatch[2].trim();
+  } else {
+    // フォールバック: # タイトルの次の段落を抽出
+    // frontmatter をスキップ
+    let bodyText = text;
+    const frontmatterMatch = text.match(/^---\n[\s\S]*?\n---\n*/);
+    if (frontmatterMatch) {
+      bodyText = text.substring(frontmatterMatch[0].length);
     }
 
-    if (!sectionContent) {
-      return "";
-    }
-
-    // リスト形式の場合、最初の数項目を抽出
-    const lines = sectionContent.split("\n");
-    const bulletPoints: string[] = [];
+    // # タイトル行を見つけて、その後の最初の段落を取得
+    const lines = bodyText.split("\n");
+    let foundTitle = false;
+    const paragraphLines: string[] = [];
 
     for (const line of lines) {
       const trimmed = line.trim();
+
+      if (!foundTitle) {
+        // # で始まるタイトル行を探す
+        if (/^#\s+/.test(trimmed)) {
+          foundTitle = true;
+        }
+        continue;
+      }
+
+      // タイトル後の空行をスキップ
+      if (!trimmed) {
+        if (paragraphLines.length > 0) {
+          // 段落が終わった
+          break;
+        }
+        continue;
+      }
+
+      // 次のセクション（## など）に到達したら終了
+      if (/^#/.test(trimmed)) {
+        break;
+      }
+
+      // コードブロック、リスト等はスキップ
+      if (/^```/.test(trimmed) || /^[-*]\s+\*\*/.test(trimmed)) {
+        break;
+      }
+
+      paragraphLines.push(trimmed);
+
+      // 最大2行まで
+      if (paragraphLines.length >= 2) {
+        break;
+      }
+    }
+
+    sectionContent = paragraphLines.join(" ");
+  }
+
+  if (!sectionContent) {
+    return "";
+  }
+
+  const lines = sectionContent.split("\n");
+  const extractedItems: string[] = [];
+
+  // テーブル形式かどうかを検出（| で始まる行があるか）
+  const hasTableLines = lines.some((line) => line.trim().startsWith("|"));
+
+  if (hasTableLines) {
+    // テーブル形式の場合：最初の列から抽出を試みる
+    for (const line of lines) {
+      const trimmed = line.trim();
+
+      // テーブル行でない場合はスキップ
+      if (!trimmed.startsWith("|")) {
+        continue;
+      }
+
+      // セパレータ行をスキップ（|---|---| のパターン）
+      if (/^\|[\s\-:]+\|/.test(trimmed) && !trimmed.match(/[a-zA-Z0-9]/)) {
+        continue;
+      }
+
+      // セルを抽出
+      const cells = trimmed
+        .split("|")
+        .map((c) => c.trim())
+        .filter((c) => c.length > 0);
+
+      if (cells.length > 0) {
+        // 最初のセルを取得（通常はアクション名や項目名）
+        const firstCell = cells[0]
+          .replace(/\*\*/g, "") // bold マーカーを除去
+          .trim();
+
+        // ヘッダーっぽい行はスキップ（Action, Triggers, Pattern 等）
+        if (
+          /^(action|trigger|pattern|use case|when|scenario|situation)s?$/i.test(
+            firstCell
+          )
+        ) {
+          continue;
+        }
+
+        if (firstCell) {
+          extractedItems.push(firstCell);
+        }
+      }
+    }
+  } else {
+    // リスト形式または段落形式の場合
+    for (const line of lines) {
+      const trimmed = line.trim();
+
       // リスト項目を検出（- や * や 数字. で始まる行）
       if (/^[-*•]\s+/.test(trimmed) || /^\d+\.\s+/.test(trimmed)) {
         // マーカーを除去して内容のみ取得
         const itemContent = trimmed
           .replace(/^[-*•]\s+/, "")
-          .replace(/^\d+\.\s+/, "");
-        bulletPoints.push(itemContent);
+          .replace(/^\d+\.\s+/, "")
+          .replace(/\*\*([^*]+)\*\*/g, "$1"); // bold を除去
+        extractedItems.push(itemContent);
       } else if (
         trimmed &&
         !trimmed.startsWith("#") &&
-        bulletPoints.length === 0
+        extractedItems.length === 0
       ) {
         // 段落テキストの場合（リストがまだない場合）
-        bulletPoints.push(trimmed);
-      }
-
-      // 最大3項目まで
-      if (bulletPoints.length >= 3) {
-        break;
+        extractedItems.push(trimmed);
       }
     }
+  }
 
-    if (bulletPoints.length === 0) {
-      return "";
-    }
-
-    // 短い形式で結合
-    let result = bulletPoints.join("; ");
-
-    // 長すぎる場合は切り詰め
-    const maxLength = 200;
-    if (result.length > maxLength) {
-      result = result.substring(0, maxLength - 3) + "...";
-    }
-
-    return result;
-  } catch {
+  if (extractedItems.length === 0) {
     return "";
   }
+
+  // 200文字以内で可能な限り多くの項目を結合
+  const maxLength = 200;
+  let result = "";
+  let itemCount = 0;
+
+  for (const item of extractedItems) {
+    const separator = itemCount > 0 ? "; " : "";
+    const candidate = result + separator + item;
+
+    if (candidate.length <= maxLength) {
+      result = candidate;
+      itemCount++;
+    } else if (itemCount === 0) {
+      // 最初の項目すら入らない場合は切り詰め
+      result = item.substring(0, maxLength - 3) + "...";
+      break;
+    } else {
+      // これ以上入らないので終了
+      break;
+    }
+  }
+
+  return result;
 }
 
 /**
