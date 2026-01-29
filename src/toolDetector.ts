@@ -351,10 +351,10 @@ function getToolDisplayName(tool: AITool): string {
  * 設定された出力フォーマットを取得（auto の場合は検出結果を使用）
  */
 export async function resolveOutputFormat(
-  workspaceUri: vscode.Uri,
+  _workspaceUri: vscode.Uri,
 ): Promise<{ format: OutputFormat; instructionFile: string }> {
   const config = vscode.workspace.getConfiguration("skillNinja");
-  const outputFormat = config.get<string>("outputFormat") || "auto";
+  const outputFormat = config.get<string>("outputFormat") || "markdown";
 
   // ユーザーが設定した instructionFile を取得
   const userInstructionFile =
@@ -371,26 +371,8 @@ export async function resolveOutputFormat(
   // instructionFile は常にユーザー設定を使用（自動検出しない）
   const instructionFile = resolveInstructionFile();
 
-  // auto でない場合は設定値を使用
-  if (outputFormat !== "auto") {
-    return {
-      format: outputFormat as OutputFormat,
-      instructionFile,
-    };
-  }
-
-  // auto の場合は format を検出（instructionFile はユーザー設定を維持）
-  const result = await detectAITools(workspaceUri);
-  if (result.detectedTools.length > 0) {
-    return {
-      format: result.recommendedFormat,
-      instructionFile,
-    };
-  }
-
-  // 検出できなかった場合はデフォルト
   return {
-    format: "markdown",
+    format: outputFormat as OutputFormat,
     instructionFile,
   };
 }

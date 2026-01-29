@@ -4,6 +4,7 @@
 import * as vscode from "vscode";
 import { Skill, loadSkillIndex, Source, getSourceBranch } from "./skillIndex";
 import { isJapanese } from "./i18n";
+import { getGitHubToken } from "./githubAuth";
 
 /**
  * GitHub API でフォルダ内のファイル一覧を取得
@@ -116,7 +117,7 @@ export async function installSkill(
   const source = index.sources.find((s: Source) => s.id === skill.source);
 
   // GitHub Token を取得
-  const token = config.get<string>("githubToken");
+  const token = await getGitHubToken();
 
   if (!source) {
     // ソースがない場合はフォールバック

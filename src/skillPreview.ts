@@ -10,6 +10,7 @@ import {
   Source,
 } from "./skillIndex";
 import messages from "./i18n";
+import { getGitHubToken } from "./githubAuth";
 
 let previewPanel: vscode.WebviewPanel | undefined;
 
@@ -320,8 +321,7 @@ export async function showSkillPreview(
   skill: Skill,
   context: vscode.ExtensionContext
 ): Promise<void> {
-  const config = vscode.workspace.getConfiguration("skillNinja");
-  const token = config.get<string>("githubToken");
+  const token = await getGitHubToken();
 
   // スキルインデックスからソース情報を取得
   const skillIndex = await loadSkillIndex(context);

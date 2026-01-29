@@ -20,6 +20,7 @@ import {
 import { updateInstructionFile } from "./instructionManager";
 import { searchGitHub, addSource } from "./indexUpdater";
 import { isJapanese } from "./i18n";
+import { getGitHubToken } from "./githubAuth";
 
 /** スキルインデックスをキャッシュ */
 let cachedIndex: SkillIndex | undefined;
@@ -891,9 +892,8 @@ class WebSearchTool implements vscode.LanguageModelTool<{ query: string }> {
     const query = options.input.query;
 
     try {
-      // GitHub トークンを取得
-      const config = vscode.workspace.getConfiguration("skillNinja");
-      const token = config.get<string>("githubToken");
+      // GitHub トークンを取得（設定 / env / gh CLI）
+      const token = await getGitHubToken();
 
       // GitHub で SKILL.md を検索
       const results = await searchGitHub(query, token);

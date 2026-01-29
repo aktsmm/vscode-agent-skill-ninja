@@ -10,30 +10,11 @@ import {
   saveSkillIndex,
 } from "./skillIndex";
 import { messages } from "./i18n";
-
-/**
- * gh CLI からトークンを取得
- */
-async function getGhCliToken(): Promise<string | null> {
-  try {
-    const { exec } = await import("child_process");
-    const token = await new Promise<string>((resolve, reject) => {
-      exec("gh auth token", (error: Error | null, stdout: string) => {
-        if (error) {
-          reject(error);
-        } else {
-          resolve(stdout.trim());
-        }
-      });
-    });
-    if (token && token.length > 0) {
-      return token;
-    }
-  } catch {
-    // gh CLI が使えない
-  }
-  return null;
-}
+import {
+  getGitHubToken,
+} from "./githubAuth";
+export { checkGitHubAuth } from "./githubAuth";
+import { LICENSE_EXTRACTION, INDEX_LIMITS } from "./constants";
 
 /**
  * LICENSE.txt を取得してライセンス名を抽出
@@ -45,7 +26,7 @@ async function fetchAndExtractLicense(
   branch: string,
 ): Promise<string | null> {
   // 試すファイル名のリスト
-  const licenseFiles = ["LICENSE.txt", "LICENSE", "LICENSE.md"];
+  const licenseFiles = LICENSE_EXTRACTION.FILE_NAMES;
 
   for (const filename of licenseFiles) {
     try {
@@ -69,7 +50,7 @@ async function fetchAndExtractLicense(
  * LICENSE ファイルの内容からライセンス名を抽出
  */
 function extractLicenseFromContent(content: string): string | null {
-  const firstLines = content.substring(0, 2000).toLowerCase();
+  const firstLines = content.substring(0, LICENSE_EXTRACTION.SCAN_LENGTH).toLowerCase();
 
   // パターンマッチング（優先度順）
   const patterns: [RegExp, string][] = [
@@ -130,70 +111,7 @@ function extractLicenseFromContent(content: string): string | null {
 }
 
 /**
- * 有効な GitHub トークンを取得（設定 → gh CLI の順で試行）
- */
-async function getGitHubToken(): Promise<string | undefined> {
-  // 1. 設定からトークンをチェック
-  const config = vscode.workspace.getConfiguration("skillNinja");
-  const configToken = config.get<string>("githubToken");
-  if (configToken && configToken.length > 0) {
-    return configToken;
-  }
-
-  // 2. gh CLI からトークンを取得
-  const ghToken = await getGhCliToken();
-  if (ghToken) {
-    return ghToken;
-  }
-
-  return undefined;
-}
-
-/**
- * GitHub認証状態をチェック
- */
-export async function checkGitHubAuth(): Promise<{
-  authenticated: boolean;
-  method: "token" | "gh-cli" | "none";
-  message: string;
-}> {
-  // 1. 設定からトークンをチェック
-  const config = vscode.workspace.getConfiguration("skillNinja");
-  const token = config.get<string>("githubToken");
-  if (token) {
-    // トークンの有効性を確認
-    try {
-      const response = await fetch("https://api.github.com/user", {
-        headers: { Authorization: `token ${token}` },
-      });
-      if (response.ok) {
-        return {
-          authenticated: true,
-          method: "token",
-          message: "GitHub token authenticated",
-        };
-      }
-    } catch {
-      // トークンが無効
-    }
-  }
-
-  // 2. gh CLI をチェック
-  const ghToken = await getGhCliToken();
-  if (ghToken) {
-    return {
-      authenticated: true,
-      method: "gh-cli",
-      message: "GitHub CLI authenticated",
-    };
-  }
-
-  return {
-    authenticated: false,
-    method: "none",
-    message: messages.authRequired(),
-  };
-}
+export const checkGitHubAuth = checkGitHubAuthShared;
 
 /**
  * GitHub API リクエストを実行（認証付き）
@@ -541,7 +459,7 @@ async function scanClaudeCommands(
         for (const line of lines) {
           const trimmed = line.trim();
           if (trimmed.startsWith("# ")) {
-            description = trimmed.replace(/^#+\s*/, "").substring(0, 80);
+            description = trimmed.replace(/^#+\s*/, "").substring(0, INDEX_LIMITS.SHORT_DESCRIPTION);
             break;
           }
           // frontmatter 内の description も確認
@@ -549,7 +467,7 @@ async function scanClaudeCommands(
             description = trimmed
               .replace(/^description:\s*["']?/, "")
               .replace(/["']$/, "")
-              .substring(0, 80);
+              .substring(0, INDEX_LIMITS.SHORT_DESCRIPTION);
             break;
           }
         }
@@ -725,7 +643,7 @@ function extractWhenToUseFromContent(content: string): string {
     // # タイトルの次の段落をフォールバック
     const titleMatch = content.match(/^#\s+[^\n]+\n\n([^\n#]+)/m);
     if (titleMatch) {
-      return titleMatch[1].trim().substring(0, 80);
+      return titleMatch[1].trim().substring(0, INDEX_LIMITS.SHORT_DESCRIPTION);
     }
     return "";
   }
@@ -742,18 +660,18 @@ function extractWhenToUseFromContent(content: string): string {
 
     // 箇条書きの場合
     if (trimmed.startsWith("-") || trimmed.startsWith("*")) {
-      return trimmed.replace(/^[-*]\s*/, "").substring(0, 80);
+      return trimmed.replace(/^[-*]\s*/, "").substring(0, INDEX_LIMITS.SHORT_DESCRIPTION);
     }
     // テーブル行の場合
     if (trimmed.startsWith("|")) {
       const cells = trimmed.split("|").filter((c) => c.trim());
       if (cells.length > 0) {
-        return cells.join("; ").substring(0, 80);
+        return cells.join("; ").substring(0, INDEX_LIMITS.SHORT_DESCRIPTION);
       }
     }
     // 通常のテキスト
     if (trimmed.length > 5) {
-      return trimmed.substring(0, 80);
+      return trimmed.substring(0, INDEX_LIMITS.SHORT_DESCRIPTION);
     }
   }
 
@@ -770,8 +688,7 @@ export async function updateSingleSource(
   sourceId: string,
   progress?: vscode.Progress<{ message?: string; increment?: number }>,
 ): Promise<{ index: SkillIndex; addedSkills: number; removedSkills: number }> {
-  const config = vscode.workspace.getConfiguration("skillNinja");
-  const token = config.get<string>("githubToken");
+  const token = await getGitHubToken();
 
   const source = currentIndex.sources.find((s) => s.id === sourceId);
   if (!source) {
@@ -859,8 +776,7 @@ export async function updateIndexFromSources(
   currentIndex: SkillIndex,
   progress?: vscode.Progress<{ message?: string; increment?: number }>,
 ): Promise<SkillIndex> {
-  const config = vscode.workspace.getConfiguration("skillNinja");
-  const token = config.get<string>("githubToken");
+  const token = await getGitHubToken();
 
   // 既存スキルの説明をマップとして保持（ローカライズされた説明を保持するため）
   const existingDescriptions = new Map<string, string>();
@@ -957,8 +873,7 @@ export async function updateIndexFromSingleSource(
   sourceId: string,
   progress?: vscode.Progress<{ message?: string; increment?: number }>,
 ): Promise<SkillIndex> {
-  const config = vscode.workspace.getConfiguration("skillNinja");
-  const token = config.get<string>("githubToken");
+  const token = await getGitHubToken();
 
   const source = currentIndex.sources.find((s) => s.id === sourceId);
   if (!source) {
@@ -1047,8 +962,7 @@ export async function addSource(
     throw new Error("repoUrl must be a valid string");
   }
 
-  const config = vscode.workspace.getConfiguration("skillNinja");
-  const token = config.get<string>("githubToken");
+  const token = await getGitHubToken();
 
   const result = await scanRepositoryForSkills(repoUrl, token);
   if (!result) {
@@ -1483,8 +1397,8 @@ export async function searchGitHub(
             if (desc) {
               const firstLine = desc.split("\n")[0].trim();
               skillDescription =
-                firstLine.length > 100
-                  ? firstLine.substring(0, 100) + "..."
+                firstLine.length > INDEX_LIMITS.PREVIEW_LENGTH
+                  ? firstLine.substring(0, INDEX_LIMITS.PREVIEW_LENGTH) + "..."
                   : firstLine;
             }
           }

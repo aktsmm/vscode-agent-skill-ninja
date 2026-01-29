@@ -10,7 +10,7 @@
 
 | Skill | Path | Description |
 |-------|------|-------------|
-| [agentic-workflow-guide](.github/skills/agentic-workflow-guide/SKILL.md) | `agentic-workflow-guide` | Create, review, and update Prompt and agents and workflows. |
+| [agentic-workflow-guide](.github/skills/agentic-workflow-guide/SKILL.md) | `agentic-workflow-guide` | Guide for agentic workflows |
 | [book-writing-workspace](.github/skills/book-writing-workspace/SKILL.md) | `book-writing-workspace` | Book Writing Workspace |
 
 <!-- skill-ninja-END -->

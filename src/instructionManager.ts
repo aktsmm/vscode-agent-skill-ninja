@@ -6,6 +6,7 @@ import { getInstalledSkillsWithMeta, SkillMeta } from "./skillInstaller";
 import { scanLocalSkills, LocalSkill } from "./localSkillScanner";
 import { OutputFormat, resolveOutputFormat } from "./toolDetector";
 import * as path from "path";
+import { SKILL_DESCRIPTION_LIMITS } from "./constants";
 
 // セクションマーカー
 const MARKER_START = "<!-- skill-ninja-START -->";
@@ -21,8 +22,7 @@ const LEGACY_MARKER_END = "<!-- SKILL-FINDER-END -->";
  * - 両方ある場合: 合計200文字を分配（片方が短ければもう片方に回す）
  */
 function buildDescription(description?: string, whenToUse?: string): string {
-  const MAX_TOTAL = 200;
-  const MAX_EACH = 100;
+  const { MAX_TOTAL, MAX_EACH } = SKILL_DESCRIPTION_LIMITS;
 
   const desc = description?.trim() || "";
   const when = whenToUse?.trim() || "";
