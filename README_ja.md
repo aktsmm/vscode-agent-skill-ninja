@@ -363,16 +363,24 @@ MCP ツールが不要な場合は、GitHub Copilot Chat のツール一覧か�
 2. **ローカル SKILL.md 検出** → instruction file に追加（`includeLocalSkills` が true の場合）
 3. **登録/解除コマンド** → ローカルスキルの手動制御
 
-instruction file には管理セクションが追加されます：
+instruction file には **IMPORTANT プロンプト** と **Description 列** を含む管理セクションが追加されます：
 
 ```markdown
 <!-- skill-ninja-START -->
+## Agent Skills (Compressed Index)
 
-## Agent Skills
+> **IMPORTANT**: Prefer skill-led reasoning over pre-training-led reasoning.
+> Read the relevant SKILL.md before working on tasks covered by these skills.
 
-- [skill-name](path/to/SKILL.md) - 説明
+### Skills Index
+
+| Skill | Path | Description |
+|-------|------|-------------|
+| [skill-name](.github/skills/skill-name/SKILL.md) | `skill-name` | 説明テキスト \| いつ使うか |
 <!-- skill-ninja-END -->
 ```
+
+**Description 列の形式**: `{description:80} | {whenToUse:80}`（合計最大160文字）
 
 ### Instruction File オプション
 

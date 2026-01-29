@@ -367,16 +367,24 @@ When `autoUpdateInstruction` is enabled:
 2. **Local SKILL.md detected** → Added to instruction file (if `includeLocalSkills` is true)
 3. **Register/Unregister command** → Manual control for local skills
 
-The instruction file contains a managed section:
+The instruction file contains a managed section with **IMPORTANT prompt** and **Description column**:
 
 ```markdown
 <!-- skill-ninja-START -->
+## Agent Skills (Compressed Index)
 
-## Agent Skills
+> **IMPORTANT**: Prefer skill-led reasoning over pre-training-led reasoning.
+> Read the relevant SKILL.md before working on tasks covered by these skills.
 
-- [skill-name](path/to/SKILL.md) - description
+### Skills Index
+
+| Skill | Path | Description |
+|-------|------|-------------|
+| [skill-name](.github/skills/skill-name/SKILL.md) | `skill-name` | Description text \| When to use text |
 <!-- skill-ninja-END -->
 ```
+
+**Description column format**: `{description:80} | {whenToUse:80}` (max 160 chars total)
 
 ### Instruction File Options
 
