@@ -853,7 +853,7 @@ export function parseWhenToUseFromText(text: string): string {
   const hasTableLines = lines.some((line) => line.trim().startsWith("|"));
 
   if (hasTableLines) {
-    // テーブル形式の場合：最初の列から抽出を試みる
+    // テーブル形式の場合：各行の全セルを結合（"キー: 値" 形式）
     for (const line of lines) {
       const trimmed = line.trim();
 
@@ -870,14 +870,16 @@ export function parseWhenToUseFromText(text: string): string {
       // セルを抽出
       const cells = trimmed
         .split("|")
-        .map((c) => c.trim())
+        .map((c) =>
+          c
+            .trim()
+            .replace(/\*\*/g, "") // bold マーカーを除去
+            .replace(/`([^`]+)`/g, "$1"), // インラインコードを除去
+        )
         .filter((c) => c.length > 0);
 
       if (cells.length > 0) {
-        // 最初のセルを取得（通常はアクション名や項目名）
-        const firstCell = cells[0]
-          .replace(/\*\*/g, "") // bold マーカーを除去
-          .trim();
+        const firstCell = cells[0];
 
         // ヘッダーっぽい行はスキップ（Action, Triggers, Pattern 等）
         if (
@@ -888,8 +890,22 @@ export function parseWhenToUseFromText(text: string): string {
           continue;
         }
 
-        if (firstCell) {
-          extractedItems.push(firstCell);
+        // 全セルを結合（2列以上の場合は "キー: 値" 形式）
+        let rowContent = "";
+        if (cells.length >= 2) {
+          // 最初のセルが短い場合はキーとして使用（例: "Create: New .agent.md, ..."）
+          if (firstCell.length <= 20) {
+            rowContent = `${firstCell}: ${cells.slice(1).join(", ")}`;
+          } else {
+            // 全セルをカンマで結合
+            rowContent = cells.join(", ");
+          }
+        } else {
+          rowContent = firstCell;
+        }
+
+        if (rowContent) {
+          extractedItems.push(rowContent);
         }
       }
     }
