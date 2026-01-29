@@ -70,12 +70,10 @@
 
 ### Skills Index
 
-| Skill                                | Path   | Description                    |
-| ------------------------------------ | ------ | ------------------------------ |
-| [docx](.github/skills/docx/SKILL.md) | `docx` | Process Word documents (.docx) |
-| [pdf](.github/skills/pdf/SKILL.md)   | `pdf`  | Extract text, create PDFs      |
-
-...
+| Skill                                | Path   | Description                                           |
+| ------------------------------------ | ------ | ----------------------------------------------------- |
+| [docx](.github/skills/docx/SKILL.md) | `docx` | Process Word documents (.docx)                        |
+| [pdf](.github/skills/pdf/SKILL.md)   | `pdf`  | PDF manipulation toolkit \| Extract text, create PDFs |
 
 <!-- skill-ninja-END -->
 ```
@@ -367,6 +365,7 @@ instruction file には **IMPORTANT プロンプト** と **Description 列** �
 
 ```markdown
 <!-- skill-ninja-START -->
+
 ## Agent Skills (Compressed Index)
 
 > **IMPORTANT**: Prefer skill-led reasoning over pre-training-led reasoning.
@@ -374,9 +373,10 @@ instruction file には **IMPORTANT プロンプト** と **Description 列** �
 
 ### Skills Index
 
-| Skill | Path | Description |
-|-------|------|-------------|
+| Skill                                            | Path         | Description                |
+| ------------------------------------------------ | ------------ | -------------------------- |
 | [skill-name](.github/skills/skill-name/SKILL.md) | `skill-name` | 説明テキスト \| いつ使うか |
+
 <!-- skill-ninja-END -->
 ```
 

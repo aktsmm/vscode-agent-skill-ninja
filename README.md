@@ -74,12 +74,10 @@ This prompt is **automatically added to all output formats** (markdown, compress
 
 ### Skills Index
 
-| Skill                                | Path   | Description                    |
-| ------------------------------------ | ------ | ------------------------------ |
-| [docx](.github/skills/docx/SKILL.md) | `docx` | Process Word documents (.docx) |
-| [pdf](.github/skills/pdf/SKILL.md)   | `pdf`  | Extract text, create PDFs      |
-
-...
+| Skill                                | Path   | Description                                           |
+| ------------------------------------ | ------ | ----------------------------------------------------- |
+| [docx](.github/skills/docx/SKILL.md) | `docx` | Process Word documents (.docx)                        |
+| [pdf](.github/skills/pdf/SKILL.md)   | `pdf`  | PDF manipulation toolkit \| Extract text, create PDFs |
 
 <!-- skill-ninja-END -->
 ```
@@ -371,6 +369,7 @@ The instruction file contains a managed section with **IMPORTANT prompt** and **
 
 ```markdown
 <!-- skill-ninja-START -->
+
 ## Agent Skills (Compressed Index)
 
 > **IMPORTANT**: Prefer skill-led reasoning over pre-training-led reasoning.
@@ -378,9 +377,10 @@ The instruction file contains a managed section with **IMPORTANT prompt** and **
 
 ### Skills Index
 
-| Skill | Path | Description |
-|-------|------|-------------|
+| Skill                                            | Path         | Description                          |
+| ------------------------------------------------ | ------------ | ------------------------------------ |
 | [skill-name](.github/skills/skill-name/SKILL.md) | `skill-name` | Description text \| When to use text |
+
 <!-- skill-ninja-END -->
 ```
 

@@ -191,7 +191,10 @@ ${MARKER_END}`;
     const installedRows = installedSkills
       .map((skill) => {
         // Description + When to Use を連結（各80文字、合計160文字）
-        const desc = buildDescription(skill.description, skill.customWhenToUse || skill.whenToUse);
+        const desc = buildDescription(
+          skill.description,
+          skill.customWhenToUse || skill.whenToUse,
+        );
         // テーブル内のパイプ文字をエスケープ
         const safeDesc = desc.replace(/\|/g, "\\|");
         // relativePath がある場合はそれを使用、なければ name を使用
@@ -216,7 +219,8 @@ ${MARKER_END}`;
       .map((skill) => {
         // LocalSkill は description のみ（whenToUse はない）
         const desc = skill.description || "";
-        const truncatedDesc = desc.length > 160 ? desc.substring(0, 157) + "..." : desc;
+        const truncatedDesc =
+          desc.length > 160 ? desc.substring(0, 157) + "..." : desc;
         const safeDesc = truncatedDesc.replace(/\|/g, "\\|");
         return `| [${skill.name}](${skill.relativePath}/SKILL.md) | ${safeDesc} |`;
       })
@@ -457,15 +461,19 @@ function generateMarkdownWithIndexSection(
     ...installedSkills.map((s) => ({
       name: s.name,
       path: s.relativePath || s.name,
-      description: buildDescription(s.description, s.customWhenToUse || s.whenToUse),
+      description: buildDescription(
+        s.description,
+        s.customWhenToUse || s.whenToUse,
+      ),
     })),
     ...localSkills.map((s) => ({
       name: s.name,
       path: s.relativePath,
       // LocalSkill は description のみ（whenToUse はない）
-      description: s.description && s.description.length > 160 
-        ? s.description.substring(0, 157) + "..." 
-        : (s.description || ""),
+      description:
+        s.description && s.description.length > 160
+          ? s.description.substring(0, 157) + "..."
+          : s.description || "",
     })),
   ];
 

@@ -548,7 +548,7 @@ async function scanSkillsRecursively(
 
 /**
  * インストール済みスキルのメタデータを再抽出（アップデート時用）
- * SKILL.md から whenToUse を再抽出してメタデータファイルを更新
+ * SKILL.md から description と whenToUse を再抽出してメタデータファイルを更新
  */
 export async function refreshSkillMetadata(
   workspaceUri: vscode.Uri,
@@ -582,23 +582,33 @@ export async function refreshSkillMetadata(
         const content = await vscode.workspace.fs.readFile(metaPath);
         const meta = JSON.parse(Buffer.from(content).toString("utf-8"));
 
-        // SKILL.md から whenToUse を再抽出
+        // SKILL.md から description と whenToUse を再抽出
+        const newDescription = await extractDescriptionFromSkillMd(skillMdPath);
         const newWhenToUse = await extractWhenToUseFromSkillMd(skillMdPath);
 
-        // customWhenToUse がある場合は whenToUse のみ更新
-        // （ユーザーのカスタム値は保持）
+        let updated = false;
+
+        // description が変更された場合
+        if (newDescription && meta.description !== newDescription) {
+          meta.description = newDescription;
+          updated = true;
+        }
+
+        // whenToUse が変更された場合
+        // （customWhenToUse がある場合は whenToUse のみ更新、ユーザーのカスタム値は保持）
         if (meta.whenToUse !== newWhenToUse) {
           meta.whenToUse = newWhenToUse || undefined;
+          updated = true;
+        }
 
+        if (updated) {
           // メタデータを保存
           await vscode.workspace.fs.writeFile(
             metaPath,
             Buffer.from(JSON.stringify(meta, null, 2), "utf-8"),
           );
           updatedCount++;
-          console.log(
-            `[Skill Ninja] Refreshed metadata for ${folderName}: ${newWhenToUse}`,
-          );
+          console.log(`[Skill Ninja] Refreshed metadata for ${folderName}`);
         }
       } catch {
         // メタデータがない場合は新規作成
@@ -634,6 +644,59 @@ export async function refreshSkillMetadata(
   }
 
   return updatedCount;
+}
+
+/**
+ * 単一スキルのメタデータを SKILL.md から再抽出して更新
+ * @param skillMdUri SKILL.md ファイルの URI
+ * @returns 更新されたかどうか
+ */
+export async function refreshSingleSkillMetadata(
+  skillMdUri: vscode.Uri,
+): Promise<boolean> {
+  // SKILL.md の親ディレクトリ（スキルフォルダ）を取得
+  const skillPath = vscode.Uri.joinPath(skillMdUri, "..");
+  const metaPath = vscode.Uri.joinPath(skillPath, ".skill-meta.json");
+
+  try {
+    // 既存のメタデータを読み込む
+    const content = await vscode.workspace.fs.readFile(metaPath);
+    const meta = JSON.parse(Buffer.from(content).toString("utf-8"));
+
+    // SKILL.md から description と whenToUse を再抽出
+    const newDescription = await extractDescriptionFromSkillMd(skillMdUri);
+    const newWhenToUse = await extractWhenToUseFromSkillMd(skillMdUri);
+
+    let updated = false;
+
+    // description が変更された場合
+    if (newDescription && meta.description !== newDescription) {
+      meta.description = newDescription;
+      updated = true;
+    }
+
+    // whenToUse が変更された場合
+    if (meta.whenToUse !== newWhenToUse) {
+      meta.whenToUse = newWhenToUse || undefined;
+      updated = true;
+    }
+
+    if (updated) {
+      await vscode.workspace.fs.writeFile(
+        metaPath,
+        Buffer.from(JSON.stringify(meta, null, 2), "utf-8"),
+      );
+      console.log(
+        `[Skill Ninja] Updated metadata from SKILL.md: ${skillMdUri.fsPath}`,
+      );
+      return true;
+    }
+
+    return false;
+  } catch {
+    // メタデータがない場合は何もしない（インストールされていないスキル）
+    return false;
+  }
 }
 
 /**

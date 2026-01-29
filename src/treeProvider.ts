@@ -528,12 +528,10 @@ export class BrowseSkillsProvider implements vscode.TreeDataProvider<SkillTreeIt
           };
         }
 
-        // 依存関係をツールチップに表示
+        // 依存関係をツールチップに追加（既存のツールチップに追記）
         if (skill.requires?.length) {
-          item.tooltip = `${skill.name}\n${getLocalizedDescription(
-            skill,
-            isJa,
-          )}\n\n${isJa ? "依存:" : "Requires:"} ${skill.requires.join(", ")}`;
+          const requiresLabel = isJa ? "依存" : "Requires";
+          item.tooltip = `${item.tooltip}\n\n${requiresLabel}: ${skill.requires.join(", ")}`;
         }
 
         return item;

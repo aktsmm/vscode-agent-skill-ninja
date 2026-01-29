@@ -16,6 +16,7 @@ import {
   getInstalledSkills,
   getInstalledSkillsWithMeta,
   refreshSkillMetadata,
+  refreshSingleSkillMetadata,
 } from "./skillInstaller";
 import {
   updateInstructionFile,
@@ -2502,6 +2503,54 @@ Add examples here
     vscode.workspace.onDidCreateFiles(() => refreshViews()),
     vscode.workspace.onDidDeleteFiles(() => refreshViews()),
   );
+
+  // SKILL.md の変更を監視してメタデータを自動更新
+  const config = vscode.workspace.getConfiguration("skillNinja");
+  const skillsDir = config.get<string>("skillsDirectory") || ".github/skills";
+  const skillMdWatcher = vscode.workspace.createFileSystemWatcher(
+    new vscode.RelativePattern(
+      vscode.workspace.workspaceFolders?.[0] || "",
+      `${skillsDir}/**/SKILL.md`,
+    ),
+  );
+
+  // デバウンス用の Map（同じファイルへの連続保存を1回にまとめる）
+  const pendingUpdates = new Map<string, NodeJS.Timeout>();
+
+  const handleSkillMdChange = async (uri: vscode.Uri) => {
+    const key = uri.fsPath;
+
+    // 既存のタイマーをクリア
+    if (pendingUpdates.has(key)) {
+      clearTimeout(pendingUpdates.get(key));
+    }
+
+    // 500ms のデバウンス
+    pendingUpdates.set(
+      key,
+      setTimeout(async () => {
+        pendingUpdates.delete(key);
+
+        const updated = await refreshSingleSkillMetadata(uri);
+        if (updated) {
+          // ビューを更新
+          workspaceProvider.refresh();
+          browseProvider.refresh();
+
+          // 自動更新が有効な場合は instruction file も更新
+          const autoUpdate = vscode.workspace
+            .getConfiguration("skillNinja")
+            .get<boolean>("autoUpdateInstruction", true);
+          if (autoUpdate && workspaceFolder) {
+            await updateInstructionFile(workspaceFolder.uri, context);
+          }
+        }
+      }, 500),
+    );
+  };
+
+  skillMdWatcher.onDidChange(handleSkillMdChange);
+  context.subscriptions.push(skillMdWatcher);
 }
 
 /**
