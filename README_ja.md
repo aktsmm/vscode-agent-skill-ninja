@@ -1,4 +1,4 @@
-# Agent Skill Ninja
+# 🥷 Agent Skill Ninja
 
 <p align="center">
   <strong>AI コーディングアシスタント用 Agent Skills の検索・インストール・管理</strong>
