@@ -11,5 +11,6 @@
 | Skill | Path | Description |
 |-------|------|-------------|
 | [agentic-workflow-guide](.github/skills/agentic-workflow-guide/SKILL.md) | `agentic-workflow-guide` | Design, review, and improve agent workflows & agent using SSOT, SRP, Fail Fas... |
+| [docx](.github/skills/docx/SKILL.md) | `docx` | Process Word documents (.docx) |
 
 <!-- skill-ninja-END -->

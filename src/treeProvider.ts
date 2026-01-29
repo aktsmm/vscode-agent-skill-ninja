@@ -10,7 +10,6 @@ import {
   Bundle,
   Category,
   getLocalizedDescription,
-  getLocalizedCategoryNames,
 } from "./skillIndex";
 import { getInstalledSkillsWithMeta } from "./skillInstaller";
 import { LocalSkill, scanLocalSkills } from "./localSkillScanner";
@@ -673,16 +672,21 @@ export class SkillTreeItem extends vscode.TreeItem {
     // ツールチップ
     if (skill) {
       const isJa = isJapanese();
-      const categoriesLabel = isJa ? "カテゴリ" : "Categories";
       const localizedDesc = getLocalizedDescription(skill, isJa);
-      // カテゴリー名をローカライズ
-      const categoryNames =
-        skill.categories && categories
-          ? getLocalizedCategoryNames(skill.categories, categories, isJa)
-          : skill.categories || [];
-      this.tooltip = `${
-        skill.name
-      }\n${localizedDesc}\n${categoriesLabel}: ${categoryNames.join(", ")}`;
+      
+      // メタデータ情報を構築
+      let metaInfo = "";
+      if (skill.author) {
+        metaInfo += `\n${isJa ? "作成者" : "Author"}: ${skill.author}`;
+      }
+      if (skill.license) {
+        metaInfo += `\n${isJa ? "ライセンス" : "License"}: ${skill.license}`;
+      }
+      if (skill.version) {
+        metaInfo += `\nVersion: ${skill.version}`;
+      }
+      
+      this.tooltip = `${skill.name}\n${localizedDesc}${metaInfo}`;
     } else if (source) {
       const isJa = isJapanese();
       const localizedDesc =
