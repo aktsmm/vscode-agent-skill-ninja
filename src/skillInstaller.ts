@@ -481,7 +481,12 @@ async function scanSkillsRecursively(
   basePath: vscode.Uri,
   currentPath: vscode.Uri,
   relativePath: string,
-  results: Array<{ folderName: string; relativePath: string; metaPath: vscode.Uri; skillMdPath: vscode.Uri }>,
+  results: Array<{
+    folderName: string;
+    relativePath: string;
+    metaPath: vscode.Uri;
+    skillMdPath: vscode.Uri;
+  }>,
   depth: number = 0,
 ): Promise<void> {
   // 最大深度を制限（無限ループ防止）
@@ -500,7 +505,9 @@ async function scanSkillsRecursively(
       const subPath = vscode.Uri.joinPath(currentPath, folderName);
       const skillMdPath = vscode.Uri.joinPath(subPath, "SKILL.md");
       const metaPath = vscode.Uri.joinPath(subPath, ".skill-meta.json");
-      const subRelativePath = relativePath ? `${relativePath}/${folderName}` : folderName;
+      const subRelativePath = relativePath
+        ? `${relativePath}/${folderName}`
+        : folderName;
 
       // SKILL.md が存在するか確認
       let hasSkillMd = false;
@@ -522,7 +529,13 @@ async function scanSkillsRecursively(
       }
 
       // サブフォルダも再帰的にスキャン
-      await scanSkillsRecursively(basePath, subPath, subRelativePath, results, depth + 1);
+      await scanSkillsRecursively(
+        basePath,
+        subPath,
+        subRelativePath,
+        results,
+        depth + 1,
+      );
     }
   } catch {
     // ディレクトリ読み取りエラー
@@ -931,11 +944,12 @@ export function parseWhenToUseFromText(text: string): string {
       // セルを抽出
       const cells = trimmed
         .split("|")
-        .map((c) =>
-          c
-            .trim()
-            .replace(/\*\*/g, "") // bold マーカーを除去
-            .replace(/`([^`]+)`/g, "$1"), // インラインコードを除去
+        .map(
+          (c) =>
+            c
+              .trim()
+              .replace(/\*\*/g, "") // bold マーカーを除去
+              .replace(/`([^`]+)`/g, "$1"), // インラインコードを除去
         )
         .filter((c) => c.length > 0);
 

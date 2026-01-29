@@ -23,7 +23,7 @@ const LEGACY_MARKER_END = "<!-- SKILL-FINDER-END -->";
  */
 function calculateRelativePath(
   instructionFile: string,
-  skillsDir: string
+  skillsDir: string,
 ): string {
   // instructionFile のディレクトリを取得
   const instructionDir = path.dirname(instructionFile);
@@ -45,7 +45,7 @@ function calculateRelativePath(
  */
 export async function updateInstructionFile(
   workspaceUri: vscode.Uri,
-  _context: vscode.ExtensionContext
+  _context: vscode.ExtensionContext,
 ): Promise<void> {
   // 出力フォーマットとインストラクションファイルを解決
   const { format, instructionFile } = await resolveOutputFormat(workspaceUri);
@@ -61,7 +61,7 @@ export async function updateInstructionFile(
   const installedSkills = await getInstalledSkillsWithMeta(workspaceUri);
   console.log(
     `[Skill Ninja] Found ${installedSkills.length} installed skills:`,
-    installedSkills.map((s) => s.name)
+    installedSkills.map((s) => s.name),
   );
 
   // ローカルスキルを取得（設定で有効な場合のみ）
@@ -70,7 +70,7 @@ export async function updateInstructionFile(
     const allLocalSkills = await scanLocalSkills(workspaceUri);
     // インストール済みスキル（.github/skills 配下）は除外
     localSkills = allLocalSkills.filter(
-      (ls) => !ls.relativePath.startsWith(skillsDir)
+      (ls) => !ls.relativePath.startsWith(skillsDir),
     );
     console.log(`[Skill Ninja] Found ${localSkills.length} local skills`);
   }
@@ -83,7 +83,7 @@ export async function updateInstructionFile(
     installedSkills,
     localSkills,
     relativeSkillsDir,
-    format
+    format,
   );
 
   // 既存のファイルを読み込む
@@ -104,7 +104,7 @@ export async function updateInstructionFile(
   await vscode.workspace.fs.createDirectory(dir);
   await vscode.workspace.fs.writeFile(
     instructionUri,
-    Buffer.from(newContent, "utf-8")
+    Buffer.from(newContent, "utf-8"),
   );
 }
 
@@ -115,20 +115,20 @@ function generateSkillSectionForFormat(
   installedSkills: SkillMeta[],
   localSkills: LocalSkill[],
   skillsDir: string,
-  format: OutputFormat
+  format: OutputFormat,
 ): string {
   switch (format) {
     case "cursor-rules":
       return generateCursorRulesSection(
         installedSkills,
         localSkills,
-        skillsDir
+        skillsDir,
       );
     case "windsurf-rules":
       return generateWindsurfRulesSection(
         installedSkills,
         localSkills,
-        skillsDir
+        skillsDir,
       );
     case "cline-rules":
       return generateClineRulesSection(installedSkills, localSkills, skillsDir);
@@ -143,7 +143,7 @@ function generateSkillSectionForFormat(
 function generateSkillSection(
   installedSkills: SkillMeta[],
   localSkills: LocalSkill[],
-  skillsDir: string
+  skillsDir: string,
 ): string {
   const hasInstalled = installedSkills.length > 0;
   const hasLocal = localSkills.length > 0;
@@ -176,7 +176,8 @@ The following skills are available in this workspace.
         if (!whenToUse && skill.whenToUse) {
           // フォールバックテンプレートのパターンを検出
           const isFallbackPattern =
-            skill.whenToUse.toLowerCase() === `${skill.name.toLowerCase()} skill` ||
+            skill.whenToUse.toLowerCase() ===
+              `${skill.name.toLowerCase()} skill` ||
             skill.whenToUse.length < 15; // 短すぎる場合も description を優先
           whenToUse = isFallbackPattern ? "" : skill.whenToUse;
         }
@@ -224,7 +225,7 @@ The following skills are available in this workspace.
 function generateCursorRulesSection(
   installedSkills: SkillMeta[],
   localSkills: LocalSkill[],
-  skillsDir: string
+  skillsDir: string,
 ): string {
   const allSkills = [
     ...installedSkills.map((s) => ({
@@ -278,7 +279,7 @@ The following skills are available in this workspace. Read each SKILL.md for det
 function generateWindsurfRulesSection(
   installedSkills: SkillMeta[],
   localSkills: LocalSkill[],
-  skillsDir: string
+  skillsDir: string,
 ): string {
   const allSkills = [
     ...installedSkills.map((s) => ({
@@ -325,7 +326,7 @@ The following skills are available. Include the SKILL.md content when relevant:
 function generateClineRulesSection(
   installedSkills: SkillMeta[],
   localSkills: LocalSkill[],
-  skillsDir: string
+  skillsDir: string,
 ): string {
   const allSkills = [
     ...installedSkills.map((s) => ({
@@ -373,7 +374,7 @@ Available skills in this workspace:
 function updateSection(
   existingContent: string,
   newSection: string,
-  _format: OutputFormat = "markdown"
+  _format: OutputFormat = "markdown",
 ): string {
   // 旧マーカーが存在する場合は先に削除
   let content = removeLegacySection(existingContent);
@@ -416,7 +417,7 @@ function removeLegacySection(content: string): string {
  * インストラクションファイルからスキルセクションを削除
  */
 export async function removeSkillSection(
-  workspaceUri: vscode.Uri
+  workspaceUri: vscode.Uri,
 ): Promise<void> {
   const config = vscode.workspace.getConfiguration("skillNinja");
   let instructionPath =
@@ -443,7 +444,7 @@ export async function removeSkillSection(
       existingContent = (before + after).replace(/\n{3,}/g, "\n\n").trim();
       await vscode.workspace.fs.writeFile(
         instructionUri,
-        Buffer.from(existingContent, "utf-8")
+        Buffer.from(existingContent, "utf-8"),
       );
     }
   } catch {
