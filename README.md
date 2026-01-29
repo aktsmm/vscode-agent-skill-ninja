@@ -84,9 +84,16 @@ Settings → **Output Format** → `Compressed Index`
 
 ---
 
-## Features
+## 🥷 Features
 
-### Skill Search & Discovery
+### 📁 Local Skill Management
+
+- Auto-detect **SKILL.md** files anywhere in workspace
+- Automatically sync to instruction file (with `includeLocalSkills` setting)
+- Manual register / unregister commands
+- Create new skill from template
+
+### 🔍 Skill Search & Discovery
 
 - Search **100+ skills** by keyword (local & GitHub)
 - **Multi-keyword Search** - Scored by name, path, description relevance
@@ -96,7 +103,7 @@ Settings → **Output Format** → `Compressed Index`
 - Star counts & organization badges
 - Install / Preview / Favorite directly from search results
 
-### Install & Manage
+### 📦 Install & Manage
 
 - One-click installation (default: `.github/skills/`, configurable in settings)
 - Auto-update **instruction file** (AGENTS.md / copilot-instructions.md / CLAUDE.md)
@@ -109,7 +116,7 @@ Settings → **Output Format** → `Compressed Index`
 - **Open Folder** - Quick access to installed skill folder
 - **Index Integrity Check** - Auto-detect missing skills and prompt for index update
 
-### Multi-Tool Support
+### 🔧 Multi-Tool Support
 
 - **Auto-detection** of AI tools in workspace (Cursor, Windsurf, Cline, Claude Code, GitHub Copilot)
 - Automatic format selection based on detected tool
@@ -120,37 +127,30 @@ Settings → **Output Format** → `Compressed Index`
   - Windsurf Rules (.windsurfrules)
   - Cline Rules (.clinerules)
 
-### Local Skill Management
-
-- Auto-detect **SKILL.md** files anywhere in workspace
-- Automatically sync to instruction file (with `includeLocalSkills` setting)
-- Manual register / unregister commands
-- Create new skill from template
-
-### GitHub Copilot Chat Integration
+### 💬 GitHub Copilot Chat Integration
 
 - `@skill` commands for direct chat operations
 - `/search`, `/install`, `/list`, `/recommend`
 - Project-based skill recommendations
 
-### MCP Tools Integration
+### 🤖 MCP Tools Integration
 
 - Automatically available as tools in **Agent Mode**
 - **8 Tools**: `#searchSkills`, `#installSkill`, `#uninstallSkill`, `#listSkills`, `#recommendSkills`, `#updateSkillIndex`, `#webSearchSkills`, `#addSkillSource`
 - Trust badges (Official / Curated / Community)
 - Auto-update instruction file on install
 
-### Multi-language & UI
+### 🌐 Multi-language & UI
 
 - Japanese / English UI (auto-detect + manual switch)
 - Skill preview in Webview
 - Favorites feature
 
-## Demo
+## 🎬 Demo
 
 ![Demo](docs/screenshots/demo.gif)
 
-## Installation
+## 📥 Installation
 
 ### VS Code Marketplace
 
@@ -166,7 +166,7 @@ Or search for **"Agent Skill Ninja"** in VS Code Extensions (`Ctrl+Shift+X`)
 2. In VS Code: `Ctrl+Shift+P` → `Extensions: Install from VSIX...`
 3. Select the downloaded `.vsix` file
 
-## Included Skill Sources
+## 📚 Included Skill Sources
 
 | Source                                                                                                                        | Type       | Description                             |
 | ----------------------------------------------------------------------------------------------------------------------------- | ---------- | --------------------------------------- |
@@ -183,7 +183,7 @@ Or search for **"Agent Skill Ninja"** in VS Code Extensions (`Ctrl+Shift+X`)
 
 > Use `Update Index` command to fetch the latest skills
 
-## Usage
+## 🥷 Usage
 
 ### Sidebar Operations
 
@@ -253,9 +253,9 @@ Or search for **"Agent Skill Ninja"** in VS Code Extensions (`Ctrl+Shift+X`)
 | `user:anthropics`  | Explicit user search                   |
 | `repo:owner/repo`  | Repository search                      |
 
-> 📝 If no results found, keywords are automatically reduced and retried.
+> If no results found, keywords are automatically reduced and retried.
 
-## Copilot Chat
+## 💬 Copilot Chat
 
 Use `@skill` in GitHub Copilot Chat for skill operations:
 
@@ -276,9 +276,9 @@ Use `@skill` in GitHub Copilot Chat for skill operations:
 | `/list`           | List installed skills              |
 | `/recommend`      | Recommendations based on workspace |
 
-> 💡 Search results include install buttons for direct installation
+> Search results include install buttons for direct installation
 
-## MCP Tools (Agent Mode)
+## 🤖 MCP Tools (Agent Mode)
 
 In GitHub Copilot's **Agent Mode**, tools are automatically available.
 
@@ -313,20 +313,20 @@ In GitHub Copilot's **Agent Mode**, tools are automatically available.
 
 ### Features
 
-- 🏢 **Trust Badges**: Shows Official / Curated / Community
-- 🌟 **Recommended Skills**: Suggests best skills from search results
-- 📅 **Index Update Info**: Shows last update date with warnings if outdated
-- ⚙️ **Settings Integration**: Respects `autoUpdateInstruction` / `includeLocalSkills`
-- 🎯 **Token Efficiency**: Save conversation context by using MCP tools
+- **Trust Badges**: Shows Official / Curated / Community
+- **Recommended Skills**: Suggests best skills from search results
+- **Index Update Info**: Shows last update date with warnings if outdated
+- **Settings Integration**: Respects `autoUpdateInstruction` / `includeLocalSkills`
+- **Token Efficiency**: Save conversation context by using MCP tools
 
 ### Disable MCP Tools
 
 If you don't need MCP tools, you can disable them from GitHub Copilot Chat:
 
-1. Copilot Chat panel → ⚙️ → Tools
+1. Copilot Chat panel → Settings → Tools
 2. Toggle off "Agent Skill Ninja" tools
 
-## Settings
+## ⚙️ Settings
 
 | Order | Setting                            | Default          | Description                                                 |
 | :---: | ---------------------------------- | ---------------- | ----------------------------------------------------------- |
@@ -340,7 +340,7 @@ If you don't need MCP tools, you can disable them from GitHub Copilot Chat:
 |   8   | `skillNinja.outputFormat`          | `auto`           | Output format (auto / markdown / cursor / windsurf / cline) |
 |   9   | `skillNinja.enableToolDetection`   | `true`           | Auto-detect AI tools in workspace                           |
 
-> 💡 Settings are displayed in the order above
+> Settings are displayed in the order above
 
 ### Output Format Details
 
@@ -382,9 +382,9 @@ The instruction file contains a managed section:
 | `CLAUDE.md`                                      | `CLAUDE.md` (root)                               | Claude Code                 |
 | `custom`                                         | Any path (set in customInstructionPath)          | Custom                      |
 
-## GitHub Token Setup
+## 🔑 GitHub Token Setup
 
-> ⚠️ **Important**: GitHub Token is **required** for GitHub Search. Without it, API rate limits (60 requests/hour) will be exhausted quickly and searches will fail.
+> **Important**: GitHub Token is **required** for GitHub Search. Without it, API rate limits (60 requests/hour) will be exhausted quickly and searches will fail.
 
 Set up a GitHub Token to enable full search functionality:
 
@@ -406,9 +406,9 @@ Find `Agent Skill Ninja: GitHub Token` in settings and enter your token:
 gh auth login
 ```
 
-> 💡 If GitHub CLI is installed, the token is automatically retrieved (no configuration needed)
+> If GitHub CLI is installed, the token is automatically retrieved (no configuration needed)
 
-## Development
+## 🛠️ Development
 
 ```bash
 # Install dependencies
@@ -433,7 +433,7 @@ npm run lint
 2. Test the extension in a new VS Code window
 3. Run `Agent Skill Ninja` commands from Command Palette (`Ctrl+Shift+P`)
 
-## Contributing
+## � Contributing
 
 1. Fork this repository
 2. Create a feature branch (`git checkout -b feature/amazing-feature`)
@@ -441,7 +441,7 @@ npm run lint
 4. Push to branch (`git push origin feature/amazing-feature`)
 5. Open a Pull Request
 
-## License
+## 📄 License
 
 [CC BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/) © [yamapan](https://github.com/aktsmm)
 
@@ -449,14 +449,14 @@ npm run lint
 - Commercial use requires permission
 - Microsoft employees may use for work purposes
 
-> ⚠️ Use of this content for AI/ML training, data mining, or other analytical purposes is prohibited.
+> Use of this content for AI/ML training, data mining, or other analytical purposes is prohibited.
 
-## Related Projects
+## 🔗 Related Projects
 
 - [anthropics/skills](https://github.com/anthropics/skills) - Official Claude Skills
 - [github/awesome-copilot](https://github.com/github/awesome-copilot) - Official Copilot Resources
 - [ComposioHQ/awesome-claude-skills](https://github.com/ComposioHQ/awesome-claude-skills) - Curated Skills List
 
-## Author
+## 👤 Author
 
 yamapan (https://github.com/aktsmm)

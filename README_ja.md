@@ -80,9 +80,16 @@
 
 ---
 
-## Features
+## 🥷 Features
 
-### スキル検索・発見
+### 📁 ローカルスキル管理
+
+- ワークスペース内の **SKILL.md** を自動検出
+- instruction file へ自動同期（`includeLocalSkills` 設定で制御）
+- 手動での登録/解除コマンド
+- テンプレートから新規スキル作成
+
+### 🔍 スキル検索・発見
 
 - **100+ スキル** をキーワード検索（ローカル＆GitHub）
 - **複数キーワード検索** - 名前・パス・説明の関連度でスコアリング
@@ -92,7 +99,7 @@
 - スター数・組織バッジ表示
 - 検索結果から直接インストール/プレビュー/お気に入り
 
-### インストール・管理
+### 📦 インストール・管理
 
 - ワンクリックでインストール（デフォルト: `.github/skills/`、設定で変更可能）
 - **instruction file** 自動更新（AGENTS.md / copilot-instructions.md / CLAUDE.md）
@@ -105,7 +112,7 @@
 - **フォルダを開く** - インストール済みスキルのフォルダにクイックアクセス
 - **インデックス整合性チェック** - 未登録スキルを自動検出し、インデックス更新を提案
 
-### マルチツール対応
+### 🔧 マルチツール対応
 
 - ワークスペース内の AI ツールを**自動検出**（Cursor, Windsurf, Cline, Claude Code, GitHub Copilot）
 - 検出されたツールに基づいて出力形式を自動選択
@@ -116,37 +123,30 @@
   - Windsurf Rules（.windsurfrules）
   - Cline Rules（.clinerules）
 
-### ローカルスキル管理
-
-- ワークスペース内の **SKILL.md** を自動検出
-- instruction file へ自動同期（`includeLocalSkills` 設定で制御）
-- 手動での登録/解除コマンド
-- テンプレートから新規スキル作成
-
-### GitHub Copilot Chat 連携
+### 💬 GitHub Copilot Chat 連携
 
 - `@skill` コマンドでチャットから直接操作
 - `/search`, `/install`, `/list`, `/recommend`
 - プロジェクトに基づくスキル推奨
 
-### MCP ツール連携
+### 🤖 MCP ツール連携
 
 - **Agent Mode** で自動的にツールとして利用可能
 - **8 ツール**: `#searchSkills`, `#installSkill`, `#uninstallSkill`, `#listSkills`, `#recommendSkills`, `#updateSkillIndex`, `#webSearchSkills`, `#addSkillSource`
 - 信頼度バッジ（Official / Curated / Community）
 - インストール時に instruction file 自動更新
 
-### 多言語・UI
+### 🌐 多言語・UI
 
 - 日本語 / 英語 UI（自動検出 + 手動切替）
 - Webview でスキルプレビュー
 - お気に入り機能
 
-## Demo
+## 🎬 Demo
 
 ![Demo](docs/screenshots/demo.gif)
 
-## Installation
+## 📥 Installation
 
 ### VS Code Marketplace
 
@@ -162,7 +162,7 @@ ext install yamapan.agent-skill-ninja
 2. VS Code で `Ctrl+Shift+P` → `Extensions: Install from VSIX...`
 3. ダウンロードした `.vsix` を選択
 
-## Included Skill Sources
+## 📚 Included Skill Sources
 
 | Source                                                                                                                        | Type       | 説明                                |
 | ----------------------------------------------------------------------------------------------------------------------------- | ---------- | ----------------------------------- |
@@ -179,7 +179,7 @@ ext install yamapan.agent-skill-ninja
 
 > `Update Index` コマンドで最新のスキルを取得できます
 
-## Usage
+## 🥷 Usage
 
 ### サイドバーから操作
 
@@ -249,9 +249,9 @@ ext install yamapan.agent-skill-ninja
 | `user:anthropics`  | 明示的にユーザー指定               |
 | `repo:owner/repo`  | リポジトリ指定                     |
 
-> 📝 結果が 0 件の場合、キーワードを減らして自動リトライします。
+> 結果が 0 件の場合、キーワードを減らして自動リトライします。
 
-## Copilot Chat
+## 💬 Copilot Chat
 
 GitHub Copilot Chat から `@skill` でスキル操作が可能です：
 
@@ -272,9 +272,9 @@ GitHub Copilot Chat から `@skill` でスキル操作が可能です：
 | `/list`           | インストール済みスキル一覧 |
 | `/recommend`      | ワークスペースに基づく推奨 |
 
-> 💡 検索結果にはインストールボタンが付いており、直接インストールできます
+> 検索結果にはインストールボタンが付いており、直接インストールできます
 
-## MCP Tools (Agent Mode)
+## 🤖 MCP Tools (Agent Mode)
 
 GitHub Copilot の **Agent Mode** では、自動的に MCP ツールとして利用されます。
 
@@ -309,20 +309,20 @@ GitHub Copilot の **Agent Mode** では、自動的に MCP ツールとして�
 
 ### 特徴
 
-- 🏢 **信頼度バッジ**: Official / Curated / Community を表示
-- 🌟 **おすすめスキル**: 検索結果から最適なスキルを推奨
-- 📅 **インデックス更新情報**: 最終更新日と古い場合の警告
-- ⚙️ **設定連動**: `autoUpdateInstruction` / `includeLocalSkills` を尊重
-- 🎯 **トークン効率**: MCP ツール経由で操作することで、会話コンテキストを節約
+- **信頼度バッジ**: Official / Curated / Community を表示
+- **おすすめスキル**: 検索結果から最適なスキルを推奨
+- **インデックス更新情報**: 最終更新日と古い場合の警告
+- **設定連動**: `autoUpdateInstruction` / `includeLocalSkills` を尊重
+- **トークン効率**: MCP ツール経由で操作することで、会話コンテキストを節約
 
 ### MCP ツールを無効化
 
 MCP ツールが不要な場合は、GitHub Copilot Chat のツール一覧からオフにできます：
 
-1. Copilot Chat パネル → ⚙️ → Tools
+1. Copilot Chat パネル → Settings → Tools
 2. 「Agent Skill Ninja」のツールをトグルオフ
 
-## Settings
+## ⚙️ Settings
 
 | 順序 | Setting                            | Default          | Description                                             |
 | :--: | ---------------------------------- | ---------------- | ------------------------------------------------------- |
@@ -336,7 +336,7 @@ MCP ツールが不要な場合は、GitHub Copilot Chat のツール一覧か�
 |  8   | `skillNinja.outputFormat`          | `auto`           | 出力形式（auto / markdown / cursor / windsurf / cline） |
 |  9   | `skillNinja.enableToolDetection`   | `true`           | AI ツール自動検出を有効化                               |
 
-> 💡 設定画面では上記の順序で表示されます
+> 設定画面では上記の順序で表示されます
 
 ### 出力フォーマット詳細
 
@@ -378,9 +378,9 @@ instruction file には管理セクションが追加されます：
 | `CLAUDE.md`                                      | `CLAUDE.md` (root)                               | Claude Code                   |
 | `custom`                                         | 任意のパス (customInstructionPath で指定)        | カスタム                      |
 
-## GitHub Token 設定
+## 🔑 GitHub Token 設定
 
-> ⚠️ **重要**: GitHub 検索を使用するには GitHub Token が**必須**です。未設定の場合、API レート制限（60 リクエスト/時間）により検索がすぐに失敗します。
+> **重要**: GitHub 検索を使用するには GitHub Token が**必須**です。未設定の場合、API レート制限（60 リクエスト/時間）により検索がすぐに失敗します。
 
 検索機能を有効にするには GitHub Token を設定してください：
 
@@ -402,9 +402,9 @@ instruction file には管理セクションが追加されます：
 gh auth login
 ```
 
-> 💡 GitHub CLI がインストールされていれば自動でトークンを取得します（設定不要）
+> GitHub CLI がインストールされていれば自動でトークンを取得します（設定不要）
 
-## Development
+## 🛠️ Development
 
 ```bash
 # 依存関係をインストール
@@ -429,7 +429,7 @@ npm run lint
 2. 新しい VS Code ウィンドウで拡張機能をテスト
 3. コマンドパレット (`Ctrl+Shift+P`) で `Agent Skill Ninja` コマンドを実行
 
-## Contributing
+## 🤝 Contributing
 
 1. Fork this repository
 2. Create a feature branch (`git checkout -b feature/amazing-feature`)
@@ -437,7 +437,7 @@ npm run lint
 4. Push to branch (`git push origin feature/amazing-feature`)
 5. Open a Pull Request
 
-## License
+## 📄 License
 
 [CC BY-NC 4.0](https://creativecommons.org/licenses/by-nc/4.0/) © [yamapan](https://github.com/aktsmm)
 
@@ -445,14 +445,14 @@ npm run lint
 - 商用利用は要相談
 - Microsoft 社員は業務利用可
 
-> ⚠️ 本コンテンツの AI/ML トレーニング、データマイニング、その他の解析目的での使用を禁止します。
+> 本コンテンツの AI/ML トレーニング、データマイニング、その他の解析目的での使用を禁止します。
 
-## Related Projects
+## 🔗 Related Projects
 
 - [anthropics/skills](https://github.com/anthropics/skills) - Official Claude Skills
 - [github/awesome-copilot](https://github.com/github/awesome-copilot) - Official Copilot Resources
 - [ComposioHQ/awesome-claude-skills](https://github.com/ComposioHQ/awesome-claude-skills) - Curated Skills List
 
-## Author
+## 👤 Author
 
 yamapan (https://github.com/aktsmm)
