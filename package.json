@@ -2,7 +2,7 @@
   "name": "agent-skill-ninja",
   "displayName": "%displayName%",
   "description": "%description%",
-  "version": "0.7.3",
+  "version": "0.8.0",
   "publisher": "yamapan",
   "license": "CC-BY-NC-SA-4.0",
   "icon": "resources/icon.png",
@@ -731,10 +731,22 @@
           "order": 1,
           "markdownDescription": "%config.autoUpdateInstruction.markdownDescription%"
         },
+        "skillNinja.autoUpdateSkillsOnUpgrade": {
+          "type": "string",
+          "default": "prompt",
+          "order": 2,
+          "enum": ["always", "prompt", "never"],
+          "enumDescriptions": [
+            "%config.autoUpdateSkillsOnUpgrade.always%",
+            "%config.autoUpdateSkillsOnUpgrade.prompt%",
+            "%config.autoUpdateSkillsOnUpgrade.never%"
+          ],
+          "markdownDescription": "%config.autoUpdateSkillsOnUpgrade.markdownDescription%"
+        },
         "skillNinja.instructionFile": {
           "type": "string",
           "default": "AGENTS.md",
-          "order": 2,
+          "order": 3,
           "enum": [
             "AGENTS.md",
             ".github/copilot-instructions.md",

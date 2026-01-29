@@ -2554,8 +2554,9 @@ Add examples here
 }
 
 /**
- * バージョンアップ時にメタデータを再抽出
+ * バージョンアップ時にメタデータを再抽出 & スキル自動更新
  * 拡張機能のバージョンが変わった場合、インストール済みスキルの whenToUse を再抽出
+ * オプションでスキルを自動再インストール
  */
 async function checkVersionAndRefreshMetadata(
   context: vscode.ExtensionContext,
@@ -2584,7 +2585,39 @@ async function checkVersionAndRefreshMetadata(
     return;
   }
 
-  // メタデータを再抽出
+  // インストール済みスキルを取得
+  const installedSkills = await getInstalledSkillsWithMeta(workspaceUri);
+  const remoteSkillCount = installedSkills.filter(
+    (s) => s.source && s.source !== "unknown",
+  ).length;
+
+  // スキル自動更新設定を確認
+  const config = vscode.workspace.getConfiguration("skillNinja");
+  const autoUpdateSkills =
+    config.get<string>("autoUpdateSkillsOnUpgrade") ?? "prompt";
+
+  if (remoteSkillCount > 0 && autoUpdateSkills !== "never") {
+    const shouldUpdate =
+      autoUpdateSkills === "always" ||
+      (await promptForSkillUpdate(remoteSkillCount));
+
+    if (shouldUpdate) {
+      try {
+        // 全スキルを再インストール
+        await vscode.commands.executeCommand("skillNinja.reinstallAll");
+        vscode.window.showInformationMessage(
+          isJapanese()
+            ? `🥷 v${EXTENSION_VERSION} にアップデートしました。${remoteSkillCount} 個のスキルを最新版に更新しました。`
+            : `🥷 Updated to v${EXTENSION_VERSION}. Updated ${remoteSkillCount} skill(s) to latest version.`,
+        );
+        return; // 再インストールしたのでメタデータ更新はスキップ
+      } catch (error) {
+        console.error("[Skill Ninja] Failed to reinstall skills:", error);
+      }
+    }
+  }
+
+  // メタデータを再抽出（再インストールしなかった場合）
   try {
     const updatedCount = await refreshSkillMetadata(workspaceUri);
 
@@ -2594,7 +2627,6 @@ async function checkVersionAndRefreshMetadata(
       );
 
       // instruction ファイルを更新
-      const config = vscode.workspace.getConfiguration("skillNinja");
       const autoUpdate = config.get<boolean>("autoUpdateInstruction") ?? true;
 
       if (autoUpdate) {
@@ -2612,6 +2644,24 @@ async function checkVersionAndRefreshMetadata(
   } catch (error) {
     console.error("[Skill Ninja] Failed to refresh metadata:", error);
   }
+}
+
+/**
+ * スキル更新の確認ダイアログを表示
+ */
+async function promptForSkillUpdate(skillCount: number): Promise<boolean> {
+  const message = isJapanese()
+    ? `🥷 拡張機能がアップデートされました。${skillCount} 個のリモートスキルを最新版に更新しますか？`
+    : `🥷 Extension updated. Update ${skillCount} remote skill(s) to latest version?`;
+
+  const result = await vscode.window.showInformationMessage(
+    message,
+    { modal: false },
+    isJapanese() ? "更新する" : "Update",
+    isJapanese() ? "スキップ" : "Skip",
+  );
+
+  return result === (isJapanese() ? "更新する" : "Update");
 }
 
 export function deactivate() {}
