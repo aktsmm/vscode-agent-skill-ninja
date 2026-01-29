@@ -10,7 +10,7 @@
 
 | Skill | Path | Description |
 |-------|------|-------------|
-| [agentic-workflow-guide](.github/skills/agentic-workflow-guide/SKILL.md) | `agentic-workflow-guide` | Create, review, and update Prompt and agents and workflows. \| Create: New .agent.md, workflow architecture, scaffolding; Review: Orchestrator not delegating, design principle check, context overflow |
-| [book-writing-workspace](.github/skills/book-writing-workspace/SKILL.md) | `book-writing-workspace` | Book Writing Workspace \| Creating a new book or technical writing project; Setting up Markdown → Re:VIEW → PDF workflow; Establishing multi-chapter document structure with AI agent support |
+| [agentic-workflow-guide](.github/skills/agentic-workflow-guide/SKILL.md) | `agentic-workflow-guide` | Create, review, and update Prompt and agents and workflows. |
+| [book-writing-workspace](.github/skills/book-writing-workspace/SKILL.md) | `book-writing-workspace` | Set up a complete book writing workspace with AI agents, instructions, prompts, and scripts. |
 
 <!-- skill-ninja-END -->

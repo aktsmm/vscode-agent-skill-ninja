@@ -100,7 +100,8 @@
       "path": "skills/algorithmic-art",
       "categories": [],
       "description": "Generate algorithmic art and creative visualizations",
-      "description_ja": "Generate algorithmic art and creative visualizations"
+      "description_ja": "Generate algorithmic art and creative visualizations",
+      "license": "Complete terms in LICENSE.txt"
     },
     {
       "name": "brand-guidelines",
@@ -108,7 +109,8 @@
       "path": "skills/brand-guidelines",
       "categories": [],
       "description": "Create and manage brand guidelines",
-      "description_ja": "Create and manage brand guidelines"
+      "description_ja": "Create and manage brand guidelines",
+      "license": "Complete terms in LICENSE.txt"
     },
     {
       "name": "canvas-design",
@@ -116,7 +118,8 @@
       "path": "skills/canvas-design",
       "categories": [],
       "description": "Create canvas designs and layouts",
-      "description_ja": "Create canvas designs and layouts"
+      "description_ja": "Create canvas designs and layouts",
+      "license": "Complete terms in LICENSE.txt"
     },
     {
       "name": "doc-coauthoring",
@@ -132,7 +135,8 @@
       "path": "skills/docx",
       "categories": [],
       "description": "Process Word documents (.docx)",
-      "description_ja": "Process Word documents (.docx)"
+      "description_ja": "Process Word documents (.docx)",
+      "license": "Proprietary. LICENSE.txt has complete terms"
     },
     {
       "name": "frontend-design",
@@ -140,7 +144,8 @@
       "path": "skills/frontend-design",
       "categories": [],
       "description": "Create frontend designs and UI layouts",
-      "description_ja": "Create frontend designs and UI layouts"
+      "description_ja": "Create frontend designs and UI layouts",
+      "license": "Complete terms in LICENSE.txt"
     },
     {
       "name": "internal-comms",
@@ -148,7 +153,8 @@
       "path": "skills/internal-comms",
       "categories": [],
       "description": "Internal communications management",
-      "description_ja": "Internal communications management"
+      "description_ja": "Internal communications management",
+      "license": "Complete terms in LICENSE.txt"
     },
     {
       "name": "mcp-builder",
@@ -156,7 +162,8 @@
       "path": "skills/mcp-builder",
       "categories": [],
       "description": "Build MCP (Model Context Protocol) servers",
-      "description_ja": "Build MCP (Model Context Protocol) servers"
+      "description_ja": "Build MCP (Model Context Protocol) servers",
+      "license": "Complete terms in LICENSE.txt"
     },
     {
       "name": "pdf",
@@ -164,7 +171,8 @@
       "path": "skills/pdf",
       "categories": [],
       "description": "Process PDF files",
-      "description_ja": "Process PDF files"
+      "description_ja": "Process PDF files",
+      "license": "Proprietary. LICENSE.txt has complete terms"
     },
     {
       "name": "pptx",
@@ -172,7 +180,8 @@
       "path": "skills/pptx",
       "categories": [],
       "description": "Process PowerPoint presentations (.pptx)",
-      "description_ja": "Process PowerPoint presentations (.pptx)"
+      "description_ja": "Process PowerPoint presentations (.pptx)",
+      "license": "Proprietary. LICENSE.txt has complete terms"
     },
     {
       "name": "skill-creator",
@@ -180,7 +189,8 @@
       "path": "skills/skill-creator",
       "categories": [],
       "description": "Create new agent skills",
-      "description_ja": "Create new agent skills"
+      "description_ja": "Create new agent skills",
+      "license": "Complete terms in LICENSE.txt"
     },
     {
       "name": "slack-gif-creator",
@@ -188,7 +198,8 @@
       "path": "skills/slack-gif-creator",
       "categories": [],
       "description": "Create GIFs for Slack",
-      "description_ja": "Create GIFs for Slack"
+      "description_ja": "Create GIFs for Slack",
+      "license": "Complete terms in LICENSE.txt"
     },
     {
       "name": "theme-factory",
@@ -196,7 +207,8 @@
       "path": "skills/theme-factory",
       "categories": [],
       "description": "Create and manage themes",
-      "description_ja": "Create and manage themes"
+      "description_ja": "Create and manage themes",
+      "license": "Complete terms in LICENSE.txt"
     },
     {
       "name": "web-artifacts-builder",
@@ -204,7 +216,8 @@
       "path": "skills/web-artifacts-builder",
       "categories": [],
       "description": "Build web artifacts and components",
-      "description_ja": "Build web artifacts and components"
+      "description_ja": "Build web artifacts and components",
+      "license": "Complete terms in LICENSE.txt"
     },
     {
       "name": "webapp-testing",
@@ -212,7 +225,8 @@
       "path": "skills/webapp-testing",
       "categories": [],
       "description": "Test web applications",
-      "description_ja": "Test web applications"
+      "description_ja": "Test web applications",
+      "license": "Complete terms in LICENSE.txt"
     },
     {
       "name": "xlsx",
@@ -220,7 +234,8 @@
       "path": "skills/xlsx",
       "categories": [],
       "description": "Process Excel spreadsheets (.xlsx)",
-      "description_ja": "Process Excel spreadsheets (.xlsx)"
+      "description_ja": "Process Excel spreadsheets (.xlsx)",
+      "license": "Proprietary. LICENSE.txt has complete terms"
     },
     {
       "name": "template-skill",
@@ -268,7 +283,9 @@
       "path": "skills/azure-resource-visualizer",
       "categories": [],
       "description": "Azure Resource Visualizer",
-      "description_ja": "Azure Resource Visualizer"
+      "description_ja": "Azure Resource Visualizer",
+      "license": "Complete terms in LICENSE.txt",
+      "author": "Tom Meschter (tom.meschter@microsoft.com)"
     },
     {
       "name": "azure-role-selector",
@@ -292,7 +309,8 @@
       "path": "skills/chrome-devtools",
       "categories": [],
       "description": "Chrome Devtools",
-      "description_ja": "Chrome Devtools"
+      "description_ja": "Chrome Devtools",
+      "license": "MIT"
     },
     {
       "name": "gh-cli",
@@ -308,7 +326,8 @@
       "path": "skills/git-commit",
       "categories": [],
       "description": "Git Commit",
-      "description_ja": "Git Commit"
+      "description_ja": "Git Commit",
+      "license": "MIT"
     },
     {
       "name": "github-issues",
@@ -380,7 +399,8 @@
       "path": "skills/plantuml-ascii",
       "categories": [],
       "description": "Plantuml Ascii",
-      "description_ja": "Plantuml Ascii"
+      "description_ja": "Plantuml Ascii",
+      "license": "MIT"
     },
     {
       "name": "prd",
@@ -388,7 +408,8 @@
       "path": "skills/prd",
       "categories": [],
       "description": "Prd",
-      "description_ja": "Prd"
+      "description_ja": "Prd",
+      "license": "MIT"
     },
     {
       "name": "refactor",
@@ -396,7 +417,8 @@
       "path": "skills/refactor",
       "categories": [],
       "description": "Refactor",
-      "description_ja": "Refactor"
+      "description_ja": "Refactor",
+      "license": "MIT"
     },
     {
       "name": "snowflake-semanticview",
@@ -864,7 +886,8 @@
       "path": "examples/book-sft-pipeline",
       "categories": [],
       "description": "Book SFT pipeline",
-      "description_ja": "Book SFT pipeline"
+      "description_ja": "Book SFT pipeline",
+      "version": "2.0.0"
     },
     {
       "name": "digital-brain",
@@ -872,7 +895,8 @@
       "path": "examples/digital-brain-skill",
       "categories": [],
       "description": "Digital Brain",
-      "description_ja": "Digital Brain"
+      "description_ja": "Digital Brain",
+      "version": "1.0.0"
     },
     {
       "name": "reasoning-trace-optimizer",
@@ -1048,7 +1072,8 @@
       "path": "Packs/pai-browser-skill/src/skills/Browser",
       "categories": [],
       "description": "Browser",
-      "description_ja": "Browser"
+      "description_ja": "Browser",
+      "version": "2.0.0"
     },
     {
       "name": "CORE",
@@ -1192,7 +1217,8 @@
       "path": "Releases/v2.3/.claude/skills/Browser",
       "categories": [],
       "description": "Browser",
-      "description_ja": "Browser"
+      "description_ja": "Browser",
+      "version": "2.0.0"
     },
     {
       "name": "CORE",
@@ -1376,7 +1402,8 @@
       "path": "Releases/v2.4/.claude/skills/Browser",
       "categories": [],
       "description": "Browser",
-      "description_ja": "Browser"
+      "description_ja": "Browser",
+      "version": "2.0.0"
     },
     {
       "name": "CORE",
@@ -1664,7 +1691,8 @@
       "path": "plugins/compound-engineering/skills/frontend-design",
       "categories": [],
       "description": "Create frontend designs and UI layouts",
-      "description_ja": "Create frontend designs and UI layouts"
+      "description_ja": "Create frontend designs and UI layouts",
+      "license": "Complete terms in LICENSE.txt"
     },
     {
       "name": "gemini-imagegen",
@@ -1696,7 +1724,8 @@
       "path": "plugins/compound-engineering/skills/skill-creator",
       "categories": [],
       "description": "Create new agent skills",
-      "description_ja": "Create new agent skills"
+      "description_ja": "Create new agent skills",
+      "license": "Complete terms in LICENSE.txt"
     },
     {
       "name": "custom-skill",
@@ -1880,7 +1909,8 @@
       "path": ".claude/skills/linear-todo-sync",
       "categories": [],
       "description": "Linear Todo Sync",
-      "description_ja": "Linear Todo Sync"
+      "description_ja": "Linear Todo Sync",
+      "license": "MIT"
     },
     {
       "name": "agentic-workflow-guide",
@@ -1889,7 +1919,7 @@
       "categories": [],
       "description": "Guide for agentic workflows",
       "description_ja": "Guide for agentic workflows",
-      "license": "Complete terms in LICENSE.txt",
+      "license": "CC BY-NC-SA 4.0",
       "author": "yamapan (https://github.com/aktsmm)"
     },
     {
@@ -1899,6 +1929,7 @@
       "categories": [],
       "description": "Azure Env Builder",
       "description_ja": "Azure Env Builder",
+      "license": "CC BY-NC-SA 4.0",
       "author": "yamapan (https://github.com/aktsmm)"
     },
     {
@@ -1908,7 +1939,7 @@
       "categories": [],
       "description": "Book Writing Workspace",
       "description_ja": "Book Writing Workspace",
-      "license": "Complete terms in LICENSE.txt",
+      "license": "CC BY-NC-SA 4.0",
       "author": "yamapan (https://github.com/aktsmm)"
     },
     {
@@ -1918,7 +1949,7 @@
       "categories": [],
       "description": "Browser Max Automation",
       "description_ja": "Browser Max Automation",
-      "license": "Complete terms in LICENSE.txt",
+      "license": "CC BY-NC-SA 4.0",
       "author": "yamapan (https://github.com/aktsmm)"
     },
     {
@@ -1928,6 +1959,7 @@
       "categories": [],
       "description": "Code Simplifier",
       "description_ja": "Code Simplifier",
+      "license": "CC BY-NC-SA 4.0",
       "author": "yamapan (https://github.com/aktsmm)"
     },
     {
@@ -1937,7 +1969,7 @@
       "categories": [],
       "description": "Customer Workspace",
       "description_ja": "Customer Workspace",
-      "license": "Complete terms in LICENSE.txt",
+      "license": "CC BY-NC-SA 4.0",
       "author": "yamapan (https://github.com/aktsmm)"
     },
     {
@@ -1957,7 +1989,7 @@
       "categories": [],
       "description": "Ocr Super Surya",
       "description_ja": "Ocr Super Surya",
-      "license": "CC BY-NC 4.0",
+      "license": "CC BY-NC-SA 4.0",
       "author": "yamapan (https://github.com/aktsmm)"
     },
     {
@@ -1967,7 +1999,7 @@
       "categories": [],
       "description": "Powerpoint Automation",
       "description_ja": "Powerpoint Automation",
-      "license": "Complete terms in LICENSE.txt",
+      "license": "CC BY-NC-SA 4.0",
       "author": "yamapan (https://github.com/aktsmm)"
     },
     {
@@ -1977,7 +2009,7 @@
       "categories": [],
       "description": "Skill Finder",
       "description_ja": "Skill Finder",
-      "license": "MIT",
+      "license": "CC BY-NC-SA 4.0",
       "author": "yamapan (https://github.com/aktsmm)"
     },
     {
@@ -1987,7 +2019,8 @@
       "categories": [],
       "description": "Vscode Extension Guide",
       "description_ja": "Vscode Extension Guide",
-      "license": "Complete terms in LICENSE.txt"
+      "license": "CC BY-NC-SA 4.0",
+      "author": "yamapan (https://github.com/aktsmm)"
     },
     {
       "name": "doc",
