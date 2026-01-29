@@ -2,7 +2,7 @@
   "name": "agent-skill-ninja",
   "displayName": "%displayName%",
   "description": "%description%",
-  "version": "0.5.0",
+  "version": "0.5.1",
   "publisher": "yamapan",
   "license": "CC-BY-NC-SA-4.0",
   "icon": "resources/icon.png",
@@ -27,9 +27,9 @@
     "vscode": "^1.100.0"
   },
   "categories": [
-    "Other",
-    "Machine Learning",
-    "Snippets"
+    "AI",
+    "Chat",
+    "Other"
   ],
   "activationEvents": [
     "onStartupFinished"

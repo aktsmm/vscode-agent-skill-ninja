@@ -20,5 +20,6 @@
 | [drawio-diagram-forge](.github/skills/drawio-diagram-forge/SKILL.md) | `drawio-diagram-forge` | Creating architecture diagrams (Azure, AWS); Converting flowcharts from text ... |
 | [ocr-super-surya](.github/skills/ocr-super-surya/SKILL.md) | `ocr-super-surya` | Extracting text from screenshots, photos, or scanned images; Processing PDFs ... |
 | [vscode-ext-commands](.github/skills/vscode-ext-commands/SKILL.md) | `vscode-ext-commands` | This skill helps you to contribute commands in VS Code extensions |
+| [vscode-extension-guide](.github/skills/vscode-extension-guide/SKILL.md) | `vscode-extension-guide` | Create, develop, and publish VS Code extensions. |
 
 <!-- skill-ninja-END -->

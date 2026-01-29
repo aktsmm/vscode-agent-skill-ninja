@@ -85,6 +85,8 @@ const jaMessages: Record<string, string> = {
   createSkillPlaceholder: "my-awesome-skill",
   skillCreated: "✅ {0} を作成しました",
   noLocalSkills: "ローカルスキルが見つかりません",
+  instructionFileUpdatedOnSettingChange:
+    "✅ 設定変更により AGENTS.md を更新しました",
 };
 
 // 英語メッセージ（デフォルト）
@@ -169,6 +171,8 @@ const enMessages: Record<string, string> = {
   createSkillPlaceholder: "my-awesome-skill",
   skillCreated: "✅ {0} created",
   noLocalSkills: "No local skills found",
+  instructionFileUpdatedOnSettingChange:
+    "✅ AGENTS.md updated due to setting change",
 };
 
 /**
@@ -331,6 +335,10 @@ export const messages = {
   createSkillPlaceholder: () => localize("createSkillPlaceholder"),
   skillCreated: (name: string) => localize("skillCreated", name),
   noLocalSkills: () => localize("noLocalSkills"),
+
+  // 設定変更時の自動更新
+  instructionFileUpdatedOnSettingChange: () =>
+    localize("instructionFileUpdatedOnSettingChange"),
 };
 
 export default messages;

@@ -173,6 +173,33 @@ export function activate(context: vscode.ExtensionContext) {
       workspaceProvider.refresh();
       browseProvider.refresh();
     }
+
+    // インストラクションファイルまたは出力フォーマットが変更されたら自動更新
+    if (
+      e.affectsConfiguration("skillNinja.instructionFile") ||
+      e.affectsConfiguration("skillNinja.customInstructionPath") ||
+      e.affectsConfiguration("skillNinja.outputFormat")
+    ) {
+      const workspaceFolders = vscode.workspace.workspaceFolders;
+      if (workspaceFolders && workspaceFolders.length > 0) {
+        const config = vscode.workspace.getConfiguration("skillNinja");
+        const autoUpdate = config.get<boolean>("autoUpdateInstruction") !== false;
+        
+        if (autoUpdate) {
+          // 少し待ってから更新（設定が完全に反映されるのを待つ）
+          setTimeout(async () => {
+            try {
+              await updateInstructionFile(workspaceFolders[0].uri, context);
+              vscode.window.showInformationMessage(
+                messages.instructionFileUpdatedOnSettingChange()
+              );
+            } catch (err) {
+              console.error("Failed to update instruction file on setting change:", err);
+            }
+          }, 500);
+        }
+      }
+    }
   });
 
   // GitHub Copilot Chat Participant
