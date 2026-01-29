@@ -670,10 +670,7 @@ export async function getInstalledSkillsWithMeta(
       } catch {
         // メタデータがない場合は SKILL.md から name と description を読み取る
         const { name, description, license, author, version } =
-          await extractMetadataFromSkillMd(
-            entry.skillMdPath,
-            entry.folderName,
-          );
+          await extractMetadataFromSkillMd(entry.skillMdPath, entry.folderName);
         // When to Use セクションも抽出
         const whenToUse = await extractWhenToUseFromSkillMd(entry.skillMdPath);
         metas.push({

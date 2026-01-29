@@ -45,7 +45,7 @@ export function getLocalizedDescription(skill: Skill, isJa: boolean): string {
 export function getLocalizedCategoryNames(
   categoryIds: string[],
   categories: Category[],
-  isJa: boolean
+  isJa: boolean,
 ): string[] {
   return categoryIds.map((id) => {
     const category = categories.find((c) => c.id === id);
@@ -108,18 +108,18 @@ export interface SkillIndex {
  * 3. バンドル版のバージョンが新しければソースをマージ
  */
 export async function loadSkillIndex(
-  context: vscode.ExtensionContext
+  context: vscode.ExtensionContext,
 ): Promise<SkillIndex> {
   const localIndexPath = vscode.Uri.joinPath(
     context.globalStorageUri,
-    "skill-index.json"
+    "skill-index.json",
   );
 
   // バンドルされたインデックスを読み込む
   const bundledIndexPath = vscode.Uri.joinPath(
     context.extensionUri,
     "resources",
-    "skill-index.json"
+    "skill-index.json",
   );
 
   let bundledIndex: SkillIndex | null = null;
@@ -134,7 +134,7 @@ export async function loadSkillIndex(
     // ローカルインデックスを読み込む
     const content = await vscode.workspace.fs.readFile(localIndexPath);
     const localIndex: SkillIndex = JSON.parse(
-      Buffer.from(content).toString("utf-8")
+      Buffer.from(content).toString("utf-8"),
     );
 
     // バンドル版がある場合は常にマージ（description_ja の補完のため）
@@ -155,7 +155,7 @@ export async function loadSkillIndex(
       await vscode.workspace.fs.createDirectory(context.globalStorageUri);
       await vscode.workspace.fs.writeFile(
         localIndexPath,
-        Buffer.from(JSON.stringify(bundledIndex, null, 2), "utf-8")
+        Buffer.from(JSON.stringify(bundledIndex, null, 2), "utf-8"),
       );
       return bundledIndex;
     }
@@ -179,20 +179,20 @@ export async function loadSkillIndex(
  */
 function mergeSkillIndexes(
   localIndex: SkillIndex,
-  bundledIndex: SkillIndex
+  bundledIndex: SkillIndex,
 ): SkillIndex {
   // ローカルのソース ID セット
   const localSourceIds = new Set(localIndex.sources.map((s) => s.id));
 
   // バンドル版の新しいソースを追加
   const newSources = bundledIndex.sources.filter(
-    (s) => !localSourceIds.has(s.id)
+    (s) => !localSourceIds.has(s.id),
   );
 
   // 既存ソースの説明を更新（description_ja を追加）
   const updatedSources = localIndex.sources.map((localSource) => {
     const bundledSource = bundledIndex.sources.find(
-      (s) => s.id === localSource.id
+      (s) => s.id === localSource.id,
     );
     if (bundledSource) {
       return {
@@ -208,13 +208,13 @@ function mergeSkillIndexes(
   // バンドル版の新しいスキルを追加（新ソースからのもの）
   const newSourceIds = new Set(newSources.map((s) => s.id));
   const newSkills = bundledIndex.skills.filter((s) =>
-    newSourceIds.has(s.source)
+    newSourceIds.has(s.source),
   );
 
   // 既存スキルの説明を更新（description と description_ja をマージ）
   const updatedSkills = localIndex.skills.map((localSkill) => {
     const bundledSkill = bundledIndex.skills.find(
-      (s) => s.name === localSkill.name
+      (s) => s.name === localSkill.name,
     );
     if (bundledSkill) {
       return {
@@ -240,16 +240,16 @@ function mergeSkillIndexes(
  */
 export async function saveSkillIndex(
   context: vscode.ExtensionContext,
-  index: SkillIndex
+  index: SkillIndex,
 ): Promise<void> {
   const localIndexPath = vscode.Uri.joinPath(
     context.globalStorageUri,
-    "skill-index.json"
+    "skill-index.json",
   );
   await vscode.workspace.fs.createDirectory(context.globalStorageUri);
   await vscode.workspace.fs.writeFile(
     localIndexPath,
-    Buffer.from(JSON.stringify(index, null, 2), "utf-8")
+    Buffer.from(JSON.stringify(index, null, 2), "utf-8"),
   );
 }
 
@@ -285,7 +285,7 @@ async function checkUrlExists(url: string, token?: string): Promise<boolean> {
 export async function getDefaultBranch(
   repoUrl: string,
   token?: string,
-  testPath?: string // 存在確認用のパス（例: "skills/xxx/SKILL.md"）
+  testPath?: string, // 存在確認用のパス（例: "skills/xxx/SKILL.md"）
 ): Promise<string> {
   // キャッシュチェック
   if (branchCache.has(repoUrl)) {
@@ -346,7 +346,7 @@ export async function getDefaultBranch(
 export async function getSourceBranch(
   source: Source,
   token?: string,
-  skillPath?: string // 存在確認用のスキルパス
+  skillPath?: string, // 存在確認用のスキルパス
 ): Promise<string> {
   // skill-index.json に明示的に設定されていればそれを使用
   if (source.branch) {
@@ -367,7 +367,7 @@ export async function getSourceBranch(
 export async function getSkillGitHubUrlAsync(
   skill: Skill,
   sources: Source[],
-  token?: string
+  token?: string,
 ): Promise<string | undefined> {
   const source = sources.find((s) => s.id === skill.source);
   if (!source) {
@@ -384,7 +384,7 @@ export async function getSkillGitHubUrlAsync(
  */
 export function getSkillGitHubUrl(
   skill: Skill,
-  sources: Source[]
+  sources: Source[],
 ): string | undefined {
   const source = sources.find((s) => s.id === skill.source);
   if (!source) {
@@ -405,7 +405,7 @@ export async function getSkillRawUrlAsync(
   skill: Skill,
   sources: Source[],
   fileName: string = "SKILL.md",
-  token?: string
+  token?: string,
 ): Promise<string | undefined> {
   const source = sources.find((s) => s.id === skill.source);
   if (!source) {
@@ -432,7 +432,7 @@ export async function getSkillRawUrlAsync(
 export function getSkillRawUrl(
   skill: Skill,
   sources: Source[],
-  fileName: string = "SKILL.md"
+  fileName: string = "SKILL.md",
 ): string | undefined {
   const source = sources.find((s) => s.id === skill.source);
   if (!source) {
