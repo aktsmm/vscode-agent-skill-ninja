@@ -882,7 +882,7 @@ export function parseWhenToUseFromText(text: string): string {
         // ヘッダーっぽい行はスキップ（Action, Triggers, Pattern 等）
         if (
           /^(action|trigger|pattern|use case|when|scenario|situation)s?$/i.test(
-            firstCell
+            firstCell,
           )
         ) {
           continue;

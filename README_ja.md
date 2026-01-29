@@ -33,7 +33,7 @@
 
 ### 📦 インストール・管理
 
-- ワンクリックで `.github/skills/` に自動配置
+- ワンクリックでインストール（デフォルト: `.github/skills/`、設定で変更可能）
 - **instruction file** 自動更新（AGENTS.md / copilot-instructions.md / CLAUDE.md）
 - **テーブル形式** - 「When to Use」列付きの表形式でスキル一覧表示
 - **「When to Use」自動抽出** - SKILL.md の `## When to Use` セクションから自動取得

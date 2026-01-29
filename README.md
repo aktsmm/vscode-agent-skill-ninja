@@ -37,7 +37,7 @@
 
 ### 📦 Install & Manage
 
-- One-click installation to `.github/skills/`
+- One-click installation (default: `.github/skills/`, configurable in settings)
 - Auto-update **instruction file** (AGENTS.md / copilot-instructions.md / CLAUDE.md)
 - **Table Format** - Skills displayed in table with "When to Use" column
 - **Auto-extract "When to Use"** - Extracted from SKILL.md `## When to Use` section
