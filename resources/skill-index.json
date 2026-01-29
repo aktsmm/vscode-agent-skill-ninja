@@ -7,24 +7,24 @@
       "name": "Anthropic Skills (Official)",
       "url": "https://github.com/anthropics/skills",
       "type": "official",
-      "description": "Official Claude Skills repository by Anthropic",
-      "description_ja": "Anthropic 公式の Claude Skills リポジトリ"
+      "description": "Anthropic Skills (Official)",
+      "description_ja": "Official Claude Skills repository by Anthropic"
     },
     {
       "id": "github-awesome-copilot",
       "name": "GitHub Awesome Copilot (Official)",
       "url": "https://github.com/github/awesome-copilot",
       "type": "official",
-      "description": "Official GitHub Copilot resources and skills",
-      "description_ja": "GitHub 公式の Copilot リソース集"
+      "description": "GitHub Awesome Copilot (Official)",
+      "description_ja": "Official GitHub Copilot resources and skills"
     },
     {
       "id": "obra-superpowers",
       "name": "Superpowers",
       "url": "https://github.com/obra/superpowers",
       "type": "community",
-      "description": "High-quality skills, agents, and commands collection",
-      "description_ja": "高品質なスキル・エージェント・コマンド集"
+      "description": "Superpowers",
+      "description_ja": "High-quality skills, agents, and commands collection"
     },
     {
       "id": "composio-awesome",
@@ -32,32 +32,32 @@
       "url": "https://github.com/ComposioHQ/awesome-claude-skills",
       "type": "awesome-list",
       "branch": "master",
-      "description": "Curated list of Claude Skills",
-      "description_ja": "Claude Skills のキュレーションリスト"
+      "description": "Awesome Claude Skills (ComposioHQ)",
+      "description_ja": "Curated list of Claude Skills"
     },
     {
       "id": "context-engineering-skills",
       "name": "Agent Skills for Context Engineering",
       "url": "https://github.com/muratcankoylan/Agent-Skills-for-Context-Engineering",
       "type": "community",
-      "description": "Context Engineering skills collection (5k+ Stars)",
-      "description_ja": "Context Engineering スキル集（5k+ Stars）"
+      "description": "Agent Skills for Context Engineering",
+      "description_ja": "Context Engineering skills collection (5k+ Stars)"
     },
     {
       "id": "pai-packs",
       "name": "Personal AI Infrastructure (PAI)",
       "url": "https://github.com/danielmiessler/Personal_AI_Infrastructure",
       "type": "community",
-      "description": "High-quality PAI Packs - Skills and Features",
-      "description_ja": "高品質な PAI Packs - スキル・フィーチャー集"
+      "description": "Personal AI Infrastructure (PAI)",
+      "description_ja": "High-quality PAI Packs - Skills and Features"
     },
     {
       "id": "compound-engineering",
       "name": "Compound Engineering Plugin",
       "url": "https://github.com/EveryInc/compound-engineering-plugin",
       "type": "community",
-      "description": "Compound Engineering skills (3.5k+ Stars)",
-      "description_ja": "Compound Engineering スキル（3.5k+ Stars）"
+      "description": "Compound Engineering Plugin",
+      "description_ja": "Compound Engineering skills (3.5k+ Stars)"
     },
     {
       "id": "prps-agentic",
@@ -65,31 +65,32 @@
       "url": "https://github.com/Wirasm/PRPs-agentic-eng",
       "type": "community",
       "branch": "development",
-      "description": "PRP (Prompt Recipe Patterns) skills",
-      "description_ja": "PRP（Prompt Recipe Patterns）スキル"
+      "description": "PRPs Agentic Engineering",
+      "description_ja": "PRP (Prompt Recipe Patterns) skills"
     },
     {
       "id": "claude-command-suite",
       "name": "Claude Command Suite",
       "url": "https://github.com/qdhenry/Claude-Command-Suite",
       "type": "community",
-      "description": "Claude commands and skills collection",
-      "description_ja": "Claude コマンド＆スキル集"
+      "description": "Claude Command Suite",
+      "description_ja": "Claude commands and skills collection"
     },
     {
       "id": "aktsmm-Agent-Skills",
       "name": "Agent-Skills",
       "url": "https://github.com/aktsmm/Agent-Skills",
       "type": "user-added",
-      "description": "User added repository: aktsmm/Agent-Skills"
+      "description": "Agent-Skills",
+      "description_ja": "User added repository: aktsmm/Agent-Skills"
     },
     {
       "id": "openai-skills",
       "name": "OpenAI Skills (Official)",
       "url": "https://github.com/openai/skills",
       "type": "official",
-      "description": "Official Codex Skills Catalog by OpenAI (1.7k+ Stars)",
-      "description_ja": "OpenAI 公式の Codex Skills カタログ（1.7k+ Stars）"
+      "description": "OpenAI Skills (Official)",
+      "description_ja": "Official Codex Skills Catalog by OpenAI (1.7k+ Stars)"
     }
   ],
   "skills": [
@@ -98,1687 +99,2036 @@
       "source": "anthropics-skills",
       "path": "skills/algorithmic-art",
       "categories": [],
-      "description": "Generate algorithmic art and creative visualizations"
+      "description": "Generate algorithmic art and creative visualizations",
+      "description_ja": "Generate algorithmic art and creative visualizations"
     },
     {
       "name": "brand-guidelines",
       "source": "anthropics-skills",
       "path": "skills/brand-guidelines",
       "categories": [],
-      "description": "Create and manage brand guidelines"
+      "description": "Create and manage brand guidelines",
+      "description_ja": "Create and manage brand guidelines"
     },
     {
       "name": "canvas-design",
       "source": "anthropics-skills",
       "path": "skills/canvas-design",
       "categories": [],
-      "description": "Create canvas designs and layouts"
+      "description": "Create canvas designs and layouts",
+      "description_ja": "Create canvas designs and layouts"
     },
     {
       "name": "doc-coauthoring",
       "source": "anthropics-skills",
       "path": "skills/doc-coauthoring",
       "categories": [],
-      "description": "Collaborative document co-authoring"
+      "description": "Collaborative document co-authoring",
+      "description_ja": "Collaborative document co-authoring"
     },
     {
       "name": "docx",
       "source": "anthropics-skills",
       "path": "skills/docx",
       "categories": [],
-      "description": "Process Word documents (.docx)"
+      "description": "Process Word documents (.docx)",
+      "description_ja": "Process Word documents (.docx)"
     },
     {
       "name": "frontend-design",
       "source": "anthropics-skills",
       "path": "skills/frontend-design",
       "categories": [],
-      "description": "Create frontend designs and UI layouts"
+      "description": "Create frontend designs and UI layouts",
+      "description_ja": "Create frontend designs and UI layouts"
     },
     {
       "name": "internal-comms",
       "source": "anthropics-skills",
       "path": "skills/internal-comms",
       "categories": [],
-      "description": "Internal communications management"
+      "description": "Internal communications management",
+      "description_ja": "Internal communications management"
     },
     {
       "name": "mcp-builder",
       "source": "anthropics-skills",
       "path": "skills/mcp-builder",
       "categories": [],
-      "description": "Build MCP (Model Context Protocol) servers"
+      "description": "Build MCP (Model Context Protocol) servers",
+      "description_ja": "Build MCP (Model Context Protocol) servers"
     },
     {
       "name": "pdf",
       "source": "anthropics-skills",
       "path": "skills/pdf",
       "categories": [],
-      "description": "Process PDF files"
+      "description": "Process PDF files",
+      "description_ja": "Process PDF files"
     },
     {
       "name": "pptx",
       "source": "anthropics-skills",
       "path": "skills/pptx",
       "categories": [],
-      "description": "Process PowerPoint presentations (.pptx)"
+      "description": "Process PowerPoint presentations (.pptx)",
+      "description_ja": "Process PowerPoint presentations (.pptx)"
     },
     {
       "name": "skill-creator",
       "source": "anthropics-skills",
       "path": "skills/skill-creator",
       "categories": [],
-      "description": "Guide for creating effective Codex skills with specialized knowledge, workflows, or tool integrations"
+      "description": "Create new agent skills",
+      "description_ja": "Guide for creating effective Codex skills with specialized knowledge, workflows, or tool integrations"
     },
     {
       "name": "slack-gif-creator",
       "source": "anthropics-skills",
       "path": "skills/slack-gif-creator",
       "categories": [],
-      "description": "Create GIFs for Slack"
+      "description": "Create GIFs for Slack",
+      "description_ja": "Create GIFs for Slack"
     },
     {
       "name": "theme-factory",
       "source": "anthropics-skills",
       "path": "skills/theme-factory",
       "categories": [],
-      "description": "Create and manage themes"
+      "description": "Create and manage themes",
+      "description_ja": "Create and manage themes"
     },
     {
       "name": "web-artifacts-builder",
       "source": "anthropics-skills",
       "path": "skills/web-artifacts-builder",
       "categories": [],
-      "description": "Build web artifacts and components"
+      "description": "Build web artifacts and components",
+      "description_ja": "Build web artifacts and components"
     },
     {
       "name": "webapp-testing",
       "source": "anthropics-skills",
       "path": "skills/webapp-testing",
       "categories": [],
-      "description": "Test web applications"
+      "description": "Test web applications",
+      "description_ja": "Test web applications"
     },
     {
       "name": "xlsx",
       "source": "anthropics-skills",
       "path": "skills/xlsx",
       "categories": [],
-      "description": "Process Excel spreadsheets (.xlsx)"
+      "description": "Process Excel spreadsheets (.xlsx)",
+      "description_ja": "Process Excel spreadsheets (.xlsx)"
     },
     {
       "name": "template-skill",
       "source": "anthropics-skills",
       "path": "template",
       "categories": [],
-      "description": "Replace with description of the skill and when Claude should use it."
+      "description": "Template for creating new skills",
+      "description_ja": "Replace with description of the skill and when Claude should use it."
     },
     {
       "name": "agentic-eval",
       "source": "github-awesome-copilot",
       "path": "skills/agentic-eval",
       "categories": [],
-      "description": "|"
+      "description": "Agentic Eval",
+      "description_ja": "|"
     },
     {
       "name": "appinsights-instrumentation",
       "source": "github-awesome-copilot",
       "path": "skills/appinsights-instrumentation",
       "categories": [],
-      "description": "Add Application Insights instrumentation to your app"
+      "description": "Appinsights Instrumentation",
+      "description_ja": "Add Application Insights instrumentation to your app"
     },
     {
       "name": "azure-deployment-preflight",
       "source": "github-awesome-copilot",
       "path": "skills/azure-deployment-preflight",
       "categories": [],
-      "description": "Performs comprehensive preflight validation of Bicep deployments to Azure, including template syntax validation, what-if analysis, and permission checks. Use this skill before any deployment to Azure to preview changes, identify potential issues, and ensure the deployment will succeed. Activate when users mention deploying to Azure, validating Bicep files, checking deployment permissions, previewing infrastructure changes, running what-if, or preparing for azd provision."
+      "description": "Azure Deployment Preflight",
+      "description_ja": "Performs comprehensive preflight validation of Bicep deployments to Azure, including template syntax validation, what-if analysis, and permission checks. Use this skill before any deployment to Azure to preview changes, identify potential issues, and ensure the deployment will succeed. Activate when users mention deploying to Azure, validating Bicep files, checking deployment permissions, previewing infrastructure changes, running what-if, or preparing for azd provision."
     },
     {
       "name": "azure-devops-cli",
       "source": "github-awesome-copilot",
       "path": "skills/azure-devops-cli",
       "categories": [],
-      "description": "Manage Azure DevOps resources via CLI including projects, repos, pipelines, builds, pull requests, work items, artifacts, and service endpoints. Use when working with Azure DevOps, az commands, devops automation, CI/CD, or when user mentions Azure DevOps CLI."
+      "description": "Azure Devops Cli",
+      "description_ja": "Manage Azure DevOps resources via CLI including projects, repos, pipelines, builds, pull requests, work items, artifacts, and service endpoints. Use when working with Azure DevOps, az commands, devops automation, CI/CD, or when user mentions Azure DevOps CLI."
     },
     {
       "name": "azure-resource-visualizer",
       "source": "github-awesome-copilot",
       "path": "skills/azure-resource-visualizer",
       "categories": [],
-      "description": "Visualize Azure resources and architecture"
+      "description": "Azure Resource Visualizer",
+      "description_ja": "Visualize Azure resources and architecture"
     },
     {
       "name": "azure-role-selector",
       "source": "github-awesome-copilot",
       "path": "skills/azure-role-selector",
       "categories": [],
-      "description": "Select appropriate Azure RBAC roles"
+      "description": "Azure Role Selector",
+      "description_ja": "Select appropriate Azure RBAC roles"
     },
     {
       "name": "azure-static-web-apps",
       "source": "github-awesome-copilot",
       "path": "skills/azure-static-web-apps",
       "categories": [],
-      "description": "Create, configure, and deploy Azure Static Web Apps using SWA CLI"
+      "description": "Azure Static Web Apps",
+      "description_ja": "Create, configure, and deploy Azure Static Web Apps using SWA CLI"
     },
     {
       "name": "chrome-devtools",
       "source": "github-awesome-copilot",
       "path": "skills/chrome-devtools",
       "categories": [],
-      "description": "Expert-level browser automation, debugging, and performance analysis using Chrome DevTools MCP. Use for interacting with web pages, capturing screenshots, analyzing network traffic, and profiling performance."
+      "description": "Chrome Devtools",
+      "description_ja": "Expert-level browser automation, debugging, and performance analysis using Chrome DevTools MCP. Use for interacting with web pages, capturing screenshots, analyzing network traffic, and profiling performance."
     },
     {
       "name": "gh-cli",
       "source": "github-awesome-copilot",
       "path": "skills/gh-cli",
       "categories": [],
-      "description": "GitHub CLI (gh) comprehensive reference for repositories, issues, pull requests, Actions, projects, releases, gists, codespaces, organizations, extensions, and all GitHub operations from the command line."
+      "description": "Gh Cli",
+      "description_ja": "GitHub CLI (gh) comprehensive reference for repositories, issues, pull requests, Actions, projects, releases, gists, codespaces, organizations, extensions, and all GitHub operations from the command line."
     },
     {
       "name": "git-commit",
       "source": "github-awesome-copilot",
       "path": "skills/git-commit",
       "categories": [],
-      "description": "Execute git commit with conventional commit message analysis, intelligent staging, and message generation. Use when user asks to commit changes, create a git commit, or mentions"
+      "description": "Git Commit",
+      "description_ja": "Execute git commit with conventional commit message analysis, intelligent staging, and message generation. Use when user asks to commit changes, create a git commit, or mentions"
     },
     {
       "name": "github-issues",
       "source": "github-awesome-copilot",
       "path": "skills/github-issues",
       "categories": [],
-      "description": "Manage GitHub issues and workflows"
+      "description": "Github Issues",
+      "description_ja": "Manage GitHub issues and workflows"
     },
     {
       "name": "image-manipulation-image-magick",
       "source": "github-awesome-copilot",
       "path": "skills/image-manipulation-image-magick",
       "categories": [],
-      "description": "Process and manipulate images using ImageMagick. Supports resizing, format conversion, batch processing, and retrieving image metadata. Use when working with images, creating thumbnails, resizing wallpapers, or performing batch image operations."
+      "description": "Image Manipulation Image Magick",
+      "description_ja": "Process and manipulate images using ImageMagick. Supports resizing, format conversion, batch processing, and retrieving image metadata. Use when working with images, creating thumbnails, resizing wallpapers, or performing batch image operations."
     },
     {
       "name": "legacy-circuit-mockups",
       "source": "github-awesome-copilot",
       "path": "skills/legacy-circuit-mockups",
       "categories": [],
-      "description": "Generate breadboard circuit mockups and visual diagrams using HTML5 Canvas drawing techniques. Use when asked to create circuit layouts, visualize electronic component placements, draw breadboard diagrams, mockup 6502 builds, generate retro computer schematics, or design vintage electronics projects. Supports 555 timers, W65C02S microprocessors, 28C256 EEPROMs, W65C22 VIA chips, 7400-series logic gates, LEDs, resistors, capacitors, switches, buttons, crystals, and wires."
+      "description": "Legacy Circuit Mockups",
+      "description_ja": "Generate breadboard circuit mockups and visual diagrams using HTML5 Canvas drawing techniques. Use when asked to create circuit layouts, visualize electronic component placements, draw breadboard diagrams, mockup 6502 builds, generate retro computer schematics, or design vintage electronics projects. Supports 555 timers, W65C02S microprocessors, 28C256 EEPROMs, W65C22 VIA chips, 7400-series logic gates, LEDs, resistors, capacitors, switches, buttons, crystals, and wires."
     },
     {
       "name": "make-skill-template",
       "source": "github-awesome-copilot",
       "path": "skills/make-skill-template",
       "categories": [],
-      "description": "Create new Agent Skills for GitHub Copilot from prompts or by duplicating templates"
+      "description": "Make Skill Template",
+      "description_ja": "Create new Agent Skills for GitHub Copilot from prompts or by duplicating templates"
     },
     {
       "name": "mcp-cli",
       "source": "github-awesome-copilot",
       "path": "skills/mcp-cli",
       "categories": [],
-      "description": "Interface for MCP (Model Context Protocol) servers via CLI. Use when you need to interact with external tools, APIs, or data sources through MCP servers, list available MCP servers/tools, or call MCP tools from command line."
+      "description": "Mcp Cli",
+      "description_ja": "Interface for MCP (Model Context Protocol) servers via CLI. Use when you need to interact with external tools, APIs, or data sources through MCP servers, list available MCP servers/tools, or call MCP tools from command line."
     },
     {
       "name": "microsoft-code-reference",
       "source": "github-awesome-copilot",
       "path": "skills/microsoft-code-reference",
       "categories": [],
-      "description": "Look up Microsoft API references, find code samples, and verify SDK code using MS Learn MCP"
+      "description": "Microsoft Code Reference",
+      "description_ja": "Look up Microsoft API references, find code samples, and verify SDK code using MS Learn MCP"
     },
     {
       "name": "microsoft-docs",
       "source": "github-awesome-copilot",
       "path": "skills/microsoft-docs",
       "categories": [],
-      "description": "Query official Microsoft documentation for Azure, .NET, Microsoft 365, and more"
+      "description": "Microsoft Docs",
+      "description_ja": "Query official Microsoft documentation for Azure, .NET, Microsoft 365, and more"
     },
     {
       "name": "nuget-manager",
       "source": "github-awesome-copilot",
       "path": "skills/nuget-manager",
       "categories": [],
-      "description": "Manage NuGet packages in .NET projects"
+      "description": "Nuget Manager",
+      "description_ja": "Manage NuGet packages in .NET projects"
     },
     {
       "name": "plantuml-ascii",
       "source": "github-awesome-copilot",
       "path": "skills/plantuml-ascii",
       "categories": [],
-      "description": "Generate ASCII art diagrams using PlantUML text mode. Use when user asks to create ASCII diagrams, text-based diagrams, terminal-friendly diagrams, or mentions plantuml ascii, text diagram, ascii art diagram. Supports: Converting PlantUML diagrams to ASCII art, Creating sequence diagrams, class diagrams, flowcharts in ASCII format, Generating Unicode-enhanced ASCII art with -utxt flag"
+      "description": "Plantuml Ascii",
+      "description_ja": "Generate ASCII art diagrams using PlantUML text mode. Use when user asks to create ASCII diagrams, text-based diagrams, terminal-friendly diagrams, or mentions plantuml ascii, text diagram, ascii art diagram. Supports: Converting PlantUML diagrams to ASCII art, Creating sequence diagrams, class diagrams, flowcharts in ASCII format, Generating Unicode-enhanced ASCII art with -utxt flag"
     },
     {
       "name": "prd",
       "source": "github-awesome-copilot",
       "path": "skills/prd",
       "categories": [],
-      "description": "Generate high-quality Product Requirements Documents (PRDs) for software systems and AI-powered features. Includes executive summaries, user stories, technical specifications, and risk analysis."
+      "description": "Prd",
+      "description_ja": "Generate high-quality Product Requirements Documents (PRDs) for software systems and AI-powered features. Includes executive summaries, user stories, technical specifications, and risk analysis."
     },
     {
       "name": "refactor",
       "source": "github-awesome-copilot",
       "path": "skills/refactor",
       "categories": [],
-      "description": "Surgical code refactoring to improve maintainability without changing behavior. Covers extracting functions, renaming variables, breaking down god functions, improving type safety, eliminating code smells, and applying design patterns. Less drastic than repo-rebuilder; use for gradual improvements."
+      "description": "Refactor",
+      "description_ja": "Surgical code refactoring to improve maintainability without changing behavior. Covers extracting functions, renaming variables, breaking down god functions, improving type safety, eliminating code smells, and applying design patterns. Less drastic than repo-rebuilder; use for gradual improvements."
     },
     {
       "name": "snowflake-semanticview",
       "source": "github-awesome-copilot",
       "path": "skills/snowflake-semanticview",
       "categories": [],
-      "description": "Create Snowflake semantic views"
+      "description": "Snowflake Semanticview",
+      "description_ja": "Create Snowflake semantic views"
     },
     {
       "name": "vscode-ext-commands",
       "source": "github-awesome-copilot",
       "path": "skills/vscode-ext-commands",
       "categories": [],
-      "description": "Create VS Code extension commands"
+      "description": "Vscode Ext Commands",
+      "description_ja": "Create VS Code extension commands"
     },
     {
       "name": "vscode-ext-localization",
       "source": "github-awesome-copilot",
       "path": "skills/vscode-ext-localization",
       "categories": [],
-      "description": "Localize VS Code extensions"
+      "description": "Vscode Ext Localization",
+      "description_ja": "Localize VS Code extensions"
     },
     {
       "name": "web-design-reviewer",
       "source": "github-awesome-copilot",
       "path": "skills/web-design-reviewer",
       "categories": [],
-      "description": "Review web designs and provide feedback"
+      "description": "Web Design Reviewer",
+      "description_ja": "Review web designs and provide feedback"
     },
     {
       "name": "webapp-testing",
       "source": "github-awesome-copilot",
       "path": "skills/webapp-testing",
       "categories": [],
-      "description": "Test web applications"
+      "description": "Test web applications",
+      "description_ja": "Test web applications"
     },
     {
       "name": "brainstorming",
       "source": "obra-superpowers",
       "path": "skills/brainstorming",
       "categories": [],
-      "description": "Brainstorming"
+      "description": "Brainstorming",
+      "description_ja": "Brainstorming"
     },
     {
       "name": "dispatching-parallel-agents",
       "source": "obra-superpowers",
       "path": "skills/dispatching-parallel-agents",
       "categories": [],
-      "description": "Dispatching Parallel Agents"
+      "description": "Dispatching Parallel Agents",
+      "description_ja": "Dispatching Parallel Agents"
     },
     {
       "name": "executing-plans",
       "source": "obra-superpowers",
       "path": "skills/executing-plans",
       "categories": [],
-      "description": "Executing Plans"
+      "description": "Executing Plans",
+      "description_ja": "Executing Plans"
     },
     {
       "name": "finishing-a-development-branch",
       "source": "obra-superpowers",
       "path": "skills/finishing-a-development-branch",
       "categories": [],
-      "description": "Finishing A Development Branch"
+      "description": "Finishing A Development Branch",
+      "description_ja": "Finishing A Development Branch"
     },
     {
       "name": "receiving-code-review",
       "source": "obra-superpowers",
       "path": "skills/receiving-code-review",
       "categories": [],
-      "description": "Receiving Code Review"
+      "description": "Receiving Code Review",
+      "description_ja": "Receiving Code Review"
     },
     {
       "name": "requesting-code-review",
       "source": "obra-superpowers",
       "path": "skills/requesting-code-review",
       "categories": [],
-      "description": "Requesting Code Review"
+      "description": "Requesting Code Review",
+      "description_ja": "Requesting Code Review"
     },
     {
       "name": "subagent-driven-development",
       "source": "obra-superpowers",
       "path": "skills/subagent-driven-development",
       "categories": [],
-      "description": "Subagent Driven Development"
+      "description": "Subagent Driven Development",
+      "description_ja": "Subagent Driven Development"
     },
     {
       "name": "systematic-debugging",
       "source": "obra-superpowers",
       "path": "skills/systematic-debugging",
       "categories": [],
-      "description": "Systematic Debugging"
+      "description": "Systematic Debugging",
+      "description_ja": "Systematic Debugging"
     },
     {
       "name": "test-driven-development",
       "source": "obra-superpowers",
       "path": "skills/test-driven-development",
       "categories": [],
-      "description": "Test-driven development (TDD)"
+      "description": "Test-driven development (TDD)",
+      "description_ja": "Test-driven development (TDD)"
     },
     {
       "name": "using-git-worktrees",
       "source": "obra-superpowers",
       "path": "skills/using-git-worktrees",
       "categories": [],
-      "description": "Using Git Worktrees"
+      "description": "Using Git Worktrees",
+      "description_ja": "Using Git Worktrees"
     },
     {
       "name": "using-superpowers",
       "source": "obra-superpowers",
       "path": "skills/using-superpowers",
       "categories": [],
-      "description": "Using Superpowers"
+      "description": "Using Superpowers",
+      "description_ja": "Using Superpowers"
     },
     {
       "name": "verification-before-completion",
       "source": "obra-superpowers",
       "path": "skills/verification-before-completion",
       "categories": [],
-      "description": "Verification Before Completion"
+      "description": "Verification Before Completion",
+      "description_ja": "Verification Before Completion"
     },
     {
       "name": "writing-plans",
       "source": "obra-superpowers",
       "path": "skills/writing-plans",
       "categories": [],
-      "description": "Writing Plans"
+      "description": "Writing Plans",
+      "description_ja": "Writing Plans"
     },
     {
       "name": "writing-skills",
       "source": "obra-superpowers",
       "path": "skills/writing-skills",
       "categories": [],
-      "description": "Writing Skills"
+      "description": "Writing Skills",
+      "description_ja": "Writing Skills"
     },
     {
       "name": "artifacts-builder",
       "source": "composio-awesome",
       "path": "artifacts-builder",
-      "categories": ["community"],
-      "description": "Artifacts Builder"
+      "categories": [
+        "community"
+      ],
+      "description": "Artifacts Builder",
+      "description_ja": "Artifacts Builder"
     },
     {
       "name": "brand-guidelines",
       "source": "composio-awesome",
       "path": "brand-guidelines",
-      "categories": ["community"],
-      "description": "Create and manage brand guidelines"
+      "categories": [
+        "community"
+      ],
+      "description": "Create and manage brand guidelines",
+      "description_ja": "Create and manage brand guidelines"
     },
     {
       "name": "canvas-design",
       "source": "composio-awesome",
       "path": "canvas-design",
-      "categories": ["community"],
-      "description": "Create canvas designs and layouts"
+      "categories": [
+        "community"
+      ],
+      "description": "Create canvas designs and layouts",
+      "description_ja": "Create canvas designs and layouts"
     },
     {
       "name": "changelog-generator",
       "source": "composio-awesome",
       "path": "changelog-generator",
-      "categories": ["community"],
-      "description": "Changelog Generator"
+      "categories": [
+        "community"
+      ],
+      "description": "Changelog Generator",
+      "description_ja": "Changelog Generator"
     },
     {
       "name": "competitive-ads-extractor",
       "source": "composio-awesome",
       "path": "competitive-ads-extractor",
-      "categories": ["community"],
-      "description": "Extract competitive advertising data"
+      "categories": [
+        "community"
+      ],
+      "description": "Extract competitive advertising data",
+      "description_ja": "Extract competitive advertising data"
     },
     {
       "name": "connect-apps-plugin",
       "source": "composio-awesome",
       "path": "connect-apps-plugin",
-      "categories": ["community"],
-      "description": "connect-apps-plugin skill"
+      "categories": [
+        "community"
+      ],
+      "description": "Connect Apps Plugin",
+      "description_ja": "connect-apps-plugin skill"
     },
     {
       "name": "connect-apps",
       "source": "composio-awesome",
       "path": "connect-apps",
-      "categories": ["community"],
-      "description": "Connect and integrate apps"
+      "categories": [
+        "community"
+      ],
+      "description": "Connect Apps",
+      "description_ja": "Connect and integrate apps"
     },
     {
       "name": "connect",
       "source": "composio-awesome",
       "path": "connect",
-      "categories": ["community"],
-      "description": "connect skill"
+      "categories": [
+        "community"
+      ],
+      "description": "Connect",
+      "description_ja": "connect skill"
     },
     {
       "name": "content-research-writer",
       "source": "composio-awesome",
       "path": "content-research-writer",
-      "categories": ["community"],
-      "description": "Content Research Writer"
+      "categories": [
+        "community"
+      ],
+      "description": "Content Research Writer",
+      "description_ja": "Content Research Writer"
     },
     {
       "name": "developer-growth-analysis",
       "source": "composio-awesome",
       "path": "developer-growth-analysis",
-      "categories": ["community"],
-      "description": "Developer Growth Analysis"
+      "categories": [
+        "community"
+      ],
+      "description": "Developer Growth Analysis",
+      "description_ja": "Developer Growth Analysis"
     },
     {
       "name": "document-skills",
       "source": "composio-awesome",
       "path": "document-skills",
-      "categories": ["community"],
-      "description": "document-skills skill"
+      "categories": [
+        "community"
+      ],
+      "description": "Document Skills",
+      "description_ja": "document-skills skill"
     },
     {
       "name": "domain-name-brainstormer",
       "source": "composio-awesome",
       "path": "domain-name-brainstormer",
-      "categories": ["community"],
-      "description": "Brainstorm domain names"
+      "categories": [
+        "community"
+      ],
+      "description": "Brainstorm domain names",
+      "description_ja": "Brainstorm domain names"
     },
     {
       "name": "file-organizer",
       "source": "composio-awesome",
       "path": "file-organizer",
-      "categories": ["community"],
-      "description": "Organize files and directories"
+      "categories": [
+        "community"
+      ],
+      "description": "Organize files and directories",
+      "description_ja": "Organize files and directories"
     },
     {
       "name": "image-enhancer",
       "source": "composio-awesome",
       "path": "image-enhancer",
-      "categories": ["community"],
-      "description": "Enhance and edit images"
+      "categories": [
+        "community"
+      ],
+      "description": "Enhance and edit images",
+      "description_ja": "Enhance and edit images"
     },
     {
       "name": "internal-comms",
       "source": "composio-awesome",
       "path": "internal-comms",
-      "categories": ["community"],
-      "description": "Internal communications management"
+      "categories": [
+        "community"
+      ],
+      "description": "Internal communications management",
+      "description_ja": "Internal communications management"
     },
     {
       "name": "invoice-organizer",
       "source": "composio-awesome",
       "path": "invoice-organizer",
-      "categories": ["community"],
-      "description": "Organize and manage invoices"
+      "categories": [
+        "community"
+      ],
+      "description": "Organize and manage invoices",
+      "description_ja": "Organize and manage invoices"
     },
     {
       "name": "langsmith-fetch",
       "source": "composio-awesome",
       "path": "langsmith-fetch",
-      "categories": ["community"],
-      "description": "Fetch data from LangSmith"
+      "categories": [
+        "community"
+      ],
+      "description": "Langsmith Fetch",
+      "description_ja": "Fetch data from LangSmith"
     },
     {
       "name": "lead-research-assistant",
       "source": "composio-awesome",
       "path": "lead-research-assistant",
-      "categories": ["community"],
-      "description": "Research leads and contacts"
+      "categories": [
+        "community"
+      ],
+      "description": "Research leads and contacts",
+      "description_ja": "Research leads and contacts"
     },
     {
       "name": "mcp-builder",
       "source": "composio-awesome",
       "path": "mcp-builder",
-      "categories": ["community"],
-      "description": "Build MCP (Model Context Protocol) servers"
+      "categories": [
+        "community"
+      ],
+      "description": "Build MCP (Model Context Protocol) servers",
+      "description_ja": "Build MCP (Model Context Protocol) servers"
     },
     {
       "name": "meeting-insights-analyzer",
       "source": "composio-awesome",
       "path": "meeting-insights-analyzer",
-      "categories": ["community"],
-      "description": "Analyze meeting insights"
+      "categories": [
+        "community"
+      ],
+      "description": "Analyze meeting insights",
+      "description_ja": "Analyze meeting insights"
     },
     {
       "name": "raffle-winner-picker",
       "source": "composio-awesome",
       "path": "raffle-winner-picker",
-      "categories": ["community"],
-      "description": "Pick raffle winners randomly"
+      "categories": [
+        "community"
+      ],
+      "description": "Pick raffle winners randomly",
+      "description_ja": "Pick raffle winners randomly"
     },
     {
       "name": "skill-creator",
       "source": "composio-awesome",
       "path": "skill-creator",
-      "categories": ["community"],
-      "description": "Guide for creating effective Codex skills with specialized knowledge, workflows, or tool integrations"
+      "categories": [
+        "community"
+      ],
+      "description": "Create new agent skills",
+      "description_ja": "Guide for creating effective Codex skills with specialized knowledge, workflows, or tool integrations"
     },
     {
       "name": "skill-share",
       "source": "composio-awesome",
       "path": "skill-share",
-      "categories": ["community"],
-      "description": "Share skills across teams"
+      "categories": [
+        "community"
+      ],
+      "description": "Share skills across teams",
+      "description_ja": "Share skills across teams"
     },
     {
       "name": "slack-gif-creator",
       "source": "composio-awesome",
       "path": "slack-gif-creator",
-      "categories": ["community"],
-      "description": "Create GIFs for Slack"
+      "categories": [
+        "community"
+      ],
+      "description": "Create GIFs for Slack",
+      "description_ja": "Create GIFs for Slack"
     },
     {
       "name": "tailored-resume-generator",
       "source": "composio-awesome",
       "path": "tailored-resume-generator",
-      "categories": ["community"],
-      "description": "Generate tailored resumes for job applications"
+      "categories": [
+        "community"
+      ],
+      "description": "Tailored Resume Generator",
+      "description_ja": "Generate tailored resumes for job applications"
     },
     {
       "name": "template-skill",
       "source": "composio-awesome",
       "path": "template-skill",
-      "categories": ["community"],
-      "description": "Replace with description of the skill and when Claude should use it."
+      "categories": [
+        "community"
+      ],
+      "description": "Template for creating new skills",
+      "description_ja": "Replace with description of the skill and when Claude should use it."
     },
     {
       "name": "theme-factory",
       "source": "composio-awesome",
       "path": "theme-factory",
-      "categories": ["community"],
-      "description": "Create and manage themes"
+      "categories": [
+        "community"
+      ],
+      "description": "Create and manage themes",
+      "description_ja": "Create and manage themes"
     },
     {
       "name": "twitter-algorithm-optimizer",
       "source": "composio-awesome",
       "path": "twitter-algorithm-optimizer",
-      "categories": ["community"],
-      "description": "twitter-algorithm-optimizer skill"
+      "categories": [
+        "community"
+      ],
+      "description": "Twitter Algorithm Optimizer",
+      "description_ja": "twitter-algorithm-optimizer skill"
     },
     {
       "name": "video-downloader",
       "source": "composio-awesome",
       "path": "video-downloader",
-      "categories": ["community"],
-      "description": "Download and process videos"
+      "categories": [
+        "community"
+      ],
+      "description": "Download and process videos",
+      "description_ja": "Download and process videos"
     },
     {
       "name": "webapp-testing",
       "source": "composio-awesome",
       "path": "webapp-testing",
-      "categories": ["community"],
-      "description": "Test web applications"
+      "categories": [
+        "community"
+      ],
+      "description": "Test web applications",
+      "description_ja": "Test web applications"
     },
     {
       "name": "context-engineering-collection",
       "source": "context-engineering-skills",
       "path": "SKILL.md",
       "categories": [],
-      "description": "A comprehensive collection of Agent Skills for context engineering, multi-agent architectures, and production agent systems. Use when building, optimizing, or debugging agent systems that require effective context management."
+      "description": "Context Engineering Collection",
+      "description_ja": "A comprehensive collection of Agent Skills for context engineering, multi-agent architectures, and production agent systems. Use when building, optimizing, or debugging agent systems that require effective context management."
     },
     {
       "name": "book-sft-pipeline",
       "source": "context-engineering-skills",
       "path": "examples/book-sft-pipeline",
       "categories": [],
-      "description": "Book SFT pipeline"
+      "description": "Book SFT pipeline",
+      "description_ja": "Book SFT pipeline"
     },
     {
       "name": "digital-brain",
       "source": "context-engineering-skills",
       "path": "examples/digital-brain-skill",
       "categories": [],
-      "description": "This skill should be used when the user asks to"
+      "description": "Digital Brain",
+      "description_ja": "This skill should be used when the user asks to"
     },
     {
       "name": "reasoning-trace-optimizer",
       "source": "context-engineering-skills",
       "path": "examples/interleaved_thinking",
       "categories": [],
-      "description": "Debug and optimize AI agents by analyzing reasoning traces. Activates on"
+      "description": "Reasoning Trace Optimizer",
+      "description_ja": "Debug and optimize AI agents by analyzing reasoning traces. Activates on"
     },
     {
       "name": "comprehensive-research-agent",
       "source": "context-engineering-skills",
       "path": "examples/interleaved_thinking/generated_skills/comprehensive-research-agent",
       "categories": [],
-      "description": "Ensure thorough validation, error recovery, and transparent reasoning in research tasks with multiple tool calls"
+      "description": "Comprehensive Research Agent",
+      "description_ja": "Ensure thorough validation, error recovery, and transparent reasoning in research tasks with multiple tool calls"
     },
     {
       "name": "advanced-evaluation",
       "source": "context-engineering-skills",
       "path": "skills/advanced-evaluation",
       "categories": [],
-      "description": "Advanced evaluation techniques"
+      "description": "Advanced evaluation techniques",
+      "description_ja": "Advanced evaluation techniques"
     },
     {
       "name": "bdi-mental-states",
       "source": "context-engineering-skills",
       "path": "skills/bdi-mental-states",
       "categories": [],
-      "description": "BDI (Beliefs-Desires-Intentions) mental states for agent reasoning"
+      "description": "Bdi Mental States",
+      "description_ja": "BDI (Beliefs-Desires-Intentions) mental states for agent reasoning"
     },
     {
       "name": "context-compression",
       "source": "context-engineering-skills",
       "path": "skills/context-compression",
       "categories": [],
-      "description": "Compress context efficiently"
+      "description": "Compress context efficiently",
+      "description_ja": "Compress context efficiently"
     },
     {
       "name": "context-degradation",
       "source": "context-engineering-skills",
       "path": "skills/context-degradation",
       "categories": [],
-      "description": "Handle context degradation"
+      "description": "Handle context degradation",
+      "description_ja": "Handle context degradation"
     },
     {
       "name": "context-fundamentals",
       "source": "context-engineering-skills",
       "path": "skills/context-fundamentals",
       "categories": [],
-      "description": "Context engineering fundamentals"
+      "description": "Context engineering fundamentals",
+      "description_ja": "Context engineering fundamentals"
     },
     {
       "name": "context-optimization",
       "source": "context-engineering-skills",
       "path": "skills/context-optimization",
       "categories": [],
-      "description": "Optimize context usage"
+      "description": "Optimize context usage",
+      "description_ja": "Optimize context usage"
     },
     {
       "name": "evaluation",
       "source": "context-engineering-skills",
       "path": "skills/evaluation",
       "categories": [],
-      "description": "Evaluate agent performance"
+      "description": "Evaluate agent performance",
+      "description_ja": "Evaluate agent performance"
     },
     {
       "name": "filesystem-context",
       "source": "context-engineering-skills",
       "path": "skills/filesystem-context",
       "categories": [],
-      "description": "Manage filesystem context for agents"
+      "description": "Filesystem Context",
+      "description_ja": "Manage filesystem context for agents"
     },
     {
       "name": "hosted-agents",
       "source": "context-engineering-skills",
       "path": "skills/hosted-agents",
       "categories": [],
-      "description": "Deploy and manage hosted agents"
+      "description": "Hosted Agents",
+      "description_ja": "Deploy and manage hosted agents"
     },
     {
       "name": "memory-systems",
       "source": "context-engineering-skills",
       "path": "skills/memory-systems",
       "categories": [],
-      "description": "Memory system design"
+      "description": "Memory system design",
+      "description_ja": "Memory system design"
     },
     {
       "name": "multi-agent-patterns",
       "source": "context-engineering-skills",
       "path": "skills/multi-agent-patterns",
       "categories": [],
-      "description": "Multi-agent design patterns"
+      "description": "Multi-agent design patterns",
+      "description_ja": "Multi-agent design patterns"
     },
     {
       "name": "project-development",
       "source": "context-engineering-skills",
       "path": "skills/project-development",
       "categories": [],
-      "description": "Project development workflow"
+      "description": "Project development workflow",
+      "description_ja": "Project development workflow"
     },
     {
       "name": "tool-design",
       "source": "context-engineering-skills",
       "path": "skills/tool-design",
       "categories": [],
-      "description": "Design agent tools"
+      "description": "Design agent tools",
+      "description_ja": "Design agent tools"
     },
     {
       "name": "skill-template",
       "source": "context-engineering-skills",
       "path": "template",
       "categories": [],
-      "description": "Template for creating new Agent Skills for context engineering. Use this template when adding new skills to the collection."
+      "description": "Skill Template",
+      "description_ja": "Template for creating new Agent Skills for context engineering. Use this template when adding new skills to the collection."
     },
     {
       "name": "Agents",
       "source": "pai-packs",
       "path": "Packs/pai-agents-skill/src/skills/Agents",
       "categories": [],
-      "description": "Agents"
+      "description": "Agents",
+      "description_ja": "Agents"
     },
     {
       "name": "THEALGORITHM",
       "source": "pai-packs",
       "path": "Packs/pai-algorithm-skill/src/skills/THEALGORITHM",
       "categories": [],
-      "description": "Universal execution engine using scientific method to achieve ideal state. USE WHEN complex tasks, multi-step work,"
+      "description": "THEALGORITHM",
+      "description_ja": "Universal execution engine using scientific method to achieve ideal state. USE WHEN complex tasks, multi-step work,"
     },
     {
       "name": "AnnualReports",
       "source": "pai-packs",
       "path": "Packs/pai-annualreports-skill/src/skills/AnnualReports",
       "categories": [],
-      "description": "Annual security report aggregation and analysis. USE WHEN annual reports, security reports, threat reports, industry reports, update reports, analyze reports, vendor reports, threat landscape."
+      "description": "AnnualReports",
+      "description_ja": "Annual security report aggregation and analysis. USE WHEN annual reports, security reports, threat reports, industry reports, update reports, analyze reports, vendor reports, threat landscape."
     },
     {
       "name": "Art",
       "source": "pai-packs",
       "path": "Packs/pai-art-skill/src/skills/Art",
       "categories": [],
-      "description": "Art"
+      "description": "Art",
+      "description_ja": "Art"
     },
     {
       "name": "BrightData",
       "source": "pai-packs",
       "path": "Packs/pai-brightdata-skill/src/skills/BrightData",
       "categories": [],
-      "description": "Progressive URL scraping. USE WHEN Bright Data, scrape URL, web scraping tiers. SkillSearch("
+      "description": "BrightData",
+      "description_ja": "Progressive URL scraping. USE WHEN Bright Data, scrape URL, web scraping tiers. SkillSearch("
     },
     {
       "name": "Browser",
       "source": "pai-packs",
       "path": "Packs/pai-browser-skill/src/skills/Browser",
       "categories": [],
-      "description": "Code-first browser automation and web verification. USE WHEN browser, screenshot, navigate, web testing, verify UI, VERIFY phase. Replaces Playwright MCP with 99% token savings."
+      "description": "Browser",
+      "description_ja": "Code-first browser automation and web verification. USE WHEN browser, screenshot, navigate, web testing, verify UI, VERIFY phase. Replaces Playwright MCP with 99% token savings."
     },
     {
       "name": "CORE",
       "source": "pai-packs",
       "path": "Packs/pai-core-install/src/skills/CORE",
       "categories": [],
-      "description": "CORE"
+      "description": "CORE",
+      "description_ja": "CORE"
     },
     {
       "name": "Council",
       "source": "pai-packs",
       "path": "Packs/pai-council-skill/src/skills/Council",
       "categories": [],
-      "description": "Multi-agent debate system. USE WHEN council, debate, perspectives, agents discuss. SkillSearch("
+      "description": "Council",
+      "description_ja": "Multi-agent debate system. USE WHEN council, debate, perspectives, agents discuss. SkillSearch("
     },
     {
       "name": "CreateCLI",
       "source": "pai-packs",
       "path": "Packs/pai-createcli-skill/src/skills/CreateCLI",
       "categories": [],
-      "description": "Generate TypeScript CLIs. USE WHEN create CLI, build CLI, command-line tool. SkillSearch("
+      "description": "CreateCLI",
+      "description_ja": "Generate TypeScript CLIs. USE WHEN create CLI, build CLI, command-line tool. SkillSearch("
     },
     {
       "name": "CreateSkill",
       "source": "pai-packs",
       "path": "Packs/pai-createskill-skill/src/skills/CreateSkill",
       "categories": [],
-      "description": "CreateSkill"
+      "description": "CreateSkill",
+      "description_ja": "CreateSkill"
     },
     {
       "name": "FirstPrinciples",
       "source": "pai-packs",
       "path": "Packs/pai-firstprinciples-skill/src/skills/FirstPrinciples",
       "categories": [],
-      "description": "First principles analysis. USE WHEN first principles, fundamental, root cause, decompose. SkillSearch("
+      "description": "FirstPrinciples",
+      "description_ja": "First principles analysis. USE WHEN first principles, fundamental, root cause, decompose. SkillSearch("
     },
     {
       "name": "OSINT",
       "source": "pai-packs",
       "path": "Packs/pai-osint-skill/src/skills",
       "categories": [],
-      "description": "Open source intelligence gathering. USE WHEN OSINT, due diligence, background check, research person, company intel, investigate. SkillSearch("
+      "description": "OSINT",
+      "description_ja": "Open source intelligence gathering. USE WHEN OSINT, due diligence, background check, research person, company intel, investigate. SkillSearch("
     },
     {
       "name": "PrivateInvestigator",
       "source": "pai-packs",
       "path": "Packs/pai-privateinvestigator-skill/src/skills/PrivateInvestigator",
       "categories": [],
-      "description": "Ethical people-finding. USE WHEN find person, locate, reconnect, people search, skip trace. SkillSearch("
+      "description": "PrivateInvestigator",
+      "description_ja": "Ethical people-finding. USE WHEN find person, locate, reconnect, people search, skip trace. SkillSearch("
     },
     {
       "name": "Prompting",
       "source": "pai-packs",
       "path": "Packs/pai-prompting-skill/src/skills/Prompting",
       "categories": [],
-      "description": "Prompting"
+      "description": "Prompting",
+      "description_ja": "Prompting"
     },
     {
       "name": "Recon",
       "source": "pai-packs",
       "path": "Packs/pai-recon-skill/src/skills",
       "categories": [],
-      "description": "Security reconnaissance. USE WHEN recon, reconnaissance, bug bounty, attack surface. SkillSearch("
+      "description": "Recon",
+      "description_ja": "Security reconnaissance. USE WHEN recon, reconnaissance, bug bounty, attack surface. SkillSearch("
     },
     {
       "name": "RedTeam",
       "source": "pai-packs",
       "path": "Packs/pai-redteam-skill/src/skills/RedTeam",
       "categories": [],
-      "description": "Adversarial analysis with 32 agents. USE WHEN red team, attack idea, counterarguments, critique, stress test. SkillSearch("
+      "description": "RedTeam",
+      "description_ja": "Adversarial analysis with 32 agents. USE WHEN red team, attack idea, counterarguments, critique, stress test. SkillSearch("
     },
     {
       "name": "Research",
       "source": "pai-packs",
       "path": "Packs/pai-research-skill/src/skills/Research",
       "categories": [],
-      "description": "Comprehensive research, analysis, and content extraction system. USE WHEN user says"
+      "description": "Research",
+      "description_ja": "Comprehensive research, analysis, and content extraction system. USE WHEN user says"
     },
     {
       "name": "System",
       "source": "pai-packs",
       "path": "Packs/pai-system-skill/src/skills/System",
       "categories": [],
-      "description": "System maintenance with three core operations - integrity check (find/fix broken references), document session (current transcript), document recent (catch-up since last update). Plus security workflows. USE WHEN integrity check, audit system, document session, document this session, document today, document recent, catch up docs, what"
+      "description": "System",
+      "description_ja": "System maintenance with three core operations - integrity check (find/fix broken references), document session (current transcript), document recent (catch-up since last update). Plus security workflows. USE WHEN integrity check, audit system, document session, document this session, document today, document recent, catch up docs, what"
     },
     {
       "name": "Telos",
       "source": "pai-packs",
       "path": "Packs/pai-telos-skill/src",
       "categories": [],
-      "description": "Life OS and project analysis. USE WHEN TELOS, life goals, projects, dependencies, books, movies. SkillSearch("
+      "description": "Telos",
+      "description_ja": "Life OS and project analysis. USE WHEN TELOS, life goals, projects, dependencies, books, movies. SkillSearch("
     },
     {
       "name": "Agents",
       "source": "pai-packs",
       "path": "Releases/v2.3/.claude/skills/Agents",
       "categories": [],
-      "description": "Agents"
+      "description": "Agents",
+      "description_ja": "Agents"
     },
     {
       "name": "AnnualReports",
       "source": "pai-packs",
       "path": "Releases/v2.3/.claude/skills/AnnualReports",
       "categories": [],
-      "description": "Annual security report aggregation and analysis. USE WHEN annual reports, security reports, threat reports, industry reports, update reports, analyze reports, vendor reports, threat landscape."
+      "description": "AnnualReports",
+      "description_ja": "Annual security report aggregation and analysis. USE WHEN annual reports, security reports, threat reports, industry reports, update reports, analyze reports, vendor reports, threat landscape."
     },
     {
       "name": "Art",
       "source": "pai-packs",
       "path": "Releases/v2.3/.claude/skills/Art",
       "categories": [],
-      "description": "Art"
+      "description": "Art",
+      "description_ja": "Art"
     },
     {
       "name": "BrightData",
       "source": "pai-packs",
       "path": "Releases/v2.3/.claude/skills/BrightData",
       "categories": [],
-      "description": "Progressive URL scraping. USE WHEN Bright Data, scrape URL, web scraping tiers. SkillSearch("
+      "description": "BrightData",
+      "description_ja": "Progressive URL scraping. USE WHEN Bright Data, scrape URL, web scraping tiers. SkillSearch("
     },
     {
       "name": "Browser",
       "source": "pai-packs",
       "path": "Releases/v2.3/.claude/skills/Browser",
       "categories": [],
-      "description": "Code-first browser automation and web verification. USE WHEN browser, screenshot, navigate, web testing, verify UI, VERIFY phase. Replaces Playwright MCP with 99% token savings."
+      "description": "Browser",
+      "description_ja": "Code-first browser automation and web verification. USE WHEN browser, screenshot, navigate, web testing, verify UI, VERIFY phase. Replaces Playwright MCP with 99% token savings."
     },
     {
       "name": "CORE",
       "source": "pai-packs",
       "path": "Releases/v2.3/.claude/skills/CORE",
       "categories": [],
-      "description": "CORE"
+      "description": "CORE",
+      "description_ja": "CORE"
     },
     {
       "name": "Council",
       "source": "pai-packs",
       "path": "Releases/v2.3/.claude/skills/Council",
       "categories": [],
-      "description": "Multi-agent debate system. USE WHEN council, debate, perspectives, agents discuss. SkillSearch("
+      "description": "Council",
+      "description_ja": "Multi-agent debate system. USE WHEN council, debate, perspectives, agents discuss. SkillSearch("
     },
     {
       "name": "CreateCLI",
       "source": "pai-packs",
       "path": "Releases/v2.3/.claude/skills/CreateCLI",
       "categories": [],
-      "description": "Generate TypeScript CLIs. USE WHEN create CLI, build CLI, command-line tool. SkillSearch("
+      "description": "CreateCLI",
+      "description_ja": "Generate TypeScript CLIs. USE WHEN create CLI, build CLI, command-line tool. SkillSearch("
     },
     {
       "name": "CreateSkill",
       "source": "pai-packs",
       "path": "Releases/v2.3/.claude/skills/CreateSkill",
       "categories": [],
-      "description": "CreateSkill"
+      "description": "CreateSkill",
+      "description_ja": "CreateSkill"
     },
     {
       "name": "FirstPrinciples",
       "source": "pai-packs",
       "path": "Releases/v2.3/.claude/skills/FirstPrinciples",
       "categories": [],
-      "description": "First principles analysis. USE WHEN first principles, fundamental, root cause, decompose. SkillSearch("
+      "description": "FirstPrinciples",
+      "description_ja": "First principles analysis. USE WHEN first principles, fundamental, root cause, decompose. SkillSearch("
     },
     {
       "name": "OSINT",
       "source": "pai-packs",
       "path": "Releases/v2.3/.claude/skills/OSINT",
       "categories": [],
-      "description": "Open source intelligence gathering. USE WHEN OSINT, due diligence, background check, research person, company intel, investigate. SkillSearch("
+      "description": "OSINT",
+      "description_ja": "Open source intelligence gathering. USE WHEN OSINT, due diligence, background check, research person, company intel, investigate. SkillSearch("
     },
     {
       "name": "PAIUpgrade",
       "source": "pai-packs",
       "path": "Releases/v2.3/.claude/skills/PAIUpgrade",
       "categories": [],
-      "description": "Extract system improvements from content AND monitor external sources (Anthropic ecosystem, YouTube). USE WHEN upgrade, improve system, system upgrade, analyze for improvements, check Anthropic, Anthropic changes, new Claude features, check YouTube, new videos. SkillSearch("
+      "description": "PAIUpgrade",
+      "description_ja": "Extract system improvements from content AND monitor external sources (Anthropic ecosystem, YouTube). USE WHEN upgrade, improve system, system upgrade, analyze for improvements, check Anthropic, Anthropic changes, new Claude features, check YouTube, new videos. SkillSearch("
     },
     {
       "name": "PrivateInvestigator",
       "source": "pai-packs",
       "path": "Releases/v2.3/.claude/skills/PrivateInvestigator",
       "categories": [],
-      "description": "Ethical people-finding. USE WHEN find person, locate, reconnect, people search, skip trace. SkillSearch("
+      "description": "PrivateInvestigator",
+      "description_ja": "Ethical people-finding. USE WHEN find person, locate, reconnect, people search, skip trace. SkillSearch("
     },
     {
       "name": "Prompting",
       "source": "pai-packs",
       "path": "Releases/v2.3/.claude/skills/Prompting",
       "categories": [],
-      "description": "Prompting"
+      "description": "Prompting",
+      "description_ja": "Prompting"
     },
     {
       "name": "Recon",
       "source": "pai-packs",
       "path": "Releases/v2.3/.claude/skills/Recon",
       "categories": [],
-      "description": "Security reconnaissance. USE WHEN recon, reconnaissance, bug bounty, attack surface. SkillSearch("
+      "description": "Recon",
+      "description_ja": "Security reconnaissance. USE WHEN recon, reconnaissance, bug bounty, attack surface. SkillSearch("
     },
     {
       "name": "RedTeam",
       "source": "pai-packs",
       "path": "Releases/v2.3/.claude/skills/RedTeam",
       "categories": [],
-      "description": "Adversarial analysis with 32 agents. USE WHEN red team, attack idea, counterarguments, critique, stress test. SkillSearch("
+      "description": "RedTeam",
+      "description_ja": "Adversarial analysis with 32 agents. USE WHEN red team, attack idea, counterarguments, critique, stress test. SkillSearch("
     },
     {
       "name": "Research",
       "source": "pai-packs",
       "path": "Releases/v2.3/.claude/skills/Research",
       "categories": [],
-      "description": "Comprehensive research, analysis, and content extraction system. USE WHEN user says"
+      "description": "Research",
+      "description_ja": "Comprehensive research, analysis, and content extraction system. USE WHEN user says"
     },
     {
       "name": "System",
       "source": "pai-packs",
       "path": "Releases/v2.3/.claude/skills/System",
       "categories": [],
-      "description": "System maintenance with three core operations - integrity check (find/fix broken references), document session (current transcript), document recent (catch-up since last update). Plus security workflows. USE WHEN integrity check, audit system, document session, document this session, document today, document recent, catch up docs, what"
+      "description": "System",
+      "description_ja": "System maintenance with three core operations - integrity check (find/fix broken references), document session (current transcript), document recent (catch-up since last update). Plus security workflows. USE WHEN integrity check, audit system, document session, document this session, document today, document recent, catch up docs, what"
     },
     {
       "name": "THEALGORITHM",
       "source": "pai-packs",
       "path": "Releases/v2.3/.claude/skills/THEALGORITHM",
       "categories": [],
-      "description": "Universal execution engine using scientific method to achieve ideal state. USE WHEN complex tasks, multi-step work,"
+      "description": "THEALGORITHM",
+      "description_ja": "Universal execution engine using scientific method to achieve ideal state. USE WHEN complex tasks, multi-step work,"
     },
     {
       "name": "Telos",
       "source": "pai-packs",
       "path": "Releases/v2.3/.claude/skills/Telos",
       "categories": [],
-      "description": "Life OS and project analysis. USE WHEN TELOS, life goals, projects, dependencies, books, movies. SkillSearch("
+      "description": "Telos",
+      "description_ja": "Life OS and project analysis. USE WHEN TELOS, life goals, projects, dependencies, books, movies. SkillSearch("
     },
     {
       "name": "Agents",
       "source": "pai-packs",
       "path": "Releases/v2.4/.claude/skills/Agents",
       "categories": [],
-      "description": "Agents"
+      "description": "Agents",
+      "description_ja": "Agents"
     },
     {
       "name": "AnnualReports",
       "source": "pai-packs",
       "path": "Releases/v2.4/.claude/skills/AnnualReports",
       "categories": [],
-      "description": "Annual security report aggregation and analysis. USE WHEN annual reports, security reports, threat reports, industry reports, update reports, analyze reports, vendor reports, threat landscape."
+      "description": "AnnualReports",
+      "description_ja": "Annual security report aggregation and analysis. USE WHEN annual reports, security reports, threat reports, industry reports, update reports, analyze reports, vendor reports, threat landscape."
     },
     {
       "name": "Aphorisms",
       "source": "pai-packs",
       "path": "Releases/v2.4/.claude/skills/Aphorisms",
       "categories": [],
-      "description": "Aphorism management. USE WHEN aphorism, quote, saying. SkillSearch("
+      "description": "Aphorisms",
+      "description_ja": "Aphorism management. USE WHEN aphorism, quote, saying. SkillSearch("
     },
     {
       "name": "Apify",
       "source": "pai-packs",
       "path": "Releases/v2.4/.claude/skills/Apify",
       "categories": [],
-      "description": "Social media scraping, business data, e-commerce via Apify actors. USE WHEN Twitter, Instagram, LinkedIn, TikTok, YouTube, Facebook, Google Maps, Amazon scraping."
+      "description": "Apify",
+      "description_ja": "Social media scraping, business data, e-commerce via Apify actors. USE WHEN Twitter, Instagram, LinkedIn, TikTok, YouTube, Facebook, Google Maps, Amazon scraping."
     },
     {
       "name": "Art",
       "source": "pai-packs",
       "path": "Releases/v2.4/.claude/skills/Art",
       "categories": [],
-      "description": "Art"
+      "description": "Art",
+      "description_ja": "Art"
     },
     {
       "name": "BeCreative",
       "source": "pai-packs",
       "path": "Releases/v2.4/.claude/skills/BeCreative",
       "categories": [],
-      "description": "Extended thinking mode. USE WHEN be creative, deep thinking, deep thinking, extended reasoning. SkillSearch("
+      "description": "BeCreative",
+      "description_ja": "Extended thinking mode. USE WHEN be creative, deep thinking, deep thinking, extended reasoning. SkillSearch("
     },
     {
       "name": "BrightData",
       "source": "pai-packs",
       "path": "Releases/v2.4/.claude/skills/BrightData",
       "categories": [],
-      "description": "Progressive URL scraping. USE WHEN Bright Data, scrape URL, web scraping tiers. SkillSearch("
+      "description": "BrightData",
+      "description_ja": "Progressive URL scraping. USE WHEN Bright Data, scrape URL, web scraping tiers. SkillSearch("
     },
     {
       "name": "Browser",
       "source": "pai-packs",
       "path": "Releases/v2.4/.claude/skills/Browser",
       "categories": [],
-      "description": "Code-first browser automation and web verification. USE WHEN browser, screenshot, navigate, web testing, verify UI, VERIFY phase. Replaces Playwright MCP with 99% token savings."
+      "description": "Browser",
+      "description_ja": "Code-first browser automation and web verification. USE WHEN browser, screenshot, navigate, web testing, verify UI, VERIFY phase. Replaces Playwright MCP with 99% token savings."
     },
     {
       "name": "CORE",
       "source": "pai-packs",
       "path": "Releases/v2.4/.claude/skills/CORE",
       "categories": [],
-      "description": "CORE"
+      "description": "CORE",
+      "description_ja": "CORE"
     },
     {
       "name": "Council",
       "source": "pai-packs",
       "path": "Releases/v2.4/.claude/skills/Council",
       "categories": [],
-      "description": "Multi-agent debate system. USE WHEN council, debate, perspectives, agents discuss. SkillSearch("
+      "description": "Council",
+      "description_ja": "Multi-agent debate system. USE WHEN council, debate, perspectives, agents discuss. SkillSearch("
     },
     {
       "name": "CreateCLI",
       "source": "pai-packs",
       "path": "Releases/v2.4/.claude/skills/CreateCLI",
       "categories": [],
-      "description": "Generate TypeScript CLIs. USE WHEN create CLI, build CLI, command-line tool. SkillSearch("
+      "description": "CreateCLI",
+      "description_ja": "Generate TypeScript CLIs. USE WHEN create CLI, build CLI, command-line tool. SkillSearch("
     },
     {
       "name": "CreateSkill",
       "source": "pai-packs",
       "path": "Releases/v2.4/.claude/skills/CreateSkill",
       "categories": [],
-      "description": "CreateSkill"
+      "description": "CreateSkill",
+      "description_ja": "CreateSkill"
     },
     {
       "name": "Docx",
       "source": "pai-packs",
       "path": "Releases/v2.4/.claude/skills/Documents/Docx",
       "categories": [],
-      "description": "Word document processing. USE WHEN docx, Word document. SkillSearch("
+      "description": "Docx",
+      "description_ja": "Word document processing. USE WHEN docx, Word document. SkillSearch("
     },
     {
       "name": "Pdf",
       "source": "pai-packs",
       "path": "Releases/v2.4/.claude/skills/Documents/Pdf",
       "categories": [],
-      "description": "PDF processing. USE WHEN pdf, PDF file. SkillSearch("
+      "description": "Pdf",
+      "description_ja": "PDF processing. USE WHEN pdf, PDF file. SkillSearch("
     },
     {
       "name": "Pptx",
       "source": "pai-packs",
       "path": "Releases/v2.4/.claude/skills/Documents/Pptx",
       "categories": [],
-      "description": "PowerPoint processing. USE WHEN pptx, PowerPoint, slides. SkillSearch("
+      "description": "Pptx",
+      "description_ja": "PowerPoint processing. USE WHEN pptx, PowerPoint, slides. SkillSearch("
     },
     {
       "name": "Documents",
       "source": "pai-packs",
       "path": "Releases/v2.4/.claude/skills/Documents",
       "categories": [],
-      "description": "Document processing. USE WHEN document, process file. SkillSearch("
+      "description": "Documents",
+      "description_ja": "Document processing. USE WHEN document, process file. SkillSearch("
     },
     {
       "name": "Xlsx",
       "source": "pai-packs",
       "path": "Releases/v2.4/.claude/skills/Documents/Xlsx",
       "categories": [],
-      "description": "Excel file processing. USE WHEN xlsx, Excel, spreadsheet. SkillSearch("
+      "description": "Xlsx",
+      "description_ja": "Excel file processing. USE WHEN xlsx, Excel, spreadsheet. SkillSearch("
     },
     {
       "name": "Evals",
       "source": "pai-packs",
       "path": "Releases/v2.4/.claude/skills/Evals",
       "categories": [],
-      "description": "Agent evaluation framework based on Anthropic"
+      "description": "Evals",
+      "description_ja": "Agent evaluation framework based on Anthropic"
     },
     {
       "name": "Fabric",
       "source": "pai-packs",
       "path": "Releases/v2.4/.claude/skills/Fabric",
       "categories": [],
-      "description": "Intelligent prompt pattern system with 240+ specialized patterns for content analysis, extraction, and transformation. USE WHEN user says"
+      "description": "Fabric",
+      "description_ja": "Intelligent prompt pattern system with 240+ specialized patterns for content analysis, extraction, and transformation. USE WHEN user says"
     },
     {
       "name": "FirstPrinciples",
       "source": "pai-packs",
       "path": "Releases/v2.4/.claude/skills/FirstPrinciples",
       "categories": [],
-      "description": "First principles analysis. USE WHEN first principles, fundamental, root cause, decompose. SkillSearch("
+      "description": "FirstPrinciples",
+      "description_ja": "First principles analysis. USE WHEN first principles, fundamental, root cause, decompose. SkillSearch("
     },
     {
       "name": "OSINT",
       "source": "pai-packs",
       "path": "Releases/v2.4/.claude/skills/OSINT",
       "categories": [],
-      "description": "Open source intelligence gathering. USE WHEN OSINT, due diligence, background check, research person, company intel, investigate. SkillSearch("
+      "description": "OSINT",
+      "description_ja": "Open source intelligence gathering. USE WHEN OSINT, due diligence, background check, research person, company intel, investigate. SkillSearch("
     },
     {
       "name": "PAIUpgrade",
       "source": "pai-packs",
       "path": "Releases/v2.4/.claude/skills/PAIUpgrade",
       "categories": [],
-      "description": "Extract system improvements from content AND monitor external sources (Anthropic ecosystem, YouTube). USE WHEN upgrade, improve system, system upgrade, analyze for improvements, check Anthropic, Anthropic changes, new Claude features, check YouTube, new videos. SkillSearch("
+      "description": "PAIUpgrade",
+      "description_ja": "Extract system improvements from content AND monitor external sources (Anthropic ecosystem, YouTube). USE WHEN upgrade, improve system, system upgrade, analyze for improvements, check Anthropic, Anthropic changes, new Claude features, check YouTube, new videos. SkillSearch("
     },
     {
       "name": "PrivateInvestigator",
       "source": "pai-packs",
       "path": "Releases/v2.4/.claude/skills/PrivateInvestigator",
       "categories": [],
-      "description": "Ethical people-finding. USE WHEN find person, locate, reconnect, people search, skip trace. SkillSearch("
+      "description": "PrivateInvestigator",
+      "description_ja": "Ethical people-finding. USE WHEN find person, locate, reconnect, people search, skip trace. SkillSearch("
     },
     {
       "name": "PromptInjection",
       "source": "pai-packs",
       "path": "Releases/v2.4/.claude/skills/PromptInjection",
       "categories": [],
-      "description": "Prompt injection testing. USE WHEN prompt injection, jailbreak, LLM security, AI security assessment, pentest AI application, test chatbot vulnerabilities."
+      "description": "PromptInjection",
+      "description_ja": "Prompt injection testing. USE WHEN prompt injection, jailbreak, LLM security, AI security assessment, pentest AI application, test chatbot vulnerabilities."
     },
     {
       "name": "Prompting",
       "source": "pai-packs",
       "path": "Releases/v2.4/.claude/skills/Prompting",
       "categories": [],
-      "description": "Prompting"
+      "description": "Prompting",
+      "description_ja": "Prompting"
     },
     {
       "name": "Recon",
       "source": "pai-packs",
       "path": "Releases/v2.4/.claude/skills/Recon",
       "categories": [],
-      "description": "Security reconnaissance. USE WHEN recon, reconnaissance, bug bounty, attack surface. SkillSearch("
+      "description": "Recon",
+      "description_ja": "Security reconnaissance. USE WHEN recon, reconnaissance, bug bounty, attack surface. SkillSearch("
     },
     {
       "name": "RedTeam",
       "source": "pai-packs",
       "path": "Releases/v2.4/.claude/skills/RedTeam",
       "categories": [],
-      "description": "Adversarial analysis with 32 agents. USE WHEN red team, attack idea, counterarguments, critique, stress test. SkillSearch("
+      "description": "RedTeam",
+      "description_ja": "Adversarial analysis with 32 agents. USE WHEN red team, attack idea, counterarguments, critique, stress test. SkillSearch("
     },
     {
       "name": "Research",
       "source": "pai-packs",
       "path": "Releases/v2.4/.claude/skills/Research",
       "categories": [],
-      "description": "Comprehensive research, analysis, and content extraction system. USE WHEN user says"
+      "description": "Research",
+      "description_ja": "Comprehensive research, analysis, and content extraction system. USE WHEN user says"
     },
     {
       "name": "SECUpdates",
       "source": "pai-packs",
       "path": "Releases/v2.4/.claude/skills/SECUpdates",
       "categories": [],
-      "description": "Security news aggregation from tldrsec, no.security, and other sources. USE WHEN security news, security updates, what"
+      "description": "SECUpdates",
+      "description_ja": "Security news aggregation from tldrsec, no.security, and other sources. USE WHEN security news, security updates, what"
     },
     {
       "name": "Telos",
       "source": "pai-packs",
       "path": "Releases/v2.4/.claude/skills/Telos",
       "categories": [],
-      "description": "Life OS and project analysis. USE WHEN TELOS, life goals, projects, dependencies, books, movies. SkillSearch("
+      "description": "Telos",
+      "description_ja": "Life OS and project analysis. USE WHEN TELOS, life goals, projects, dependencies, books, movies. SkillSearch("
     },
     {
       "name": "VoiceServer",
       "source": "pai-packs",
       "path": "Releases/v2.4/.claude/skills/VoiceServer",
       "categories": [],
-      "description": "Voice server management. USE WHEN voice server, TTS server, voice notification, prosody."
+      "description": "VoiceServer",
+      "description_ja": "Voice server management. USE WHEN voice server, TTS server, voice notification, prosody."
     },
     {
       "name": "WebAssessment",
       "source": "pai-packs",
       "path": "Releases/v2.4/.claude/skills/WebAssessment",
       "categories": [],
-      "description": "Web security assessment. USE WHEN web assessment, pentest, security testing, vulnerability scan. SkillSearch("
+      "description": "WebAssessment",
+      "description_ja": "Web security assessment. USE WHEN web assessment, pentest, security testing, vulnerability scan. SkillSearch("
     },
     {
       "name": "coding-tutor",
       "source": "compound-engineering",
       "path": "plugins/coding-tutor/skills/coding-tutor",
       "categories": [],
-      "description": "Coding Tutor"
+      "description": "Coding Tutor",
+      "description_ja": "Coding Tutor"
     },
     {
       "name": "agent-browser",
       "source": "compound-engineering",
       "path": "plugins/compound-engineering/skills/agent-browser",
       "categories": [],
-      "description": "Browser automation using Vercel"
+      "description": "Agent Browser",
+      "description_ja": "Browser automation using Vercel"
     },
     {
       "name": "agent-native-architecture",
       "source": "compound-engineering",
       "path": "plugins/compound-engineering/skills/agent-native-architecture",
       "categories": [],
-      "description": "Agent Native Architecture"
+      "description": "Agent Native Architecture",
+      "description_ja": "Agent Native Architecture"
     },
     {
       "name": "andrew-kane-gem-writer",
       "source": "compound-engineering",
       "path": "plugins/compound-engineering/skills/andrew-kane-gem-writer",
       "categories": [],
-      "description": "Andrew Kane Gem Writer"
+      "description": "Andrew Kane Gem Writer",
+      "description_ja": "Andrew Kane Gem Writer"
     },
     {
       "name": "brainstorming",
       "source": "compound-engineering",
       "path": "plugins/compound-engineering/skills/brainstorming",
       "categories": [],
-      "description": "Brainstorming"
+      "description": "Brainstorming",
+      "description_ja": "Brainstorming"
     },
     {
       "name": "compound-docs",
       "source": "compound-engineering",
       "path": "plugins/compound-engineering/skills/compound-docs",
       "categories": [],
-      "description": "Compound Docs"
+      "description": "Compound Docs",
+      "description_ja": "Compound Docs"
     },
     {
       "name": "creating-agent-skills",
       "source": "compound-engineering",
       "path": "plugins/compound-engineering/skills/create-agent-skills",
       "categories": [],
-      "description": "Expert guidance for creating, writing, and refining Claude Code Skills. Use when working with SKILL.md files, authoring new skills, improving existing skills, or understanding skill structure and best practices."
+      "description": "Creating Agent Skills",
+      "description_ja": "Expert guidance for creating, writing, and refining Claude Code Skills. Use when working with SKILL.md files, authoring new skills, improving existing skills, or understanding skill structure and best practices."
     },
     {
       "name": "dhh-rails-style",
       "source": "compound-engineering",
       "path": "plugins/compound-engineering/skills/dhh-rails-style",
       "categories": [],
-      "description": "Dhh Rails Style"
+      "description": "Dhh Rails Style",
+      "description_ja": "Dhh Rails Style"
     },
     {
       "name": "dspy-ruby",
       "source": "compound-engineering",
       "path": "plugins/compound-engineering/skills/dspy-ruby",
       "categories": [],
-      "description": "Dspy Ruby"
+      "description": "Dspy Ruby",
+      "description_ja": "Dspy Ruby"
     },
     {
       "name": "every-style-editor",
       "source": "compound-engineering",
       "path": "plugins/compound-engineering/skills/every-style-editor",
       "categories": [],
-      "description": "Every Style Editor"
+      "description": "Every Style Editor",
+      "description_ja": "Every Style Editor"
     },
     {
       "name": "file-todos",
       "source": "compound-engineering",
       "path": "plugins/compound-engineering/skills/file-todos",
       "categories": [],
-      "description": "File Todos"
+      "description": "File Todos",
+      "description_ja": "File Todos"
     },
     {
       "name": "frontend-design",
       "source": "compound-engineering",
       "path": "plugins/compound-engineering/skills/frontend-design",
       "categories": [],
-      "description": "Create frontend designs and UI layouts"
+      "description": "Create frontend designs and UI layouts",
+      "description_ja": "Create frontend designs and UI layouts"
     },
     {
       "name": "gemini-imagegen",
       "source": "compound-engineering",
       "path": "plugins/compound-engineering/skills/gemini-imagegen",
       "categories": [],
-      "description": "Gemini Imagegen"
+      "description": "Gemini Imagegen",
+      "description_ja": "Gemini Imagegen"
     },
     {
       "name": "git-worktree",
       "source": "compound-engineering",
       "path": "plugins/compound-engineering/skills/git-worktree",
       "categories": [],
-      "description": "Git Worktree"
+      "description": "Git Worktree",
+      "description_ja": "Git Worktree"
     },
     {
       "name": "rclone",
       "source": "compound-engineering",
       "path": "plugins/compound-engineering/skills/rclone",
       "categories": [],
-      "description": "Upload, sync, and manage files across cloud storage providers using rclone. Use when uploading files (images, videos, documents) to S3, Cloudflare R2, Backblaze B2, Google Drive, Dropbox, or any S3-compatible storage. Triggers on"
+      "description": "Rclone",
+      "description_ja": "Upload, sync, and manage files across cloud storage providers using rclone. Use when uploading files (images, videos, documents) to S3, Cloudflare R2, Backblaze B2, Google Drive, Dropbox, or any S3-compatible storage. Triggers on"
     },
     {
       "name": "skill-creator",
       "source": "compound-engineering",
       "path": "plugins/compound-engineering/skills/skill-creator",
       "categories": [],
-      "description": "Guide for creating effective Codex skills with specialized knowledge, workflows, or tool integrations"
+      "description": "Create new agent skills",
+      "description_ja": "Guide for creating effective Codex skills with specialized knowledge, workflows, or tool integrations"
     },
     {
       "name": "custom-skill",
       "source": "compound-engineering",
       "path": "tests/fixtures/custom-paths/custom-skills/custom-skill",
       "categories": [],
-      "description": ""
+      "description": "Custom Skill",
+      "description_ja": ""
     },
     {
       "name": "default-skill",
       "source": "compound-engineering",
       "path": "tests/fixtures/custom-paths/skills/default-skill",
       "categories": [],
-      "description": ""
+      "description": "Default Skill",
+      "description_ja": ""
     },
     {
       "name": "skill-one",
       "source": "compound-engineering",
       "path": "tests/fixtures/sample-plugin/skills/skill-one",
       "categories": [],
-      "description": "Sample skill"
+      "description": "Skill One",
+      "description_ja": "Sample skill"
     },
     {
       "name": "prp-core/prp-commit",
       "source": "prps-agentic",
       "path": ".claude/commands/prp-core/prp-commit.md",
-      "categories": ["prp-core", "claude-code", "prp"],
-      "description": "Quick commit with natural language file targeting"
+      "categories": [
+        "prp-core",
+        "claude-code",
+        "prp"
+      ],
+      "description": "Prp Core/prp Commit",
+      "description_ja": "Quick commit with natural language file targeting"
     },
     {
       "name": "prp-core/prp-debug",
       "source": "prps-agentic",
       "path": ".claude/commands/prp-core/prp-debug.md",
-      "categories": ["prp-core", "claude-code", "prp"],
-      "description": "Deep root cause analysis - finds the actual cause, not just symptoms"
+      "categories": [
+        "prp-core",
+        "claude-code",
+        "prp"
+      ],
+      "description": "Prp Core/prp Debug",
+      "description_ja": "Deep root cause analysis - finds the actual cause, not just symptoms"
     },
     {
       "name": "prp-core/prp-implement",
       "source": "prps-agentic",
       "path": ".claude/commands/prp-core/prp-implement.md",
-      "categories": ["prp-core", "claude-code", "prp"],
-      "description": "Execute an implementation plan with rigorous validation loops"
+      "categories": [
+        "prp-core",
+        "claude-code",
+        "prp"
+      ],
+      "description": "Prp Core/prp Implement",
+      "description_ja": "Execute an implementation plan with rigorous validation loops"
     },
     {
       "name": "prp-core/prp-issue-fix",
       "source": "prps-agentic",
       "path": ".claude/commands/prp-core/prp-issue-fix.md",
-      "categories": ["prp-core", "claude-code", "prp"],
-      "description": "Implement a fix from investigation artifact - code changes, PR, and self-review"
+      "categories": [
+        "prp-core",
+        "claude-code",
+        "prp"
+      ],
+      "description": "Prp Core/prp Issue Fix",
+      "description_ja": "Implement a fix from investigation artifact - code changes, PR, and self-review"
     },
     {
       "name": "prp-core/prp-issue-investigate",
       "source": "prps-agentic",
       "path": ".claude/commands/prp-core/prp-issue-investigate.md",
-      "categories": ["prp-core", "claude-code", "prp"],
-      "description": "Investigate a GitHub issue or problem - analyze codebase, create plan, post to G"
+      "categories": [
+        "prp-core",
+        "claude-code",
+        "prp"
+      ],
+      "description": "Prp Core/prp Issue Investigate",
+      "description_ja": "Investigate a GitHub issue or problem - analyze codebase, create plan, post to G"
     },
     {
       "name": "prp-core/prp-plan",
       "source": "prps-agentic",
       "path": ".claude/commands/prp-core/prp-plan.md",
-      "categories": ["prp-core", "claude-code", "prp"],
-      "description": "Create comprehensive feature implementation plan with codebase analysis and rese"
+      "categories": [
+        "prp-core",
+        "claude-code",
+        "prp"
+      ],
+      "description": "Prp Core/prp Plan",
+      "description_ja": "Create comprehensive feature implementation plan with codebase analysis and rese"
     },
     {
       "name": "prp-core/prp-pr",
       "source": "prps-agentic",
       "path": ".claude/commands/prp-core/prp-pr.md",
-      "categories": ["prp-core", "claude-code", "prp"],
-      "description": "Create a PR from current branch with unpushed commits"
+      "categories": [
+        "prp-core",
+        "claude-code",
+        "prp"
+      ],
+      "description": "Prp Core/prp Pr",
+      "description_ja": "Create a PR from current branch with unpushed commits"
     },
     {
       "name": "prp-core/prp-prd",
       "source": "prps-agentic",
       "path": ".claude/commands/prp-core/prp-prd.md",
-      "categories": ["prp-core", "claude-code", "prp"],
-      "description": "Interactive PRD generator - problem-first, hypothesis-driven product spec"
+      "categories": [
+        "prp-core",
+        "claude-code",
+        "prp"
+      ],
+      "description": "Prp Core/prp Prd",
+      "description_ja": "Interactive PRD generator - problem-first, hypothesis-driven product spec"
     },
     {
       "name": "prp-core/prp-ralph-cancel",
       "source": "prps-agentic",
       "path": ".claude/commands/prp-core/prp-ralph-cancel.md",
-      "categories": ["prp-core", "claude-code", "prp"],
-      "description": "Cancel active PRP Ralph loop"
+      "categories": [
+        "prp-core",
+        "claude-code",
+        "prp"
+      ],
+      "description": "Prp Core/prp Ralph Cancel",
+      "description_ja": "Cancel active PRP Ralph loop"
     },
     {
       "name": "prp-core/prp-ralph",
       "source": "prps-agentic",
       "path": ".claude/commands/prp-core/prp-ralph.md",
-      "categories": ["prp-core", "claude-code", "prp"],
-      "description": "Start autonomous Ralph loop to execute PRP plan until all validations pass"
+      "categories": [
+        "prp-core",
+        "claude-code",
+        "prp"
+      ],
+      "description": "Prp Core/prp Ralph",
+      "description_ja": "Start autonomous Ralph loop to execute PRP plan until all validations pass"
     },
     {
       "name": "prp-core/prp-review-agents",
       "source": "prps-agentic",
       "path": ".claude/commands/prp-core/prp-review-agents.md",
-      "categories": ["prp-core", "claude-code", "prp"],
-      "description": "Comprehensive PR review using specialized agents - comments, tests, errors, type"
+      "categories": [
+        "prp-core",
+        "claude-code",
+        "prp"
+      ],
+      "description": "Prp Core/prp Review Agents",
+      "description_ja": "Comprehensive PR review using specialized agents - comments, tests, errors, type"
     },
     {
       "name": "prp-core/prp-review",
       "source": "prps-agentic",
       "path": ".claude/commands/prp-core/prp-review.md",
-      "categories": ["prp-core", "claude-code", "prp"],
-      "description": "Comprehensive PR code review - checks diff, patterns, runs validation, comments "
+      "categories": [
+        "prp-core",
+        "claude-code",
+        "prp"
+      ],
+      "description": "Prp Core/prp Review",
+      "description_ja": "Comprehensive PR code review - checks diff, patterns, runs validation, comments "
     },
     {
       "name": "Cloudflare Manager",
       "source": "claude-command-suite",
       "path": ".claude/skills/cloudflare-manager",
       "categories": [],
-      "description": "Comprehensive Cloudflare account management for deploying Workers, KV Storage, R2, Pages, DNS, and Routes. Use when deploying cloudflare services, managing worker containers, configuring KV/R2 storage, or setting up DNS/routing. Requires CLOUDFLARE_API_KEY in .env and Bun runtime with dependencies installed."
+      "description": "Cloudflare Manager",
+      "description_ja": "Comprehensive Cloudflare account management for deploying Workers, KV Storage, R2, Pages, DNS, and Routes. Use when deploying cloudflare services, managing worker containers, configuring KV/R2 storage, or setting up DNS/routing. Requires CLOUDFLARE_API_KEY in .env and Bun runtime with dependencies installed."
     },
     {
       "name": "Linear Todo Sync",
       "source": "claude-command-suite",
       "path": ".claude/skills/linear-todo-sync",
       "categories": [],
-      "description": "This skill fetches open tasks assigned to the user from the Linear API and generates a markdown todo list file in the project root. This skill should be used when the user asks about their work items, wants to see what they need to work on, or requests to load/sync their Linear tasks. Requires Python 3.7+, requests, mdutils, and python-dotenv packages. Requires LINEAR_API_KEY in .env file."
+      "description": "Linear Todo Sync",
+      "description_ja": "This skill fetches open tasks assigned to the user from the Linear API and generates a markdown todo list file in the project root. This skill should be used when the user asks about their work items, wants to see what they need to work on, or requests to load/sync their Linear tasks. Requires Python 3.7+, requests, mdutils, and python-dotenv packages. Requires LINEAR_API_KEY in .env file."
     },
     {
       "name": "agentic-workflow-guide",
       "source": "aktsmm-Agent-Skills",
       "path": "agentic-workflow-guide",
       "categories": [],
-      "description": "Design, review, and improve agent workflows & agent using SSOT, SRP, Fail Fast principles. Supports Prompt Chaining, Parallelization, Orchestrator-Workers patterns."
+      "description": "Guide for agentic workflows",
+      "description_ja": "Design, review, and improve agent workflows & agent using SSOT, SRP, Fail Fast principles. Supports Prompt Chaining, Parallelization, Orchestrator-Workers patterns."
     },
     {
       "name": "azure-env-builder",
       "source": "aktsmm-Agent-Skills",
       "path": "azure-env-builder",
       "categories": [],
-      "description": "⚠️ Alpha (開発中) - エンタープライズ Azure 環境構築スキル。AVM 活用、VM アプリ初期化、App Service/AKS/Container Apps へのアプリデプロイ、サービス間設定連携、CI/CD 生成をサポート。Hub-Spoke, AKS, AI Foundry 等の複合アーキテクチャに対応。Bicep MCP と Microsoft Learn Docs MCP で最新スキーマを取得。"
+      "description": "Azure Env Builder",
+      "description_ja": "⚠️ Alpha (開発中) - エンタープライズ Azure 環境構築スキル。AVM 活用、VM アプリ初期化、App Service/AKS/Container Apps へのアプリデプロイ、サービス間設定連携、CI/CD 生成をサポート。Hub-Spoke, AKS, AI Foundry 等の複合アーキテクチャに対応。Bicep MCP と Microsoft Learn Docs MCP で最新スキーマを取得。"
     },
     {
       "name": "book-writing-workspace",
       "source": "aktsmm-Agent-Skills",
       "path": "book-writing-workspace",
       "categories": [],
-      "description": "Set up a complete book writing workspace with AI agents, instructions, prompts, and scripts. Use when users want to create a new book/technical writing project with Markdown + Re:VIEW + PDF output workflow. Triggers on"
+      "description": "Book Writing Workspace",
+      "description_ja": "Set up a complete book writing workspace with AI agents, instructions, prompts, and scripts. Use when users want to create a new book/technical writing project with Markdown + Re:VIEW + PDF output workflow. Triggers on"
     },
     {
       "name": "browser-max-automation",
       "source": "aktsmm-Agent-Skills",
       "path": "browser-max-automation",
       "categories": [],
-      "description": "Browser automation using Playwright MCP for web testing, UI verification, and form automation. Use when navigating websites, clicking elements, filling forms, taking screenshots, or testing web applications. Supports iframe operations and complex JavaScript execution."
+      "description": "Browser Max Automation",
+      "description_ja": "Browser automation using Playwright MCP for web testing, UI verification, and form automation. Use when navigating websites, clicking elements, filling forms, taking screenshots, or testing web applications. Supports iframe operations and complex JavaScript execution."
     },
     {
       "name": "code-simplifier",
       "source": "aktsmm-Agent-Skills",
       "path": "code-simplifier",
       "categories": [],
-      "description": "Guide for simplifying and refining code after coding sessions. Use when cleaning up complex code, reviewing PRs for readability, or applying consistent refactoring patterns."
+      "description": "Code Simplifier",
+      "description_ja": "Guide for simplifying and refining code after coding sessions. Use when cleaning up complex code, reviewing PRs for readability, or applying consistent refactoring patterns."
     },
     {
       "name": "customer-workspace",
       "source": "aktsmm-Agent-Skills",
       "path": "customer-workspace",
       "categories": [],
-      "description": "Customer workspace initialization skill (Japanese UI). Provides inbox (information accumulation), meeting minutes management, and auto-classification rules. Use for"
+      "description": "Customer Workspace",
+      "description_ja": "Customer workspace initialization skill (Japanese UI). Provides inbox (information accumulation), meeting minutes management, and auto-classification rules. Use for"
     },
     {
       "name": "drawio-diagram-forge",
       "source": "aktsmm-Agent-Skills",
       "path": "drawio-diagram-forge",
       "categories": [],
-      "description": "Generate draw.io editable diagrams (.drawio, .drawio.svg) from text, images, or Excel. Orchestrates 3-agent workflow (Analysis → Manifest → SVG generation) with quality gates. Use when creating architecture diagrams, flowcharts, sequence diagrams, or converting existing images to editable format. Supports Azure/AWS cloud icons."
+      "description": "Drawio Diagram Forge",
+      "description_ja": "Generate draw.io editable diagrams (.drawio, .drawio.svg) from text, images, or Excel. Orchestrates 3-agent workflow (Analysis → Manifest → SVG generation) with quality gates. Use when creating architecture diagrams, flowcharts, sequence diagrams, or converting existing images to editable format. Supports Azure/AWS cloud icons."
     },
     {
       "name": "ocr-super-surya",
       "source": "aktsmm-Agent-Skills",
       "path": "ocr-super-surya",
       "categories": [],
-      "description": "GPU-optimized OCR using Surya. Use when: (1) Extracting text from images/screenshots, (2) Processing PDFs with embedded images, (3) Multi-language document OCR, (4) Layout analysis and table detection. Supports 90+ languages with 2x accuracy over Tesseract."
+      "description": "Ocr Super Surya",
+      "description_ja": "GPU-optimized OCR using Surya. Use when: (1) Extracting text from images/screenshots, (2) Processing PDFs with embedded images, (3) Multi-language document OCR, (4) Layout analysis and table detection. Supports 90+ languages with 2x accuracy over Tesseract."
     },
     {
       "name": "powerpoint-automation",
       "source": "aktsmm-Agent-Skills",
       "path": "powerpoint-automation",
       "categories": [],
-      "description": "Create professional PowerPoint presentations from various sources including web articles, blog posts, and existing PPTX files. Ideal for tech presentations, reports, and documentation."
+      "description": "Powerpoint Automation",
+      "description_ja": "Create professional PowerPoint presentations from various sources including web articles, blog posts, and existing PPTX files. Ideal for tech presentations, reports, and documentation."
     },
     {
       "name": "skill-finder",
       "source": "aktsmm-Agent-Skills",
       "path": "skill-finder",
       "categories": [],
-      "description": "Full-featured Agent Skills management: Search 35+ skills, install locally, star favorites, update from sources. Supports tag search (#azure #bicep), category filtering, and similar skill recommendations."
+      "description": "Skill Finder",
+      "description_ja": "Full-featured Agent Skills management: Search 35+ skills, install locally, star favorites, update from sources. Supports tag search (#azure #bicep), category filtering, and similar skill recommendations."
     },
     {
       "name": "vscode-extension-guide",
       "source": "aktsmm-Agent-Skills",
       "path": "vscode-extension-guide",
       "categories": [],
-      "description": "Guide for creating VS Code extensions from scratch to Marketplace publication. Use when: (1) Creating a new VS Code extension, (2) Adding commands, keybindings, or settings to an extension, (3) Publishing to VS Code Marketplace, (4) Troubleshooting extension activation or packaging issues, (5) Building TreeView or Webview UI, (6) Setting up extension tests."
+      "description": "Vscode Extension Guide",
+      "description_ja": "Guide for creating VS Code extensions from scratch to Marketplace publication. Use when: (1) Creating a new VS Code extension, (2) Adding commands, keybindings, or settings to an extension, (3) Publishing to VS Code Marketplace, (4) Troubleshooting extension activation or packaging issues, (5) Building TreeView or Webview UI, (6) Setting up extension tests."
     },
     {
       "name": "doc",
       "source": "openai-skills",
       "path": "skills/.curated/doc",
       "categories": [],
-      "description": "Use when the task involves reading, creating, or editing `.docx` documents, especially when formatting or layout fidelity matters; prefer `python-docx` plus the bundled `scripts/render_docx.py` for visual checks."
+      "description": "Doc",
+      "description_ja": "Use when the task involves reading, creating, or editing `.docx` documents, especially when formatting or layout fidelity matters; prefer `python-docx` plus the bundled `scripts/render_docx.py` for visual checks."
     },
     {
       "name": "gh-address-comments",
       "source": "openai-skills",
       "path": "skills/.curated/gh-address-comments",
       "categories": [],
-      "description": "Address PR review comments using gh CLI with automatic authentication check"
+      "description": "Gh Address Comments",
+      "description_ja": "Address PR review comments using gh CLI with automatic authentication check"
     },
     {
       "name": "gh-fix-ci",
       "source": "openai-skills",
       "path": "skills/.curated/gh-fix-ci",
       "categories": [],
-      "description": "Inspect failing PR checks, fetch GitHub Actions logs, and implement fixes"
+      "description": "Gh Fix Ci",
+      "description_ja": "Inspect failing PR checks, fetch GitHub Actions logs, and implement fixes"
     },
     {
       "name": "imagegen",
       "source": "openai-skills",
       "path": "skills/.curated/imagegen",
       "categories": [],
-      "description": "Use when the user asks to generate or edit images via the OpenAI Image API (for example: generate image, edit/inpaint/mask, background removal or replacement, transparent background, product shots, concept art, covers, or batch variants); run the bundled CLI (`scripts/image_gen.py`) and require `OPENAI_API_KEY` for live calls."
+      "description": "Imagegen",
+      "description_ja": "Use when the user asks to generate or edit images via the OpenAI Image API (for example: generate image, edit/inpaint/mask, background removal or replacement, transparent background, product shots, concept art, covers, or batch variants); run the bundled CLI (`scripts/image_gen.py`) and require `OPENAI_API_KEY` for live calls."
     },
     {
       "name": "notion-knowledge-capture",
       "source": "openai-skills",
       "path": "skills/.curated/notion-knowledge-capture",
       "categories": [],
-      "description": "Capture and organize knowledge in Notion (how-to guides, FAQs, decision records, wikis)"
+      "description": "Notion Knowledge Capture",
+      "description_ja": "Capture and organize knowledge in Notion (how-to guides, FAQs, decision records, wikis)"
     },
     {
       "name": "notion-meeting-intelligence",
       "source": "openai-skills",
       "path": "skills/.curated/notion-meeting-intelligence",
       "categories": [],
-      "description": "Prepare meeting materials with Notion context and Codex research"
+      "description": "Notion Meeting Intelligence",
+      "description_ja": "Prepare meeting materials with Notion context and Codex research"
     },
     {
       "name": "notion-research-documentation",
       "source": "openai-skills",
       "path": "skills/.curated/notion-research-documentation",
       "categories": [],
-      "description": "Research across Notion and synthesize into structured documentation"
+      "description": "Notion Research Documentation",
+      "description_ja": "Research across Notion and synthesize into structured documentation"
     },
     {
       "name": "notion-spec-to-implementation",
       "source": "openai-skills",
       "path": "skills/.curated/notion-spec-to-implementation",
       "categories": [],
-      "description": "Convert Notion specifications to implementation code"
+      "description": "Notion Spec To Implementation",
+      "description_ja": "Convert Notion specifications to implementation code"
     },
     {
       "name": "pdf",
       "source": "openai-skills",
       "path": "skills/.curated/pdf",
       "categories": [],
-      "description": "Process PDF files"
+      "description": "Process PDF files",
+      "description_ja": "Process PDF files"
     },
     {
       "name": "screenshot",
       "source": "openai-skills",
       "path": "skills/.curated/screenshot",
       "categories": [],
-      "description": "Use when the user explicitly asks for a desktop or system screenshot (full screen, specific app or window, or a pixel region), or when tool-specific capture capabilities are unavailable and an OS-level capture is needed."
+      "description": "Screenshot",
+      "description_ja": "Use when the user explicitly asks for a desktop or system screenshot (full screen, specific app or window, or a pixel region), or when tool-specific capture capabilities are unavailable and an OS-level capture is needed."
     },
     {
       "name": "sora",
       "source": "openai-skills",
       "path": "skills/.curated/sora",
       "categories": [],
-      "description": "Use when the user asks to generate, remix, poll, list, download, or delete Sora videos via OpenAI’s video API using the bundled CLI (`scripts/sora.py`), including requests like “generate AI video,” “Sora,” “video remix,” “download video/thumbnail/spritesheet,” and batch video generation; requires `OPENAI_API_KEY` and Sora API access."
+      "description": "Sora",
+      "description_ja": "Use when the user asks to generate, remix, poll, list, download, or delete Sora videos via OpenAI’s video API using the bundled CLI (`scripts/sora.py`), including requests like “generate AI video,” “Sora,” “video remix,” “download video/thumbnail/spritesheet,” and batch video generation; requires `OPENAI_API_KEY` and Sora API access."
     },
     {
       "name": "speech",
       "source": "openai-skills",
       "path": "skills/.curated/speech",
       "categories": [],
-      "description": "Use when the user asks for text-to-speech narration or voiceover, accessibility reads, audio prompts, or batch speech generation via the OpenAI Audio API; run the bundled CLI (`scripts/text_to_speech.py`) with built-in voices and require `OPENAI_API_KEY` for live calls. Custom voice creation is out of scope."
+      "description": "Speech",
+      "description_ja": "Use when the user asks for text-to-speech narration or voiceover, accessibility reads, audio prompts, or batch speech generation via the OpenAI Audio API; run the bundled CLI (`scripts/text_to_speech.py`) with built-in voices and require `OPENAI_API_KEY` for live calls. Custom voice creation is out of scope."
     },
     {
       "name": "spreadsheet",
       "source": "openai-skills",
       "path": "skills/.curated/spreadsheet",
       "categories": [],
-      "description": "Use when tasks involve creating, editing, analyzing, or formatting spreadsheets (`.xlsx`, `.csv`, `.tsv`) using Python (`openpyxl`, `pandas`), especially when formulas, references, and formatting need to be preserved and verified."
+      "description": "Spreadsheet",
+      "description_ja": "Use when tasks involve creating, editing, analyzing, or formatting spreadsheets (`.xlsx`, `.csv`, `.tsv`) using Python (`openpyxl`, `pandas`), especially when formulas, references, and formatting need to be preserved and verified."
     },
     {
       "name": "yeet",
       "source": "openai-skills",
       "path": "skills/.curated/yeet",
       "categories": [],
-      "description": "Use only when the user explicitly asks to stage, commit, push, and open a GitHub pull request in one flow using the GitHub CLI (`gh`)."
+      "description": "Yeet",
+      "description_ja": "Use only when the user explicitly asks to stage, commit, push, and open a GitHub pull request in one flow using the GitHub CLI (`gh`)."
     },
     {
       "name": "codex-readiness-integration-test",
       "source": "openai-skills",
       "path": "skills/.experimental/codex-readiness-integration-test",
       "categories": [],
-      "description": "Run the Codex Readiness integration test. Use when you need an end-to-end agentic loop with build/test scoring."
+      "description": "Codex Readiness Integration Test",
+      "description_ja": "Run the Codex Readiness integration test. Use when you need an end-to-end agentic loop with build/test scoring."
     },
     {
       "name": "codex-readiness-unit-test",
       "source": "openai-skills",
       "path": "skills/.experimental/codex-readiness-unit-test",
       "categories": [],
-      "description": "Run the Codex Readiness unit test report. Use when you need deterministic checks plus in-session LLM evals for AGENTS.md/PLANS.md."
+      "description": "Codex Readiness Unit Test",
+      "description_ja": "Run the Codex Readiness unit test report. Use when you need deterministic checks plus in-session LLM evals for AGENTS.md/PLANS.md."
     },
     {
       "name": "create-plan",
       "source": "openai-skills",
       "path": "skills/.experimental/create-plan",
       "categories": [],
-      "description": "Create a concise plan for coding tasks"
+      "description": "Create Plan",
+      "description_ja": "Create a concise plan for coding tasks"
     },
     {
       "name": "linear",
       "source": "openai-skills",
       "path": "skills/.experimental/linear",
       "categories": [],
-      "description": "Manage issues, projects & team workflows in Linear"
+      "description": "Linear",
+      "description_ja": "Manage issues, projects & team workflows in Linear"
     },
     {
       "name": "skill-creator",
       "source": "openai-skills",
       "path": "skills/.system/skill-creator",
       "categories": [],
-      "description": "Guide for creating effective Codex skills with specialized knowledge, workflows, or tool integrations"
+      "description": "Create new agent skills",
+      "description_ja": "Guide for creating effective Codex skills with specialized knowledge, workflows, or tool integrations"
     },
     {
       "name": "skill-installer",
       "source": "openai-skills",
       "path": "skills/.system/skill-installer",
       "categories": [],
-      "description": "Install Codex skills from curated list or GitHub repositories"
+      "description": "Skill Installer",
+      "description_ja": "Install Codex skills from curated list or GitHub repositories"
     }
   ],
   "categories": [
@@ -1902,8 +2252,20 @@
       "source": "pai-packs",
       "description": "Complete PAI infrastructure - Core, Agents, Art, Prompting",
       "description_ja": "PAI完全セット - コア・エージェント・アート・プロンプティング",
-      "skills": ["CORE", "Agents", "Art", "CreateSkill", "Prompting"],
-      "installOrder": ["CORE", "Agents", "Art", "CreateSkill", "Prompting"],
+      "skills": [
+        "CORE",
+        "Agents",
+        "Art",
+        "CreateSkill",
+        "Prompting"
+      ],
+      "installOrder": [
+        "CORE",
+        "Agents",
+        "Art",
+        "CreateSkill",
+        "Prompting"
+      ],
       "coreSkill": "CORE"
     },
     {
