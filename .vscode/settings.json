@@ -3,5 +3,6 @@
     "node_modules": true,
     "dist": true
   },
-  "typescript.tsc.autoDetect": "off"
+  "typescript.tsc.autoDetect": "off",
+  "skillNinja.outputFormat": "compressed-index"
 }
