@@ -15,6 +15,7 @@ import {
   uninstallSkillByPath,
   getInstalledSkills,
   getInstalledSkillsWithMeta,
+  refreshSkillMetadata,
 } from "./skillInstaller";
 import { updateInstructionFile } from "./instructionManager";
 import {
@@ -39,6 +40,11 @@ import {
 import { createChatParticipant } from "./chatParticipant";
 import { registerMcpTools } from "./mcpTools";
 
+// 現在の拡張機能バージョン
+const EXTENSION_VERSION =
+  vscode.extensions.getExtension("yamapan.agent-skill-ninja")?.packageJSON
+    ?.version || "0.0.0";
+
 export function activate(context: vscode.ExtensionContext) {
   console.log("Agent Skill Ninja is now active!");
 
@@ -53,6 +59,10 @@ export function activate(context: vscode.ExtensionContext) {
     100
   );
   context.subscriptions.push(statusBarItem);
+
+  // バージョンアップ時のメタデータ再抽出
+  const workspaceFolder = vscode.workspace.workspaceFolders?.[0];
+  checkVersionAndRefreshMetadata(context, workspaceFolder?.uri);
 
   loadSkillIndex(context).then(async (index: SkillIndex) => {
     skillIndex = index;
@@ -102,8 +112,6 @@ export function activate(context: vscode.ExtensionContext) {
       }
     }
   });
-
-  const workspaceFolder = vscode.workspace.workspaceFolders?.[0];
 
   // 統合ワークスペーススキルビュー
   const workspaceProvider = new WorkspaceSkillsProvider(
@@ -2361,6 +2369,67 @@ Add examples here
     vscode.workspace.onDidCreateFiles(() => refreshViews()),
     vscode.workspace.onDidDeleteFiles(() => refreshViews())
   );
+}
+
+/**
+ * バージョンアップ時にメタデータを再抽出
+ * 拡張機能のバージョンが変わった場合、インストール済みスキルの whenToUse を再抽出
+ */
+async function checkVersionAndRefreshMetadata(
+  context: vscode.ExtensionContext,
+  workspaceUri: vscode.Uri | undefined
+): Promise<void> {
+  if (!workspaceUri) return;
+
+  const LAST_VERSION_KEY = "skillNinja.lastVersion";
+  const lastVersion = context.globalState.get<string>(LAST_VERSION_KEY);
+
+  if (lastVersion === EXTENSION_VERSION) {
+    // バージョンが同じなら何もしない
+    return;
+  }
+
+  console.log(
+    `[Skill Ninja] Version changed: ${lastVersion || "none"} → ${EXTENSION_VERSION}`
+  );
+
+  // バージョンを更新
+  await context.globalState.update(LAST_VERSION_KEY, EXTENSION_VERSION);
+
+  // 初回起動（lastVersion がない）の場合はスキップ
+  if (!lastVersion) {
+    console.log("[Skill Ninja] First activation, skipping metadata refresh");
+    return;
+  }
+
+  // メタデータを再抽出
+  try {
+    const updatedCount = await refreshSkillMetadata(workspaceUri);
+
+    if (updatedCount > 0) {
+      console.log(
+        `[Skill Ninja] Refreshed metadata for ${updatedCount} skills`
+      );
+
+      // instruction ファイルを更新
+      const config = vscode.workspace.getConfiguration("skillNinja");
+      const autoUpdate = config.get<boolean>("autoUpdateInstruction") ?? true;
+
+      if (autoUpdate) {
+        await updateInstructionFile(workspaceUri, context);
+        console.log("[Skill Ninja] Instruction file updated");
+      }
+
+      // 通知
+      vscode.window.showInformationMessage(
+        isJapanese()
+          ? `🥷 v${EXTENSION_VERSION} にアップデートしました。${updatedCount} 個のスキルのメタデータを更新しました。`
+          : `🥷 Updated to v${EXTENSION_VERSION}. Refreshed metadata for ${updatedCount} skill(s).`
+      );
+    }
+  } catch (error) {
+    console.error("[Skill Ninja] Failed to refresh metadata:", error);
+  }
 }
 
 export function deactivate() {}

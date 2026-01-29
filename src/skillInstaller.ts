@@ -472,6 +472,96 @@ export interface SkillMeta {
 }
 
 /**
+ * インストール済みスキルのメタデータを再抽出（アップデート時用）
+ * SKILL.md から whenToUse を再抽出してメタデータファイルを更新
+ */
+export async function refreshSkillMetadata(
+  workspaceUri: vscode.Uri,
+): Promise<number> {
+  const config = vscode.workspace.getConfiguration("skillNinja");
+  const skillsDir = config.get<string>("skillsDirectory") || ".github/skills";
+  const skillsPath = vscode.Uri.joinPath(workspaceUri, skillsDir);
+
+  let updatedCount = 0;
+
+  try {
+    const entries = await vscode.workspace.fs.readDirectory(skillsPath);
+    const dirs = entries.filter(
+      ([, type]) => type === vscode.FileType.Directory,
+    );
+
+    for (const [folderName] of dirs) {
+      const metaPath = vscode.Uri.joinPath(
+        skillsPath,
+        folderName,
+        ".skill-meta.json",
+      );
+      const skillMdPath = vscode.Uri.joinPath(
+        skillsPath,
+        folderName,
+        "SKILL.md",
+      );
+
+      try {
+        // 既存のメタデータを読み込む
+        const content = await vscode.workspace.fs.readFile(metaPath);
+        const meta = JSON.parse(Buffer.from(content).toString("utf-8"));
+
+        // SKILL.md から whenToUse を再抽出
+        const newWhenToUse = await extractWhenToUseFromSkillMd(skillMdPath);
+
+        // customWhenToUse がある場合は whenToUse のみ更新
+        // （ユーザーのカスタム値は保持）
+        if (meta.whenToUse !== newWhenToUse) {
+          meta.whenToUse = newWhenToUse || undefined;
+
+          // メタデータを保存
+          await vscode.workspace.fs.writeFile(
+            metaPath,
+            Buffer.from(JSON.stringify(meta, null, 2), "utf-8"),
+          );
+          updatedCount++;
+          console.log(
+            `[Skill Ninja] Refreshed metadata for ${folderName}: ${newWhenToUse}`,
+          );
+        }
+      } catch {
+        // メタデータがない場合は新規作成
+        try {
+          const { name, description } =
+            await extractNameAndDescriptionFromSkillMd(skillMdPath, folderName);
+          const whenToUse = await extractWhenToUseFromSkillMd(skillMdPath);
+
+          const newMeta: SkillMeta = {
+            name,
+            source: "unknown",
+            description,
+            whenToUse: whenToUse || undefined,
+            categories: [],
+            installedAt: new Date().toISOString(),
+          };
+
+          await vscode.workspace.fs.writeFile(
+            metaPath,
+            Buffer.from(JSON.stringify(newMeta, null, 2), "utf-8"),
+          );
+          updatedCount++;
+          console.log(
+            `[Skill Ninja] Created metadata for ${folderName}: ${whenToUse}`,
+          );
+        } catch {
+          // SKILL.md もない場合はスキップ
+        }
+      }
+    }
+  } catch {
+    // skills ディレクトリがない場合は何もしない
+  }
+
+  return updatedCount;
+}
+
+/**
  * インストール済みスキルのメタデータを取得
  */
 export async function getInstalledSkillsWithMeta(
