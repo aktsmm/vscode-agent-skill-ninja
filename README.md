@@ -5,6 +5,24 @@
 </p>
 
 <p align="center">
+  <a href="https://marketplace.visualstudio.com/items?itemName=yamapan.agent-skill-ninja">
+    <img src="https://img.shields.io/visual-studio-marketplace/v/yamapan.agent-skill-ninja?style=for-the-badge&logo=visual-studio-code&logoColor=white&label=VS%20Code" alt="VS Code Marketplace Version">
+  </a>
+  <a href="https://marketplace.visualstudio.com/items?itemName=yamapan.agent-skill-ninja">
+    <img src="https://img.shields.io/visual-studio-marketplace/i/yamapan.agent-skill-ninja?style=for-the-badge&logo=visual-studio-code&logoColor=white&label=Installs" alt="VS Code Marketplace Installs">
+  </a>
+  <a href="https://github.com/aktsmm/vscode-agent-skill-ninja/blob/master/LICENSE">
+    <img src="https://img.shields.io/github/license/aktsmm/vscode-agent-skill-ninja?style=for-the-badge" alt="License">
+  </a>
+</p>
+
+<p align="center">
+  <a href="https://marketplace.visualstudio.com/items?itemName=yamapan.agent-skill-ninja">
+    <img src="https://img.shields.io/badge/Install%20Now-VS%20Code%20Marketplace-007ACC?style=for-the-badge&logo=visual-studio-code&logoColor=white" alt="Install from VS Code Marketplace">
+  </a>
+</p>
+
+<p align="center">
   <b>GitHub Copilot • Claude Code • Cursor • Windsurf • Cline</b>
 </p>
 
