@@ -183,18 +183,22 @@ export function activate(context: vscode.ExtensionContext) {
       const workspaceFolders = vscode.workspace.workspaceFolders;
       if (workspaceFolders && workspaceFolders.length > 0) {
         const config = vscode.workspace.getConfiguration("skillNinja");
-        const autoUpdate = config.get<boolean>("autoUpdateInstruction") !== false;
-        
+        const autoUpdate =
+          config.get<boolean>("autoUpdateInstruction") !== false;
+
         if (autoUpdate) {
           // 少し待ってから更新（設定が完全に反映されるのを待つ）
           setTimeout(async () => {
             try {
               await updateInstructionFile(workspaceFolders[0].uri, context);
               vscode.window.showInformationMessage(
-                messages.instructionFileUpdatedOnSettingChange()
+                messages.instructionFileUpdatedOnSettingChange(),
               );
             } catch (err) {
-              console.error("Failed to update instruction file on setting change:", err);
+              console.error(
+                "Failed to update instruction file on setting change:",
+                err,
+              );
             }
           }, 500);
         }
@@ -2058,16 +2062,22 @@ export function activate(context: vscode.ExtensionContext) {
       );
 
       const skillContent = `---
-name: "${skillName}"
-description: "Add description here"
-categories: ["development"]
+name: ${skillName}
+description: Describe what this skill does. Use when [describe the conditions when agents should use this skill].
+license: MIT
+metadata:
+  author: your-name
+  version: "1.0"
 ---
 
 # ${skillName}
 
-## Description
+## When to use this skill
 
-Add your skill description here.
+Use this skill when:
+- The user needs to...
+- Working with...
+- The task involves...
 
 ## Instructions
 

@@ -30,6 +30,10 @@ export interface WorkspaceSkill {
   isRegistered: boolean; // AGENTS.md に登録済みか
   source?: string; // インストール元ソース
   categories?: string[];
+  // 公式仕様に基づくメタデータ
+  license?: string; // ライセンス（例: MIT, Apache-2.0）
+  author?: string; // 作成者
+  version?: string; // バージョン
 }
 
 /**
@@ -165,7 +169,20 @@ export class WorkspaceSkillsProvider implements vscode.TreeDataProvider<SkillTre
         const descText = isJapanese()
           ? skill.description_ja || skill.description || noDesc
           : skill.description || noDesc;
-        item.tooltip = `${skill.name}\n${descText}\n${pathLabel}: ${skill.relativePath}\n${statusLabel}: ${statusText}`;
+
+        // メタデータ情報を構築
+        let metaInfo = "";
+        if (skill.author) {
+          metaInfo += `\n${isJapanese() ? "作成者" : "Author"}: ${skill.author}`;
+        }
+        if (skill.license) {
+          metaInfo += `\n${isJapanese() ? "ライセンス" : "License"}: ${skill.license}`;
+        }
+        if (skill.version) {
+          metaInfo += `\nVersion: ${skill.version}`;
+        }
+
+        item.tooltip = `${skill.name}\n${descText}\n${pathLabel}: ${skill.relativePath}\n${statusLabel}: ${statusText}${metaInfo}`;
 
         // クリックで SKILL.md を開く
         item.command = {
@@ -229,6 +246,10 @@ export class WorkspaceSkillsProvider implements vscode.TreeDataProvider<SkillTre
           : existing.categories;
         existing.isInstalled = true;
         existing.isRegistered = true; // インストール済みは常に登録済み扱い
+        // メタデータ情報を追加
+        existing.license = meta.license;
+        existing.author = meta.author;
+        existing.version = meta.version;
       }
     }
 

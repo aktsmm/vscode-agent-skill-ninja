@@ -20,6 +20,10 @@ export interface Skill {
   standalone?: boolean; // false = 単体では動作しない（デフォルト true）
   requires?: string[]; // 依存スキル名のリスト
   bundle?: string; // 所属 Bundle ID
+  // 公式仕様に基づくメタデータ
+  license?: string; // ライセンス（例: MIT, Apache-2.0）
+  author?: string; // 作成者
+  version?: string; // バージョン
 }
 
 /**

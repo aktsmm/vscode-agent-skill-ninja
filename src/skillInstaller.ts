@@ -470,6 +470,10 @@ export interface SkillMeta {
   categories: string[];
   installedAt: string;
   relativePath?: string; // ネストされたスキルのパス（例: "document-skills/docx"）
+  // 公式仕様に基づくメタデータ
+  license?: string; // ライセンス（例: MIT, Apache-2.0）
+  author?: string; // 作成者
+  version?: string; // バージョン
 }
 
 /**
@@ -665,8 +669,8 @@ export async function getInstalledSkillsWithMeta(
         metas.push(meta);
       } catch {
         // メタデータがない場合は SKILL.md から name と description を読み取る
-        const { name, description } =
-          await extractNameAndDescriptionFromSkillMd(
+        const { name, description, license, author, version } =
+          await extractMetadataFromSkillMd(
             entry.skillMdPath,
             entry.folderName,
           );
@@ -680,6 +684,9 @@ export async function getInstalledSkillsWithMeta(
           categories: [],
           installedAt: "",
           relativePath: entry.relativePath,
+          license,
+          author,
+          version,
         });
       }
     }
@@ -739,6 +746,71 @@ async function extractNameAndDescriptionFromSkillMd(
         }
       }
       return { name, description };
+    }
+
+    return { name: fallbackName, description: "" };
+  } catch {
+    return { name: fallbackName, description: "" };
+  }
+}
+
+/**
+ * SKILL.md ファイルからメタデータを抽出する
+ * frontmatter の name, description, license, metadata.author, metadata.version を読み取る
+ */
+async function extractMetadataFromSkillMd(
+  skillMdUri: vscode.Uri,
+  fallbackName: string,
+): Promise<{
+  name: string;
+  description: string;
+  license?: string;
+  author?: string;
+  version?: string;
+}> {
+  try {
+    const content = await vscode.workspace.fs.readFile(skillMdUri);
+    const text = Buffer.from(content).toString("utf-8");
+
+    // frontmatter を解析
+    const frontmatterMatch = text.match(/^---\n([\s\S]*?)\n---/);
+    if (frontmatterMatch) {
+      const frontmatter = frontmatterMatch[1];
+
+      // name フィールドを抽出
+      let name = fallbackName;
+      const nameMatch = frontmatter.match(/^name:\s*(.+)$/m);
+      if (nameMatch) {
+        name = nameMatch[1].trim().replace(/^["']|["']$/g, "");
+      }
+
+      // description を抽出
+      const description = extractDescriptionFromFrontmatter(frontmatter);
+
+      // license を抽出
+      let license: string | undefined;
+      const licenseMatch = frontmatter.match(/^license:\s*(.+)$/m);
+      if (licenseMatch) {
+        license = licenseMatch[1].trim().replace(/^["']|["']$/g, "");
+      }
+
+      // metadata セクションから author と version を抽出
+      let author: string | undefined;
+      let version: string | undefined;
+
+      // metadata.author または author を抽出
+      const authorMatch = frontmatter.match(/^\s*author:\s*(.+)$/m);
+      if (authorMatch) {
+        author = authorMatch[1].trim().replace(/^["']|["']$/g, "");
+      }
+
+      // metadata.version または version を抽出
+      const versionMatch = frontmatter.match(/^\s*version:\s*(.+)$/m);
+      if (versionMatch) {
+        version = versionMatch[1].trim().replace(/^["']|["']$/g, "");
+      }
+
+      return { name, description, license, author, version };
     }
 
     return { name: fallbackName, description: "" };

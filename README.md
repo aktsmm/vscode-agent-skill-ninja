@@ -6,13 +6,13 @@
 
 <p align="center">
   <a href="https://marketplace.visualstudio.com/items?itemName=yamapan.agent-skill-ninja">
-    <img src="https://img.shields.io/visual-studio-marketplace/v/yamapan.agent-skill-ninja?style=for-the-badge&logo=visual-studio-code&logoColor=white&label=VS%20Code" alt="VS Code Marketplace Version">
-  </a>
-  <a href="https://marketplace.visualstudio.com/items?itemName=yamapan.agent-skill-ninja">
-    <img src="https://img.shields.io/visual-studio-marketplace/i/yamapan.agent-skill-ninja?style=for-the-badge&logo=visual-studio-code&logoColor=white&label=Installs" alt="VS Code Marketplace Installs">
+    <img src="https://img.shields.io/badge/VS%20Code-Marketplace-007ACC?style=for-the-badge&logo=visual-studio-code&logoColor=white" alt="VS Code Marketplace">
   </a>
   <a href="https://github.com/aktsmm/vscode-agent-skill-ninja/blob/master/LICENSE">
-    <img src="https://img.shields.io/github/license/aktsmm/vscode-agent-skill-ninja?style=for-the-badge" alt="License">
+    <img src="https://img.shields.io/badge/License-MIT-green?style=for-the-badge" alt="License MIT">
+  </a>
+  <a href="https://github.com/aktsmm/vscode-agent-skill-ninja">
+    <img src="https://img.shields.io/badge/GitHub-Source-181717?style=for-the-badge&logo=github&logoColor=white" alt="GitHub">
   </a>
 </p>
 
