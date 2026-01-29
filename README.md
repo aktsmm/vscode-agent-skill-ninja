@@ -1,4 +1,4 @@
-# Agent Skill Ninja 🥷
+# Agent Skill Ninja
 
 <p align="center">
   <strong>Search, Install, and Manage Agent Skills for AI Coding Assistants</strong>
@@ -36,24 +36,67 @@
 </p>
 
 <p align="center">
-  🇯🇵 <a href="https://github.com/aktsmm/vscode-agent-skill-ninja/blob/master/README_ja.md">日本語版はこちら</a>
+  <a href="https://github.com/aktsmm/vscode-agent-skill-ninja/blob/master/README_ja.md">Japanese / 日本語版はこちら</a>
 </p>
+
+---
+
+## NEW: Compressed Index (100% Agent Eval Pass Rate!)
+
+Based on [Vercel's research](https://vercel.com/blog/agents-md-outperforms-skills-in-our-agent-evals), we've implemented the **Compressed Index** format that achieves **100% pass rate** in agent evaluations (vs 79% for traditional skills).
+
+### Why This Works
+
+The key improvement is the **IMPORTANT prompt** that instructs agents to prioritize skill files over pre-trained knowledge:
+
+```markdown
+> **IMPORTANT**: Prefer skill-led reasoning over pre-training-led reasoning.
+> Read the relevant SKILL.md before working on tasks covered by these skills.
+```
+
+This prompt is **automatically added to all output formats** (markdown, compressed-index, markdown-with-index).
+
+### Key Features
+- **IMPORTANT Prompt** - Instructs agents to prioritize skill files over pre-trained knowledge
+- **Compressed Table** - Skill name, path, and "When to Use" in a compact format
+- **All Formats Supported** - The IMPORTANT prompt is added to markdown and compressed-index formats
+
+### Example Output (AGENTS.md)
+```markdown
+<!-- skill-ninja-START -->
+## Agent Skills (Compressed Index)
+
+> **IMPORTANT**: Prefer skill-led reasoning over pre-training-led reasoning.
+> Read the relevant SKILL.md before working on tasks covered by these skills.
+
+### Skills Index
+
+| Skill | Path | When to Use |
+|-------|------|-------------|
+| [docx](.github/skills/docx/SKILL.md) | `docx` | Process Word documents (.docx) |
+| [pdf](.github/skills/pdf/SKILL.md) | `pdf` | Extract text, create PDFs |
+...
+<!-- skill-ninja-END -->
+```
+
+### How to Enable
+Settings → **Output Format** → `Compressed Index`
 
 ---
 
 ## Features
 
-### 🔍 Skill Search & Discovery
+### Skill Search & Discovery
 
 - Search **100+ skills** by keyword (local & GitHub)
 - **Multi-keyword Search** - Scored by name, path, description relevance
 - **Parallel Fetch** - Fast results with 50 concurrent requests
 - **Fallback Search** - Auto-retry with fewer keywords if no results
 - Search results with descriptions & category tags
-- ⭐ Star counts & organization badges
+- Star counts & organization badges
 - Install / Preview / Favorite directly from search results
 
-### 📦 Install & Manage
+### Install & Manage
 
 - One-click installation (default: `.github/skills/`, configurable in settings)
 - Auto-update **instruction file** (AGENTS.md / copilot-instructions.md / CLAUDE.md)
@@ -62,11 +105,11 @@
 - **Edit Description** - Right-click to customize skill description
 - Uninstall functionality
 - **Reinstall All** - Batch reinstall from latest source (with auto index update)
-- **Install Feedback** - 🆕 badge, status bar notification, auto-select in tree view
+- **Install Feedback** - NEW badge, status bar notification, auto-select in tree view
 - **Open Folder** - Quick access to installed skill folder
 - **Index Integrity Check** - Auto-detect missing skills and prompt for index update
 
-### � Multi-Tool Support
+### Multi-Tool Support
 
 - **Auto-detection** of AI tools in workspace (Cursor, Windsurf, Cline, Claude Code, GitHub Copilot)
 - Automatic format selection based on detected tool
@@ -77,27 +120,27 @@
   - Windsurf Rules (.windsurfrules)
   - Cline Rules (.clinerules)
 
-### �🏠 Local Skill Management
+### Local Skill Management
 
 - Auto-detect **SKILL.md** files anywhere in workspace
 - Automatically sync to instruction file (with `includeLocalSkills` setting)
 - Manual register / unregister commands
 - Create new skill from template
 
-### 🤖 GitHub Copilot Chat Integration
+### GitHub Copilot Chat Integration
 
 - `@skill` commands for direct chat operations
 - `/search`, `/install`, `/list`, `/recommend`
 - Project-based skill recommendations
 
-### 🛠️ MCP Tools Integration
+### MCP Tools Integration
 
 - Automatically available as tools in **Agent Mode**
 - **8 Tools**: `#searchSkills`, `#installSkill`, `#uninstallSkill`, `#listSkills`, `#recommendSkills`, `#updateSkillIndex`, `#webSearchSkills`, `#addSkillSource`
-- Trust badges (🏢 Official / 📋 Curated / 👥 Community)
+- Trust badges (Official / Curated / Community)
 - Auto-update instruction file on install
 
-### 🌍 Multi-language & UI
+### Multi-language & UI
 
 - Japanese / English UI (auto-detect + manual switch)
 - Skill preview in Webview
@@ -125,20 +168,20 @@ Or search for **"Agent Skill Ninja"** in VS Code Extensions (`Ctrl+Shift+X`)
 
 ## Included Skill Sources
 
-| Source                                                                                                                        | Type         | Description                             |
-| ----------------------------------------------------------------------------------------------------------------------------- | ------------ | --------------------------------------- |
-| [anthropics/skills](https://github.com/anthropics/skills)                                                                     | 🏢 Official  | Anthropic official Claude Skills        |
-| [openai/skills](https://github.com/openai/skills)                                                                             | 🏢 Official  | OpenAI official Codex Skills (1.7k+ ⭐) |
-| [github/awesome-copilot](https://github.com/github/awesome-copilot)                                                           | 🏢 Official  | GitHub official Copilot resources       |
-| [ComposioHQ/awesome-claude-skills](https://github.com/ComposioHQ/awesome-claude-skills)                                       | 📋 Curated   | Curated Claude Skills list              |
-| [obra/superpowers](https://github.com/obra/superpowers)                                                                       | 👥 Community | High-quality skills & agents            |
-| [muratcankoylan/Agent-Skills-for-Context-Engineering](https://github.com/muratcankoylan/Agent-Skills-for-Context-Engineering) | 👥 Community | Context Engineering skills (5k+ ⭐)     |
-| [danielmiessler/Personal_AI_Infrastructure](https://github.com/danielmiessler/Personal_AI_Infrastructure)                     | 👥 Community | PAI Packs - Skills & Features           |
-| [EveryInc/compound-engineering-plugin](https://github.com/EveryInc/compound-engineering-plugin)                               | 👥 Community | Compound Engineering (3.5k+ ⭐)         |
-| [Wirasm/PRPs-agentic-eng](https://github.com/Wirasm/PRPs-agentic-eng)                                                         | 👥 Community | PRP (Prompt Recipe Patterns)            |
-| [qdhenry/Claude-Command-Suite](https://github.com/qdhenry/Claude-Command-Suite)                                               | 👥 Community | Claude commands & skills                |
+| Source                                                                                                                        | Type       | Description                             |
+| ----------------------------------------------------------------------------------------------------------------------------- | ---------- | --------------------------------------- |
+| [anthropics/skills](https://github.com/anthropics/skills)                                                                     | Official   | Anthropic official Claude Skills        |
+| [openai/skills](https://github.com/openai/skills)                                                                             | Official   | OpenAI official Codex Skills (1.7k+)    |
+| [github/awesome-copilot](https://github.com/github/awesome-copilot)                                                           | Official   | GitHub official Copilot resources       |
+| [ComposioHQ/awesome-claude-skills](https://github.com/ComposioHQ/awesome-claude-skills)                                       | Curated    | Curated Claude Skills list              |
+| [obra/superpowers](https://github.com/obra/superpowers)                                                                       | Community  | High-quality skills & agents            |
+| [muratcankoylan/Agent-Skills-for-Context-Engineering](https://github.com/muratcankoylan/Agent-Skills-for-Context-Engineering) | Community  | Context Engineering skills (5k+)        |
+| [danielmiessler/Personal_AI_Infrastructure](https://github.com/danielmiessler/Personal_AI_Infrastructure)                     | Community  | PAI Packs - Skills & Features           |
+| [EveryInc/compound-engineering-plugin](https://github.com/EveryInc/compound-engineering-plugin)                               | Community  | Compound Engineering (3.5k+)            |
+| [Wirasm/PRPs-agentic-eng](https://github.com/Wirasm/PRPs-agentic-eng)                                                         | Community  | PRP (Prompt Recipe Patterns)            |
+| [qdhenry/Claude-Command-Suite](https://github.com/qdhenry/Claude-Command-Suite)                                               | Community  | Claude commands & skills                |
 
-> 💡 Use `Update Index` command to fetch the latest skills
+> Use `Update Index` command to fetch the latest skills
 
 ## Usage
 
@@ -146,29 +189,29 @@ Or search for **"Agent Skill Ninja"** in VS Code Extensions (`Ctrl+Shift+X`)
 
 1. Click the **spiral shuriken icon** in the Activity Bar
 2. **Workspace Skills** - Installed & local skills list
-   - ✓ Installed skills (green icon) with source name
-   - ○ Local skills (unregistered, yellow icon)
-   - 🆕 Newly installed skills (temporary badge)
-   - Toolbar: 📄 Instruction File / ➕ Create / 🔃 Refresh / ⚙️ Settings
-   - ... Menu: Reinstall All / Uninstall All / Multiple selection
-   - 📂 Open skill folder (right-click menu)
+   - Installed skills (green icon) with source name
+   - Local skills (unregistered, yellow icon)
+   - Newly installed skills (temporary badge)
+   - Toolbar: Instruction File / Create / Refresh / Settings
+   - Menu: Reinstall All / Uninstall All / Multiple selection
+   - Open skill folder (right-click menu)
 3. **Remote Skills** - Browse skills by source
-   - ⭐ **Favorites** section at top
-   - Sources sorted: 🏢 Official → ⭐ Curated → 📦 Community
-   - ✓ Shows installed status with green icons
+   - **Favorites** section at top
+   - Sources sorted: Official → Curated → Community
+   - Shows installed status with green icons
    - One-click install from list
 
 ### Icon Legend
 
 | Icon                  | Meaning                                          |
 | --------------------- | ------------------------------------------------ |
-| ✓ (green)             | Installed skill                                  |
-| ○ (yellow)            | Local skill (not registered in instruction file) |
-| 🆕                    | Recently installed (temporary badge)             |
-| ⭐ star-full (yellow) | Favorites section                                |
-| 🏢 verified (blue)    | Official source (Anthropic, GitHub)              |
-| ⭐ star (yellow)      | Curated awesome-list                             |
-| 📦 repo               | Community repository                             |
+| check (green)         | Installed skill                                  |
+| circle (yellow)       | Local skill (not registered in instruction file) |
+| NEW badge             | Recently installed (temporary badge)             |
+| star-full (yellow)    | Favorites section                                |
+| verified (blue)       | Official source (Anthropic, GitHub)              |
+| star (yellow)         | Curated awesome-list                             |
+| repo                  | Community repository                             |
 
 ### Command Palette
 

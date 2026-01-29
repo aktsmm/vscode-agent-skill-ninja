@@ -23,16 +23,16 @@ node scripts/test-search-logic.js
 
 ### テストが必要なケース
 
-| 変更内容 | 必須テスト |
-|----------|-----------|
-| `instructionManager.ts` | `npm run compile` + 手動で Update Instruction File 確認 |
-| `skillInstaller.ts` | `npm run compile` + 手動でスキルインストール確認 |
-| `skillIndex.ts` | `npm run compile` + インデックス読み込み確認 |
-| `indexUpdater.ts` | `npm run compile` + ソース更新・追加確認 |
-| `treeProvider.ts` | `npm run compile` + TreeView 表示確認 |
-| `i18n.ts` | `npm run compile` + 日英両方で UI 確認 |
-| `skillSearch.ts` | `npm run compile` + `node scripts/test-search-logic.js` |
-| When to Use 抽出ロジック | `node scripts/test-whenToUse.js` |
+| 変更内容                 | 必須テスト                                              |
+| ------------------------ | ------------------------------------------------------- |
+| `instructionManager.ts`  | `npm run compile` + 手動で Update Instruction File 確認 |
+| `skillInstaller.ts`      | `npm run compile` + 手動でスキルインストール確認        |
+| `skillIndex.ts`          | `npm run compile` + インデックス読み込み確認            |
+| `indexUpdater.ts`        | `npm run compile` + ソース更新・追加確認                |
+| `treeProvider.ts`        | `npm run compile` + TreeView 表示確認                   |
+| `i18n.ts`                | `npm run compile` + 日英両方で UI 確認                  |
+| `skillSearch.ts`         | `npm run compile` + `node scripts/test-search-logic.js` |
+| When to Use 抽出ロジック | `node scripts/test-whenToUse.js`                        |
 
 ### 結合テスト（手動）
 
@@ -124,10 +124,10 @@ npx vsce package && npx vsce publish && gh release create vX.X.X agent-skill-nin
 
 ## テストファイル一覧
 
-| ファイル                        | 内容                                  |
-| ------------------------------- | ------------------------------------- |
-| `scripts/test-whenToUse.js`     | When to Use 抽出ロジックのテスト      |
-| `scripts/test-search-logic.js`  | 検索ロジックのテスト（存在する場合）  |
+| ファイル                       | 内容                                 |
+| ------------------------------ | ------------------------------------ |
+| `scripts/test-whenToUse.js`    | When to Use 抽出ロジックのテスト     |
+| `scripts/test-search-logic.js` | 検索ロジックのテスト（存在する場合） |
 
 ## 注意事項
 
