@@ -399,4 +399,3 @@ npm run lint
 ## Author
 
 yamapan (https://github.com/aktsmm)
-
