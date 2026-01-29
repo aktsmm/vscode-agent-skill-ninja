@@ -547,9 +547,15 @@ function parseSkillFrontmatter(
         .map((r) => r.trim().replace(/["']/g, ""));
     }
 
+    // description が空の場合は When to Use セクションからフォールバック
+    let description = descMatch?.[1]?.trim() || "";
+    if (!description) {
+      description = extractWhenToUseFromContent(content);
+    }
+
     return {
       name,
-      description: descMatch?.[1]?.trim() || "",
+      description,
       categories,
       standalone: standaloneMatch ? standaloneMatch[1] === "true" : undefined,
       requires,
@@ -558,13 +564,63 @@ function parseSkillFrontmatter(
   }
 
   // frontmatter がない場合はディレクトリ名を使用
+  // description は When to Use セクションからフォールバック
   const pathParts = filePath.split("/");
   const dirName = pathParts[pathParts.length - 2];
+  const description = extractWhenToUseFromContent(content);
   return {
     name: dirName,
-    description: "",
+    description,
     categories: [],
   };
+}
+
+/**
+ * SKILL.md の内容から When to Use セクションを抽出（description フォールバック用）
+ */
+function extractWhenToUseFromContent(content: string): string {
+  // When to Use セクションを検出
+  const sectionMatch = content.match(
+    /\n##\s*(When to Use|When To Use|いつ使うか|使用タイミング|Usage|使い方)\s*\n([\s\S]*?)(?=\n##\s|\n---\n|\n*$)/i,
+  );
+
+  if (!sectionMatch) {
+    // # タイトルの次の段落をフォールバック
+    const titleMatch = content.match(/^#\s+[^\n]+\n\n([^\n#]+)/m);
+    if (titleMatch) {
+      return titleMatch[1].trim().substring(0, 80);
+    }
+    return "";
+  }
+
+  const sectionContent = sectionMatch[2].trim();
+  const lines = sectionContent.split("\n").filter((line) => line.trim());
+
+  // 最初の意味のある行を取得
+  for (const line of lines) {
+    const trimmed = line.trim();
+    // ヘッダー行やセパレータ行をスキップ
+    if (trimmed.startsWith("|") && trimmed.includes("---")) continue;
+    if (trimmed.match(/^\|[\s-|]+\|$/)) continue;
+    
+    // 箇条書きの場合
+    if (trimmed.startsWith("-") || trimmed.startsWith("*")) {
+      return trimmed.replace(/^[-*]\s*/, "").substring(0, 80);
+    }
+    // テーブル行の場合
+    if (trimmed.startsWith("|")) {
+      const cells = trimmed.split("|").filter((c) => c.trim());
+      if (cells.length > 0) {
+        return cells.join("; ").substring(0, 80);
+      }
+    }
+    // 通常のテキスト
+    if (trimmed.length > 5) {
+      return trimmed.substring(0, 80);
+    }
+  }
+
+  return "";
 }
 
 /**
