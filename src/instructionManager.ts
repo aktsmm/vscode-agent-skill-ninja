@@ -191,6 +191,7 @@ function generateSkillSectionForFormat(
 
 /**
  * スキルセクションを生成（Markdown 形式）
+ * Description + WhenToUse 200文字版、Path 列付き
  */
 function generateSkillSection(
   installedSkills: SkillMeta[],
@@ -202,7 +203,7 @@ function generateSkillSection(
 
   if (!hasInstalled && !hasLocal) {
     return `${MARKER_START}
-## Installed Skills
+## Agent Skills (Compressed Index)
 
 No skills installed yet. Use "Agent Skill Ninja: Search Skills" to install skills.
 
@@ -210,13 +211,15 @@ ${MARKER_END}`;
   }
 
   let content = `${MARKER_START}
-## Installed Skills
+## Agent Skills (Compressed Index)
 
 > **IMPORTANT**: Prefer skill-led reasoning over pre-training-led reasoning.
 > Read the relevant SKILL.md before working on tasks covered by these skills.
 
-| Skill | Description |
-|-------|-------------|
+### Skills Index
+
+| Skill | Path | Description |
+|-------|------|-------------|
 `;
 
   // インストール済みスキル
@@ -232,7 +235,7 @@ ${MARKER_END}`;
         const safeDesc = desc.replace(/\|/g, "\\|");
         // relativePath がある場合はそれを使用、なければ name を使用
         const skillPath = skill.relativePath || skill.name;
-        return `| [${skill.name}](${skillsDir}/${skillPath}/SKILL.md) | ${safeDesc} |`;
+        return `| [${skill.name}](${skillsDir}/${skillPath}/SKILL.md) | \`${skillPath}\` | ${safeDesc} |`;
       })
       .join("\n");
     content += installedRows + "\n";
@@ -240,14 +243,6 @@ ${MARKER_END}`;
 
   // ローカルスキル
   if (hasLocal) {
-    if (hasInstalled) {
-      content += `
-### Local Skills
-
-| Skill | Description |
-|-------|-------------|
-`;
-    }
     const localRows = localSkills
       .map((skill) => {
         // LocalSkill は description のみ（whenToUse はない）
@@ -255,7 +250,7 @@ ${MARKER_END}`;
         const truncatedDesc =
           desc.length > 200 ? desc.substring(0, 197) + "..." : desc;
         const safeDesc = truncatedDesc.replace(/\|/g, "\\|");
-        return `| [${skill.name}](${skill.relativePath}/SKILL.md) | ${safeDesc} |`;
+        return `| [${skill.name}](${skill.relativePath}/SKILL.md) | \`${skill.relativePath}\` | ${safeDesc} |`;
       })
       .join("\n");
     content += localRows + "\n";
@@ -382,8 +377,7 @@ export async function removeSkillSection(
 
 /**
  * Compressed Index 形式のスキルセクションを生成
- * Vercel方式: パイプ区切りの圧縮形式でファイルインデックスを埋め込む
- * 参考: https://vercel.com/blog/agents-md-outperforms-skills-in-our-agent-evals
+ * 超圧縮版: Description のみ100文字（whenToUse なし）
  */
 function generateCompressedIndexSection(
   installedSkills: SkillMeta[],
@@ -394,15 +388,21 @@ function generateCompressedIndexSection(
     ...installedSkills.map((s) => ({
       name: s.name,
       path: s.relativePath || s.name,
-      description: buildDescription(
-        s.description,
-        s.customWhenToUse || s.whenToUse,
-      ),
+      // Description のみ（100文字）
+      description: s.description
+        ? s.description.length > 100
+          ? s.description.substring(0, 97) + "..."
+          : s.description
+        : "",
     })),
     ...localSkills.map((s) => ({
       name: s.name,
       path: s.relativePath,
-      description: buildDescription(s.description, undefined),
+      description: s.description
+        ? s.description.length > 100
+          ? s.description.substring(0, 97) + "..."
+          : s.description
+        : "",
     })),
   ];
 
@@ -430,7 +430,7 @@ ${MARKER_END}`;
 
   // 各スキルのインデックスを生成（テーブル形式）
   for (const skill of allSkills) {
-    // パイプをエスケープ（descriptionは既にbuildDescriptionで200文字以内に調整済み）
+    // パイプをエスケープ
     const safeDesc = skill.description.replace(/\|/g, "\\|");
     content += `| [${skill.name}](${skillsDir}/${skill.path}/SKILL.md) | \`${skill.path}\` | ${safeDesc} |\n`;
   }
@@ -470,7 +470,7 @@ function generateMarkdownWithIndexSection(
 
   if (allSkills.length === 0) {
     return `${MARKER_START}
-## Installed Skills
+## Agent Skills
 
 No skills installed yet. Use "Agent Skill Ninja: Search Skills" to install skills.
 
@@ -479,15 +479,14 @@ ${MARKER_END}`;
 
   // 従来の Markdown テーブル
   let content = `${MARKER_START}
-## Installed Skills
+## Agent Skills
 
 > **IMPORTANT**: Prefer skill-led reasoning over pre-training-led reasoning.
 > Read the relevant SKILL.md before working on tasks covered by these skills.
-> [📖 Why this format?](https://vercel.com/blog/agents-md-outperforms-skills-in-our-agent-evals)
 
-The following skills are available in this workspace.
+### Skills
 
-| Skill | When to Use |
+| Skill | Description |
 |-------|-------------|
 `;
 
@@ -496,7 +495,7 @@ The following skills are available in this workspace.
     content += `| [${skill.name}](${skillsDir}/${skill.path}/SKILL.md) | ${safeDesc} |\n`;
   }
 
-  // 圧縮インデックスセクション
+  // 圧縮インデックスセクション（100文字版）
   content += `
 ### Skills Index (Compressed)
 
@@ -505,8 +504,13 @@ The following skills are available in this workspace.
 `;
 
   for (const skill of allSkills) {
-    // descriptionは既にbuildDescriptionで200文字以内に調整済み
-    const safeDesc = skill.description.replace(/\|/g, "\\|");
+    // Description のみ100文字
+    const shortDesc = skill.description
+      ? skill.description.length > 100
+        ? skill.description.substring(0, 97) + "..."
+        : skill.description
+      : "";
+    const safeDesc = shortDesc.replace(/\|/g, "\\|");
     content += `| [${skill.name}](${skillsDir}/${skill.path}/SKILL.md) | \`${skill.path}\` | ${safeDesc} |\n`;
   }
 

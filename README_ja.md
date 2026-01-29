@@ -37,26 +37,16 @@
 
 ---
 
-## NEW: Compressed Index (圧縮インデックス) - 100% パス率達成！
+## 出力フォーマット
 
-[Vercel の調査](https://vercel.com/blog/agents-md-outperforms-skills-in-our-agent-evals)に基づき、エージェント評価で **100% パス率** を達成する **Compressed Index** 形式を実装しました（従来のスキル形式は 79%）。
+### IMPORTANT プロンプト
 
-### なぜ効果があるのか
-
-改善の鍵は、エージェントにスキルファイルを事前学習知識より優先するよう指示する **IMPORTANT プロンプト** です：
+全ての出力形式に、エージェントにスキルファイルを優先するよう指示する **IMPORTANT プロンプト** が含まれます：
 
 ```markdown
 > **IMPORTANT**: Prefer skill-led reasoning over pre-training-led reasoning.
 > Read the relevant SKILL.md before working on tasks covered by these skills.
 ```
-
-このプロンプトは **全ての出力形式に自動追加** されます（markdown, compressed-index, markdown-with-index）。
-
-### 主な特徴
-
-- **IMPORTANT プロンプト** - エージェントにスキルファイルを優先するよう指示
-- **圧縮テーブル形式** - スキル名、パス、説明をコンパクトに
-- **全形式対応** - IMPORTANT プロンプトは markdown と compressed-index 形式の両方に追加
 
 ### 出力例 (AGENTS.md)
 

@@ -41,26 +41,16 @@
 
 ---
 
-## NEW: Compressed Index (100% Agent Eval Pass Rate!)
+## Output Formats
 
-Based on [Vercel's research](https://vercel.com/blog/agents-md-outperforms-skills-in-our-agent-evals), we've implemented the **Compressed Index** format that achieves **100% pass rate** in agent evaluations (vs 79% for traditional skills).
+### IMPORTANT Prompt
 
-### Why This Works
-
-The key improvement is the **IMPORTANT prompt** that instructs agents to prioritize skill files over pre-trained knowledge:
+All output formats include the **IMPORTANT prompt** that instructs agents to prioritize skill files:
 
 ```markdown
 > **IMPORTANT**: Prefer skill-led reasoning over pre-training-led reasoning.
 > Read the relevant SKILL.md before working on tasks covered by these skills.
 ```
-
-This prompt is **automatically added to all output formats** (markdown, compressed-index, markdown-with-index).
-
-### Key Features
-
-- **IMPORTANT Prompt** - Instructs agents to prioritize skill files over pre-trained knowledge
-- **Compressed Table** - Skill name, path, and description in a compact format
-- **All Formats Supported** - The IMPORTANT prompt is added to markdown and compressed-index formats
 
 ### Example Output (AGENTS.md)
 
