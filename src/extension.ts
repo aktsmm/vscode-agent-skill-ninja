@@ -2064,7 +2064,7 @@ export function activate(context: vscode.ExtensionContext) {
       const skillContent = `---
 name: ${skillName}
 description: Describe what this skill does. Use when [describe the conditions when agents should use this skill].
-license: MIT
+license: YOUR-LICENSE
 metadata:
   author: your-name
   version: "1.0"
