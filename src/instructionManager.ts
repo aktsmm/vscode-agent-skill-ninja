@@ -16,6 +16,60 @@ const LEGACY_MARKER_START = "<!-- SKILL-FINDER-START -->";
 const LEGACY_MARKER_END = "<!-- SKILL-FINDER-END -->";
 
 /**
+ * Description + When to Use を連結する関数（合計最大200文字）
+ * - 片方だけの場合: 最大200文字
+ * - 両方ある場合: 合計200文字を分配（片方が短ければもう片方に回す）
+ */
+function buildDescription(description?: string, whenToUse?: string): string {
+  const MAX_TOTAL = 200;
+  const MAX_EACH = 100;
+
+  const desc = description?.trim() || "";
+  const when = whenToUse?.trim() || "";
+
+  if (!desc && !when) return "";
+  if (!desc)
+    return when.length > MAX_TOTAL
+      ? when.substring(0, MAX_TOTAL - 3) + "..."
+      : when;
+  if (!when)
+    return desc.length > MAX_TOTAL
+      ? desc.substring(0, MAX_TOTAL - 3) + "..."
+      : desc;
+
+  // 両方ある場合は連結（片方が短ければもう片方に回す）
+  const descLen = desc.length;
+  const whenLen = when.length;
+
+  let shortDesc: string;
+  let shortWhen: string;
+
+  if (descLen <= MAX_EACH && whenLen <= MAX_EACH) {
+    // 両方100文字以内
+    shortDesc = desc;
+    shortWhen = when;
+  } else if (descLen <= MAX_EACH) {
+    // desc が短いので when に余りを回す
+    const whenMax = MAX_TOTAL - descLen - 3; // " | " の分
+    shortDesc = desc;
+    shortWhen =
+      when.length > whenMax ? when.substring(0, whenMax - 3) + "..." : when;
+  } else if (whenLen <= MAX_EACH) {
+    // when が短いので desc に余りを回す
+    const descMax = MAX_TOTAL - whenLen - 3; // " | " の分
+    shortDesc =
+      desc.length > descMax ? desc.substring(0, descMax - 3) + "..." : desc;
+    shortWhen = when;
+  } else {
+    // 両方100文字超え: 各97文字 + "..."
+    shortDesc = desc.substring(0, MAX_EACH - 3) + "...";
+    shortWhen = when.substring(0, MAX_EACH - 3) + "...";
+  }
+
+  return `${shortDesc} | ${shortWhen}`;
+}
+
+/**
  * instructionFile から skillsDir への相対パスを計算
  * 例: instructionFile = ".github/instructions/SkillList.instructions.md"
  *     skillsDir = ".github/skills"
@@ -146,27 +200,6 @@ function generateSkillSection(
   const hasInstalled = installedSkills.length > 0;
   const hasLocal = localSkills.length > 0;
 
-  // Description + When to Use を連結する関数（各80文字、合計160文字）
-  const buildDescription = (
-    description?: string,
-    whenToUse?: string,
-  ): string => {
-    const desc = description?.trim() || "";
-    const when = whenToUse?.trim() || "";
-
-    if (!desc && !when) return "";
-    if (!desc) return when.length > 160 ? when.substring(0, 157) + "..." : when;
-    if (!when) return desc.length > 160 ? desc.substring(0, 157) + "..." : desc;
-
-    // 両方ある場合は連結
-    const shortDesc = desc.length > 80 ? desc.substring(0, 77) + "..." : desc;
-    const shortWhen = when.length > 80 ? when.substring(0, 77) + "..." : when;
-    const combined = `${shortDesc} | ${shortWhen}`;
-    return combined.length > 160
-      ? combined.substring(0, 157) + "..."
-      : combined;
-  };
-
   if (!hasInstalled && !hasLocal) {
     return `${MARKER_START}
 ## Installed Skills
@@ -190,7 +223,7 @@ ${MARKER_END}`;
   if (hasInstalled) {
     const installedRows = installedSkills
       .map((skill) => {
-        // Description + When to Use を連結（各80文字、合計160文字）
+        // Description + When to Use を連結（合計最大200文字）
         const desc = buildDescription(
           skill.description,
           skill.customWhenToUse || skill.whenToUse,
@@ -220,7 +253,7 @@ ${MARKER_END}`;
         // LocalSkill は description のみ（whenToUse はない）
         const desc = skill.description || "";
         const truncatedDesc =
-          desc.length > 160 ? desc.substring(0, 157) + "..." : desc;
+          desc.length > 200 ? desc.substring(0, 197) + "..." : desc;
         const safeDesc = truncatedDesc.replace(/\|/g, "\\|");
         return `| [${skill.name}](${skill.relativePath}/SKILL.md) | ${safeDesc} |`;
       })
@@ -357,27 +390,6 @@ function generateCompressedIndexSection(
   localSkills: LocalSkill[],
   skillsDir: string,
 ): string {
-  // Description + When to Use を連結する関数（各80文字、合計160文字）
-  const buildDescription = (
-    description?: string,
-    whenToUse?: string,
-  ): string => {
-    const desc = description?.trim() || "";
-    const when = whenToUse?.trim() || "";
-
-    if (!desc && !when) return "";
-    if (!desc) return when.length > 160 ? when.substring(0, 157) + "..." : when;
-    if (!when) return desc.length > 160 ? desc.substring(0, 157) + "..." : desc;
-
-    // 両方ある場合は連結
-    const shortDesc = desc.length > 80 ? desc.substring(0, 77) + "..." : desc;
-    const shortWhen = when.length > 80 ? when.substring(0, 77) + "..." : when;
-    const combined = `${shortDesc} | ${shortWhen}`;
-    return combined.length > 160
-      ? combined.substring(0, 157) + "..."
-      : combined;
-  };
-
   const allSkills = [
     ...installedSkills.map((s) => ({
       name: s.name,
@@ -418,7 +430,7 @@ ${MARKER_END}`;
 
   // 各スキルのインデックスを生成（テーブル形式）
   for (const skill of allSkills) {
-    // パイプをエスケープ（descriptionは既にbuildDescriptionで160文字以内に調整済み）
+    // パイプをエスケープ（descriptionは既にbuildDescriptionで200文字以内に調整済み）
     const safeDesc = skill.description.replace(/\|/g, "\\|");
     content += `| [${skill.name}](${skillsDir}/${skill.path}/SKILL.md) | \`${skill.path}\` | ${safeDesc} |\n`;
   }
@@ -436,27 +448,6 @@ function generateMarkdownWithIndexSection(
   localSkills: LocalSkill[],
   skillsDir: string,
 ): string {
-  // Description + When to Use を連結する関数（各80文字、合計160文字）
-  const buildDescription = (
-    description?: string,
-    whenToUse?: string,
-  ): string => {
-    const desc = description?.trim() || "";
-    const when = whenToUse?.trim() || "";
-
-    if (!desc && !when) return "";
-    if (!desc) return when.length > 160 ? when.substring(0, 157) + "..." : when;
-    if (!when) return desc.length > 160 ? desc.substring(0, 157) + "..." : desc;
-
-    // 両方ある場合は連結
-    const shortDesc = desc.length > 80 ? desc.substring(0, 77) + "..." : desc;
-    const shortWhen = when.length > 80 ? when.substring(0, 77) + "..." : when;
-    const combined = `${shortDesc} | ${shortWhen}`;
-    return combined.length > 160
-      ? combined.substring(0, 157) + "..."
-      : combined;
-  };
-
   const allSkills = [
     ...installedSkills.map((s) => ({
       name: s.name,
@@ -471,8 +462,8 @@ function generateMarkdownWithIndexSection(
       path: s.relativePath,
       // LocalSkill は description のみ（whenToUse はない）
       description:
-        s.description && s.description.length > 160
-          ? s.description.substring(0, 157) + "..."
+        s.description && s.description.length > 200
+          ? s.description.substring(0, 197) + "..."
           : s.description || "",
     })),
   ];
@@ -514,7 +505,7 @@ The following skills are available in this workspace.
 `;
 
   for (const skill of allSkills) {
-    // descriptionは既にbuildDescriptionで160文字以内に調整済み
+    // descriptionは既にbuildDescriptionで200文字以内に調整済み
     const safeDesc = skill.description.replace(/\|/g, "\\|");
     content += `| [${skill.name}](${skillsDir}/${skill.path}/SKILL.md) | \`${skill.path}\` | ${safeDesc} |\n`;
   }

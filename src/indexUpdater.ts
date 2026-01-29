@@ -283,6 +283,16 @@ async function processTreeResponse(
           if (skillInfo.bundle) {
             skill.bundle = skillInfo.bundle;
           }
+          // メタデータフィールドを追加
+          if (skillInfo.license) {
+            skill.license = skillInfo.license;
+          }
+          if (skillInfo.author) {
+            skill.author = skillInfo.author;
+          }
+          if (skillInfo.version) {
+            skill.version = skillInfo.version;
+          }
           skills.push(skill);
         }
       }
@@ -504,6 +514,9 @@ function parseSkillFrontmatter(
   standalone?: boolean;
   requires?: string[];
   bundle?: string;
+  license?: string;
+  author?: string;
+  version?: string;
 } | null {
   // frontmatter を抽出
   const frontmatterMatch = content.match(/^---\n([\s\S]*?)\n---/);
@@ -520,6 +533,15 @@ function parseSkillFrontmatter(
     const standaloneMatch = frontmatter.match(/^standalone:\s*(true|false)/m);
     const requiresMatch = frontmatter.match(/^requires:\s*\[([^\]]+)\]/m);
     const bundleMatch = frontmatter.match(/^bundle:\s*["']?([^"'\n]+)["']?/m);
+
+    // メタデータ: license, author, version
+    const licenseMatch = frontmatter.match(/^license:\s*["']?([^"'\n]+)["']?/m);
+    const authorMatch = frontmatter.match(/^author:\s*["']?([^"'\n]+)["']?/m);
+    // metadata.author も対応
+    const metadataAuthorMatch = frontmatter.match(
+      /metadata:[\s\S]*?author:\s*["']?([^"'\n]+)["']?/m,
+    );
+    const versionMatch = frontmatter.match(/^version:\s*["']?([^"'\n]+)["']?/m);
 
     const name = nameMatch?.[1]?.trim();
     if (!name) {
@@ -560,6 +582,9 @@ function parseSkillFrontmatter(
       standalone: standaloneMatch ? standaloneMatch[1] === "true" : undefined,
       requires,
       bundle: bundleMatch?.[1]?.trim(),
+      license: licenseMatch?.[1]?.trim(),
+      author: authorMatch?.[1]?.trim() || metadataAuthorMatch?.[1]?.trim(),
+      version: versionMatch?.[1]?.trim(),
     };
   }
 
@@ -602,7 +627,7 @@ function extractWhenToUseFromContent(content: string): string {
     // ヘッダー行やセパレータ行をスキップ
     if (trimmed.startsWith("|") && trimmed.includes("---")) continue;
     if (trimmed.match(/^\|[\s-|]+\|$/)) continue;
-    
+
     // 箇条書きの場合
     if (trimmed.startsWith("-") || trimmed.startsWith("*")) {
       return trimmed.replace(/^[-*]\s*/, "").substring(0, 80);
