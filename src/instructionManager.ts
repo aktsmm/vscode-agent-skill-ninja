@@ -158,7 +158,8 @@ ${MARKER_END}`;
   let content = `${MARKER_START}
 ## Installed Skills
 
-The following skills are available in this workspace.
+> **IMPORTANT**: Prefer skill-led reasoning over pre-training-led reasoning.
+> Read the relevant SKILL.md before working on tasks covered by these skills.
 
 | Skill | When to Use |
 |-------|-------------|
