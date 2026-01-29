@@ -126,7 +126,7 @@ async function githubFetch(url: string, token?: string): Promise<Response> {
 export async function scanRepositoryForSkills(
   repoUrl: string,
   token?: string,
-  preferredBranch?: string // skill-index.json で指定されたブランチ
+  preferredBranch?: string, // skill-index.json で指定されたブランチ
 ): Promise<{ skills: Skill[]; source: Source; bundles?: Bundle[] } | null> {
   // URLからowner/repoを抽出
   const match = repoUrl.match(/github\.com\/([^/]+)\/([^/]+)/);
@@ -173,16 +173,16 @@ export async function scanRepositoryForSkills(
           repoName,
           repoUrl,
           fallbackBranch,
-          token
+          token,
         );
       }
       throw new Error(
-        `Repository or branch not found: ${owner}/${repoName} (branch: ${branch})`
+        `Repository or branch not found: ${owner}/${repoName} (branch: ${branch})`,
       );
     }
     if (response.status === 403) {
       throw new Error(
-        "GitHub API rate limit exceeded. Please authenticate with a GitHub token."
+        "GitHub API rate limit exceeded. Please authenticate with a GitHub token.",
       );
     }
     throw new Error(`GitHub API error: ${response.status}`);
@@ -197,7 +197,7 @@ export async function scanRepositoryForSkills(
     repoName,
     repoUrl,
     branch,
-    token
+    token,
   );
 }
 
@@ -210,7 +210,7 @@ async function processTreeResponse(
   repoName: string,
   repoUrl: string,
   branch: string,
-  _token?: string
+  _token?: string,
 ): Promise<{ skills: Skill[]; source: Source; bundles?: Bundle[] }> {
   // SKILL.md / skill.md ファイルを探す（どのディレクトリでも可、大文字小文字両対応）
   const skillFiles = data.tree.filter((item) => {
@@ -227,7 +227,7 @@ async function processTreeResponse(
       data,
       owner,
       repoName,
-      branch
+      branch,
     );
     const source: Source = {
       id: `${owner}-${repoName}`,
@@ -314,13 +314,13 @@ async function scanBundleJson(
   data: { tree: Array<{ path: string; type: string }> },
   owner: string,
   repoName: string,
-  branch: string
+  branch: string,
 ): Promise<Bundle[]> {
   // bundle.json ファイルを探す（ルートまたはどこでも）
   const bundleFiles = data.tree.filter(
     (item) =>
       item.type === "blob" &&
-      (item.path === "bundle.json" || item.path.endsWith("/bundle.json"))
+      (item.path === "bundle.json" || item.path.endsWith("/bundle.json")),
   );
 
   const bundles: Bundle[] = [];
@@ -382,10 +382,10 @@ async function scanClaudeCommands(
   data: { tree: Array<{ path: string; type: string }> },
   owner: string,
   repoName: string,
-  branch: string
+  branch: string,
 ): Promise<Skill[]> {
   console.log(
-    `[Skill Ninja] scanClaudeCommands: ${owner}/${repoName} branch=${branch}`
+    `[Skill Ninja] scanClaudeCommands: ${owner}/${repoName} branch=${branch}`,
   );
   console.log(`[Skill Ninja] Total tree items: ${data.tree.length}`);
 
@@ -394,7 +394,7 @@ async function scanClaudeCommands(
     (item) =>
       item.type === "blob" &&
       item.path.startsWith(".claude/commands/") &&
-      item.path.endsWith(".md")
+      item.path.endsWith(".md"),
   );
 
   console.log(`[Skill Ninja] Found ${commandFiles.length} command files`);
@@ -459,7 +459,7 @@ async function scanClaudeCommands(
 function scanComposioSkills(
   data: { tree: Array<{ path: string; type: string }> },
   owner: string,
-  repoName: string
+  repoName: string,
 ): Skill[] {
   // 除外するディレクトリ（設定ファイルや非スキル）
   const excludeDirs = new Set([
@@ -477,7 +477,7 @@ function scanComposioSkills(
       item.type === "tree" &&
       !item.path.includes("/") &&
       !item.path.startsWith(".") &&
-      !excludeDirs.has(item.path)
+      !excludeDirs.has(item.path),
   );
 
   const skills: Skill[] = topLevelDirs.map((dir) => ({
@@ -496,7 +496,7 @@ function scanComposioSkills(
  */
 function parseSkillFrontmatter(
   content: string,
-  filePath: string
+  filePath: string,
 ): {
   name: string;
   description: string;
@@ -512,7 +512,7 @@ function parseSkillFrontmatter(
     const frontmatter = frontmatterMatch[1];
     const nameMatch = frontmatter.match(/^name:\s*["']?([^"'\n]+)["']?/m);
     const descMatch = frontmatter.match(
-      /^description:\s*["']?([^"'\n]+)["']?/m
+      /^description:\s*["']?([^"'\n]+)["']?/m,
     );
     const categoriesMatch = frontmatter.match(/^categories:\s*\[([^\]]+)\]/m);
 
@@ -664,7 +664,7 @@ export async function updateSingleSource(
 export async function updateIndexFromSources(
   context: vscode.ExtensionContext,
   currentIndex: SkillIndex,
-  progress?: vscode.Progress<{ message?: string; increment?: number }>
+  progress?: vscode.Progress<{ message?: string; increment?: number }>,
 ): Promise<SkillIndex> {
   const config = vscode.workspace.getConfiguration("skillNinja");
   const token = config.get<string>("githubToken");
@@ -693,7 +693,7 @@ export async function updateIndexFromSources(
       const result = await scanRepositoryForSkills(
         source.url,
         token,
-        source.branch
+        source.branch,
       );
       if (result) {
         // 既存の説明があれば保持、なければGitHubから取得した説明を使用
@@ -725,12 +725,12 @@ export async function updateIndexFromSources(
       console.warn(`Failed to update source ${source.id}:`, error);
       // 更新に失敗したソースの既存スキルは保持
       const existingSkills = currentIndex.skills.filter(
-        (s) => s.source === source.id
+        (s) => s.source === source.id,
       );
       updatedSkills.push(...existingSkills);
       // 既存のBundlesも保持
       const existingBundles = (currentIndex.bundles || []).filter(
-        (b) => b.source === source.id
+        (b) => b.source === source.id,
       );
       updatedBundles.push(...existingBundles);
     }
@@ -739,7 +739,7 @@ export async function updateIndexFromSources(
   // 既存のBundles（バンドル版から来たもの）を保持しつつ、新規を追加
   const existingBundleIds = new Set(updatedBundles.map((b) => b.id));
   const preservedBundles = (currentIndex.bundles || []).filter(
-    (b) => !existingBundleIds.has(b.id)
+    (b) => !existingBundleIds.has(b.id),
   );
 
   const updatedIndex: SkillIndex = {
@@ -761,7 +761,7 @@ export async function updateIndexFromSources(
 export async function addSource(
   context: vscode.ExtensionContext,
   currentIndex: SkillIndex,
-  repoUrl: string
+  repoUrl: string,
 ): Promise<{ index: SkillIndex; addedSkills: number }> {
   // repoUrlが文字列かどうか検証
   if (!repoUrl || typeof repoUrl !== "string") {
@@ -778,7 +778,7 @@ export async function addSource(
 
   // 既存のソースをチェック
   const existingSourceIndex = currentIndex.sources.findIndex(
-    (s) => s.id === result.source.id
+    (s) => s.id === result.source.id,
   );
 
   let updatedSources: Source[];
@@ -793,13 +793,13 @@ export async function addSource(
 
   // 既存のスキルを除外して新しいスキルを追加
   const existingSkills = currentIndex.skills.filter(
-    (s) => s.source !== result.source.id
+    (s) => s.source !== result.source.id,
   );
   const updatedSkills = [...existingSkills, ...result.skills];
 
   // Bundlesもマージ
   const existingBundles = (currentIndex.bundles || []).filter(
-    (b) => b.source !== result.source.id
+    (b) => b.source !== result.source.id,
   );
   const updatedBundles = [...existingBundles, ...(result.bundles || [])];
 
@@ -823,7 +823,7 @@ export async function addSource(
 export async function removeSource(
   context: vscode.ExtensionContext,
   currentIndex: SkillIndex,
-  sourceId: string
+  sourceId: string,
 ): Promise<{ index: SkillIndex; removedSkills: number }> {
   // ソースを検索
   const sourceToRemove = currentIndex.sources.find((s) => s.id === sourceId);
@@ -833,19 +833,19 @@ export async function removeSource(
 
   // そのソースに属するスキル数をカウント
   const skillsToRemove = currentIndex.skills.filter(
-    (s) => s.source === sourceId
+    (s) => s.source === sourceId,
   );
   const removedSkills = skillsToRemove.length;
 
   // ソースとスキルを除外
   const updatedSources = currentIndex.sources.filter((s) => s.id !== sourceId);
   const updatedSkills = currentIndex.skills.filter(
-    (s) => s.source !== sourceId
+    (s) => s.source !== sourceId,
   );
 
   // Bundlesも除外
   const updatedBundles = (currentIndex.bundles || []).filter(
-    (b) => b.source !== sourceId
+    (b) => b.source !== sourceId,
   );
 
   const updatedIndex: SkillIndex = {
@@ -868,7 +868,7 @@ export async function removeSource(
  */
 export async function searchGitHub(
   query: string,
-  token?: string
+  token?: string,
 ): Promise<
   Array<{
     name: string;
@@ -887,7 +887,7 @@ export async function searchGitHub(
     .split(/\s+/)
     .filter((k) => k.length > 0);
   const keywords = rawKeywords.filter(
-    (k) => k.length >= 3 || /^[a-z0-9]+$/i.test(k)
+    (k) => k.length >= 3 || /^[a-z0-9]+$/i.test(k),
   );
 
   // user: または repo: プレフィックスを抽出
@@ -898,7 +898,7 @@ export async function searchGitHub(
 
   // プレフィックスを除いたキーワード
   let keywordsWithoutPrefix = keywords.filter(
-    (k) => !k.startsWith("user:") && !k.startsWith("repo:")
+    (k) => !k.startsWith("user:") && !k.startsWith("repo:"),
   );
 
   // 単一キーワードがユーザー名っぽいかどうかを判定する関数
@@ -942,7 +942,7 @@ export async function searchGitHub(
 
   // 検索実行関数（フォールバック対応）
   const executeSearch = async (
-    searchQueries: string[]
+    searchQueries: string[],
   ): Promise<GitHubSearchItem[]> => {
     const items: GitHubSearchItem[] = [];
     const seen = new Set<string>();
@@ -950,14 +950,14 @@ export async function searchGitHub(
     for (const searchQuery of searchQueries) {
       try {
         const searchUrl = `https://api.github.com/search/code?q=${encodeURIComponent(
-          searchQuery
+          searchQuery,
         )}&per_page=100`;
         const response = await githubFetch(searchUrl, token);
 
         if (!response.ok) {
           if (response.status === 403) {
             throw new Error(
-              "GitHub API rate limit exceeded. Please authenticate with a GitHub token."
+              "GitHub API rate limit exceeded. Please authenticate with a GitHub token.",
             );
           }
           if (response.status === 401) {
@@ -1106,7 +1106,7 @@ export async function searchGitHub(
         } catch {
           // 失敗しても続行
         }
-      })
+      }),
     );
   }
 
@@ -1173,7 +1173,7 @@ export async function searchGitHub(
   const topResults = rankedResults.slice(0, MAX_FETCH);
 
   const fetchSkillContent = async (
-    result: BasicResult & { score?: number }
+    result: BasicResult & { score?: number },
   ): Promise<{
     name: string;
     repo: string;
@@ -1197,7 +1197,7 @@ export async function searchGitHub(
         if (frontmatterMatch) {
           const frontmatter = frontmatterMatch[1];
           const descMatch = frontmatter.match(
-            /^description:\s*(?:\|\s*\n([\s\S]*?)(?=\n\w|\n---)|(.+))/m
+            /^description:\s*(?:\|\s*\n([\s\S]*?)(?=\n\w|\n---)|(.+))/m,
           );
           if (descMatch) {
             const desc = (descMatch[1] || descMatch[2] || "").trim();
@@ -1288,13 +1288,13 @@ export async function showAuthHelp(): Promise<void> {
     messages.authRequired(),
     openSettingsLabel,
     authWithGhCliLabel,
-    cancelLabel
+    cancelLabel,
   );
 
   if (action === openSettingsLabel) {
     await vscode.commands.executeCommand(
       "workbench.action.openSettings",
-      "skillNinja.githubToken"
+      "skillNinja.githubToken",
     );
   } else if (action === authWithGhCliLabel) {
     const terminal = vscode.window.createTerminal("GitHub Auth");

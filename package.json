@@ -2,7 +2,7 @@
   "name": "agent-skill-ninja",
   "displayName": "%displayName%",
   "description": "%description%",
-  "version": "0.5.3",
+  "version": "0.6.0",
   "publisher": "yamapan",
   "license": "CC-BY-NC-SA-4.0",
   "icon": "resources/icon.png",
@@ -740,6 +740,9 @@
             ".github/copilot-instructions.md",
             ".github/instructions/SkillList.instructions.md",
             "CLAUDE.md",
+            ".cursor/rules/skills.mdc",
+            ".windsurfrules",
+            ".clinerules",
             "custom"
           ],
           "enumDescriptions": [
@@ -747,6 +750,9 @@
             "%config.instructionFile.copilot%",
             "%config.instructionFile.instructions%",
             "%config.instructionFile.claude%",
+            "%config.instructionFile.cursor%",
+            "%config.instructionFile.windsurf%",
+            "%config.instructionFile.cline%",
             "%config.instructionFile.custom%"
           ],
           "markdownDescription": "%config.instructionFile.markdownDescription%"
@@ -799,19 +805,13 @@
             "auto",
             "compressed-index",
             "markdown-with-index",
-            "markdown",
-            "cursor-rules",
-            "windsurf-rules",
-            "cline-rules"
+            "markdown"
           ],
           "enumDescriptions": [
             "%config.outputFormat.auto%",
             "%config.outputFormat.compressedIndex%",
             "%config.outputFormat.markdownWithIndex%",
-            "%config.outputFormat.markdown%",
-            "%config.outputFormat.cursor%",
-            "%config.outputFormat.windsurf%",
-            "%config.outputFormat.cline%"
+            "%config.outputFormat.markdown%"
           ],
           "markdownDescription": "%config.outputFormat.markdownDescription%"
         },

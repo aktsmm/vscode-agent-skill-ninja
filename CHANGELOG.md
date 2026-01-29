@@ -7,6 +7,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.6.0] - 2026-01-30
+
+### ⚠️ Breaking Changes
+
+- **設定の簡素化** - `outputFormat` と `instructionFile` を明確に分離
+  - `outputFormat`: スキルリストの表示形式のみ（markdown, compressed-index, markdown-with-index）
+  - `instructionFile`: 出力先ファイル（AGENTS.md, CLAUDE.md, .cursor/rules/, .windsurfrules, .clinerules など）
+  - `cursor-rules`, `windsurf-rules`, `cline-rules` は `outputFormat` から削除され `instructionFile` に移動
+
+### Added
+
+- 🎯 **ツール別出力先** - Cursor (.cursor/rules/skills.mdc), Windsurf (.windsurfrules), Cline (.clinerules) を `instructionFile` に追加
+
+### Changed
+
+- 📝 **設定 UI 改善** - 各設定の説明をわかりやすく改善、テーブルでツールとファイルの対応を表示
+
 ## [0.5.3] - 2026-01-29
 
 ### Fixed

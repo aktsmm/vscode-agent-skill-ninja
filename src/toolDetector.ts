@@ -16,13 +16,10 @@ export type AITool =
   | "unknown";
 
 /**
- * 出力フォーマット
+ * 出力フォーマット（スキルリストの表示形式）
  */
 export type OutputFormat =
   | "markdown"
-  | "cursor-rules"
-  | "windsurf-rules"
-  | "cline-rules"
   | "compressed-index"
   | "markdown-with-index";
 
@@ -66,14 +63,14 @@ export async function detectAITools(
     {
       pattern: ".cursor/rules/**",
       tool: "cursor",
-      format: "cursor-rules",
+      format: "markdown",
       instructionFile: ".cursor/rules/skills.mdc",
       confidence: "high",
     },
     {
       pattern: ".cursorrules",
       tool: "cursor",
-      format: "cursor-rules",
+      format: "markdown",
       instructionFile: ".cursor/rules/skills.mdc",
       confidence: "high",
     },
@@ -81,14 +78,14 @@ export async function detectAITools(
     {
       pattern: ".windsurfrules",
       tool: "windsurf",
-      format: "windsurf-rules",
+      format: "markdown",
       instructionFile: ".windsurfrules",
       confidence: "high",
     },
     {
       pattern: ".windsurf/**",
       tool: "windsurf",
-      format: "windsurf-rules",
+      format: "markdown",
       instructionFile: ".windsurfrules",
       confidence: "high",
     },
@@ -96,14 +93,14 @@ export async function detectAITools(
     {
       pattern: ".clinerules",
       tool: "cline",
-      format: "cline-rules",
+      format: "markdown",
       instructionFile: ".clinerules",
       confidence: "high",
     },
     {
       pattern: ".cline/**",
       tool: "cline",
-      format: "cline-rules",
+      format: "markdown",
       instructionFile: ".clinerules",
       confidence: "high",
     },
@@ -242,16 +239,16 @@ export async function promptToolSelection(
       return undefined;
     }
 
-    // 選択に基づいてフォーマットを決定
+    // 選択に基づいてフォーマットを決定（フォーマットは全て markdown）
     if (selected.label.includes("Cursor")) {
       return {
-        format: "cursor-rules",
+        format: "markdown",
         instructionFile: ".cursor/rules/skills.mdc",
       };
     } else if (selected.label.includes("Windsurf")) {
-      return { format: "windsurf-rules", instructionFile: ".windsurfrules" };
+      return { format: "markdown", instructionFile: ".windsurfrules" };
     } else if (selected.label.includes("Cline")) {
-      return { format: "cline-rules", instructionFile: ".clinerules" };
+      return { format: "markdown", instructionFile: ".clinerules" };
     } else if (selected.label.includes("Claude")) {
       return { format: "markdown", instructionFile: "CLAUDE.md" };
     } else {
