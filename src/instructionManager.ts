@@ -426,6 +426,36 @@ function removeLegacySection(content: string): string {
 }
 
 /**
+ * 指定されたファイルからスキルセクションを削除
+ * ファイルパスを直接指定する版
+ */
+export async function removeSkillSectionFromFile(
+  fileUri: vscode.Uri,
+): Promise<void> {
+  try {
+    const content = await vscode.workspace.fs.readFile(fileUri);
+    let existingContent = Buffer.from(content).toString("utf-8");
+
+    // マーカーで囲まれた部分を削除
+    const startIndex = existingContent.indexOf(MARKER_START);
+    const endIndex = existingContent.indexOf(MARKER_END);
+
+    if (startIndex !== -1 && endIndex !== -1) {
+      const before = existingContent.substring(0, startIndex);
+      const after = existingContent.substring(endIndex + MARKER_END.length);
+      existingContent = (before + after).replace(/\n{3,}/g, "\n\n").trim();
+      await vscode.workspace.fs.writeFile(
+        fileUri,
+        Buffer.from(existingContent, "utf-8"),
+      );
+      console.log(`[Skill Ninja] Removed skill section from ${fileUri.fsPath}`);
+    }
+  } catch {
+    // ファイルが存在しない場合は何もしない
+  }
+}
+
+/**
  * インストラクションファイルからスキルセクションを削除
  */
 export async function removeSkillSection(

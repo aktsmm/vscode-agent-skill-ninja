@@ -17,7 +17,10 @@ import {
   getInstalledSkillsWithMeta,
   refreshSkillMetadata,
 } from "./skillInstaller";
-import { updateInstructionFile } from "./instructionManager";
+import {
+  updateInstructionFile,
+  removeSkillSectionFromFile,
+} from "./instructionManager";
 import {
   BrowseSkillsProvider,
   SkillTreeItem,
@@ -187,6 +190,30 @@ export function activate(context: vscode.ExtensionContext) {
           config.get<boolean>("autoUpdateInstruction") !== false;
 
         if (autoUpdate) {
+          // インストラクションファイルが変更された場合は古いファイルから削除
+          if (
+            e.affectsConfiguration("skillNinja.instructionFile") ||
+            e.affectsConfiguration("skillNinja.customInstructionPath")
+          ) {
+            // 古いファイルパスを使ってスキルセクションを削除
+            // （変更前の値は取得できないので、全ての候補ファイルから削除を試みる）
+            const candidateFiles = [
+              "AGENTS.md",
+              ".github/copilot-instructions.md",
+              ".github/instructions/SkillList.instructions.md",
+              "CLAUDE.md",
+            ];
+            for (const file of candidateFiles) {
+              try {
+                await removeSkillSectionFromFile(
+                  vscode.Uri.joinPath(workspaceFolders[0].uri, file),
+                );
+              } catch {
+                // ファイルが存在しない場合は無視
+              }
+            }
+          }
+
           // 少し待ってから更新（設定が完全に反映されるのを待つ）
           setTimeout(async () => {
             try {

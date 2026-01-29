@@ -568,6 +568,96 @@ function parseSkillFrontmatter(
 }
 
 /**
+ * 単一ソースのインデックスを更新
+ * 指定されたソースのスキルのみを再取得し、他のソースのスキルは保持
+ */
+export async function updateSingleSource(
+  context: vscode.ExtensionContext,
+  currentIndex: SkillIndex,
+  sourceId: string,
+  progress?: vscode.Progress<{ message?: string; increment?: number }>,
+): Promise<{ index: SkillIndex; addedSkills: number; removedSkills: number }> {
+  const config = vscode.workspace.getConfiguration("skillNinja");
+  const token = config.get<string>("githubToken");
+
+  const source = currentIndex.sources.find((s) => s.id === sourceId);
+  if (!source) {
+    throw new Error(`Source not found: ${sourceId}`);
+  }
+
+  // 対象ソース以外のスキルを保持
+  const otherSkills = currentIndex.skills.filter((s) => s.source !== sourceId);
+  const oldSkillCount = currentIndex.skills.filter(
+    (s) => s.source === sourceId,
+  ).length;
+
+  // 既存スキルの説明をマップとして保持
+  const existingDescriptions = new Map<string, string>();
+  for (const skill of currentIndex.skills) {
+    if (skill.source === sourceId && skill.description) {
+      existingDescriptions.set(skill.name, skill.description);
+    }
+  }
+
+  progress?.report({ message: `Updating ${source.name}...` });
+
+  try {
+    const result = await scanRepositoryForSkills(
+      source.url,
+      token,
+      source.branch,
+    );
+
+    if (!result) {
+      throw new Error(`Failed to scan repository: ${source.url}`);
+    }
+
+    // 新しいスキルを追加（既存の説明があれば保持）
+    const updatedSkills: Skill[] = [];
+    for (const skill of result.skills) {
+      const existingDesc = existingDescriptions.get(skill.name);
+      updatedSkills.push({
+        ...skill,
+        source: sourceId,
+        description: existingDesc || skill.description,
+      });
+    }
+
+    const newIndex: SkillIndex = {
+      ...currentIndex,
+      skills: [...otherSkills, ...updatedSkills],
+      lastUpdated: new Date().toISOString().split("T")[0],
+    };
+
+    // バンドル更新も処理
+    if (result.bundles?.length) {
+      const otherBundles = (currentIndex.bundles || []).filter(
+        (b) => b.source !== sourceId,
+      );
+      const updatedBundles = result.bundles.map((b) => ({
+        ...b,
+        source: sourceId,
+      }));
+      newIndex.bundles = [...otherBundles, ...updatedBundles];
+    }
+
+    await saveSkillIndex(context, newIndex);
+
+    return {
+      index: newIndex,
+      addedSkills: updatedSkills.length - oldSkillCount,
+      removedSkills:
+        oldSkillCount > updatedSkills.length
+          ? oldSkillCount - updatedSkills.length
+          : 0,
+    };
+  } catch (error) {
+    console.error(`Failed to update source ${sourceId}:`, error);
+    throw error;
+  }
+}
+
+/**
  * 既存ソースからインデックスを更新
  * 既存のローカライズされた説明は保持し、新規スキルのみGitHubから説明を取得
  */

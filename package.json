@@ -2,7 +2,7 @@
   "name": "agent-skill-ninja",
   "displayName": "%displayName%",
   "description": "%description%",
-  "version": "0.5.2",
+  "version": "0.5.3",
   "publisher": "yamapan",
   "license": "CC-BY-NC-SA-4.0",
   "icon": "resources/icon.png",
@@ -423,6 +423,12 @@
         "icon": "$(cloud-download)"
       },
       {
+        "command": "skillNinja.updateSourceIndex",
+        "title": "%command.updateSourceIndex%",
+        "category": "Agent Skill Ninja",
+        "icon": "$(sync)"
+      },
+      {
         "command": "skillNinja.addSource",
         "title": "%command.addSource%",
         "category": "Agent Skill Ninja",
@@ -678,6 +684,11 @@
           "command": "skillNinja.removeSource",
           "when": "view == skillNinja.browseView && viewItem == source",
           "group": "inline"
+        },
+        {
+          "command": "skillNinja.updateSourceIndex",
+          "when": "view == skillNinja.browseView && viewItem == source",
+          "group": "navigation@1"
         },
         {
           "command": "skillNinja.registerLocalSkill",
