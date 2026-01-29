@@ -756,6 +756,92 @@ export async function updateIndexFromSources(
 }
 
 /**
+ * 単一ソースからインデックスを更新
+ */
+export async function updateIndexFromSingleSource(
+  context: vscode.ExtensionContext,
+  currentIndex: SkillIndex,
+  sourceId: string,
+  progress?: vscode.Progress<{ message?: string; increment?: number }>,
+): Promise<SkillIndex> {
+  const config = vscode.workspace.getConfiguration("skillNinja");
+  const token = config.get<string>("githubToken");
+
+  const source = currentIndex.sources.find((s) => s.id === sourceId);
+  if (!source) {
+    throw new Error(`Source not found: ${sourceId}`);
+  }
+
+  // 既存スキルの説明をマップとして保持
+  const existingDescriptions = new Map<string, string>();
+  for (const skill of currentIndex.skills) {
+    const key = `${skill.source}:${skill.name}`;
+    if (skill.description) {
+      existingDescriptions.set(key, skill.description);
+    }
+  }
+
+  progress?.report({
+    message: `Updating ${source.name}...`,
+    increment: 50,
+  });
+
+  const result = await scanRepositoryForSkills(
+    source.url,
+    token,
+    source.branch,
+  );
+
+  if (!result) {
+    throw new Error(`Failed to scan repository: ${source.url}`);
+  }
+
+  // 既存スキルから該当ソース以外のものを保持
+  const otherSkills = currentIndex.skills.filter((s) => s.source !== sourceId);
+  const otherBundles = (currentIndex.bundles || []).filter(
+    (b) => b.source !== sourceId,
+  );
+
+  // 新しいスキルをマージ
+  const newSkills: Skill[] = [];
+  for (const skill of result.skills) {
+    const skillWithCorrectSource = {
+      ...skill,
+      source: sourceId,
+    };
+    const key = `${sourceId}:${skill.name}`;
+    const existingDesc = existingDescriptions.get(key);
+    newSkills.push({
+      ...skillWithCorrectSource,
+      description: existingDesc || skill.description,
+    });
+  }
+
+  // 新しいバンドルをマージ
+  const newBundles: Bundle[] = (result.bundles || []).map((b) => ({
+    ...b,
+    source: sourceId,
+  }));
+
+  progress?.report({
+    message: `Updated ${newSkills.length} skills`,
+    increment: 50,
+  });
+
+  const updatedIndex: SkillIndex = {
+    ...currentIndex,
+    lastUpdated: new Date().toISOString().split("T")[0],
+    skills: [...otherSkills, ...newSkills],
+    bundles: [...otherBundles, ...newBundles],
+  };
+
+  // 保存
+  await saveSkillIndex(context, updatedIndex);
+
+  return updatedIndex;
+}
+
+/**
  * ソースを追加
  */
 export async function addSource(

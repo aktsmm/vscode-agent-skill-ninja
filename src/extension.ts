@@ -28,6 +28,7 @@ import {
 } from "./treeProvider";
 import {
   updateIndexFromSources,
+  updateIndexFromSingleSource,
   addSource,
   removeSource,
   searchGitHub,
@@ -1418,6 +1419,71 @@ export function activate(context: vscode.ExtensionContext) {
     },
   );
 
+  // Command: Update single source
+  const updateSourceIndexCmd = vscode.commands.registerCommand(
+    "skillNinja.updateSourceIndex",
+    async (item?: SkillTreeItem) => {
+      if (!item || item.contextValue !== "source") {
+        vscode.window.showErrorMessage(
+          "Please select a source to update from the Remote Skills view.",
+        );
+        return;
+      }
+
+      const sourceId = item.source?.id;
+      if (!sourceId) {
+        vscode.window.showErrorMessage("Source ID not found.");
+        return;
+      }
+
+      if (!skillIndex) {
+        skillIndex = await loadSkillIndex(context);
+      }
+
+      const oldCount = skillIndex.skills.filter(
+        (s) => s.source === sourceId,
+      ).length;
+
+      try {
+        await vscode.window.withProgress(
+          {
+            location: vscode.ProgressLocation.Notification,
+            title: messages.updatingSource(item.source?.name || sourceId),
+            cancellable: false,
+          },
+          async (progress) => {
+            skillIndex = await updateIndexFromSingleSource(
+              context,
+              skillIndex!,
+              sourceId,
+              progress,
+            );
+          },
+        );
+        const newCount = skillIndex.skills.filter(
+          (s) => s.source === sourceId,
+        ).length;
+        const diff = newCount - oldCount;
+        const diffText = diff > 0 ? `+${diff}` : diff === 0 ? "±0" : `${diff}`;
+        vscode.window.showInformationMessage(
+          `Updated ${item.source?.name || sourceId}: ${oldCount} → ${newCount} skills (${diffText})`,
+        );
+        browseProvider.refresh();
+      } catch (error: unknown) {
+        const errorMessage =
+          error instanceof Error ? error.message : String(error);
+        if (
+          errorMessage.includes("rate limit") ||
+          errorMessage.includes("authentication")
+        ) {
+          await showAuthHelp();
+        } else {
+          vscode.window.showErrorMessage(messages.updateFailed(errorMessage));
+        }
+      }
+    },
+  );
+
   // Command: Add source
   const addSourceCmd = vscode.commands.registerCommand(
     "skillNinja.addSource",
@@ -2401,6 +2467,7 @@ Add examples here
     refreshLocalCmd,
     openSkillFileCmd,
     updateIndexCmd,
+    updateSourceIndexCmd,
     addSourceCmd,
     webSearchCmd,
     removeSourceCmd,

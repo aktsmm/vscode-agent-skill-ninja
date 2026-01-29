@@ -19,6 +19,7 @@ const jaMessages: Record<string, string> = {
   skillNotFound: "SKILL.md が見つかりません: {0}",
   invalidSkillInfo: "スキル情報が不正です",
   updatingIndex: "スキルインデックスを更新中...",
+  updatingSource: "{0} を更新中...",
   indexUpdated: "✅ インデックスを更新しました ({0} → {1} スキル, {2})",
   updateFailed: "更新失敗: {0}",
   updating: "{0} を更新中...",
@@ -105,6 +106,7 @@ const enMessages: Record<string, string> = {
   skillNotFound: "SKILL.md not found: {0}",
   invalidSkillInfo: "Invalid skill information",
   updatingIndex: "Updating skill index...",
+  updatingSource: "Updating {0}...",
   indexUpdated: "✅ Index updated ({0} → {1} skills, {2})",
   updateFailed: "Update failed: {0}",
   updating: "Updating {0}...",
@@ -243,6 +245,7 @@ export const messages = {
 
   // インデックス更新
   updatingIndex: () => localize("updatingIndex"),
+  updatingSource: (name: string) => localize("updatingSource", name),
   indexUpdated: (oldCount: number, newCount: number, diff: string) =>
     localize("indexUpdated", oldCount, newCount, diff),
   updateFailed: (error: string) => localize("updateFailed", error),
