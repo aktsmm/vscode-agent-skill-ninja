@@ -367,7 +367,10 @@ function generateCompressedIndexSection(
     ...installedSkills.map((s) => ({
       name: s.name,
       path: s.relativePath || s.name,
-      description: buildDescription(s.description, s.customWhenToUse || s.whenToUse),
+      description: buildDescription(
+        s.description,
+        s.customWhenToUse || s.whenToUse,
+      ),
     })),
     ...localSkills.map((s) => ({
       name: s.name,
