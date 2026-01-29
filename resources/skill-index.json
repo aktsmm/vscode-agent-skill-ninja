@@ -1888,7 +1888,9 @@
       "path": "agentic-workflow-guide",
       "categories": [],
       "description": "Guide for agentic workflows",
-      "description_ja": "Guide for agentic workflows"
+      "description_ja": "Guide for agentic workflows",
+      "license": "Complete terms in LICENSE.txt",
+      "author": "yamapan (https://github.com/aktsmm)"
     },
     {
       "name": "azure-env-builder",
@@ -1896,7 +1898,8 @@
       "path": "azure-env-builder",
       "categories": [],
       "description": "Azure Env Builder",
-      "description_ja": "Azure Env Builder"
+      "description_ja": "Azure Env Builder",
+      "author": "yamapan (https://github.com/aktsmm)"
     },
     {
       "name": "book-writing-workspace",
@@ -1904,7 +1907,9 @@
       "path": "book-writing-workspace",
       "categories": [],
       "description": "Book Writing Workspace",
-      "description_ja": "Book Writing Workspace"
+      "description_ja": "Book Writing Workspace",
+      "license": "Complete terms in LICENSE.txt",
+      "author": "yamapan (https://github.com/aktsmm)"
     },
     {
       "name": "browser-max-automation",
@@ -1912,7 +1917,9 @@
       "path": "browser-max-automation",
       "categories": [],
       "description": "Browser Max Automation",
-      "description_ja": "Browser Max Automation"
+      "description_ja": "Browser Max Automation",
+      "license": "Complete terms in LICENSE.txt",
+      "author": "yamapan (https://github.com/aktsmm)"
     },
     {
       "name": "code-simplifier",
@@ -1920,7 +1927,8 @@
       "path": "code-simplifier",
       "categories": [],
       "description": "Code Simplifier",
-      "description_ja": "Code Simplifier"
+      "description_ja": "Code Simplifier",
+      "author": "yamapan (https://github.com/aktsmm)"
     },
     {
       "name": "customer-workspace",
@@ -1928,7 +1936,9 @@
       "path": "customer-workspace",
       "categories": [],
       "description": "Customer Workspace",
-      "description_ja": "Customer Workspace"
+      "description_ja": "Customer Workspace",
+      "license": "Complete terms in LICENSE.txt",
+      "author": "yamapan (https://github.com/aktsmm)"
     },
     {
       "name": "drawio-diagram-forge",
@@ -1936,7 +1946,9 @@
       "path": "drawio-diagram-forge",
       "categories": [],
       "description": "Drawio Diagram Forge",
-      "description_ja": "Drawio Diagram Forge"
+      "description_ja": "Drawio Diagram Forge",
+      "license": "CC BY-NC-SA 4.0",
+      "author": "yamapan (https://github.com/aktsmm)"
     },
     {
       "name": "ocr-super-surya",
@@ -1944,7 +1956,9 @@
       "path": "ocr-super-surya",
       "categories": [],
       "description": "Ocr Super Surya",
-      "description_ja": "Ocr Super Surya"
+      "description_ja": "Ocr Super Surya",
+      "license": "CC BY-NC 4.0",
+      "author": "yamapan (https://github.com/aktsmm)"
     },
     {
       "name": "powerpoint-automation",
@@ -1952,7 +1966,9 @@
       "path": "powerpoint-automation",
       "categories": [],
       "description": "Powerpoint Automation",
-      "description_ja": "Powerpoint Automation"
+      "description_ja": "Powerpoint Automation",
+      "license": "Complete terms in LICENSE.txt",
+      "author": "yamapan (https://github.com/aktsmm)"
     },
     {
       "name": "skill-finder",
@@ -1960,7 +1976,9 @@
       "path": "skill-finder",
       "categories": [],
       "description": "Skill Finder",
-      "description_ja": "Skill Finder"
+      "description_ja": "Skill Finder",
+      "license": "MIT",
+      "author": "yamapan (https://github.com/aktsmm)"
     },
     {
       "name": "vscode-extension-guide",
@@ -1968,7 +1986,8 @@
       "path": "vscode-extension-guide",
       "categories": [],
       "description": "Vscode Extension Guide",
-      "description_ja": "Vscode Extension Guide"
+      "description_ja": "Vscode Extension Guide",
+      "license": "Complete terms in LICENSE.txt"
     },
     {
       "name": "doc",
