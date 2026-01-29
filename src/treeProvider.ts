@@ -673,7 +673,7 @@ export class SkillTreeItem extends vscode.TreeItem {
     if (skill) {
       const isJa = isJapanese();
       const localizedDesc = getLocalizedDescription(skill, isJa);
-      
+
       // メタデータ情報を構築
       let metaInfo = "";
       if (skill.author) {
@@ -685,7 +685,7 @@ export class SkillTreeItem extends vscode.TreeItem {
       if (skill.version) {
         metaInfo += `\nVersion: ${skill.version}`;
       }
-      
+
       this.tooltip = `${skill.name}\n${localizedDesc}${metaInfo}`;
     } else if (source) {
       const isJa = isJapanese();
