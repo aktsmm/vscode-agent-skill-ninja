@@ -8,7 +8,7 @@
       "url": "https://github.com/anthropics/skills",
       "type": "official",
       "description": "Anthropic Skills (Official)",
-      "description_ja": "Official Claude Skills repository by Anthropic"
+      "description_ja": "Anthropic Skills (Official)"
     },
     {
       "id": "github-awesome-copilot",
@@ -16,7 +16,7 @@
       "url": "https://github.com/github/awesome-copilot",
       "type": "official",
       "description": "GitHub Awesome Copilot (Official)",
-      "description_ja": "Official GitHub Copilot resources and skills"
+      "description_ja": "GitHub Awesome Copilot (Official)"
     },
     {
       "id": "obra-superpowers",
@@ -24,7 +24,7 @@
       "url": "https://github.com/obra/superpowers",
       "type": "community",
       "description": "Superpowers",
-      "description_ja": "High-quality skills, agents, and commands collection"
+      "description_ja": "Superpowers"
     },
     {
       "id": "composio-awesome",
@@ -33,7 +33,7 @@
       "type": "awesome-list",
       "branch": "master",
       "description": "Awesome Claude Skills (ComposioHQ)",
-      "description_ja": "Curated list of Claude Skills"
+      "description_ja": "Awesome Claude Skills (ComposioHQ)"
     },
     {
       "id": "context-engineering-skills",
@@ -41,7 +41,7 @@
       "url": "https://github.com/muratcankoylan/Agent-Skills-for-Context-Engineering",
       "type": "community",
       "description": "Agent Skills for Context Engineering",
-      "description_ja": "Context Engineering skills collection (5k+ Stars)"
+      "description_ja": "Agent Skills for Context Engineering"
     },
     {
       "id": "pai-packs",
@@ -49,7 +49,7 @@
       "url": "https://github.com/danielmiessler/Personal_AI_Infrastructure",
       "type": "community",
       "description": "Personal AI Infrastructure (PAI)",
-      "description_ja": "High-quality PAI Packs - Skills and Features"
+      "description_ja": "Personal AI Infrastructure (PAI)"
     },
     {
       "id": "compound-engineering",
@@ -57,7 +57,7 @@
       "url": "https://github.com/EveryInc/compound-engineering-plugin",
       "type": "community",
       "description": "Compound Engineering Plugin",
-      "description_ja": "Compound Engineering skills (3.5k+ Stars)"
+      "description_ja": "Compound Engineering Plugin"
     },
     {
       "id": "prps-agentic",
@@ -66,7 +66,7 @@
       "type": "community",
       "branch": "development",
       "description": "PRPs Agentic Engineering",
-      "description_ja": "PRP (Prompt Recipe Patterns) skills"
+      "description_ja": "PRPs Agentic Engineering"
     },
     {
       "id": "claude-command-suite",
@@ -74,7 +74,7 @@
       "url": "https://github.com/qdhenry/Claude-Command-Suite",
       "type": "community",
       "description": "Claude Command Suite",
-      "description_ja": "Claude commands and skills collection"
+      "description_ja": "Claude Command Suite"
     },
     {
       "id": "aktsmm-Agent-Skills",
@@ -82,7 +82,7 @@
       "url": "https://github.com/aktsmm/Agent-Skills",
       "type": "user-added",
       "description": "Agent-Skills",
-      "description_ja": "User added repository: aktsmm/Agent-Skills"
+      "description_ja": "Agent-Skills"
     },
     {
       "id": "openai-skills",
@@ -90,7 +90,7 @@
       "url": "https://github.com/openai/skills",
       "type": "official",
       "description": "OpenAI Skills (Official)",
-      "description_ja": "Official Codex Skills Catalog by OpenAI (1.7k+ Stars)"
+      "description_ja": "OpenAI Skills (Official)"
     }
   ],
   "skills": [
@@ -180,7 +180,7 @@
       "path": "skills/skill-creator",
       "categories": [],
       "description": "Create new agent skills",
-      "description_ja": "Guide for creating effective Codex skills with specialized knowledge, workflows, or tool integrations"
+      "description_ja": "Create new agent skills"
     },
     {
       "name": "slack-gif-creator",
@@ -228,7 +228,7 @@
       "path": "template",
       "categories": [],
       "description": "Template for creating new skills",
-      "description_ja": "Replace with description of the skill and when Claude should use it."
+      "description_ja": "Template for creating new skills"
     },
     {
       "name": "agentic-eval",
@@ -236,7 +236,7 @@
       "path": "skills/agentic-eval",
       "categories": [],
       "description": "Agentic Eval",
-      "description_ja": "|"
+      "description_ja": "Agentic Eval"
     },
     {
       "name": "appinsights-instrumentation",
@@ -244,7 +244,7 @@
       "path": "skills/appinsights-instrumentation",
       "categories": [],
       "description": "Appinsights Instrumentation",
-      "description_ja": "Add Application Insights instrumentation to your app"
+      "description_ja": "Appinsights Instrumentation"
     },
     {
       "name": "azure-deployment-preflight",
@@ -252,7 +252,7 @@
       "path": "skills/azure-deployment-preflight",
       "categories": [],
       "description": "Azure Deployment Preflight",
-      "description_ja": "Performs comprehensive preflight validation of Bicep deployments to Azure, including template syntax validation, what-if analysis, and permission checks. Use this skill before any deployment to Azure to preview changes, identify potential issues, and ensure the deployment will succeed. Activate when users mention deploying to Azure, validating Bicep files, checking deployment permissions, previewing infrastructure changes, running what-if, or preparing for azd provision."
+      "description_ja": "Azure Deployment Preflight"
     },
     {
       "name": "azure-devops-cli",
@@ -260,7 +260,7 @@
       "path": "skills/azure-devops-cli",
       "categories": [],
       "description": "Azure Devops Cli",
-      "description_ja": "Manage Azure DevOps resources via CLI including projects, repos, pipelines, builds, pull requests, work items, artifacts, and service endpoints. Use when working with Azure DevOps, az commands, devops automation, CI/CD, or when user mentions Azure DevOps CLI."
+      "description_ja": "Azure Devops Cli"
     },
     {
       "name": "azure-resource-visualizer",
@@ -268,7 +268,7 @@
       "path": "skills/azure-resource-visualizer",
       "categories": [],
       "description": "Azure Resource Visualizer",
-      "description_ja": "Visualize Azure resources and architecture"
+      "description_ja": "Azure Resource Visualizer"
     },
     {
       "name": "azure-role-selector",
@@ -276,7 +276,7 @@
       "path": "skills/azure-role-selector",
       "categories": [],
       "description": "Azure Role Selector",
-      "description_ja": "Select appropriate Azure RBAC roles"
+      "description_ja": "Azure Role Selector"
     },
     {
       "name": "azure-static-web-apps",
@@ -284,7 +284,7 @@
       "path": "skills/azure-static-web-apps",
       "categories": [],
       "description": "Azure Static Web Apps",
-      "description_ja": "Create, configure, and deploy Azure Static Web Apps using SWA CLI"
+      "description_ja": "Azure Static Web Apps"
     },
     {
       "name": "chrome-devtools",
@@ -292,7 +292,7 @@
       "path": "skills/chrome-devtools",
       "categories": [],
       "description": "Chrome Devtools",
-      "description_ja": "Expert-level browser automation, debugging, and performance analysis using Chrome DevTools MCP. Use for interacting with web pages, capturing screenshots, analyzing network traffic, and profiling performance."
+      "description_ja": "Chrome Devtools"
     },
     {
       "name": "gh-cli",
@@ -300,7 +300,7 @@
       "path": "skills/gh-cli",
       "categories": [],
       "description": "Gh Cli",
-      "description_ja": "GitHub CLI (gh) comprehensive reference for repositories, issues, pull requests, Actions, projects, releases, gists, codespaces, organizations, extensions, and all GitHub operations from the command line."
+      "description_ja": "Gh Cli"
     },
     {
       "name": "git-commit",
@@ -308,7 +308,7 @@
       "path": "skills/git-commit",
       "categories": [],
       "description": "Git Commit",
-      "description_ja": "Execute git commit with conventional commit message analysis, intelligent staging, and message generation. Use when user asks to commit changes, create a git commit, or mentions"
+      "description_ja": "Git Commit"
     },
     {
       "name": "github-issues",
@@ -316,7 +316,7 @@
       "path": "skills/github-issues",
       "categories": [],
       "description": "Github Issues",
-      "description_ja": "Manage GitHub issues and workflows"
+      "description_ja": "Github Issues"
     },
     {
       "name": "image-manipulation-image-magick",
@@ -324,7 +324,7 @@
       "path": "skills/image-manipulation-image-magick",
       "categories": [],
       "description": "Image Manipulation Image Magick",
-      "description_ja": "Process and manipulate images using ImageMagick. Supports resizing, format conversion, batch processing, and retrieving image metadata. Use when working with images, creating thumbnails, resizing wallpapers, or performing batch image operations."
+      "description_ja": "Image Manipulation Image Magick"
     },
     {
       "name": "legacy-circuit-mockups",
@@ -332,7 +332,7 @@
       "path": "skills/legacy-circuit-mockups",
       "categories": [],
       "description": "Legacy Circuit Mockups",
-      "description_ja": "Generate breadboard circuit mockups and visual diagrams using HTML5 Canvas drawing techniques. Use when asked to create circuit layouts, visualize electronic component placements, draw breadboard diagrams, mockup 6502 builds, generate retro computer schematics, or design vintage electronics projects. Supports 555 timers, W65C02S microprocessors, 28C256 EEPROMs, W65C22 VIA chips, 7400-series logic gates, LEDs, resistors, capacitors, switches, buttons, crystals, and wires."
+      "description_ja": "Legacy Circuit Mockups"
     },
     {
       "name": "make-skill-template",
@@ -340,7 +340,7 @@
       "path": "skills/make-skill-template",
       "categories": [],
       "description": "Make Skill Template",
-      "description_ja": "Create new Agent Skills for GitHub Copilot from prompts or by duplicating templates"
+      "description_ja": "Make Skill Template"
     },
     {
       "name": "mcp-cli",
@@ -348,7 +348,7 @@
       "path": "skills/mcp-cli",
       "categories": [],
       "description": "Mcp Cli",
-      "description_ja": "Interface for MCP (Model Context Protocol) servers via CLI. Use when you need to interact with external tools, APIs, or data sources through MCP servers, list available MCP servers/tools, or call MCP tools from command line."
+      "description_ja": "Mcp Cli"
     },
     {
       "name": "microsoft-code-reference",
@@ -356,7 +356,7 @@
       "path": "skills/microsoft-code-reference",
       "categories": [],
       "description": "Microsoft Code Reference",
-      "description_ja": "Look up Microsoft API references, find code samples, and verify SDK code using MS Learn MCP"
+      "description_ja": "Microsoft Code Reference"
     },
     {
       "name": "microsoft-docs",
@@ -364,7 +364,7 @@
       "path": "skills/microsoft-docs",
       "categories": [],
       "description": "Microsoft Docs",
-      "description_ja": "Query official Microsoft documentation for Azure, .NET, Microsoft 365, and more"
+      "description_ja": "Microsoft Docs"
     },
     {
       "name": "nuget-manager",
@@ -372,7 +372,7 @@
       "path": "skills/nuget-manager",
       "categories": [],
       "description": "Nuget Manager",
-      "description_ja": "Manage NuGet packages in .NET projects"
+      "description_ja": "Nuget Manager"
     },
     {
       "name": "plantuml-ascii",
@@ -380,7 +380,7 @@
       "path": "skills/plantuml-ascii",
       "categories": [],
       "description": "Plantuml Ascii",
-      "description_ja": "Generate ASCII art diagrams using PlantUML text mode. Use when user asks to create ASCII diagrams, text-based diagrams, terminal-friendly diagrams, or mentions plantuml ascii, text diagram, ascii art diagram. Supports: Converting PlantUML diagrams to ASCII art, Creating sequence diagrams, class diagrams, flowcharts in ASCII format, Generating Unicode-enhanced ASCII art with -utxt flag"
+      "description_ja": "Plantuml Ascii"
     },
     {
       "name": "prd",
@@ -388,7 +388,7 @@
       "path": "skills/prd",
       "categories": [],
       "description": "Prd",
-      "description_ja": "Generate high-quality Product Requirements Documents (PRDs) for software systems and AI-powered features. Includes executive summaries, user stories, technical specifications, and risk analysis."
+      "description_ja": "Prd"
     },
     {
       "name": "refactor",
@@ -396,7 +396,7 @@
       "path": "skills/refactor",
       "categories": [],
       "description": "Refactor",
-      "description_ja": "Surgical code refactoring to improve maintainability without changing behavior. Covers extracting functions, renaming variables, breaking down god functions, improving type safety, eliminating code smells, and applying design patterns. Less drastic than repo-rebuilder; use for gradual improvements."
+      "description_ja": "Refactor"
     },
     {
       "name": "snowflake-semanticview",
@@ -404,7 +404,7 @@
       "path": "skills/snowflake-semanticview",
       "categories": [],
       "description": "Snowflake Semanticview",
-      "description_ja": "Create Snowflake semantic views"
+      "description_ja": "Snowflake Semanticview"
     },
     {
       "name": "vscode-ext-commands",
@@ -412,7 +412,7 @@
       "path": "skills/vscode-ext-commands",
       "categories": [],
       "description": "Vscode Ext Commands",
-      "description_ja": "Create VS Code extension commands"
+      "description_ja": "Vscode Ext Commands"
     },
     {
       "name": "vscode-ext-localization",
@@ -420,7 +420,7 @@
       "path": "skills/vscode-ext-localization",
       "categories": [],
       "description": "Vscode Ext Localization",
-      "description_ja": "Localize VS Code extensions"
+      "description_ja": "Vscode Ext Localization"
     },
     {
       "name": "web-design-reviewer",
@@ -428,7 +428,7 @@
       "path": "skills/web-design-reviewer",
       "categories": [],
       "description": "Web Design Reviewer",
-      "description_ja": "Review web designs and provide feedback"
+      "description_ja": "Web Design Reviewer"
     },
     {
       "name": "webapp-testing",
@@ -608,7 +608,7 @@
         "community"
       ],
       "description": "Connect Apps Plugin",
-      "description_ja": "connect-apps-plugin skill"
+      "description_ja": "Connect Apps Plugin"
     },
     {
       "name": "connect-apps",
@@ -618,7 +618,7 @@
         "community"
       ],
       "description": "Connect Apps",
-      "description_ja": "Connect and integrate apps"
+      "description_ja": "Connect Apps"
     },
     {
       "name": "connect",
@@ -628,7 +628,7 @@
         "community"
       ],
       "description": "Connect",
-      "description_ja": "connect skill"
+      "description_ja": "Connect"
     },
     {
       "name": "content-research-writer",
@@ -658,7 +658,7 @@
         "community"
       ],
       "description": "Document Skills",
-      "description_ja": "document-skills skill"
+      "description_ja": "Document Skills"
     },
     {
       "name": "domain-name-brainstormer",
@@ -718,7 +718,7 @@
         "community"
       ],
       "description": "Langsmith Fetch",
-      "description_ja": "Fetch data from LangSmith"
+      "description_ja": "Langsmith Fetch"
     },
     {
       "name": "lead-research-assistant",
@@ -768,7 +768,7 @@
         "community"
       ],
       "description": "Create new agent skills",
-      "description_ja": "Guide for creating effective Codex skills with specialized knowledge, workflows, or tool integrations"
+      "description_ja": "Create new agent skills"
     },
     {
       "name": "skill-share",
@@ -798,7 +798,7 @@
         "community"
       ],
       "description": "Tailored Resume Generator",
-      "description_ja": "Generate tailored resumes for job applications"
+      "description_ja": "Tailored Resume Generator"
     },
     {
       "name": "template-skill",
@@ -808,7 +808,7 @@
         "community"
       ],
       "description": "Template for creating new skills",
-      "description_ja": "Replace with description of the skill and when Claude should use it."
+      "description_ja": "Template for creating new skills"
     },
     {
       "name": "theme-factory",
@@ -828,7 +828,7 @@
         "community"
       ],
       "description": "Twitter Algorithm Optimizer",
-      "description_ja": "twitter-algorithm-optimizer skill"
+      "description_ja": "Twitter Algorithm Optimizer"
     },
     {
       "name": "video-downloader",
@@ -856,7 +856,7 @@
       "path": "SKILL.md",
       "categories": [],
       "description": "Context Engineering Collection",
-      "description_ja": "A comprehensive collection of Agent Skills for context engineering, multi-agent architectures, and production agent systems. Use when building, optimizing, or debugging agent systems that require effective context management."
+      "description_ja": "Context Engineering Collection"
     },
     {
       "name": "book-sft-pipeline",
@@ -872,7 +872,7 @@
       "path": "examples/digital-brain-skill",
       "categories": [],
       "description": "Digital Brain",
-      "description_ja": "This skill should be used when the user asks to"
+      "description_ja": "Digital Brain"
     },
     {
       "name": "reasoning-trace-optimizer",
@@ -880,7 +880,7 @@
       "path": "examples/interleaved_thinking",
       "categories": [],
       "description": "Reasoning Trace Optimizer",
-      "description_ja": "Debug and optimize AI agents by analyzing reasoning traces. Activates on"
+      "description_ja": "Reasoning Trace Optimizer"
     },
     {
       "name": "comprehensive-research-agent",
@@ -888,7 +888,7 @@
       "path": "examples/interleaved_thinking/generated_skills/comprehensive-research-agent",
       "categories": [],
       "description": "Comprehensive Research Agent",
-      "description_ja": "Ensure thorough validation, error recovery, and transparent reasoning in research tasks with multiple tool calls"
+      "description_ja": "Comprehensive Research Agent"
     },
     {
       "name": "advanced-evaluation",
@@ -904,7 +904,7 @@
       "path": "skills/bdi-mental-states",
       "categories": [],
       "description": "Bdi Mental States",
-      "description_ja": "BDI (Beliefs-Desires-Intentions) mental states for agent reasoning"
+      "description_ja": "Bdi Mental States"
     },
     {
       "name": "context-compression",
@@ -952,7 +952,7 @@
       "path": "skills/filesystem-context",
       "categories": [],
       "description": "Filesystem Context",
-      "description_ja": "Manage filesystem context for agents"
+      "description_ja": "Filesystem Context"
     },
     {
       "name": "hosted-agents",
@@ -960,7 +960,7 @@
       "path": "skills/hosted-agents",
       "categories": [],
       "description": "Hosted Agents",
-      "description_ja": "Deploy and manage hosted agents"
+      "description_ja": "Hosted Agents"
     },
     {
       "name": "memory-systems",
@@ -1000,7 +1000,7 @@
       "path": "template",
       "categories": [],
       "description": "Skill Template",
-      "description_ja": "Template for creating new Agent Skills for context engineering. Use this template when adding new skills to the collection."
+      "description_ja": "Skill Template"
     },
     {
       "name": "Agents",
@@ -1016,7 +1016,7 @@
       "path": "Packs/pai-algorithm-skill/src/skills/THEALGORITHM",
       "categories": [],
       "description": "THEALGORITHM",
-      "description_ja": "Universal execution engine using scientific method to achieve ideal state. USE WHEN complex tasks, multi-step work,"
+      "description_ja": "THEALGORITHM"
     },
     {
       "name": "AnnualReports",
@@ -1024,7 +1024,7 @@
       "path": "Packs/pai-annualreports-skill/src/skills/AnnualReports",
       "categories": [],
       "description": "AnnualReports",
-      "description_ja": "Annual security report aggregation and analysis. USE WHEN annual reports, security reports, threat reports, industry reports, update reports, analyze reports, vendor reports, threat landscape."
+      "description_ja": "AnnualReports"
     },
     {
       "name": "Art",
@@ -1040,7 +1040,7 @@
       "path": "Packs/pai-brightdata-skill/src/skills/BrightData",
       "categories": [],
       "description": "BrightData",
-      "description_ja": "Progressive URL scraping. USE WHEN Bright Data, scrape URL, web scraping tiers. SkillSearch("
+      "description_ja": "BrightData"
     },
     {
       "name": "Browser",
@@ -1048,7 +1048,7 @@
       "path": "Packs/pai-browser-skill/src/skills/Browser",
       "categories": [],
       "description": "Browser",
-      "description_ja": "Code-first browser automation and web verification. USE WHEN browser, screenshot, navigate, web testing, verify UI, VERIFY phase. Replaces Playwright MCP with 99% token savings."
+      "description_ja": "Browser"
     },
     {
       "name": "CORE",
@@ -1064,7 +1064,7 @@
       "path": "Packs/pai-council-skill/src/skills/Council",
       "categories": [],
       "description": "Council",
-      "description_ja": "Multi-agent debate system. USE WHEN council, debate, perspectives, agents discuss. SkillSearch("
+      "description_ja": "Council"
     },
     {
       "name": "CreateCLI",
@@ -1072,7 +1072,7 @@
       "path": "Packs/pai-createcli-skill/src/skills/CreateCLI",
       "categories": [],
       "description": "CreateCLI",
-      "description_ja": "Generate TypeScript CLIs. USE WHEN create CLI, build CLI, command-line tool. SkillSearch("
+      "description_ja": "CreateCLI"
     },
     {
       "name": "CreateSkill",
@@ -1088,7 +1088,7 @@
       "path": "Packs/pai-firstprinciples-skill/src/skills/FirstPrinciples",
       "categories": [],
       "description": "FirstPrinciples",
-      "description_ja": "First principles analysis. USE WHEN first principles, fundamental, root cause, decompose. SkillSearch("
+      "description_ja": "FirstPrinciples"
     },
     {
       "name": "OSINT",
@@ -1096,7 +1096,7 @@
       "path": "Packs/pai-osint-skill/src/skills",
       "categories": [],
       "description": "OSINT",
-      "description_ja": "Open source intelligence gathering. USE WHEN OSINT, due diligence, background check, research person, company intel, investigate. SkillSearch("
+      "description_ja": "OSINT"
     },
     {
       "name": "PrivateInvestigator",
@@ -1104,7 +1104,7 @@
       "path": "Packs/pai-privateinvestigator-skill/src/skills/PrivateInvestigator",
       "categories": [],
       "description": "PrivateInvestigator",
-      "description_ja": "Ethical people-finding. USE WHEN find person, locate, reconnect, people search, skip trace. SkillSearch("
+      "description_ja": "PrivateInvestigator"
     },
     {
       "name": "Prompting",
@@ -1120,7 +1120,7 @@
       "path": "Packs/pai-recon-skill/src/skills",
       "categories": [],
       "description": "Recon",
-      "description_ja": "Security reconnaissance. USE WHEN recon, reconnaissance, bug bounty, attack surface. SkillSearch("
+      "description_ja": "Recon"
     },
     {
       "name": "RedTeam",
@@ -1128,7 +1128,7 @@
       "path": "Packs/pai-redteam-skill/src/skills/RedTeam",
       "categories": [],
       "description": "RedTeam",
-      "description_ja": "Adversarial analysis with 32 agents. USE WHEN red team, attack idea, counterarguments, critique, stress test. SkillSearch("
+      "description_ja": "RedTeam"
     },
     {
       "name": "Research",
@@ -1136,7 +1136,7 @@
       "path": "Packs/pai-research-skill/src/skills/Research",
       "categories": [],
       "description": "Research",
-      "description_ja": "Comprehensive research, analysis, and content extraction system. USE WHEN user says"
+      "description_ja": "Research"
     },
     {
       "name": "System",
@@ -1144,7 +1144,7 @@
       "path": "Packs/pai-system-skill/src/skills/System",
       "categories": [],
       "description": "System",
-      "description_ja": "System maintenance with three core operations - integrity check (find/fix broken references), document session (current transcript), document recent (catch-up since last update). Plus security workflows. USE WHEN integrity check, audit system, document session, document this session, document today, document recent, catch up docs, what"
+      "description_ja": "System"
     },
     {
       "name": "Telos",
@@ -1152,7 +1152,7 @@
       "path": "Packs/pai-telos-skill/src",
       "categories": [],
       "description": "Telos",
-      "description_ja": "Life OS and project analysis. USE WHEN TELOS, life goals, projects, dependencies, books, movies. SkillSearch("
+      "description_ja": "Telos"
     },
     {
       "name": "Agents",
@@ -1168,7 +1168,7 @@
       "path": "Releases/v2.3/.claude/skills/AnnualReports",
       "categories": [],
       "description": "AnnualReports",
-      "description_ja": "Annual security report aggregation and analysis. USE WHEN annual reports, security reports, threat reports, industry reports, update reports, analyze reports, vendor reports, threat landscape."
+      "description_ja": "AnnualReports"
     },
     {
       "name": "Art",
@@ -1184,7 +1184,7 @@
       "path": "Releases/v2.3/.claude/skills/BrightData",
       "categories": [],
       "description": "BrightData",
-      "description_ja": "Progressive URL scraping. USE WHEN Bright Data, scrape URL, web scraping tiers. SkillSearch("
+      "description_ja": "BrightData"
     },
     {
       "name": "Browser",
@@ -1192,7 +1192,7 @@
       "path": "Releases/v2.3/.claude/skills/Browser",
       "categories": [],
       "description": "Browser",
-      "description_ja": "Code-first browser automation and web verification. USE WHEN browser, screenshot, navigate, web testing, verify UI, VERIFY phase. Replaces Playwright MCP with 99% token savings."
+      "description_ja": "Browser"
     },
     {
       "name": "CORE",
@@ -1208,7 +1208,7 @@
       "path": "Releases/v2.3/.claude/skills/Council",
       "categories": [],
       "description": "Council",
-      "description_ja": "Multi-agent debate system. USE WHEN council, debate, perspectives, agents discuss. SkillSearch("
+      "description_ja": "Council"
     },
     {
       "name": "CreateCLI",
@@ -1216,7 +1216,7 @@
       "path": "Releases/v2.3/.claude/skills/CreateCLI",
       "categories": [],
       "description": "CreateCLI",
-      "description_ja": "Generate TypeScript CLIs. USE WHEN create CLI, build CLI, command-line tool. SkillSearch("
+      "description_ja": "CreateCLI"
     },
     {
       "name": "CreateSkill",
@@ -1232,7 +1232,7 @@
       "path": "Releases/v2.3/.claude/skills/FirstPrinciples",
       "categories": [],
       "description": "FirstPrinciples",
-      "description_ja": "First principles analysis. USE WHEN first principles, fundamental, root cause, decompose. SkillSearch("
+      "description_ja": "FirstPrinciples"
     },
     {
       "name": "OSINT",
@@ -1240,7 +1240,7 @@
       "path": "Releases/v2.3/.claude/skills/OSINT",
       "categories": [],
       "description": "OSINT",
-      "description_ja": "Open source intelligence gathering. USE WHEN OSINT, due diligence, background check, research person, company intel, investigate. SkillSearch("
+      "description_ja": "OSINT"
     },
     {
       "name": "PAIUpgrade",
@@ -1248,7 +1248,7 @@
       "path": "Releases/v2.3/.claude/skills/PAIUpgrade",
       "categories": [],
       "description": "PAIUpgrade",
-      "description_ja": "Extract system improvements from content AND monitor external sources (Anthropic ecosystem, YouTube). USE WHEN upgrade, improve system, system upgrade, analyze for improvements, check Anthropic, Anthropic changes, new Claude features, check YouTube, new videos. SkillSearch("
+      "description_ja": "PAIUpgrade"
     },
     {
       "name": "PrivateInvestigator",
@@ -1256,7 +1256,7 @@
       "path": "Releases/v2.3/.claude/skills/PrivateInvestigator",
       "categories": [],
       "description": "PrivateInvestigator",
-      "description_ja": "Ethical people-finding. USE WHEN find person, locate, reconnect, people search, skip trace. SkillSearch("
+      "description_ja": "PrivateInvestigator"
     },
     {
       "name": "Prompting",
@@ -1272,7 +1272,7 @@
       "path": "Releases/v2.3/.claude/skills/Recon",
       "categories": [],
       "description": "Recon",
-      "description_ja": "Security reconnaissance. USE WHEN recon, reconnaissance, bug bounty, attack surface. SkillSearch("
+      "description_ja": "Recon"
     },
     {
       "name": "RedTeam",
@@ -1280,7 +1280,7 @@
       "path": "Releases/v2.3/.claude/skills/RedTeam",
       "categories": [],
       "description": "RedTeam",
-      "description_ja": "Adversarial analysis with 32 agents. USE WHEN red team, attack idea, counterarguments, critique, stress test. SkillSearch("
+      "description_ja": "RedTeam"
     },
     {
       "name": "Research",
@@ -1288,7 +1288,7 @@
       "path": "Releases/v2.3/.claude/skills/Research",
       "categories": [],
       "description": "Research",
-      "description_ja": "Comprehensive research, analysis, and content extraction system. USE WHEN user says"
+      "description_ja": "Research"
     },
     {
       "name": "System",
@@ -1296,7 +1296,7 @@
       "path": "Releases/v2.3/.claude/skills/System",
       "categories": [],
       "description": "System",
-      "description_ja": "System maintenance with three core operations - integrity check (find/fix broken references), document session (current transcript), document recent (catch-up since last update). Plus security workflows. USE WHEN integrity check, audit system, document session, document this session, document today, document recent, catch up docs, what"
+      "description_ja": "System"
     },
     {
       "name": "THEALGORITHM",
@@ -1304,7 +1304,7 @@
       "path": "Releases/v2.3/.claude/skills/THEALGORITHM",
       "categories": [],
       "description": "THEALGORITHM",
-      "description_ja": "Universal execution engine using scientific method to achieve ideal state. USE WHEN complex tasks, multi-step work,"
+      "description_ja": "THEALGORITHM"
     },
     {
       "name": "Telos",
@@ -1312,7 +1312,7 @@
       "path": "Releases/v2.3/.claude/skills/Telos",
       "categories": [],
       "description": "Telos",
-      "description_ja": "Life OS and project analysis. USE WHEN TELOS, life goals, projects, dependencies, books, movies. SkillSearch("
+      "description_ja": "Telos"
     },
     {
       "name": "Agents",
@@ -1328,7 +1328,7 @@
       "path": "Releases/v2.4/.claude/skills/AnnualReports",
       "categories": [],
       "description": "AnnualReports",
-      "description_ja": "Annual security report aggregation and analysis. USE WHEN annual reports, security reports, threat reports, industry reports, update reports, analyze reports, vendor reports, threat landscape."
+      "description_ja": "AnnualReports"
     },
     {
       "name": "Aphorisms",
@@ -1336,7 +1336,7 @@
       "path": "Releases/v2.4/.claude/skills/Aphorisms",
       "categories": [],
       "description": "Aphorisms",
-      "description_ja": "Aphorism management. USE WHEN aphorism, quote, saying. SkillSearch("
+      "description_ja": "Aphorisms"
     },
     {
       "name": "Apify",
@@ -1344,7 +1344,7 @@
       "path": "Releases/v2.4/.claude/skills/Apify",
       "categories": [],
       "description": "Apify",
-      "description_ja": "Social media scraping, business data, e-commerce via Apify actors. USE WHEN Twitter, Instagram, LinkedIn, TikTok, YouTube, Facebook, Google Maps, Amazon scraping."
+      "description_ja": "Apify"
     },
     {
       "name": "Art",
@@ -1360,7 +1360,7 @@
       "path": "Releases/v2.4/.claude/skills/BeCreative",
       "categories": [],
       "description": "BeCreative",
-      "description_ja": "Extended thinking mode. USE WHEN be creative, deep thinking, deep thinking, extended reasoning. SkillSearch("
+      "description_ja": "BeCreative"
     },
     {
       "name": "BrightData",
@@ -1368,7 +1368,7 @@
       "path": "Releases/v2.4/.claude/skills/BrightData",
       "categories": [],
       "description": "BrightData",
-      "description_ja": "Progressive URL scraping. USE WHEN Bright Data, scrape URL, web scraping tiers. SkillSearch("
+      "description_ja": "BrightData"
     },
     {
       "name": "Browser",
@@ -1376,7 +1376,7 @@
       "path": "Releases/v2.4/.claude/skills/Browser",
       "categories": [],
       "description": "Browser",
-      "description_ja": "Code-first browser automation and web verification. USE WHEN browser, screenshot, navigate, web testing, verify UI, VERIFY phase. Replaces Playwright MCP with 99% token savings."
+      "description_ja": "Browser"
     },
     {
       "name": "CORE",
@@ -1392,7 +1392,7 @@
       "path": "Releases/v2.4/.claude/skills/Council",
       "categories": [],
       "description": "Council",
-      "description_ja": "Multi-agent debate system. USE WHEN council, debate, perspectives, agents discuss. SkillSearch("
+      "description_ja": "Council"
     },
     {
       "name": "CreateCLI",
@@ -1400,7 +1400,7 @@
       "path": "Releases/v2.4/.claude/skills/CreateCLI",
       "categories": [],
       "description": "CreateCLI",
-      "description_ja": "Generate TypeScript CLIs. USE WHEN create CLI, build CLI, command-line tool. SkillSearch("
+      "description_ja": "CreateCLI"
     },
     {
       "name": "CreateSkill",
@@ -1416,7 +1416,7 @@
       "path": "Releases/v2.4/.claude/skills/Documents/Docx",
       "categories": [],
       "description": "Docx",
-      "description_ja": "Word document processing. USE WHEN docx, Word document. SkillSearch("
+      "description_ja": "Docx"
     },
     {
       "name": "Pdf",
@@ -1424,7 +1424,7 @@
       "path": "Releases/v2.4/.claude/skills/Documents/Pdf",
       "categories": [],
       "description": "Pdf",
-      "description_ja": "PDF processing. USE WHEN pdf, PDF file. SkillSearch("
+      "description_ja": "Pdf"
     },
     {
       "name": "Pptx",
@@ -1432,7 +1432,7 @@
       "path": "Releases/v2.4/.claude/skills/Documents/Pptx",
       "categories": [],
       "description": "Pptx",
-      "description_ja": "PowerPoint processing. USE WHEN pptx, PowerPoint, slides. SkillSearch("
+      "description_ja": "Pptx"
     },
     {
       "name": "Documents",
@@ -1440,7 +1440,7 @@
       "path": "Releases/v2.4/.claude/skills/Documents",
       "categories": [],
       "description": "Documents",
-      "description_ja": "Document processing. USE WHEN document, process file. SkillSearch("
+      "description_ja": "Documents"
     },
     {
       "name": "Xlsx",
@@ -1448,7 +1448,7 @@
       "path": "Releases/v2.4/.claude/skills/Documents/Xlsx",
       "categories": [],
       "description": "Xlsx",
-      "description_ja": "Excel file processing. USE WHEN xlsx, Excel, spreadsheet. SkillSearch("
+      "description_ja": "Xlsx"
     },
     {
       "name": "Evals",
@@ -1456,7 +1456,7 @@
       "path": "Releases/v2.4/.claude/skills/Evals",
       "categories": [],
       "description": "Evals",
-      "description_ja": "Agent evaluation framework based on Anthropic"
+      "description_ja": "Evals"
     },
     {
       "name": "Fabric",
@@ -1464,7 +1464,7 @@
       "path": "Releases/v2.4/.claude/skills/Fabric",
       "categories": [],
       "description": "Fabric",
-      "description_ja": "Intelligent prompt pattern system with 240+ specialized patterns for content analysis, extraction, and transformation. USE WHEN user says"
+      "description_ja": "Fabric"
     },
     {
       "name": "FirstPrinciples",
@@ -1472,7 +1472,7 @@
       "path": "Releases/v2.4/.claude/skills/FirstPrinciples",
       "categories": [],
       "description": "FirstPrinciples",
-      "description_ja": "First principles analysis. USE WHEN first principles, fundamental, root cause, decompose. SkillSearch("
+      "description_ja": "FirstPrinciples"
     },
     {
       "name": "OSINT",
@@ -1480,7 +1480,7 @@
       "path": "Releases/v2.4/.claude/skills/OSINT",
       "categories": [],
       "description": "OSINT",
-      "description_ja": "Open source intelligence gathering. USE WHEN OSINT, due diligence, background check, research person, company intel, investigate. SkillSearch("
+      "description_ja": "OSINT"
     },
     {
       "name": "PAIUpgrade",
@@ -1488,7 +1488,7 @@
       "path": "Releases/v2.4/.claude/skills/PAIUpgrade",
       "categories": [],
       "description": "PAIUpgrade",
-      "description_ja": "Extract system improvements from content AND monitor external sources (Anthropic ecosystem, YouTube). USE WHEN upgrade, improve system, system upgrade, analyze for improvements, check Anthropic, Anthropic changes, new Claude features, check YouTube, new videos. SkillSearch("
+      "description_ja": "PAIUpgrade"
     },
     {
       "name": "PrivateInvestigator",
@@ -1496,7 +1496,7 @@
       "path": "Releases/v2.4/.claude/skills/PrivateInvestigator",
       "categories": [],
       "description": "PrivateInvestigator",
-      "description_ja": "Ethical people-finding. USE WHEN find person, locate, reconnect, people search, skip trace. SkillSearch("
+      "description_ja": "PrivateInvestigator"
     },
     {
       "name": "PromptInjection",
@@ -1504,7 +1504,7 @@
       "path": "Releases/v2.4/.claude/skills/PromptInjection",
       "categories": [],
       "description": "PromptInjection",
-      "description_ja": "Prompt injection testing. USE WHEN prompt injection, jailbreak, LLM security, AI security assessment, pentest AI application, test chatbot vulnerabilities."
+      "description_ja": "PromptInjection"
     },
     {
       "name": "Prompting",
@@ -1520,7 +1520,7 @@
       "path": "Releases/v2.4/.claude/skills/Recon",
       "categories": [],
       "description": "Recon",
-      "description_ja": "Security reconnaissance. USE WHEN recon, reconnaissance, bug bounty, attack surface. SkillSearch("
+      "description_ja": "Recon"
     },
     {
       "name": "RedTeam",
@@ -1528,7 +1528,7 @@
       "path": "Releases/v2.4/.claude/skills/RedTeam",
       "categories": [],
       "description": "RedTeam",
-      "description_ja": "Adversarial analysis with 32 agents. USE WHEN red team, attack idea, counterarguments, critique, stress test. SkillSearch("
+      "description_ja": "RedTeam"
     },
     {
       "name": "Research",
@@ -1536,7 +1536,7 @@
       "path": "Releases/v2.4/.claude/skills/Research",
       "categories": [],
       "description": "Research",
-      "description_ja": "Comprehensive research, analysis, and content extraction system. USE WHEN user says"
+      "description_ja": "Research"
     },
     {
       "name": "SECUpdates",
@@ -1544,7 +1544,7 @@
       "path": "Releases/v2.4/.claude/skills/SECUpdates",
       "categories": [],
       "description": "SECUpdates",
-      "description_ja": "Security news aggregation from tldrsec, no.security, and other sources. USE WHEN security news, security updates, what"
+      "description_ja": "SECUpdates"
     },
     {
       "name": "Telos",
@@ -1552,7 +1552,7 @@
       "path": "Releases/v2.4/.claude/skills/Telos",
       "categories": [],
       "description": "Telos",
-      "description_ja": "Life OS and project analysis. USE WHEN TELOS, life goals, projects, dependencies, books, movies. SkillSearch("
+      "description_ja": "Telos"
     },
     {
       "name": "VoiceServer",
@@ -1560,7 +1560,7 @@
       "path": "Releases/v2.4/.claude/skills/VoiceServer",
       "categories": [],
       "description": "VoiceServer",
-      "description_ja": "Voice server management. USE WHEN voice server, TTS server, voice notification, prosody."
+      "description_ja": "VoiceServer"
     },
     {
       "name": "WebAssessment",
@@ -1568,7 +1568,7 @@
       "path": "Releases/v2.4/.claude/skills/WebAssessment",
       "categories": [],
       "description": "WebAssessment",
-      "description_ja": "Web security assessment. USE WHEN web assessment, pentest, security testing, vulnerability scan. SkillSearch("
+      "description_ja": "WebAssessment"
     },
     {
       "name": "coding-tutor",
@@ -1584,7 +1584,7 @@
       "path": "plugins/compound-engineering/skills/agent-browser",
       "categories": [],
       "description": "Agent Browser",
-      "description_ja": "Browser automation using Vercel"
+      "description_ja": "Agent Browser"
     },
     {
       "name": "agent-native-architecture",
@@ -1624,7 +1624,7 @@
       "path": "plugins/compound-engineering/skills/create-agent-skills",
       "categories": [],
       "description": "Creating Agent Skills",
-      "description_ja": "Expert guidance for creating, writing, and refining Claude Code Skills. Use when working with SKILL.md files, authoring new skills, improving existing skills, or understanding skill structure and best practices."
+      "description_ja": "Creating Agent Skills"
     },
     {
       "name": "dhh-rails-style",
@@ -1688,7 +1688,7 @@
       "path": "plugins/compound-engineering/skills/rclone",
       "categories": [],
       "description": "Rclone",
-      "description_ja": "Upload, sync, and manage files across cloud storage providers using rclone. Use when uploading files (images, videos, documents) to S3, Cloudflare R2, Backblaze B2, Google Drive, Dropbox, or any S3-compatible storage. Triggers on"
+      "description_ja": "Rclone"
     },
     {
       "name": "skill-creator",
@@ -1696,7 +1696,7 @@
       "path": "plugins/compound-engineering/skills/skill-creator",
       "categories": [],
       "description": "Create new agent skills",
-      "description_ja": "Guide for creating effective Codex skills with specialized knowledge, workflows, or tool integrations"
+      "description_ja": "Create new agent skills"
     },
     {
       "name": "custom-skill",
@@ -1704,7 +1704,7 @@
       "path": "tests/fixtures/custom-paths/custom-skills/custom-skill",
       "categories": [],
       "description": "Custom Skill",
-      "description_ja": ""
+      "description_ja": "Custom Skill"
     },
     {
       "name": "default-skill",
@@ -1712,7 +1712,7 @@
       "path": "tests/fixtures/custom-paths/skills/default-skill",
       "categories": [],
       "description": "Default Skill",
-      "description_ja": ""
+      "description_ja": "Default Skill"
     },
     {
       "name": "skill-one",
@@ -1720,7 +1720,7 @@
       "path": "tests/fixtures/sample-plugin/skills/skill-one",
       "categories": [],
       "description": "Skill One",
-      "description_ja": "Sample skill"
+      "description_ja": "Skill One"
     },
     {
       "name": "prp-core/prp-commit",
@@ -1732,7 +1732,7 @@
         "prp"
       ],
       "description": "Prp Core/prp Commit",
-      "description_ja": "Quick commit with natural language file targeting"
+      "description_ja": "Prp Core/prp Commit"
     },
     {
       "name": "prp-core/prp-debug",
@@ -1744,7 +1744,7 @@
         "prp"
       ],
       "description": "Prp Core/prp Debug",
-      "description_ja": "Deep root cause analysis - finds the actual cause, not just symptoms"
+      "description_ja": "Prp Core/prp Debug"
     },
     {
       "name": "prp-core/prp-implement",
@@ -1756,7 +1756,7 @@
         "prp"
       ],
       "description": "Prp Core/prp Implement",
-      "description_ja": "Execute an implementation plan with rigorous validation loops"
+      "description_ja": "Prp Core/prp Implement"
     },
     {
       "name": "prp-core/prp-issue-fix",
@@ -1768,7 +1768,7 @@
         "prp"
       ],
       "description": "Prp Core/prp Issue Fix",
-      "description_ja": "Implement a fix from investigation artifact - code changes, PR, and self-review"
+      "description_ja": "Prp Core/prp Issue Fix"
     },
     {
       "name": "prp-core/prp-issue-investigate",
@@ -1780,7 +1780,7 @@
         "prp"
       ],
       "description": "Prp Core/prp Issue Investigate",
-      "description_ja": "Investigate a GitHub issue or problem - analyze codebase, create plan, post to G"
+      "description_ja": "Prp Core/prp Issue Investigate"
     },
     {
       "name": "prp-core/prp-plan",
@@ -1792,7 +1792,7 @@
         "prp"
       ],
       "description": "Prp Core/prp Plan",
-      "description_ja": "Create comprehensive feature implementation plan with codebase analysis and rese"
+      "description_ja": "Prp Core/prp Plan"
     },
     {
       "name": "prp-core/prp-pr",
@@ -1804,7 +1804,7 @@
         "prp"
       ],
       "description": "Prp Core/prp Pr",
-      "description_ja": "Create a PR from current branch with unpushed commits"
+      "description_ja": "Prp Core/prp Pr"
     },
     {
       "name": "prp-core/prp-prd",
@@ -1816,7 +1816,7 @@
         "prp"
       ],
       "description": "Prp Core/prp Prd",
-      "description_ja": "Interactive PRD generator - problem-first, hypothesis-driven product spec"
+      "description_ja": "Prp Core/prp Prd"
     },
     {
       "name": "prp-core/prp-ralph-cancel",
@@ -1828,7 +1828,7 @@
         "prp"
       ],
       "description": "Prp Core/prp Ralph Cancel",
-      "description_ja": "Cancel active PRP Ralph loop"
+      "description_ja": "Prp Core/prp Ralph Cancel"
     },
     {
       "name": "prp-core/prp-ralph",
@@ -1840,7 +1840,7 @@
         "prp"
       ],
       "description": "Prp Core/prp Ralph",
-      "description_ja": "Start autonomous Ralph loop to execute PRP plan until all validations pass"
+      "description_ja": "Prp Core/prp Ralph"
     },
     {
       "name": "prp-core/prp-review-agents",
@@ -1852,7 +1852,7 @@
         "prp"
       ],
       "description": "Prp Core/prp Review Agents",
-      "description_ja": "Comprehensive PR review using specialized agents - comments, tests, errors, type"
+      "description_ja": "Prp Core/prp Review Agents"
     },
     {
       "name": "prp-core/prp-review",
@@ -1864,7 +1864,7 @@
         "prp"
       ],
       "description": "Prp Core/prp Review",
-      "description_ja": "Comprehensive PR code review - checks diff, patterns, runs validation, comments "
+      "description_ja": "Prp Core/prp Review"
     },
     {
       "name": "Cloudflare Manager",
@@ -1872,7 +1872,7 @@
       "path": ".claude/skills/cloudflare-manager",
       "categories": [],
       "description": "Cloudflare Manager",
-      "description_ja": "Comprehensive Cloudflare account management for deploying Workers, KV Storage, R2, Pages, DNS, and Routes. Use when deploying cloudflare services, managing worker containers, configuring KV/R2 storage, or setting up DNS/routing. Requires CLOUDFLARE_API_KEY in .env and Bun runtime with dependencies installed."
+      "description_ja": "Cloudflare Manager"
     },
     {
       "name": "Linear Todo Sync",
@@ -1880,7 +1880,7 @@
       "path": ".claude/skills/linear-todo-sync",
       "categories": [],
       "description": "Linear Todo Sync",
-      "description_ja": "This skill fetches open tasks assigned to the user from the Linear API and generates a markdown todo list file in the project root. This skill should be used when the user asks about their work items, wants to see what they need to work on, or requests to load/sync their Linear tasks. Requires Python 3.7+, requests, mdutils, and python-dotenv packages. Requires LINEAR_API_KEY in .env file."
+      "description_ja": "Linear Todo Sync"
     },
     {
       "name": "agentic-workflow-guide",
@@ -1888,7 +1888,7 @@
       "path": "agentic-workflow-guide",
       "categories": [],
       "description": "Guide for agentic workflows",
-      "description_ja": "Design, review, and improve agent workflows & agent using SSOT, SRP, Fail Fast principles. Supports Prompt Chaining, Parallelization, Orchestrator-Workers patterns."
+      "description_ja": "Guide for agentic workflows"
     },
     {
       "name": "azure-env-builder",
@@ -1896,7 +1896,7 @@
       "path": "azure-env-builder",
       "categories": [],
       "description": "Azure Env Builder",
-      "description_ja": "⚠️ Alpha (開発中) - エンタープライズ Azure 環境構築スキル。AVM 活用、VM アプリ初期化、App Service/AKS/Container Apps へのアプリデプロイ、サービス間設定連携、CI/CD 生成をサポート。Hub-Spoke, AKS, AI Foundry 等の複合アーキテクチャに対応。Bicep MCP と Microsoft Learn Docs MCP で最新スキーマを取得。"
+      "description_ja": "Azure Env Builder"
     },
     {
       "name": "book-writing-workspace",
@@ -1904,7 +1904,7 @@
       "path": "book-writing-workspace",
       "categories": [],
       "description": "Book Writing Workspace",
-      "description_ja": "Set up a complete book writing workspace with AI agents, instructions, prompts, and scripts. Use when users want to create a new book/technical writing project with Markdown + Re:VIEW + PDF output workflow. Triggers on"
+      "description_ja": "Book Writing Workspace"
     },
     {
       "name": "browser-max-automation",
@@ -1912,7 +1912,7 @@
       "path": "browser-max-automation",
       "categories": [],
       "description": "Browser Max Automation",
-      "description_ja": "Browser automation using Playwright MCP for web testing, UI verification, and form automation. Use when navigating websites, clicking elements, filling forms, taking screenshots, or testing web applications. Supports iframe operations and complex JavaScript execution."
+      "description_ja": "Browser Max Automation"
     },
     {
       "name": "code-simplifier",
@@ -1920,7 +1920,7 @@
       "path": "code-simplifier",
       "categories": [],
       "description": "Code Simplifier",
-      "description_ja": "Guide for simplifying and refining code after coding sessions. Use when cleaning up complex code, reviewing PRs for readability, or applying consistent refactoring patterns."
+      "description_ja": "Code Simplifier"
     },
     {
       "name": "customer-workspace",
@@ -1928,7 +1928,7 @@
       "path": "customer-workspace",
       "categories": [],
       "description": "Customer Workspace",
-      "description_ja": "Customer workspace initialization skill (Japanese UI). Provides inbox (information accumulation), meeting minutes management, and auto-classification rules. Use for"
+      "description_ja": "Customer Workspace"
     },
     {
       "name": "drawio-diagram-forge",
@@ -1936,7 +1936,7 @@
       "path": "drawio-diagram-forge",
       "categories": [],
       "description": "Drawio Diagram Forge",
-      "description_ja": "Generate draw.io editable diagrams (.drawio, .drawio.svg) from text, images, or Excel. Orchestrates 3-agent workflow (Analysis → Manifest → SVG generation) with quality gates. Use when creating architecture diagrams, flowcharts, sequence diagrams, or converting existing images to editable format. Supports Azure/AWS cloud icons."
+      "description_ja": "Drawio Diagram Forge"
     },
     {
       "name": "ocr-super-surya",
@@ -1944,7 +1944,7 @@
       "path": "ocr-super-surya",
       "categories": [],
       "description": "Ocr Super Surya",
-      "description_ja": "GPU-optimized OCR using Surya. Use when: (1) Extracting text from images/screenshots, (2) Processing PDFs with embedded images, (3) Multi-language document OCR, (4) Layout analysis and table detection. Supports 90+ languages with 2x accuracy over Tesseract."
+      "description_ja": "Ocr Super Surya"
     },
     {
       "name": "powerpoint-automation",
@@ -1952,7 +1952,7 @@
       "path": "powerpoint-automation",
       "categories": [],
       "description": "Powerpoint Automation",
-      "description_ja": "Create professional PowerPoint presentations from various sources including web articles, blog posts, and existing PPTX files. Ideal for tech presentations, reports, and documentation."
+      "description_ja": "Powerpoint Automation"
     },
     {
       "name": "skill-finder",
@@ -1960,7 +1960,7 @@
       "path": "skill-finder",
       "categories": [],
       "description": "Skill Finder",
-      "description_ja": "Full-featured Agent Skills management: Search 35+ skills, install locally, star favorites, update from sources. Supports tag search (#azure #bicep), category filtering, and similar skill recommendations."
+      "description_ja": "Skill Finder"
     },
     {
       "name": "vscode-extension-guide",
@@ -1968,7 +1968,7 @@
       "path": "vscode-extension-guide",
       "categories": [],
       "description": "Vscode Extension Guide",
-      "description_ja": "Guide for creating VS Code extensions from scratch to Marketplace publication. Use when: (1) Creating a new VS Code extension, (2) Adding commands, keybindings, or settings to an extension, (3) Publishing to VS Code Marketplace, (4) Troubleshooting extension activation or packaging issues, (5) Building TreeView or Webview UI, (6) Setting up extension tests."
+      "description_ja": "Vscode Extension Guide"
     },
     {
       "name": "doc",
@@ -1976,7 +1976,7 @@
       "path": "skills/.curated/doc",
       "categories": [],
       "description": "Doc",
-      "description_ja": "Use when the task involves reading, creating, or editing `.docx` documents, especially when formatting or layout fidelity matters; prefer `python-docx` plus the bundled `scripts/render_docx.py` for visual checks."
+      "description_ja": "Doc"
     },
     {
       "name": "gh-address-comments",
@@ -1984,7 +1984,7 @@
       "path": "skills/.curated/gh-address-comments",
       "categories": [],
       "description": "Gh Address Comments",
-      "description_ja": "Address PR review comments using gh CLI with automatic authentication check"
+      "description_ja": "Gh Address Comments"
     },
     {
       "name": "gh-fix-ci",
@@ -1992,7 +1992,7 @@
       "path": "skills/.curated/gh-fix-ci",
       "categories": [],
       "description": "Gh Fix Ci",
-      "description_ja": "Inspect failing PR checks, fetch GitHub Actions logs, and implement fixes"
+      "description_ja": "Gh Fix Ci"
     },
     {
       "name": "imagegen",
@@ -2000,7 +2000,7 @@
       "path": "skills/.curated/imagegen",
       "categories": [],
       "description": "Imagegen",
-      "description_ja": "Use when the user asks to generate or edit images via the OpenAI Image API (for example: generate image, edit/inpaint/mask, background removal or replacement, transparent background, product shots, concept art, covers, or batch variants); run the bundled CLI (`scripts/image_gen.py`) and require `OPENAI_API_KEY` for live calls."
+      "description_ja": "Imagegen"
     },
     {
       "name": "notion-knowledge-capture",
@@ -2008,7 +2008,7 @@
       "path": "skills/.curated/notion-knowledge-capture",
       "categories": [],
       "description": "Notion Knowledge Capture",
-      "description_ja": "Capture and organize knowledge in Notion (how-to guides, FAQs, decision records, wikis)"
+      "description_ja": "Notion Knowledge Capture"
     },
     {
       "name": "notion-meeting-intelligence",
@@ -2016,7 +2016,7 @@
       "path": "skills/.curated/notion-meeting-intelligence",
       "categories": [],
       "description": "Notion Meeting Intelligence",
-      "description_ja": "Prepare meeting materials with Notion context and Codex research"
+      "description_ja": "Notion Meeting Intelligence"
     },
     {
       "name": "notion-research-documentation",
@@ -2024,7 +2024,7 @@
       "path": "skills/.curated/notion-research-documentation",
       "categories": [],
       "description": "Notion Research Documentation",
-      "description_ja": "Research across Notion and synthesize into structured documentation"
+      "description_ja": "Notion Research Documentation"
     },
     {
       "name": "notion-spec-to-implementation",
@@ -2032,7 +2032,7 @@
       "path": "skills/.curated/notion-spec-to-implementation",
       "categories": [],
       "description": "Notion Spec To Implementation",
-      "description_ja": "Convert Notion specifications to implementation code"
+      "description_ja": "Notion Spec To Implementation"
     },
     {
       "name": "pdf",
@@ -2048,7 +2048,7 @@
       "path": "skills/.curated/screenshot",
       "categories": [],
       "description": "Screenshot",
-      "description_ja": "Use when the user explicitly asks for a desktop or system screenshot (full screen, specific app or window, or a pixel region), or when tool-specific capture capabilities are unavailable and an OS-level capture is needed."
+      "description_ja": "Screenshot"
     },
     {
       "name": "sora",
@@ -2056,7 +2056,7 @@
       "path": "skills/.curated/sora",
       "categories": [],
       "description": "Sora",
-      "description_ja": "Use when the user asks to generate, remix, poll, list, download, or delete Sora videos via OpenAI’s video API using the bundled CLI (`scripts/sora.py`), including requests like “generate AI video,” “Sora,” “video remix,” “download video/thumbnail/spritesheet,” and batch video generation; requires `OPENAI_API_KEY` and Sora API access."
+      "description_ja": "Sora"
     },
     {
       "name": "speech",
@@ -2064,7 +2064,7 @@
       "path": "skills/.curated/speech",
       "categories": [],
       "description": "Speech",
-      "description_ja": "Use when the user asks for text-to-speech narration or voiceover, accessibility reads, audio prompts, or batch speech generation via the OpenAI Audio API; run the bundled CLI (`scripts/text_to_speech.py`) with built-in voices and require `OPENAI_API_KEY` for live calls. Custom voice creation is out of scope."
+      "description_ja": "Speech"
     },
     {
       "name": "spreadsheet",
@@ -2072,7 +2072,7 @@
       "path": "skills/.curated/spreadsheet",
       "categories": [],
       "description": "Spreadsheet",
-      "description_ja": "Use when tasks involve creating, editing, analyzing, or formatting spreadsheets (`.xlsx`, `.csv`, `.tsv`) using Python (`openpyxl`, `pandas`), especially when formulas, references, and formatting need to be preserved and verified."
+      "description_ja": "Spreadsheet"
     },
     {
       "name": "yeet",
@@ -2080,7 +2080,7 @@
       "path": "skills/.curated/yeet",
       "categories": [],
       "description": "Yeet",
-      "description_ja": "Use only when the user explicitly asks to stage, commit, push, and open a GitHub pull request in one flow using the GitHub CLI (`gh`)."
+      "description_ja": "Yeet"
     },
     {
       "name": "codex-readiness-integration-test",
@@ -2088,7 +2088,7 @@
       "path": "skills/.experimental/codex-readiness-integration-test",
       "categories": [],
       "description": "Codex Readiness Integration Test",
-      "description_ja": "Run the Codex Readiness integration test. Use when you need an end-to-end agentic loop with build/test scoring."
+      "description_ja": "Codex Readiness Integration Test"
     },
     {
       "name": "codex-readiness-unit-test",
@@ -2096,7 +2096,7 @@
       "path": "skills/.experimental/codex-readiness-unit-test",
       "categories": [],
       "description": "Codex Readiness Unit Test",
-      "description_ja": "Run the Codex Readiness unit test report. Use when you need deterministic checks plus in-session LLM evals for AGENTS.md/PLANS.md."
+      "description_ja": "Codex Readiness Unit Test"
     },
     {
       "name": "create-plan",
@@ -2104,7 +2104,7 @@
       "path": "skills/.experimental/create-plan",
       "categories": [],
       "description": "Create Plan",
-      "description_ja": "Create a concise plan for coding tasks"
+      "description_ja": "Create Plan"
     },
     {
       "name": "linear",
@@ -2112,7 +2112,7 @@
       "path": "skills/.experimental/linear",
       "categories": [],
       "description": "Linear",
-      "description_ja": "Manage issues, projects & team workflows in Linear"
+      "description_ja": "Linear"
     },
     {
       "name": "skill-creator",
@@ -2120,7 +2120,7 @@
       "path": "skills/.system/skill-creator",
       "categories": [],
       "description": "Create new agent skills",
-      "description_ja": "Guide for creating effective Codex skills with specialized knowledge, workflows, or tool integrations"
+      "description_ja": "Create new agent skills"
     },
     {
       "name": "skill-installer",
@@ -2128,7 +2128,7 @@
       "path": "skills/.system/skill-installer",
       "categories": [],
       "description": "Skill Installer",
-      "description_ja": "Install Codex skills from curated list or GitHub repositories"
+      "description_ja": "Skill Installer"
     }
   ],
   "categories": [
