@@ -171,8 +171,18 @@ The following skills are available in this workspace.
     const installedRows = installedSkills
       .map((skill) => {
         // 優先順位: customWhenToUse > whenToUse > description
-        const whenToUse =
-          skill.customWhenToUse || skill.whenToUse || skill.description || "";
+        // ただし、whenToUse がフォールバックテンプレートのパターン（"{name} skill"）の場合は無視
+        let whenToUse = skill.customWhenToUse || "";
+        if (!whenToUse && skill.whenToUse) {
+          // フォールバックテンプレートのパターンを検出
+          const isFallbackPattern =
+            skill.whenToUse.toLowerCase() === `${skill.name.toLowerCase()} skill` ||
+            skill.whenToUse.length < 15; // 短すぎる場合も description を優先
+          whenToUse = isFallbackPattern ? "" : skill.whenToUse;
+        }
+        if (!whenToUse) {
+          whenToUse = skill.description || "";
+        }
         // テーブル内のパイプ文字をエスケープ
         const safeDesc = whenToUse.replace(/\|/g, "\\|");
         return `| [${skill.name}](${skillsDir}/${skill.name}/SKILL.md) | ${safeDesc} |`;
