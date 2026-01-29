@@ -22,7 +22,9 @@ export type OutputFormat =
   | "markdown"
   | "cursor-rules"
   | "windsurf-rules"
-  | "cline-rules";
+  | "cline-rules"
+  | "compressed-index"
+  | "markdown-with-index";
 
 /**
  * 検出されたツール情報
@@ -48,7 +50,7 @@ export interface ToolDetectionResult {
  * ワークスペース内の AI ツールを検出
  */
 export async function detectAITools(
-  workspaceUri: vscode.Uri
+  workspaceUri: vscode.Uri,
 ): Promise<ToolDetectionResult> {
   const detectedTools: DetectedTool[] = [];
 
@@ -195,7 +197,7 @@ export async function detectAITools(
  * 検出結果をユーザーに表示し、選択させる
  */
 export async function promptToolSelection(
-  result: ToolDetectionResult
+  result: ToolDetectionResult,
 ): Promise<{ format: OutputFormat; instructionFile: string } | undefined> {
   if (result.detectedTools.length === 0) {
     // ツールが検出されなかった場合はデフォルトを提案
@@ -268,7 +270,7 @@ export async function promptToolSelection(
     // 推奨を先頭に
     items.unshift({
       label: `$(star) Recommended: ${getToolDisplayName(
-        result.detectedTools[0].tool
+        result.detectedTools[0].tool,
       )}`,
       description: result.recommendedInstructionFile,
       detail: "Based on detected configuration",
@@ -308,7 +310,7 @@ export async function promptToolSelection(
     }?`,
     "Yes",
     "Choose Different",
-    "Cancel"
+    "Cancel",
   );
 
   if (confirm === "Yes") {
@@ -352,7 +354,7 @@ function getToolDisplayName(tool: AITool): string {
  * 設定された出力フォーマットを取得（auto の場合は検出結果を使用）
  */
 export async function resolveOutputFormat(
-  workspaceUri: vscode.Uri
+  workspaceUri: vscode.Uri,
 ): Promise<{ format: OutputFormat; instructionFile: string }> {
   const config = vscode.workspace.getConfiguration("skillNinja");
   const outputFormat = config.get<string>("outputFormat") || "auto";

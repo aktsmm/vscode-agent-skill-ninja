@@ -2,7 +2,7 @@
   "name": "agent-skill-ninja",
   "displayName": "%displayName%",
   "description": "%description%",
-  "version": "0.4.14",
+  "version": "0.5.0",
   "publisher": "yamapan",
   "license": "CC-BY-NC-SA-4.0",
   "icon": "resources/icon.png",
@@ -783,9 +783,11 @@
         "skillNinja.outputFormat": {
           "type": "string",
           "default": "auto",
-          "order": 8,
+          "order": 0,
           "enum": [
             "auto",
+            "compressed-index",
+            "markdown-with-index",
             "markdown",
             "cursor-rules",
             "windsurf-rules",
@@ -793,6 +795,8 @@
           ],
           "enumDescriptions": [
             "%config.outputFormat.auto%",
+            "%config.outputFormat.compressedIndex%",
+            "%config.outputFormat.markdownWithIndex%",
             "%config.outputFormat.markdown%",
             "%config.outputFormat.cursor%",
             "%config.outputFormat.windsurf%",

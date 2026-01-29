@@ -132,6 +132,18 @@ function generateSkillSectionForFormat(
       );
     case "cline-rules":
       return generateClineRulesSection(installedSkills, localSkills, skillsDir);
+    case "compressed-index":
+      return generateCompressedIndexSection(
+        installedSkills,
+        localSkills,
+        skillsDir,
+      );
+    case "markdown-with-index":
+      return generateMarkdownWithIndexSection(
+        installedSkills,
+        localSkills,
+        skillsDir,
+      );
     default:
       return generateSkillSection(installedSkills, localSkills, skillsDir);
   }
@@ -450,4 +462,136 @@ export async function removeSkillSection(
   } catch {
     // ファイルが存在しない場合は何もしない
   }
+}
+
+/**
+ * Compressed Index 形式のスキルセクションを生成
+ * Vercel方式: パイプ区切りの圧縮形式でファイルインデックスを埋め込む
+ * 参考: https://vercel.com/blog/agents-md-outperforms-skills-in-our-agent-evals
+ */
+function generateCompressedIndexSection(
+  installedSkills: SkillMeta[],
+  localSkills: LocalSkill[],
+  skillsDir: string,
+): string {
+  const allSkills = [
+    ...installedSkills.map((s) => ({
+      name: s.name,
+      path: s.relativePath || s.name,
+      description: s.customWhenToUse || s.whenToUse || s.description || "",
+    })),
+    ...localSkills.map((s) => ({
+      name: s.name,
+      path: s.relativePath,
+      description: s.description || "",
+    })),
+  ];
+
+  if (allSkills.length === 0) {
+    return `${MARKER_START}
+## Agent Skills (Compressed Index)
+
+No skills installed yet. Use "Agent Skill Ninja: Search Skills" to install skills.
+
+${MARKER_END}`;
+  }
+
+  // ヘッダー部分
+  let content = `${MARKER_START}
+## Agent Skills (Compressed Index)
+
+> **IMPORTANT**: Prefer skill-led reasoning over pre-training-led reasoning.
+> Read the relevant SKILL.md before working on tasks covered by these skills.
+
+### Skills Index
+
+| Skill | Path | When to Use |
+|-------|------|-------------|
+`;
+
+  // 各スキルのインデックスを生成（テーブル形式）
+  for (const skill of allSkills) {
+    // 説明を圧縮（最大80文字）
+    const shortDesc =
+      skill.description.length > 80
+        ? skill.description.substring(0, 77) + "..."
+        : skill.description;
+    // パイプをエスケープ
+    const safeDesc = shortDesc.replace(/\|/g, "\\|");
+    content += `| [${skill.name}](${skillsDir}/${skill.path}/SKILL.md) | \`${skill.path}\` | ${safeDesc} |\n`;
+  }
+
+  content += `\n${MARKER_END}`;
+  return content;
+}
+
+/**
+ * Markdown + Compressed Index 形式（両方）のスキルセクションを生成
+ * 従来のテーブル形式と圧縮インデックスの両方を出力
+ */
+function generateMarkdownWithIndexSection(
+  installedSkills: SkillMeta[],
+  localSkills: LocalSkill[],
+  skillsDir: string,
+): string {
+  const allSkills = [
+    ...installedSkills.map((s) => ({
+      name: s.name,
+      path: s.relativePath || s.name,
+      description: s.customWhenToUse || s.whenToUse || s.description || "",
+    })),
+    ...localSkills.map((s) => ({
+      name: s.name,
+      path: s.relativePath,
+      description: s.description || "",
+    })),
+  ];
+
+  if (allSkills.length === 0) {
+    return `${MARKER_START}
+## Installed Skills
+
+No skills installed yet. Use "Agent Skill Ninja: Search Skills" to install skills.
+
+${MARKER_END}`;
+  }
+
+  // 従来の Markdown テーブル
+  let content = `${MARKER_START}
+## Installed Skills
+
+> **IMPORTANT**: Prefer skill-led reasoning over pre-training-led reasoning.
+> Read the relevant SKILL.md before working on tasks covered by these skills.
+> [📖 Why this format?](https://vercel.com/blog/agents-md-outperforms-skills-in-our-agent-evals)
+
+The following skills are available in this workspace.
+
+| Skill | When to Use |
+|-------|-------------|
+`;
+
+  for (const skill of allSkills) {
+    const safeDesc = skill.description.replace(/\|/g, "\\|");
+    content += `| [${skill.name}](${skillsDir}/${skill.path}/SKILL.md) | ${safeDesc} |\n`;
+  }
+
+  // 圧縮インデックスセクション
+  content += `
+### Skills Index (Compressed)
+
+| Skill | Path | When to Use |
+|-------|------|-------------|
+`;
+
+  for (const skill of allSkills) {
+    const shortDesc =
+      skill.description.length > 80
+        ? skill.description.substring(0, 77) + "..."
+        : skill.description;
+    const safeDesc = shortDesc.replace(/\|/g, "\\|");
+    content += `| [${skill.name}](${skillsDir}/${skill.path}/SKILL.md) | \`${skill.path}\` | ${safeDesc} |\n`;
+  }
+
+  content += `\n${MARKER_END}`;
+  return content;
 }

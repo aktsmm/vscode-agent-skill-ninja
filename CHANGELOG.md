@@ -7,6 +7,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.5.0] - 2026-01-29
+
+### Added
+
+- 🚀 **Compressed Index Format (PREVIEW)** - Vercel-style output format achieving 100% pass rate in agent evals / Vercel方式の圧縮インデックス形式でエージェント評価100%パス
+  - [📖 Research](https://vercel.com/blog/agents-md-outperforms-skills-in-our-agent-evals)
+- 🌟 **Markdown + Index (Both)** - Combine traditional table with compressed index / 従来テーブルと圧縮インデックスの併用
+- 📋 **Output Format setting moved to top** - Most important setting now first / 出力フォーマット設定を最上部に移動
+
+### Changed
+
+- ⚠️ Settings description now includes usage notes and research link / 設定の説明に使用注意と調査リンクを追加
+
 ## [0.4.14] - 2026-01-29
 
 ### Changed
