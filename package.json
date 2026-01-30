@@ -2,7 +2,7 @@
   "name": "agent-skill-ninja",
   "displayName": "%displayName%",
   "description": "%description%",
-  "version": "0.8.2",
+  "version": "0.8.3",
   "publisher": "yamapan",
   "license": "CC-BY-NC-SA-4.0",
   "icon": "resources/icon.png",
@@ -735,7 +735,11 @@
           "type": "string",
           "default": "prompt",
           "order": 2,
-          "enum": ["always", "prompt", "never"],
+          "enum": [
+            "always",
+            "prompt",
+            "never"
+          ],
           "enumDescriptions": [
             "%config.autoUpdateSkillsOnUpgrade.always%",
             "%config.autoUpdateSkillsOnUpgrade.prompt%",
@@ -811,17 +815,17 @@
         },
         "skillNinja.outputFormat": {
           "type": "string",
-          "default": "markdown",
+          "default": "full",
           "order": 0,
           "enum": [
-            "compressed-index",
-            "markdown-with-index",
-            "markdown"
+            "full",
+            "compact",
+            "legacy"
           ],
           "enumDescriptions": [
-            "%config.outputFormat.compressedIndex%",
-            "%config.outputFormat.markdownWithIndex%",
-            "%config.outputFormat.markdown%"
+            "%config.outputFormat.full%",
+            "%config.outputFormat.compact%",
+            "%config.outputFormat.legacy%"
           ],
           "markdownDescription": "%config.outputFormat.markdownDescription%"
         },

@@ -7,6 +7,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.8.3] - 2026-01-30
+
+### Changed
+
+- 🌟 **出力フォーマットの命名変更** - `full` / `compact` / `legacy` にリネーム、既定は `full` / Renamed output formats to `full` / `compact` / `legacy`, default is now `full`
+  - `full`: IMPORTANT + 詳細テーブル + 圧縮インデックス（既定・推奨）
+  - `compact`: IMPORTANT + 圧縮インデックスのみ
+  - `legacy`: シンプルテーブルのみ（OLD）
+- 📦 **旧フォーマットからの自動マイグレーション** - 拡張機能アップデート時に旧設定値を自動変換 / Auto-migrate old format settings on extension upgrade
+  - `markdown` → `legacy`
+  - `compressed-index` → `compact`
+  - `markdown-with-index` → `full`
+- 🔄 **インストラクションファイル自動更新** - フォーマットマイグレーション時に AGENTS.md を新フォーマットで再生成 / Auto-regenerate AGENTS.md with new format on migration
+
 ## [0.8.2] - 2026-01-30
 
 ### Changed

@@ -17,11 +17,11 @@ export type AITool =
 
 /**
  * 出力フォーマット（スキルリストの表示形式）
+ * - full: IMPORTANT + 詳細テーブル + 圧縮インデックス（既定）
+ * - compact: IMPORTANT + 圧縮インデックスのみ
+ * - legacy: シンプルテーブルのみ（OLD）
  */
-export type OutputFormat =
-  | "markdown"
-  | "compressed-index"
-  | "markdown-with-index";
+export type OutputFormat = "full" | "compact" | "legacy";
 
 /**
  * 検出されたツール情報
@@ -63,14 +63,14 @@ export async function detectAITools(
     {
       pattern: ".cursor/rules/**",
       tool: "cursor",
-      format: "markdown",
+      format: "full",
       instructionFile: ".cursor/rules/skills.mdc",
       confidence: "high",
     },
     {
       pattern: ".cursorrules",
       tool: "cursor",
-      format: "markdown",
+      format: "full",
       instructionFile: ".cursor/rules/skills.mdc",
       confidence: "high",
     },
@@ -78,14 +78,14 @@ export async function detectAITools(
     {
       pattern: ".windsurfrules",
       tool: "windsurf",
-      format: "markdown",
+      format: "full",
       instructionFile: ".windsurfrules",
       confidence: "high",
     },
     {
       pattern: ".windsurf/**",
       tool: "windsurf",
-      format: "markdown",
+      format: "full",
       instructionFile: ".windsurfrules",
       confidence: "high",
     },
@@ -93,14 +93,14 @@ export async function detectAITools(
     {
       pattern: ".clinerules",
       tool: "cline",
-      format: "markdown",
+      format: "full",
       instructionFile: ".clinerules",
       confidence: "high",
     },
     {
       pattern: ".cline/**",
       tool: "cline",
-      format: "markdown",
+      format: "full",
       instructionFile: ".clinerules",
       confidence: "high",
     },
@@ -108,14 +108,14 @@ export async function detectAITools(
     {
       pattern: "CLAUDE.md",
       tool: "claude-code",
-      format: "markdown",
+      format: "full",
       instructionFile: "CLAUDE.md",
       confidence: "high",
     },
     {
       pattern: ".claude/**",
       tool: "claude-code",
-      format: "markdown",
+      format: "full",
       instructionFile: "CLAUDE.md",
       confidence: "medium",
     },
@@ -123,21 +123,21 @@ export async function detectAITools(
     {
       pattern: ".github/copilot-instructions.md",
       tool: "github-copilot",
-      format: "markdown",
+      format: "full",
       instructionFile: ".github/copilot-instructions.md",
       confidence: "high",
     },
     {
       pattern: ".github/instructions/**",
       tool: "github-copilot",
-      format: "markdown",
+      format: "full",
       instructionFile: ".github/instructions/SkillList.instructions.md",
       confidence: "high",
     },
     {
       pattern: "AGENTS.md",
       tool: "github-copilot",
-      format: "markdown",
+      format: "full",
       instructionFile: "AGENTS.md",
       confidence: "medium",
     },
@@ -171,7 +171,7 @@ export async function detectAITools(
     "github-copilot",
   ];
 
-  let recommendedFormat: OutputFormat = "markdown";
+  let recommendedFormat: OutputFormat = "full";
   let recommendedInstructionFile = "AGENTS.md";
 
   for (const tool of priorityOrder) {
@@ -239,20 +239,20 @@ export async function promptToolSelection(
       return undefined;
     }
 
-    // 選択に基づいてフォーマットを決定（フォーマットは全て markdown）
+    // 選択に基づいてフォーマットを決定（フォーマットは全て full）
     if (selected.label.includes("Cursor")) {
       return {
-        format: "markdown",
+        format: "full",
         instructionFile: ".cursor/rules/skills.mdc",
       };
     } else if (selected.label.includes("Windsurf")) {
-      return { format: "markdown", instructionFile: ".windsurfrules" };
+      return { format: "full", instructionFile: ".windsurfrules" };
     } else if (selected.label.includes("Cline")) {
-      return { format: "markdown", instructionFile: ".clinerules" };
+      return { format: "full", instructionFile: ".clinerules" };
     } else if (selected.label.includes("Claude")) {
-      return { format: "markdown", instructionFile: "CLAUDE.md" };
+      return { format: "full", instructionFile: "CLAUDE.md" };
     } else {
-      return { format: "markdown", instructionFile: "AGENTS.md" };
+      return { format: "full", instructionFile: "AGENTS.md" };
     }
   }
 
@@ -319,7 +319,7 @@ export async function promptToolSelection(
     // 再帰的に選択を促す（空の結果で）
     return promptToolSelection({
       detectedTools: [],
-      recommendedFormat: "markdown",
+      recommendedFormat: "full",
       recommendedInstructionFile: "AGENTS.md",
     });
   }
@@ -354,7 +354,7 @@ export async function resolveOutputFormat(
   _workspaceUri: vscode.Uri,
 ): Promise<{ format: OutputFormat; instructionFile: string }> {
   const config = vscode.workspace.getConfiguration("skillNinja");
-  const outputFormat = config.get<string>("outputFormat") || "markdown";
+  const outputFormat = config.get<string>("outputFormat") || "full";
 
   // ユーザーが設定した instructionFile を取得
   const userInstructionFile =

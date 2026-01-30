@@ -53,6 +53,9 @@ const EXTENSION_VERSION =
 export function activate(context: vscode.ExtensionContext) {
   console.log("Agent Skill Ninja is now active!");
 
+  // 設定値のマイグレーション（旧フォーマット名 → 新フォーマット名）
+  const formatMigrated = migrateOutputFormatSetting();
+
   let skillIndex: SkillIndex | undefined;
 
   // 最近インストールしたスキル（🆕 表示用）
@@ -67,7 +70,7 @@ export function activate(context: vscode.ExtensionContext) {
 
   // バージョンアップ時のメタデータ再抽出
   const workspaceFolder = vscode.workspace.workspaceFolders?.[0];
-  checkVersionAndRefreshMetadata(context, workspaceFolder?.uri);
+  checkVersionAndRefreshMetadata(context, workspaceFolder?.uri, formatMigrated);
 
   loadSkillIndex(context).then(async (index: SkillIndex) => {
     skillIndex = index;
@@ -2561,11 +2564,32 @@ Add examples here
 async function checkVersionAndRefreshMetadata(
   context: vscode.ExtensionContext,
   workspaceUri: vscode.Uri | undefined,
+  formatMigrated: boolean = false,
 ): Promise<void> {
   if (!workspaceUri) return;
 
   const LAST_VERSION_KEY = "skillNinja.lastVersion";
   const lastVersion = context.globalState.get<string>(LAST_VERSION_KEY);
+
+  // フォーマットがマイグレーションされた場合は、インストラクションファイルを更新
+  if (formatMigrated) {
+    console.log(
+      "[Skill Ninja] Format migrated, updating instruction file...",
+    );
+    try {
+      await updateInstructionFile(workspaceUri, context);
+      vscode.window.showInformationMessage(
+        isJapanese()
+          ? "🥷 出力フォーマット設定が更新されました。インストラクションファイルを新フォーマットで再生成しました。"
+          : "🥷 Output format setting migrated. Regenerated instruction file with new format.",
+      );
+    } catch (error) {
+      console.error(
+        "[Skill Ninja] Failed to update instruction file after format migration:",
+        error,
+      );
+    }
+  }
 
   if (lastVersion === EXTENSION_VERSION) {
     // バージョンが同じなら何もしない
@@ -2662,6 +2686,36 @@ async function promptForSkillUpdate(skillCount: number): Promise<boolean> {
   );
 
   return result === (isJapanese() ? "更新する" : "Update");
+}
+
+/**
+ * 出力フォーマット設定のマイグレーション
+ * v0.8.3 で命名を変更:
+ *   - markdown → legacy
+ *   - compressed-index → compact
+ *   - markdown-with-index → full
+ * @returns マイグレーションが行われた場合は true
+ */
+function migrateOutputFormatSetting(): boolean {
+  const config = vscode.workspace.getConfiguration("skillNinja");
+  const currentValue = config.get<string>("outputFormat");
+
+  // マイグレーションマップ（旧値 → 新値）
+  const migrationMap: Record<string, string> = {
+    markdown: "legacy",
+    "compressed-index": "compact",
+    "markdown-with-index": "full",
+  };
+
+  if (currentValue && migrationMap[currentValue]) {
+    const newValue = migrationMap[currentValue];
+    config.update("outputFormat", newValue, vscode.ConfigurationTarget.Global);
+    console.log(
+      `[Skill Ninja] Migrated outputFormat: ${currentValue} → ${newValue}`,
+    );
+    return true;
+  }
+  return false;
 }
 
 export function deactivate() {}

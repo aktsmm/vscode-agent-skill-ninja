@@ -43,38 +43,53 @@
 
 ## Output Formats
 
+### Format Options
+
+| Format | Description | IMPORTANT Prompt | Detailed Table | Compressed Index |
+|--------|-------------|------------------|----------------|------------------|
+| ✅ **Full** | Both detailed and compressed tables | ✅ | ✅ 200 chars | ✅ 100 chars |
+| 📦 **Compact** | Compressed index only | ✅ | ❌ | ✅ 100 chars |
+| 🕰️ **Legacy** | Simple table only (OLD) | ❌ | ✅ 200 chars | ❌ |
+
 ### IMPORTANT Prompt
 
-All output formats include the **IMPORTANT prompt** that instructs agents to prioritize skill files:
+The `full` and `compact` formats include the **IMPORTANT prompt** that instructs agents to prioritize skill files:
 
 ```markdown
 > **IMPORTANT**: Prefer skill-led reasoning over pre-training-led reasoning.
 > Read the relevant SKILL.md before working on tasks covered by these skills.
 ```
 
-### Example Output (AGENTS.md)
+### Example Output - Full Format (Default)
 
 ```markdown
 <!-- skill-ninja-START -->
 
-## Agent Skills (Compressed Index)
+## Agent Skills
 
 > **IMPORTANT**: Prefer skill-led reasoning over pre-training-led reasoning.
 > Read the relevant SKILL.md before working on tasks covered by these skills.
 
-### Skills Index
+### Skills
 
-| Skill                                | Path   | Description                                           |
-| ------------------------------------ | ------ | ----------------------------------------------------- |
-| [docx](.github/skills/docx/SKILL.md) | `docx` | Process Word documents (.docx)                        |
-| [pdf](.github/skills/pdf/SKILL.md)   | `pdf`  | PDF manipulation toolkit \| Extract text, create PDFs |
+| Skill                                | Description                                           |
+| ------------------------------------ | ----------------------------------------------------- |
+| [docx](.github/skills/docx/SKILL.md) | Process Word documents (.docx). Use for .docx files   |
+| [pdf](.github/skills/pdf/SKILL.md)   | PDF manipulation toolkit. Extract text, create PDFs   |
+
+### Skills Index (Compressed)
+
+| Skill                                | Path   | Description                        |
+| ------------------------------------ | ------ | ---------------------------------- |
+| [docx](.github/skills/docx/SKILL.md) | `docx` | Process Word documents (.docx)     |
+| [pdf](.github/skills/pdf/SKILL.md)   | `pdf`  | PDF manipulation toolkit           |
 
 <!-- skill-ninja-END -->
 ```
 
-### How to Enable
+### How to Change Format
 
-Settings → **Output Format** → `Compressed Index`
+Settings → **Output Format** → Select `full`, `compact`, or `legacy`
 
 ---
 
@@ -331,21 +346,18 @@ If you don't need MCP tools, you can disable them from GitHub Copilot Chat:
 |   5   | `skillNinja.skillsDirectory`       | `.github/skills` | Directory to install skills                                 |
 |   6   | `skillNinja.githubToken`           | `""`             | GitHub Token (for API rate limit)                           |
 |   7   | `skillNinja.language`              | `auto`           | UI language (auto / en / ja)                                |
-|   8   | `skillNinja.outputFormat`          | `auto`           | Output format (auto / markdown / cursor / windsurf / cline) |
+|   8   | `skillNinja.outputFormat`          | `full`           | Output format (full / compact / legacy)                     |
 |   9   | `skillNinja.enableToolDetection`   | `true`           | Auto-detect AI tools in workspace                           |
 
 > Settings are displayed in the order above
 
 ### Output Format Details
 
-| Format           | File                       | Compatible Tools            |
-| ---------------- | -------------------------- | --------------------------- |
-| `markdown`       | AGENTS.md, CLAUDE.md, etc. | GitHub Copilot, Claude Code |
-| `cursor-rules`   | .cursor/rules/skills.mdc   | Cursor                      |
-| `windsurf-rules` | .windsurfrules             | Windsurf                    |
-| `cline-rules`    | .clinerules                | Cline                       |
-
-When `auto` is selected, the extension automatically detects which AI tool is being used based on configuration files in your workspace.
+| Format    | Content                                    | Best For                          |
+| --------- | ------------------------------------------ | --------------------------------- |
+| `full`    | IMPORTANT + Detailed table + Compressed    | Complete information (default)    |
+| `compact` | IMPORTANT + Compressed index only          | Token-efficient prompts           |
+| `legacy`  | Simple table only (no IMPORTANT)           | Backward compatibility            |
 
 ### How Instruction File Sync Works
 

@@ -67,7 +67,7 @@ function getIndexUpdateInfo(index: SkillIndex): {
     const lastDate = new Date(lastUpdated);
     const now = new Date();
     daysOld = Math.floor(
-      (now.getTime() - lastDate.getTime()) / (1000 * 60 * 60 * 24)
+      (now.getTime() - lastDate.getTime()) / (1000 * 60 * 60 * 24),
     );
     isOutdated = daysOld > 7;
   }
@@ -97,7 +97,7 @@ export function registerMcpTools(context: vscode.ExtensionContext): void {
   // vscode.lm API が存在するか確認
   if (!vscode.lm || typeof vscode.lm.registerTool !== "function") {
     console.log(
-      "Agent Skill Ninja: vscode.lm.registerTool is not available (requires VS Code 1.99+)"
+      "Agent Skill Ninja: vscode.lm.registerTool is not available (requires VS Code 1.99+)",
     );
     return;
   }
@@ -105,47 +105,47 @@ export function registerMcpTools(context: vscode.ExtensionContext): void {
   try {
     // スキル検索ツール
     context.subscriptions.push(
-      vscode.lm.registerTool("skillNinja_search", new SkillSearchTool())
+      vscode.lm.registerTool("skillNinja_search", new SkillSearchTool()),
     );
 
     // スキルインストールツール
     context.subscriptions.push(
-      vscode.lm.registerTool("skillNinja_install", new SkillInstallTool())
+      vscode.lm.registerTool("skillNinja_install", new SkillInstallTool()),
     );
 
     // インストール済み一覧ツール
     context.subscriptions.push(
-      vscode.lm.registerTool("skillNinja_list", new SkillListTool())
+      vscode.lm.registerTool("skillNinja_list", new SkillListTool()),
     );
 
     // スキル推奨ツール
     context.subscriptions.push(
-      vscode.lm.registerTool("skillNinja_recommend", new SkillRecommendTool())
+      vscode.lm.registerTool("skillNinja_recommend", new SkillRecommendTool()),
     );
 
     // スキルアンインストールツール
     context.subscriptions.push(
-      vscode.lm.registerTool("skillNinja_uninstall", new SkillUninstallTool())
+      vscode.lm.registerTool("skillNinja_uninstall", new SkillUninstallTool()),
     );
 
     // インデックス更新ツール
     context.subscriptions.push(
-      vscode.lm.registerTool("skillNinja_updateIndex", new UpdateIndexTool())
+      vscode.lm.registerTool("skillNinja_updateIndex", new UpdateIndexTool()),
     );
 
     // GitHub 検索ツール
     context.subscriptions.push(
-      vscode.lm.registerTool("skillNinja_webSearch", new WebSearchTool())
+      vscode.lm.registerTool("skillNinja_webSearch", new WebSearchTool()),
     );
 
     // ソース追加ツール
     context.subscriptions.push(
-      vscode.lm.registerTool("skillNinja_addSource", new AddSourceTool())
+      vscode.lm.registerTool("skillNinja_addSource", new AddSourceTool()),
     );
 
     // スキル説明ローカライズツール
     context.subscriptions.push(
-      vscode.lm.registerTool("skillNinja_localize", new LocalizeSkillsTool())
+      vscode.lm.registerTool("skillNinja_localize", new LocalizeSkillsTool()),
     );
 
     console.log("Agent Skill Ninja: MCP tools registered successfully");
@@ -160,7 +160,7 @@ export function registerMcpTools(context: vscode.ExtensionContext): void {
 class SkillSearchTool implements vscode.LanguageModelTool<{ query: string }> {
   async invoke(
     options: vscode.LanguageModelToolInvocationOptions<{ query: string }>,
-    _token: vscode.CancellationToken
+    _token: vscode.CancellationToken,
   ): Promise<vscode.LanguageModelToolResult> {
     const query = options.input.query;
     const index = await getSkillIndex();
@@ -178,8 +178,8 @@ class SkillSearchTool implements vscode.LanguageModelTool<{ query: string }> {
           skill.name.toLowerCase().includes(lowerQuery) ||
           skill.description?.toLowerCase().includes(lowerQuery) ||
           skill.categories?.some((cat: string) =>
-            cat.toLowerCase().includes(lowerQuery)
-          )
+            cat.toLowerCase().includes(lowerQuery),
+          ),
       )
       .slice(0, 10);
 
@@ -291,7 +291,7 @@ ${
           updateInfo.isOutdated ? " ⚠️ 推奨!" : ""
         } |
 
-> 現在のインデックス: ${sourceStats}（最終更新: ${updateInfo.lastUpdated}）`
+> 現在のインデックス: ${sourceStats}（最終更新: ${updateInfo.lastUpdated}）`,
       ),
     ]);
   }
@@ -300,12 +300,12 @@ ${
 /**
  * スキルインストールツール
  */
-class SkillInstallTool
-  implements vscode.LanguageModelTool<{ skillName: string }>
-{
+class SkillInstallTool implements vscode.LanguageModelTool<{
+  skillName: string;
+}> {
   async invoke(
     options: vscode.LanguageModelToolInvocationOptions<{ skillName: string }>,
-    _token: vscode.CancellationToken
+    _token: vscode.CancellationToken,
   ): Promise<vscode.LanguageModelToolResult> {
     const skillName = options.input.skillName;
     const index = await getSkillIndex();
@@ -325,7 +325,7 @@ class SkillInstallTool
 ---
 **📋 Next Actions:**
 1. 🔍 Search first → use #searchSkills to find available skills
-2. Check spelling and try again`
+2. Check spelling and try again`,
         ),
       ]);
     }
@@ -334,7 +334,7 @@ class SkillInstallTool
     if (!workspaceFolder) {
       return new vscode.LanguageModelToolResult([
         new vscode.LanguageModelTextPart(
-          `❌ No workspace folder open. Please open a folder first.`
+          `❌ No workspace folder open. Please open a folder first.`,
         ),
       ]);
     }
@@ -388,13 +388,13 @@ class SkillInstallTool
 |-----------|------||
 | 🔍 **ローカル検索** | インデックスからスキルを検索 |
 | 🌐 **GitHub で検索** | インデックスにないスキルを GitHub から直接検索 |
-| ➕ **ソースを追加** | 新しいリポジトリをインデックスに追加 |`
+| ➕ **ソースを追加** | 新しいリポジトリをインデックスに追加 |`,
         ),
       ]);
     } catch (error) {
       return new vscode.LanguageModelToolResult([
         new vscode.LanguageModelTextPart(
-          `❌ Failed to install "${skill.name}": ${error}`
+          `❌ Failed to install "${skill.name}": ${error}`,
         ),
       ]);
     }
@@ -407,7 +407,7 @@ class SkillInstallTool
 class SkillListTool implements vscode.LanguageModelTool<Record<string, never>> {
   async invoke(
     _options: vscode.LanguageModelToolInvocationOptions<Record<string, never>>,
-    _token: vscode.CancellationToken
+    _token: vscode.CancellationToken,
   ): Promise<vscode.LanguageModelToolResult> {
     const workspaceFolder = vscode.workspace.workspaceFolders?.[0];
     if (!workspaceFolder) {
@@ -435,7 +435,7 @@ class SkillListTool implements vscode.LanguageModelTool<Record<string, never>> {
 | 💡 **おすすめ** | プロジェクトに合ったスキルを推奨 |
 | 🌐 **GitHub で検索** | インデックスにないスキルを GitHub から直接検索 |
 | ➕ **ソースを追加** | 新しいリポジトリをインデックスに追加 |
-| 🔄 **インデックス更新** | 登録済みソースから最新情報を取得 |`
+| 🔄 **インデックス更新** | 登録済みソースから最新情報を取得 |`,
         ),
       ]);
     }
@@ -475,7 +475,7 @@ ${list}
 | 🔍 **ローカル検索** | インデックスからスキルを検索 |
 | 🌐 **GitHub で検索** | インデックスにないスキルを GitHub から直接検索 |
 | ➕ **ソースを追加** | 新しいリポジトリをインデックスに追加 |
-| 🔄 **インデックス更新** | 登録済みソースから最新情報を取得 |`
+| 🔄 **インデックス更新** | 登録済みソースから最新情報を取得 |`,
       ),
     ]);
   }
@@ -484,18 +484,18 @@ ${list}
 /**
  * スキル推奨ツール
  */
-class SkillRecommendTool
-  implements vscode.LanguageModelTool<Record<string, never>>
-{
+class SkillRecommendTool implements vscode.LanguageModelTool<
+  Record<string, never>
+> {
   async invoke(
     _options: vscode.LanguageModelToolInvocationOptions<Record<string, never>>,
-    _token: vscode.CancellationToken
+    _token: vscode.CancellationToken,
   ): Promise<vscode.LanguageModelToolResult> {
     const workspaceFolders = vscode.workspace.workspaceFolders;
     if (!workspaceFolders) {
       return new vscode.LanguageModelToolResult([
         new vscode.LanguageModelTextPart(
-          "❌ No workspace open. Cannot analyze project."
+          "❌ No workspace open. Cannot analyze project.",
         ),
       ]);
     }
@@ -528,16 +528,16 @@ class SkillRecommendTool
       const files = await vscode.workspace.findFiles(
         pattern.glob,
         "**/node_modules/**",
-        1
+        1,
       );
       if (files.length > 0) {
         const matchingSkills = skills.filter(
           (s: Skill) =>
             s.categories?.some((c: string) =>
-              c.toLowerCase().includes(pattern.category)
+              c.toLowerCase().includes(pattern.category),
             ) ||
             s.name.toLowerCase().includes(pattern.category) ||
-            s.description?.toLowerCase().includes(pattern.category)
+            s.description?.toLowerCase().includes(pattern.category),
         );
 
         for (const skill of matchingSkills.slice(0, 2)) {
@@ -559,8 +559,8 @@ class SkillRecommendTool
         .map(
           (s: Skill) =>
             `| ${s.name} | ${s.description || ""} | ${getTrustBadge(
-              s.source || ""
-            )} | ⭐${s.stars} |`
+              s.source || "",
+            )} | ⭐${s.stars} |`,
         )
         .join("\n");
 
@@ -599,7 +599,7 @@ ${list}
 | ➕ **ソースを追加** | 新しいリポジトリをインデックスに追加 |
 | 🔄 **インデックス更新** | 登録済みソースから最新情報を取得${
             updateInfo.isOutdated ? " ⚠️ 推奨!" : ""
-          } |`
+          } |`,
         ),
       ]);
     }
@@ -622,7 +622,7 @@ ${list}
         (r) =>
           `| ${r.skill.name} | ${
             getLocalizedDescription(r.skill, isJa) || ""
-          } | ${r.reason} | ${getTrustBadge(r.skill.source || "")} |`
+          } | ${r.reason} | ${getTrustBadge(r.skill.source || "")} |`,
       )
       .join("\n");
 
@@ -674,7 +674,7 @@ ${updateInfo.isOutdated ? "- ⚠️ Index is outdated! Suggest updating." : ""}
 | ➕ **ソースを追加** | 新しいリポジトリをインデックスに追加 |
 | 🔄 **インデックス更新** | 登録済みソースから最新情報を取得${
           updateInfo.isOutdated ? " ⚠️ 推奨!" : ""
-        } |`
+        } |`,
       ),
     ]);
   }
@@ -683,12 +683,12 @@ ${updateInfo.isOutdated ? "- ⚠️ Index is outdated! Suggest updating." : ""}
 /**
  * スキルアンインストールツール
  */
-class SkillUninstallTool
-  implements vscode.LanguageModelTool<{ skillName: string }>
-{
+class SkillUninstallTool implements vscode.LanguageModelTool<{
+  skillName: string;
+}> {
   async invoke(
     options: vscode.LanguageModelToolInvocationOptions<{ skillName: string }>,
-    _token: vscode.CancellationToken
+    _token: vscode.CancellationToken,
   ): Promise<vscode.LanguageModelToolResult> {
     const skillName = options.input.skillName;
 
@@ -696,7 +696,7 @@ class SkillUninstallTool
     if (!workspaceFolder) {
       return new vscode.LanguageModelToolResult([
         new vscode.LanguageModelTextPart(
-          `❌ No workspace folder open. Please open a folder first.`
+          `❌ No workspace folder open. Please open a folder first.`,
         ),
       ]);
     }
@@ -707,7 +707,7 @@ class SkillUninstallTool
     const matchedSkill = installed.find(
       (name) =>
         name.toLowerCase() === lowerName ||
-        name.toLowerCase().includes(lowerName)
+        name.toLowerCase().includes(lowerName),
     );
 
     if (!matchedSkill) {
@@ -730,7 +730,7 @@ class SkillUninstallTool
 |-----------|------||| アクション | 説明 |
 |-----------|------||
 | 🔍 **ローカル検索** | インデックスからスキルを検索 |
-| 🌐 **GitHub で検索** | GitHub から直接検索 |`
+| 🌐 **GitHub で検索** | GitHub から直接検索 |`,
         ),
       ]);
     }
@@ -778,13 +778,13 @@ class SkillUninstallTool
 |-----------|------||
 | 🔍 **ローカル検索** | インデックスからスキルを検索 |
 | 🌐 **GitHub で検索** | インデックスにないスキルを GitHub から直接検索 |
-| ➕ **ソースを追加** | 新しいリポジトリをインデックスに追加 |`
+| ➕ **ソースを追加** | 新しいリポジトリをインデックスに追加 |`,
         ),
       ]);
     } catch (error) {
       return new vscode.LanguageModelToolResult([
         new vscode.LanguageModelTextPart(
-          `❌ Failed to uninstall "${matchedSkill}": ${error}`
+          `❌ Failed to uninstall "${matchedSkill}": ${error}`,
         ),
       ]);
     }
@@ -794,12 +794,12 @@ class SkillUninstallTool
 /**
  * インデックス更新ツール
  */
-class UpdateIndexTool
-  implements vscode.LanguageModelTool<Record<string, never>>
-{
+class UpdateIndexTool implements vscode.LanguageModelTool<
+  Record<string, never>
+> {
   async invoke(
     _options: vscode.LanguageModelToolInvocationOptions<Record<string, never>>,
-    _token: vscode.CancellationToken
+    _token: vscode.CancellationToken,
   ): Promise<vscode.LanguageModelToolResult> {
     if (!extContext) {
       return new vscode.LanguageModelToolResult([
@@ -862,7 +862,7 @@ class UpdateIndexTool
 |-----------|------||| アクション | 説明 |
 |-----------|------||
 | 🌐 **GitHub で検索** | インデックスにないスキルを GitHub から直接検索 |
-| ➕ **ソースを追加** | 新しいリポジトリをインデックスに追加 |`
+| ➕ **ソースを追加** | 新しいリポジトリをインデックスに追加 |`,
         ),
       ]);
     } catch (error) {
@@ -874,7 +874,7 @@ class UpdateIndexTool
 **📋 Troubleshooting:**
 1. Check internet connection
 2. GitHub API rate limit may be exceeded
-3. Try setting a GitHub token in settings`
+3. Try setting a GitHub token in settings`,
         ),
       ]);
     }
@@ -887,7 +887,7 @@ class UpdateIndexTool
 class WebSearchTool implements vscode.LanguageModelTool<{ query: string }> {
   async invoke(
     options: vscode.LanguageModelToolInvocationOptions<{ query: string }>,
-    _token: vscode.CancellationToken
+    _token: vscode.CancellationToken,
   ): Promise<vscode.LanguageModelToolResult> {
     const query = options.input.query;
 
@@ -914,7 +914,7 @@ class WebSearchTool implements vscode.LanguageModelTool<{ query: string }> {
 | 🔑 **キーワード変更** | 別のキーワードで再検索 |
 | 🔍 **ローカル検索** | インデックスからスキルを検索 |
 | ➕ **ソースを追加** | 既知のリポジトリをインデックスに追加 |
-| 🔄 **インデックス更新** | 登録済みソースから最新情報を取得 |`
+| 🔄 **インデックス更新** | 登録済みソースから最新情報を取得 |`,
           ),
         ]);
       }
@@ -959,7 +959,7 @@ ${formatted}
 |-----------|------||
 | ➕ **ソースを追加** | 上記リポジトリをインデックスに追加 |
 | 🔄 **インデックス更新** | 追加後にインデックスを更新 |
-| 🔍 **ローカル検索** | 追加後にスキルを検索してインストール |`
+| 🔍 **ローカル検索** | 追加後にスキルを検索してインストール |`,
         ),
       ]);
     } catch (error) {
@@ -971,7 +971,7 @@ ${formatted}
 **📋 Troubleshooting:**
 1. Check internet connection
 2. GitHub API rate limit may be exceeded (60 req/hour without token)
-3. Set GitHub token in settings for higher limits`
+3. Set GitHub token in settings for higher limits`,
         ),
       ]);
     }
@@ -984,7 +984,7 @@ ${formatted}
 class AddSourceTool implements vscode.LanguageModelTool<{ repoUrl: string }> {
   async invoke(
     options: vscode.LanguageModelToolInvocationOptions<{ repoUrl: string }>,
-    _token: vscode.CancellationToken
+    _token: vscode.CancellationToken,
   ): Promise<vscode.LanguageModelToolResult> {
     const repoUrl = options.input.repoUrl;
 
@@ -1043,7 +1043,7 @@ class AddSourceTool implements vscode.LanguageModelTool<{ repoUrl: string }> {
 | 🔍 **スキル検索** | 追加されたスキルを検索 |
 | 💡 **おすすめ** | プロジェクトに合ったスキルを推奨 |
 | 🌐 **GitHub で検索** | さらにスキルを探す |
-| ➕ **ソースを追加** | 他のリポジトリも追加 |`
+| ➕ **ソースを追加** | 他のリポジトリも追加 |`,
         ),
       ]);
     } catch (error) {
@@ -1056,7 +1056,7 @@ class AddSourceTool implements vscode.LanguageModelTool<{ repoUrl: string }> {
 1. Check the repository URL format (https://github.com/owner/repo or owner/repo)
 2. Repository must be public
 3. Repository should contain SKILL.md files
-4. GitHub API rate limit may be exceeded`
+4. GitHub API rate limit may be exceeded`,
         ),
       ]);
     }
@@ -1076,7 +1076,7 @@ interface LocalizeInput {
 class LocalizeSkillsTool implements vscode.LanguageModelTool<LocalizeInput> {
   async invoke(
     options: vscode.LanguageModelToolInvocationOptions<LocalizeInput>,
-    _token: vscode.CancellationToken
+    _token: vscode.CancellationToken,
   ): Promise<vscode.LanguageModelToolResult> {
     const { skillName, description_en, description_ja } = options.input;
 
@@ -1085,7 +1085,7 @@ class LocalizeSkillsTool implements vscode.LanguageModelTool<LocalizeInput> {
         new vscode.LanguageModelTextPart(
           `❌ skillName is required.
 
-Usage: Provide skillName and at least one of description_en or description_ja.`
+Usage: Provide skillName and at least one of description_en or description_ja.`,
         ),
       ]);
     }
@@ -1093,7 +1093,7 @@ Usage: Provide skillName and at least one of description_en or description_ja.`
     if (!description_en && !description_ja) {
       return new vscode.LanguageModelToolResult([
         new vscode.LanguageModelTextPart(
-          `❌ At least one of description_en or description_ja is required.`
+          `❌ At least one of description_en or description_ja is required.`,
         ),
       ]);
     }
@@ -1101,7 +1101,7 @@ Usage: Provide skillName and at least one of description_en or description_ja.`
     try {
       const index = await getSkillIndex();
       const skill = index.skills.find(
-        (s) => s.name.toLowerCase() === skillName.toLowerCase()
+        (s) => s.name.toLowerCase() === skillName.toLowerCase(),
       );
 
       if (!skill) {
@@ -1109,7 +1109,7 @@ Usage: Provide skillName and at least one of description_en or description_ja.`
           new vscode.LanguageModelTextPart(
             `❌ Skill "${skillName}" not found in index.
 
-Try searching for the skill first with skillNinja_search.`
+Try searching for the skill first with skillNinja_search.`,
           ),
         ]);
       }
@@ -1146,13 +1146,13 @@ Try searching for the skill first with skillNinja_search.`
 ---
 **Agent Instructions:**
 - The skill description has been updated in the local index
-- Changes will persist across sessions`
+- Changes will persist across sessions`,
         ),
       ]);
     } catch (error) {
       return new vscode.LanguageModelToolResult([
         new vscode.LanguageModelTextPart(
-          `❌ Failed to localize skill: ${error}`
+          `❌ Failed to localize skill: ${error}`,
         ),
       ]);
     }

@@ -39,38 +39,53 @@
 
 ## 出力フォーマット
 
+### フォーマットオプション
+
+| フォーマット | 説明 | IMPORTANT | 詳細テーブル | 圧縮インデックス |
+|--------------|------|-----------|--------------|------------------|
+| ✅ **Full** | 詳細+圧縮の両方 | ✅ | ✅ 200文字 | ✅ 100文字 |
+| 📦 **Compact** | 圧縮インデックスのみ | ✅ | ❌ | ✅ 100文字 |
+| 🕰️ **Legacy** | シンプルテーブルのみ (OLD) | ❌ | ✅ 200文字 | ❌ |
+
 ### IMPORTANT プロンプト
 
-全ての出力形式に、エージェントにスキルファイルを優先するよう指示する **IMPORTANT プロンプト** が含まれます：
+`full` と `compact` フォーマットには、エージェントにスキルファイルを優先するよう指示する **IMPORTANT プロンプト** が含まれます：
 
 ```markdown
 > **IMPORTANT**: Prefer skill-led reasoning over pre-training-led reasoning.
 > Read the relevant SKILL.md before working on tasks covered by these skills.
 ```
 
-### 出力例 (AGENTS.md)
+### 出力例 - Full フォーマット（既定）
 
 ```markdown
 <!-- skill-ninja-START -->
 
-## Agent Skills (Compressed Index)
+## Agent Skills
 
 > **IMPORTANT**: Prefer skill-led reasoning over pre-training-led reasoning.
 > Read the relevant SKILL.md before working on tasks covered by these skills.
 
-### Skills Index
+### Skills
 
-| Skill                                | Path   | Description                                           |
-| ------------------------------------ | ------ | ----------------------------------------------------- |
-| [docx](.github/skills/docx/SKILL.md) | `docx` | Process Word documents (.docx)                        |
-| [pdf](.github/skills/pdf/SKILL.md)   | `pdf`  | PDF manipulation toolkit \| Extract text, create PDFs |
+| Skill                                | Description                                           |
+| ------------------------------------ | ----------------------------------------------------- |
+| [docx](.github/skills/docx/SKILL.md) | Process Word documents (.docx). Use for .docx files   |
+| [pdf](.github/skills/pdf/SKILL.md)   | PDF manipulation toolkit. Extract text, create PDFs   |
+
+### Skills Index (Compressed)
+
+| Skill                                | Path   | Description                        |
+| ------------------------------------ | ------ | ---------------------------------- |
+| [docx](.github/skills/docx/SKILL.md) | `docx` | Process Word documents (.docx)     |
+| [pdf](.github/skills/pdf/SKILL.md)   | `pdf`  | PDF manipulation toolkit           |
 
 <!-- skill-ninja-END -->
 ```
 
-### 有効化方法
+### フォーマットの変更方法
 
-設定 → **Output Format (出力フォーマット)** → `Compressed Index (圧縮インデックス)`
+設定 → **Output Format (出力フォーマット)** → `full`, `compact`, `legacy` から選択
 
 ---
 
@@ -327,21 +342,18 @@ MCP ツールが不要な場合は、GitHub Copilot Chat のツール一覧か�
 |  5   | `skillNinja.skillsDirectory`       | `.github/skills` | スキルをインストールするディレクトリ                    |
 |  6   | `skillNinja.githubToken`           | `""`             | GitHub Token（API 制限緩和用）                          |
 |  7   | `skillNinja.language`              | `auto`           | UI 言語（auto / en / ja）                               |
-|  8   | `skillNinja.outputFormat`          | `auto`           | 出力形式（auto / markdown / cursor / windsurf / cline） |
+|  8   | `skillNinja.outputFormat`          | `full`           | 出力形式（full / compact / legacy）                    |
 |  9   | `skillNinja.enableToolDetection`   | `true`           | AI ツール自動検出を有効化                               |
 
 > 設定画面では上記の順序で表示されます
 
 ### 出力フォーマット詳細
 
-| フォーマット     | ファイル                 | 対応ツール                  |
-| ---------------- | ------------------------ | --------------------------- |
-| `markdown`       | AGENTS.md, CLAUDE.md 等  | GitHub Copilot, Claude Code |
-| `cursor-rules`   | .cursor/rules/skills.mdc | Cursor                      |
-| `windsurf-rules` | .windsurfrules           | Windsurf                    |
-| `cline-rules`    | .clinerules              | Cline                       |
-
-`auto` を選択すると、ワークスペース内の設定ファイルから使用中の AI ツールを自動検出します。
+| フォーマット | 内容                                     | 用途                            |
+| ---------- | ---------------------------------------- | ------------------------------- |
+| `full`     | IMPORTANT + 詳細テーブル + 圧縮インデックス | 完全な情報（既定）                |
+| `compact`  | IMPORTANT + 圧縮インデックスのみ           | トークン節約型                    |
+| `legacy`   | シンプルテーブルのみ（IMPORTANT なし）    | 後方互換性                        |
 
 ### Instruction File 同期の仕組み
 

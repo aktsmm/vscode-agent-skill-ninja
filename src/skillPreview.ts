@@ -20,7 +20,7 @@ let previewPanel: vscode.WebviewPanel | undefined;
 async function fetchSkillContent(
   skill: Skill,
   sources: Source[],
-  token?: string
+  token?: string,
 ): Promise<string> {
   // GitHub raw URL を構築
   let rawUrl: string;
@@ -81,7 +81,7 @@ function markdownToHtml(markdown: string): string {
     // コードブロック
     .replace(
       /```(\w*)\n([\s\S]*?)```/g,
-      '<pre><code class="language-$1">$2</code></pre>'
+      '<pre><code class="language-$1">$2</code></pre>',
     )
     // インラインコード
     .replace(/`([^`]+)`/g, "<code>$1</code>")
@@ -113,7 +113,7 @@ function getWebviewContent(
   skill: Skill,
   content: string,
   isFavorite: boolean,
-  isInIndex: boolean = true
+  isInIndex: boolean = true,
 ): string {
   const htmlContent = markdownToHtml(content);
   const starIcon = isFavorite ? "★" : "☆";
@@ -273,12 +273,12 @@ function getWebviewContent(
   <div class="meta">
     <strong>Source:</strong> ${skill.source} | 
     <strong>Categories:</strong> ${skill.categories.join(", ") || "None"}${
-    skill.stars
-      ? ` | <strong>Stars:</strong> ⭐ ${skill.stars.toLocaleString()}`
-      : ""
-  }${skill.isOrg ? " | 🏢 Organization" : ""}${
-    skill.bundle ? ` | <strong>Bundle:</strong> ${skill.bundle}` : ""
-  }
+      skill.stars
+        ? ` | <strong>Stars:</strong> ⭐ ${skill.stars.toLocaleString()}`
+        : ""
+    }${skill.isOrg ? " | 🏢 Organization" : ""}${
+      skill.bundle ? ` | <strong>Bundle:</strong> ${skill.bundle}` : ""
+    }
   </div>
   ${standaloneWarning}
   <div class="content">
@@ -319,7 +319,7 @@ export function getSkillId(skill: Skill): string {
  */
 export async function showSkillPreview(
   skill: Skill,
-  context: vscode.ExtensionContext
+  context: vscode.ExtensionContext,
 ): Promise<void> {
   const token = await getGitHubToken();
 
@@ -330,7 +330,7 @@ export async function showSkillPreview(
   // スキルがインデックスに登録されているか確認
   const isInIndex =
     skillIndex.skills.some(
-      (s: Skill) => s.name === skill.name && s.source === skill.source
+      (s: Skill) => s.name === skill.name && s.source === skill.source,
     ) || sources.some((s: Source) => s.id === skill.source);
 
   // お気に入り状態を取得
@@ -350,7 +350,7 @@ export async function showSkillPreview(
         {
           enableScripts: true,
           retainContextWhenHidden: true,
-        }
+        },
       );
 
       previewPanel.onDidDispose(() => {
@@ -367,7 +367,7 @@ export async function showSkillPreview(
       skill,
       content,
       isFavorite,
-      isInIndex
+      isInIndex,
     );
 
     // メッセージハンドラー
@@ -389,28 +389,28 @@ export async function showSkillPreview(
                   repoUrl = sourceInfo.url;
                 } else {
                   vscode.window.showErrorMessage(
-                    `Source not found: ${skill.source}. Please add the source manually.`
+                    `Source not found: ${skill.source}. Please add the source manually.`,
                   );
                   return;
                 }
               }
               await vscode.commands.executeCommand(
                 "skillNinja.addSource",
-                repoUrl
+                repoUrl,
               );
               // ソース追加後、インデックスを再読み込みしてスキルを検索
               const updatedIndex = await loadSkillIndex(context);
               const installedSkill = updatedIndex.skills.find(
-                (s: Skill) => s.name === skill.name
+                (s: Skill) => s.name === skill.name,
               );
               if (installedSkill) {
                 await vscode.commands.executeCommand(
                   "skillNinja.install",
-                  installedSkill
+                  installedSkill,
                 );
               } else {
                 vscode.window.showWarningMessage(
-                  `Skill "${skill.name}" not found after adding source. Please try installing manually.`
+                  `Skill "${skill.name}" not found after adding source. Please try installing manually.`,
                 );
               }
             } else {
@@ -432,14 +432,14 @@ export async function showSkillPreview(
                 repoUrl = sourceInfo.url;
               } else {
                 vscode.window.showErrorMessage(
-                  `Source not found: ${skill.source}. Please add the source manually.`
+                  `Source not found: ${skill.source}. Please add the source manually.`,
                 );
                 return;
               }
             }
             await vscode.commands.executeCommand(
               "skillNinja.addSource",
-              repoUrl
+              repoUrl,
             );
             break;
           }
@@ -461,7 +461,7 @@ export async function showSkillPreview(
                   const sourceInfo = sources.find((s) => s.id === skill.source);
                   if (sourceInfo) {
                     const match = sourceInfo.url.match(
-                      /github\.com\/([^/]+\/[^/]+)/
+                      /github\.com\/([^/]+\/[^/]+)/,
                     );
                     if (match) {
                       url = `https://github.com/${match[1]}/tree/${branch}/${skill.path}`;
@@ -474,7 +474,7 @@ export async function showSkillPreview(
               await vscode.env.openExternal(vscode.Uri.parse(url));
             } else {
               vscode.window.showWarningMessage(
-                `GitHub URL could not be determined for ${skill.name}`
+                `GitHub URL could not be determined for ${skill.name}`,
               );
             }
             break;
@@ -482,26 +482,26 @@ export async function showSkillPreview(
           case "toggleFavorite": {
             await vscode.commands.executeCommand(
               "skillNinja.toggleFavorite",
-              skill
+              skill,
             );
             // パネルを更新
             const newFavorites = context.globalState.get<string[]>(
               "favorites",
-              []
+              [],
             );
             const newIsFavorite = newFavorites.includes(getSkillId(skill));
             previewPanel!.webview.html = getWebviewContent(
               skill,
               content,
               newIsFavorite,
-              isInIndex
+              isInIndex,
             );
             break;
           }
         }
       },
       undefined,
-      context.subscriptions
+      context.subscriptions,
     );
   } catch (error) {
     vscode.window.showErrorMessage(`Preview failed: ${error}`);

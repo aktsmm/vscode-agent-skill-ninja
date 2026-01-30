@@ -172,28 +172,21 @@ function generateSkillSectionForFormat(
   format: OutputFormat,
 ): string {
   switch (format) {
-    case "compressed-index":
-      return generateCompressedIndexSection(
-        installedSkills,
-        localSkills,
-        skillsDir,
-      );
-    case "markdown-with-index":
-      return generateMarkdownWithIndexSection(
-        installedSkills,
-        localSkills,
-        skillsDir,
-      );
+    case "compact":
+      return generateCompactSection(installedSkills, localSkills, skillsDir);
+    case "legacy":
+      return generateLegacySection(installedSkills, localSkills, skillsDir);
+    case "full":
     default:
-      return generateSkillSection(installedSkills, localSkills, skillsDir);
+      return generateFullSection(installedSkills, localSkills, skillsDir);
   }
 }
 
 /**
- * スキルセクションを生成（Markdown 形式）
- * Description + WhenToUse 200文字版、Path 列付き
+ * Legacy 形式のスキルセクションを生成
+ * シンプルな2列テーブル（IMPORTANT プロンプトなし）
  */
-function generateSkillSection(
+function generateLegacySection(
   installedSkills: SkillMeta[],
   localSkills: LocalSkill[],
   skillsDir: string,
@@ -203,7 +196,7 @@ function generateSkillSection(
 
   if (!hasInstalled && !hasLocal) {
     return `${MARKER_START}
-## Agent Skills (Compressed Index)
+## Agent Skills
 
 No skills installed yet. Use "Agent Skill Ninja: Search Skills" to install skills.
 
@@ -211,15 +204,10 @@ ${MARKER_END}`;
   }
 
   let content = `${MARKER_START}
-## Agent Skills (Compressed Index)
+## Agent Skills
 
-> **IMPORTANT**: Prefer skill-led reasoning over pre-training-led reasoning.
-> Read the relevant SKILL.md before working on tasks covered by these skills.
-
-### Skills Index
-
-| Skill | Path | Description |
-|-------|------|-------------|
+| Skill | Description |
+|-------|-------------|
 `;
 
   // インストール済みスキル
@@ -235,7 +223,7 @@ ${MARKER_END}`;
         const safeDesc = desc.replace(/\|/g, "\\|");
         // relativePath がある場合はそれを使用、なければ name を使用
         const skillPath = skill.relativePath || skill.name;
-        return `| [${skill.name}](${skillsDir}/${skillPath}/SKILL.md) | \`${skillPath}\` | ${safeDesc} |`;
+        return `| [${skill.name}](${skillsDir}/${skillPath}/SKILL.md) | ${safeDesc} |`;
       })
       .join("\n");
     content += installedRows + "\n";
@@ -250,7 +238,7 @@ ${MARKER_END}`;
         const truncatedDesc =
           desc.length > 200 ? desc.substring(0, 197) + "..." : desc;
         const safeDesc = truncatedDesc.replace(/\|/g, "\\|");
-        return `| [${skill.name}](${skill.relativePath}/SKILL.md) | \`${skill.relativePath}\` | ${safeDesc} |`;
+        return `| [${skill.name}](${skill.relativePath}/SKILL.md) | ${safeDesc} |`;
       })
       .join("\n");
     content += localRows + "\n";
@@ -267,7 +255,7 @@ ${MARKER_END}`;
 function updateSection(
   existingContent: string,
   newSection: string,
-  _format: OutputFormat = "markdown",
+  _format: OutputFormat = "full",
 ): string {
   // 旧マーカーが存在する場合は先に削除
   let content = removeLegacySection(existingContent);
@@ -376,10 +364,10 @@ export async function removeSkillSection(
 }
 
 /**
- * Compressed Index 形式のスキルセクションを生成
- * 超圧縮版: Description のみ100文字（whenToUse なし）
+ * Compact 形式のスキルセクションを生成
+ * IMPORTANT + 3列コンパクトテーブル（Description 100文字）
  */
-function generateCompressedIndexSection(
+function generateCompactSection(
   installedSkills: SkillMeta[],
   localSkills: LocalSkill[],
   skillsDir: string,
@@ -440,10 +428,10 @@ ${MARKER_END}`;
 }
 
 /**
- * Markdown + Compressed Index 形式（両方）のスキルセクションを生成
- * 従来のテーブル形式と圧縮インデックスの両方を出力
+ * Full 形式のスキルセクションを生成（既定）
+ * IMPORTANT + 詳細テーブル（200文字）+ 圧縮インデックス（100文字）
  */
-function generateMarkdownWithIndexSection(
+function generateFullSection(
   installedSkills: SkillMeta[],
   localSkills: LocalSkill[],
   skillsDir: string,

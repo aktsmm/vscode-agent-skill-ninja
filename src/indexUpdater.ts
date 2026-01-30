@@ -10,9 +10,7 @@ import {
   saveSkillIndex,
 } from "./skillIndex";
 import { messages } from "./i18n";
-import {
-  getGitHubToken,
-} from "./githubAuth";
+import { getGitHubToken } from "./githubAuth";
 export { checkGitHubAuth } from "./githubAuth";
 import { LICENSE_EXTRACTION, INDEX_LIMITS } from "./constants";
 
@@ -50,7 +48,9 @@ async function fetchAndExtractLicense(
  * LICENSE ファイルの内容からライセンス名を抽出
  */
 function extractLicenseFromContent(content: string): string | null {
-  const firstLines = content.substring(0, LICENSE_EXTRACTION.SCAN_LENGTH).toLowerCase();
+  const firstLines = content
+    .substring(0, LICENSE_EXTRACTION.SCAN_LENGTH)
+    .toLowerCase();
 
   // パターンマッチング（優先度順）
   const patterns: [RegExp, string][] = [
@@ -459,7 +459,9 @@ async function scanClaudeCommands(
         for (const line of lines) {
           const trimmed = line.trim();
           if (trimmed.startsWith("# ")) {
-            description = trimmed.replace(/^#+\s*/, "").substring(0, INDEX_LIMITS.SHORT_DESCRIPTION);
+            description = trimmed
+              .replace(/^#+\s*/, "")
+              .substring(0, INDEX_LIMITS.SHORT_DESCRIPTION);
             break;
           }
           // frontmatter 内の description も確認
@@ -660,7 +662,9 @@ function extractWhenToUseFromContent(content: string): string {
 
     // 箇条書きの場合
     if (trimmed.startsWith("-") || trimmed.startsWith("*")) {
-      return trimmed.replace(/^[-*]\s*/, "").substring(0, INDEX_LIMITS.SHORT_DESCRIPTION);
+      return trimmed
+        .replace(/^[-*]\s*/, "")
+        .substring(0, INDEX_LIMITS.SHORT_DESCRIPTION);
     }
     // テーブル行の場合
     if (trimmed.startsWith("|")) {
