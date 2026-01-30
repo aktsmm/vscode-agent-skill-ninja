@@ -231,8 +231,8 @@ export async function promptToolSelection(
         ? "AI コーディングアシスタントを選択"
         : "Select your AI coding assistant",
       title: isJapanese()
-        ? "Agent Skill Ninja - ツール選択"
-        : "Agent Skill Ninja - Tool Selection",
+        ? "Agent Skills Ninja - ツール選択"
+        : "Agent Skills Ninja - Tool Selection",
     });
 
     if (!selected) {
@@ -275,7 +275,7 @@ export async function promptToolSelection(
 
     const selected = await vscode.window.showQuickPick(items, {
       placeHolder: "Multiple AI tools detected. Select one:",
-      title: "Agent Skill Ninja - Tool Selection",
+      title: "Agent Skills Ninja - Tool Selection",
     });
 
     if (!selected) {

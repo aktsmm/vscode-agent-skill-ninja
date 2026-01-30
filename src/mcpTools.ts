@@ -1,5 +1,5 @@
 /**
- * MCP Tools - Agent Skill Ninja
+ * MCP Tools - Agent Skills Ninja
  *
  * VS Code Language Model API を使用した MCP ツール実装
  * ツール一覧に表示され、エージェントが自動的に使用可能
@@ -97,7 +97,7 @@ export function registerMcpTools(context: vscode.ExtensionContext): void {
   // vscode.lm API が存在するか確認
   if (!vscode.lm || typeof vscode.lm.registerTool !== "function") {
     console.log(
-      "Agent Skill Ninja: vscode.lm.registerTool is not available (requires VS Code 1.99+)",
+      "Agent Skills Ninja: vscode.lm.registerTool is not available (requires VS Code 1.99+)",
     );
     return;
   }
@@ -148,9 +148,9 @@ export function registerMcpTools(context: vscode.ExtensionContext): void {
       vscode.lm.registerTool("skillNinja_localize", new LocalizeSkillsTool()),
     );
 
-    console.log("Agent Skill Ninja: MCP tools registered successfully");
+    console.log("Agent Skills Ninja: MCP tools registered successfully");
   } catch (error) {
-    console.error("Agent Skill Ninja: Failed to register MCP tools:", error);
+    console.error("Agent Skills Ninja: Failed to register MCP tools:", error);
   }
 }
 

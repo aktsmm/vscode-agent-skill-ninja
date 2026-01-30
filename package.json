@@ -2,7 +2,7 @@
   "name": "agent-skill-ninja",
   "displayName": "%displayName%",
   "description": "%description%",
-  "version": "0.8.3",
+  "version": "0.8.4",
   "publisher": "yamapan",
   "license": "CC-BY-NC-SA-4.0",
   "icon": "resources/icon.png",
@@ -40,7 +40,7 @@
       {
         "id": "skill",
         "name": "skill",
-        "fullName": "Agent Skill Ninja",
+        "fullName": "Agent Skills Ninja",
         "description": "Search, install and manage Agent Skills",
         "isSticky": false,
         "commands": [
@@ -319,7 +319,7 @@
       "activitybar": [
         {
           "id": "skill-ninja",
-          "title": "Agent Skill Ninja",
+          "title": "Agent Skills Ninja",
           "icon": "resources/icon.svg"
         }
       ]
@@ -342,222 +342,222 @@
       {
         "command": "skillNinja.search",
         "title": "%command.search%",
-        "category": "Agent Skill Ninja",
+        "category": "Agent Skills Ninja",
         "icon": "$(search)"
       },
       {
         "command": "skillNinja.install",
         "title": "%command.install%",
-        "category": "Agent Skill Ninja",
+        "category": "Agent Skills Ninja",
         "icon": "$(add)"
       },
       {
         "command": "skillNinja.uninstall",
         "title": "%command.uninstall%",
-        "category": "Agent Skill Ninja",
+        "category": "Agent Skills Ninja",
         "icon": "$(trash)"
       },
       {
         "command": "skillNinja.showInstalled",
         "title": "%command.showInstalled%",
-        "category": "Agent Skill Ninja"
+        "category": "Agent Skills Ninja"
       },
       {
         "command": "skillNinja.refresh",
         "title": "%command.refresh%",
-        "category": "Agent Skill Ninja",
+        "category": "Agent Skills Ninja",
         "icon": "$(refresh)"
       },
       {
         "command": "skillNinja.reinstallAll",
         "title": "%command.reinstallAll%",
-        "category": "Agent Skill Ninja",
+        "category": "Agent Skills Ninja",
         "icon": "$(sync)"
       },
       {
         "command": "skillNinja.reinstall",
         "title": "%command.reinstall%",
-        "category": "Agent Skill Ninja",
+        "category": "Agent Skills Ninja",
         "icon": "$(sync)"
       },
       {
         "command": "skillNinja.uninstallAll",
         "title": "%command.uninstallAll%",
-        "category": "Agent Skill Ninja",
+        "category": "Agent Skills Ninja",
         "icon": "$(trash)"
       },
       {
         "command": "skillNinja.uninstallMultiple",
         "title": "%command.uninstallMultiple%",
-        "category": "Agent Skill Ninja",
+        "category": "Agent Skills Ninja",
         "icon": "$(checklist)"
       },
       {
         "command": "skillNinja.reinstallMultiple",
         "title": "%command.reinstallMultiple%",
-        "category": "Agent Skill Ninja",
+        "category": "Agent Skills Ninja",
         "icon": "$(checklist)"
       },
       {
         "command": "skillNinja.editWhenToUse",
         "title": "%command.editWhenToUse%",
-        "category": "Agent Skill Ninja",
+        "category": "Agent Skills Ninja",
         "icon": "$(edit)"
       },
       {
         "command": "skillNinja.openSkillFile",
         "title": "%command.openSkillFile%",
-        "category": "Agent Skill Ninja",
+        "category": "Agent Skills Ninja",
         "icon": "$(go-to-file)"
       },
       {
         "command": "skillNinja.openSkillFolder",
         "title": "%command.openSkillFolder%",
-        "category": "Agent Skill Ninja",
+        "category": "Agent Skills Ninja",
         "icon": "$(folder-opened)"
       },
       {
         "command": "skillNinja.updateIndex",
         "title": "%command.updateIndex%",
-        "category": "Agent Skill Ninja",
+        "category": "Agent Skills Ninja",
         "icon": "$(cloud-download)"
       },
       {
         "command": "skillNinja.updateSourceIndex",
         "title": "%command.updateSourceIndex%",
-        "category": "Agent Skill Ninja",
+        "category": "Agent Skills Ninja",
         "icon": "$(sync)"
       },
       {
         "command": "skillNinja.addSource",
         "title": "%command.addSource%",
-        "category": "Agent Skill Ninja",
+        "category": "Agent Skills Ninja",
         "icon": "$(add)"
       },
       {
         "command": "skillNinja.webSearch",
         "title": "%command.webSearch%",
-        "category": "Agent Skill Ninja",
+        "category": "Agent Skills Ninja",
         "icon": "$(globe)"
       },
       {
         "command": "skillNinja.removeSource",
         "title": "%command.removeSource%",
-        "category": "Agent Skill Ninja",
+        "category": "Agent Skills Ninja",
         "icon": "$(trash)"
       },
       {
         "command": "skillNinja.preview",
         "title": "%command.preview%",
-        "category": "Agent Skill Ninja",
+        "category": "Agent Skills Ninja",
         "icon": "$(eye)"
       },
       {
         "command": "skillNinja.toggleFavorite",
         "title": "%command.toggleFavorite%",
-        "category": "Agent Skill Ninja",
+        "category": "Agent Skills Ninja",
         "icon": "$(star)"
       },
       {
         "command": "skillNinja.showFavorites",
         "title": "%command.showFavorites%",
-        "category": "Agent Skill Ninja",
+        "category": "Agent Skills Ninja",
         "icon": "$(star-full)"
       },
       {
         "command": "skillNinja.openOnGitHub",
         "title": "%command.openOnGitHub%",
-        "category": "Agent Skill Ninja",
+        "category": "Agent Skills Ninja",
         "icon": "$(github)"
       },
       {
         "command": "skillNinja.browseByCategory",
         "title": "%command.browseByCategory%",
-        "category": "Agent Skill Ninja",
+        "category": "Agent Skills Ninja",
         "icon": "$(filter)"
       },
       {
         "command": "skillNinja.showRecent",
         "title": "%command.showRecent%",
-        "category": "Agent Skill Ninja",
+        "category": "Agent Skills Ninja",
         "icon": "$(history)"
       },
       {
         "command": "skillNinja.registerLocalSkill",
         "title": "%command.registerLocalSkill%",
-        "category": "Agent Skill Ninja",
+        "category": "Agent Skills Ninja",
         "icon": "$(add)"
       },
       {
         "command": "skillNinja.unregisterLocalSkill",
         "title": "%command.unregisterLocalSkill%",
-        "category": "Agent Skill Ninja",
+        "category": "Agent Skills Ninja",
         "icon": "$(remove)"
       },
       {
         "command": "skillNinja.createSkill",
         "title": "%command.createSkill%",
-        "category": "Agent Skill Ninja",
+        "category": "Agent Skills Ninja",
         "icon": "$(new-file)"
       },
       {
         "command": "skillNinja.refreshLocal",
         "title": "%command.refresh%",
-        "category": "Agent Skill Ninja",
+        "category": "Agent Skills Ninja",
         "icon": "$(refresh)"
       },
       {
         "command": "skillNinja.updateInstruction",
         "title": "%command.updateInstruction%",
-        "category": "Agent Skill Ninja",
+        "category": "Agent Skills Ninja",
         "icon": "$(sync)"
       },
       {
         "command": "skillNinja.openInstructionFile",
         "title": "%command.openInstructionFile%",
-        "category": "Agent Skill Ninja",
+        "category": "Agent Skills Ninja",
         "icon": "$(file-text)"
       },
       {
         "command": "skillNinja.openSettings",
         "title": "%command.openSettings%",
-        "category": "Agent Skill Ninja",
+        "category": "Agent Skills Ninja",
         "icon": "$(gear)"
       },
       {
         "command": "skillNinja.resetSettings",
         "title": "%command.resetSettings%",
-        "category": "Agent Skill Ninja",
+        "category": "Agent Skills Ninja",
         "icon": "$(clear-all)"
       },
       {
         "command": "skillNinja.installBundle",
         "title": "Install Bundle",
-        "category": "Agent Skill Ninja",
+        "category": "Agent Skills Ninja",
         "icon": "$(cloud-download)"
       },
       {
         "command": "skillNinja.copyUrl",
         "title": "%command.copyUrl%",
-        "category": "Agent Skill Ninja",
+        "category": "Agent Skills Ninja",
         "icon": "$(link)"
       },
       {
         "command": "skillNinja.copyPath",
         "title": "%command.copyPath%",
-        "category": "Agent Skill Ninja",
+        "category": "Agent Skills Ninja",
         "icon": "$(copy)"
       },
       {
         "command": "skillNinja.openInTerminal",
         "title": "%command.openInTerminal%",
-        "category": "Agent Skill Ninja",
+        "category": "Agent Skills Ninja",
         "icon": "$(terminal)"
       },
       {
         "command": "skillNinja.reportBug",
         "title": "%command.reportBug%",
-        "category": "Agent Skill Ninja",
+        "category": "Agent Skills Ninja",
         "icon": "$(bug)"
       }
     ],
@@ -723,7 +723,7 @@
       ]
     },
     "configuration": {
-      "title": "Agent Skill Ninja",
+      "title": "Agent Skills Ninja",
       "properties": {
         "skillNinja.autoUpdateInstruction": {
           "type": "boolean",

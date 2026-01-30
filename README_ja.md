@@ -1,4 +1,4 @@
-# 🥷 Agent Skill Ninja
+# 🥷 Agent Skills Ninja
 
 <p align="center">
   <strong>AI コーディングアシスタント用 Agent Skills の検索・インストール・管理</strong>
@@ -163,7 +163,7 @@
 ext install yamapan.agent-skill-ninja
 ```
 
-または VS Code の拡張機能（`Ctrl+Shift+X`）で **"Agent Skill Ninja"** を検索
+または VS Code の拡張機能（`Ctrl+Shift+X`）で **"Agent Skills Ninja"** を検索
 
 ### 手動インストール
 
@@ -222,27 +222,27 @@ ext install yamapan.agent-skill-ninja
 
 | コマンド                                      | 説明                                     |
 | --------------------------------------------- | ---------------------------------------- |
-| `Agent Skill Ninja: Search Skills`            | スキルを検索してインストール             |
-| `Agent Skill Ninja: Update Index`             | 全ソースからインデックスを更新           |
-| `Agent Skill Ninja: Search on GitHub`         | GitHub でスキルを検索                    |
-| `Agent Skill Ninja: Add Source Repository`    | 新しいソースリポジトリを追加             |
-| `Agent Skill Ninja: Remove Source Repository` | ソースリポジトリを削除                   |
-| `Agent Skill Ninja: Uninstall Skill`          | スキルをアンインストール                 |
-| `Agent Skill Ninja: Show Installed Skills`    | インストール済みスキルを表示             |
-| `Agent Skill Ninja: Create New Skill`         | 新規ローカルスキルを作成                 |
-| `Agent Skill Ninja: Register Local Skill`     | ローカルスキルを instruction file に登録 |
-| `Agent Skill Ninja: Unregister Local Skill`   | instruction file から登録解除            |
-| `Agent Skill Ninja: Reinstall All`            | 全スキルを最新ソースから再インストール   |
-| `Agent Skill Ninja: Uninstall All`            | 全スキルを削除（確認ダイアログあり）     |
-| `Agent Skill Ninja: Uninstall Multiple`       | 複数スキルを選択して削除                 |
-| `Agent Skill Ninja: Reinstall Multiple`       | 複数スキルを選択して再インストール       |
-| `Agent Skill Ninja: Update Instruction`       | instruction file を手動更新              |
-| `Agent Skill Ninja: Open Skill Folder`        | インストール済みスキルのフォルダを開く   |
+| `Agent Skills Ninja: Search Skills`            | スキルを検索してインストール             |
+| `Agent Skills Ninja: Update Index`             | 全ソースからインデックスを更新           |
+| `Agent Skills Ninja: Search on GitHub`         | GitHub でスキルを検索                    |
+| `Agent Skills Ninja: Add Source Repository`    | 新しいソースリポジトリを追加             |
+| `Agent Skills Ninja: Remove Source Repository` | ソースリポジトリを削除                   |
+| `Agent Skills Ninja: Uninstall Skill`          | スキルをアンインストール                 |
+| `Agent Skills Ninja: Show Installed Skills`    | インストール済みスキルを表示             |
+| `Agent Skills Ninja: Create New Skill`         | 新規ローカルスキルを作成                 |
+| `Agent Skills Ninja: Register Local Skill`     | ローカルスキルを instruction file に登録 |
+| `Agent Skills Ninja: Unregister Local Skill`   | instruction file から登録解除            |
+| `Agent Skills Ninja: Reinstall All`            | 全スキルを最新ソースから再インストール   |
+| `Agent Skills Ninja: Uninstall All`            | 全スキルを削除（確認ダイアログあり）     |
+| `Agent Skills Ninja: Uninstall Multiple`       | 複数スキルを選択して削除                 |
+| `Agent Skills Ninja: Reinstall Multiple`       | 複数スキルを選択して再インストール       |
+| `Agent Skills Ninja: Update Instruction`       | instruction file を手動更新              |
+| `Agent Skills Ninja: Open Skill Folder`        | インストール済みスキルのフォルダを開く   |
 
 ### クイックスタート
 
 ```
-1. Ctrl+Shift+P → "Agent Skill Ninja: Search Skills"
+1. Ctrl+Shift+P → "Agent Skills Ninja: Search Skills"
 2. キーワードを入力（例: "pdf", "azure", "git"）
 3. スキルを選択 → アクションを選択（Install / Preview / Favorite / GitHub）
 4. 完了！instruction file に自動登録されます
@@ -329,7 +329,7 @@ GitHub Copilot の **Agent Mode** では、自動的に MCP ツールとして�
 MCP ツールが不要な場合は、GitHub Copilot Chat のツール一覧からオフにできます：
 
 1. Copilot Chat パネル → Settings → Tools
-2. 「Agent Skill Ninja」のツールをトグルオフ
+2. 「Agent Skills Ninja」のツールをトグルオフ
 
 ## ⚙️ Settings
 
@@ -402,7 +402,7 @@ instruction file には **IMPORTANT プロンプト** と **Description 列** �
 
 ### 方法 1: VS Code 設定
 
-設定画面から `Agent Skill Ninja: GitHub Token` を探し、トークンを入力：
+設定画面から `Agent Skills Ninja: GitHub Token` を探し、トークンを入力：
 
 ```json
 {
@@ -443,7 +443,7 @@ npm run lint
 
 1. VS Code で `F5` を押す
 2. 新しい VS Code ウィンドウで拡張機能をテスト
-3. コマンドパレット (`Ctrl+Shift+P`) で `Agent Skill Ninja` コマンドを実行
+3. コマンドパレット (`Ctrl+Shift+P`) で `Agent Skills Ninja` コマンドを実行
 
 ## 🤝 Contributing
 

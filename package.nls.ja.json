@@ -1,5 +1,5 @@
 {
-  "displayName": "Agent Skill Ninja",
+  "displayName": "Agent Skills Ninja",
   "description": "GitHub Copilot・Claude Code 用 Agent Skills の検索・インストール・管理",
   "command.search": "スキルを検索",
   "command.install": "スキルをインストール",
@@ -55,7 +55,7 @@
   "config.outputFormat.compact": "📦 Compact (コンパクト) - IMPORTANT + 圧縮インデックスのみ",
   "config.outputFormat.legacy": "🕰️ Legacy (レガシー) - シンプルテーブルのみ（OLD）",
   "config.singleClickInstall.description": "シングルクリックでインストール（デフォルト: ダブルクリック）",
-  "config.versionInfo.markdownDescription": "---\n\n### ℹ️ バージョン情報 (Version Info)\n\n| Item | Value |\n|------|------|\n| Extension | **0.8.3** |\n| Skill Index | **v1.12.0** |\n| Last Updated | 2026-01-30 |\n| Skills | 241 |\n| Sources | 10 |\n\n[📋 Changelog](https://github.com/aktsmm/vscode-agent-skill-ninja/blob/master/CHANGELOG.md) · [🐛 Report Bug](https://github.com/aktsmm/vscode-agent-skill-ninja/issues)",
+  "config.versionInfo.markdownDescription": "---\n\n### ℹ️ バージョン情報 (Version Info)\n\n| Item | Value |\n|------|------|\n| Extension | **0.8.4** |\n| Skill Index | **v1.12.0** |\n| Last Updated | 2026-01-30 |\n| Skills | 241 |\n| Sources | 10 |\n\n[📋 Changelog](https://github.com/aktsmm/vscode-agent-skill-ninja/blob/master/CHANGELOG.md) · [🐛 Report Bug](https://github.com/aktsmm/vscode-agent-skill-ninja/issues)",
   "view.workspace": "ワークスペーススキル",
   "view.browse": "リモートスキル",
   "command.registerLocalSkill": "AGENTS.md に登録",

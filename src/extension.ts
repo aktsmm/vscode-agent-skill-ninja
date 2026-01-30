@@ -1,4 +1,4 @@
-// Agent Skill Ninja - VS Code Extension
+// Agent Skills Ninja - VS Code Extension
 
 import * as vscode from "vscode";
 import {
@@ -51,7 +51,7 @@ const EXTENSION_VERSION =
     ?.version || "0.0.0";
 
 export function activate(context: vscode.ExtensionContext) {
-  console.log("Agent Skill Ninja is now active!");
+  console.log("Agent Skills Ninja is now active!");
 
   // 設定値のマイグレーション（旧フォーマット名 → 新フォーマット名）
   const formatMigrated = migrateOutputFormatSetting();

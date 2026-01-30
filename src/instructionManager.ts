@@ -198,7 +198,7 @@ function generateLegacySection(
     return `${MARKER_START}
 ## Agent Skills
 
-No skills installed yet. Use "Agent Skill Ninja: Search Skills" to install skills.
+No skills installed yet. Use "Agent Skills Ninja: Search Skills" to install skills.
 
 ${MARKER_END}`;
   }
@@ -398,7 +398,7 @@ function generateCompactSection(
     return `${MARKER_START}
 ## Agent Skills (Compressed Index)
 
-No skills installed yet. Use "Agent Skill Ninja: Search Skills" to install skills.
+No skills installed yet. Use "Agent Skills Ninja: Search Skills" to install skills.
 
 ${MARKER_END}`;
   }
@@ -460,7 +460,7 @@ function generateFullSection(
     return `${MARKER_START}
 ## Agent Skills
 
-No skills installed yet. Use "Agent Skill Ninja: Search Skills" to install skills.
+No skills installed yet. Use "Agent Skills Ninja: Search Skills" to install skills.
 
 ${MARKER_END}`;
   }

@@ -1,5 +1,5 @@
 /**
- * GitHub Copilot Chat Participant - Agent Skill Ninja
+ * GitHub Copilot Chat Participant - Agent Skills Ninja
  *
  * @skill コマンドでスキルの検索・インストール・推奨を提供
  */
@@ -348,7 +348,7 @@ async function handleSmartQuery(
   token: vscode.CancellationToken
 ): Promise<vscode.ChatResult> {
   if (!query) {
-    stream.markdown(`# 🥷 Agent Skill Ninja\n\n`);
+    stream.markdown(`# 🥷 Agent Skills Ninja\n\n`);
     stream.markdown(
       `I can help you find and manage Agent Skills for GitHub Copilot.\n\n`
     );

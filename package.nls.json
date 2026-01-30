@@ -1,5 +1,5 @@
 {
-  "displayName": "Agent Skill Ninja",
+  "displayName": "Agent Skills Ninja",
   "description": "Search, install and manage Agent Skills for GitHub Copilot, Claude Code and AI coding assistants",
   "command.search": "Search Skills",
   "command.install": "Install Skill",
@@ -55,7 +55,7 @@
   "config.outputFormat.compact": "📦 Compact - IMPORTANT + Compressed index only",
   "config.outputFormat.legacy": "🕰️ Legacy - Simple table only (OLD)",
   "config.singleClickInstall.description": "Install skills with single click (default: double click)",
-  "config.versionInfo.markdownDescription": "---\n\n### ℹ️ Version Info\n\n| Item | Value |\n|------|-------|\n| Extension | **0.8.3** |\n| Skill Index | **v1.12.0** |\n| Last Updated | 2026-01-30 |\n| Skills | 241 |\n| Sources | 10 |\n\n[📋 Changelog](https://github.com/aktsmm/vscode-agent-skill-ninja/blob/master/CHANGELOG.md) · [🐛 Report Bug](https://github.com/aktsmm/vscode-agent-skill-ninja/issues)",
+  "config.versionInfo.markdownDescription": "---\n\n### ℹ️ Version Info\n\n| Item | Value |\n|------|-------|\n| Extension | **0.8.4** |\n| Skill Index | **v1.12.0** |\n| Last Updated | 2026-01-30 |\n| Skills | 241 |\n| Sources | 10 |\n\n[📋 Changelog](https://github.com/aktsmm/vscode-agent-skill-ninja/blob/master/CHANGELOG.md) · [🐛 Report Bug](https://github.com/aktsmm/vscode-agent-skill-ninja/issues)",
   "view.workspace": "Workspace Skills",
   "view.browse": "Remote Skills",
   "command.registerLocalSkill": "Register in AGENTS.md",

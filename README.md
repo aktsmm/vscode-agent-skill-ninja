@@ -1,4 +1,4 @@
-# 🥷 Agent Skill Ninja
+# 🥷 Agent Skills Ninja
 
 <p align="center">
   <strong>Search, Install, and Manage Agent Skills for AI Coding Assistants</strong>
@@ -167,7 +167,7 @@ Settings → **Output Format** → Select `full`, `compact`, or `legacy`
 ext install yamapan.agent-skill-ninja
 ```
 
-Or search for **"Agent Skill Ninja"** in VS Code Extensions (`Ctrl+Shift+X`)
+Or search for **"Agent Skills Ninja"** in VS Code Extensions (`Ctrl+Shift+X`)
 
 ### Manual Installation
 
@@ -226,27 +226,27 @@ Or search for **"Agent Skill Ninja"** in VS Code Extensions (`Ctrl+Shift+X`)
 
 | Command                                       | Description                              |
 | --------------------------------------------- | ---------------------------------------- |
-| `Agent Skill Ninja: Search Skills`            | Search and install skills                |
-| `Agent Skill Ninja: Update Index`             | Update index from all sources            |
-| `Agent Skill Ninja: Search on GitHub`         | Search skills on GitHub                  |
-| `Agent Skill Ninja: Add Source Repository`    | Add new source repository                |
-| `Agent Skill Ninja: Remove Source Repository` | Remove source repository                 |
-| `Agent Skill Ninja: Uninstall Skill`          | Uninstall a skill                        |
-| `Agent Skill Ninja: Show Installed Skills`    | Show installed skills                    |
-| `Agent Skill Ninja: Create New Skill`         | Create new local skill                   |
-| `Agent Skill Ninja: Register Local Skill`     | Register local skill to instruction file |
-| `Agent Skill Ninja: Unregister Local Skill`   | Unregister from instruction file         |
-| `Agent Skill Ninja: Reinstall All`            | Reinstall all skills from latest source  |
-| `Agent Skill Ninja: Uninstall All`            | Uninstall all skills (with confirmation) |
-| `Agent Skill Ninja: Uninstall Multiple`       | Select multiple skills to uninstall      |
-| `Agent Skill Ninja: Reinstall Multiple`       | Select multiple skills to reinstall      |
-| `Agent Skill Ninja: Update Instruction`       | Update instruction file manually         |
-| `Agent Skill Ninja: Open Skill Folder`        | Open installed skill folder in OS        |
+| `Agent Skills Ninja: Search Skills`            | Search and install skills                |
+| `Agent Skills Ninja: Update Index`             | Update index from all sources            |
+| `Agent Skills Ninja: Search on GitHub`         | Search skills on GitHub                  |
+| `Agent Skills Ninja: Add Source Repository`    | Add new source repository                |
+| `Agent Skills Ninja: Remove Source Repository` | Remove source repository                 |
+| `Agent Skills Ninja: Uninstall Skill`          | Uninstall a skill                        |
+| `Agent Skills Ninja: Show Installed Skills`    | Show installed skills                    |
+| `Agent Skills Ninja: Create New Skill`         | Create new local skill                   |
+| `Agent Skills Ninja: Register Local Skill`     | Register local skill to instruction file |
+| `Agent Skills Ninja: Unregister Local Skill`   | Unregister from instruction file         |
+| `Agent Skills Ninja: Reinstall All`            | Reinstall all skills from latest source  |
+| `Agent Skills Ninja: Uninstall All`            | Uninstall all skills (with confirmation) |
+| `Agent Skills Ninja: Uninstall Multiple`       | Select multiple skills to uninstall      |
+| `Agent Skills Ninja: Reinstall Multiple`       | Select multiple skills to reinstall      |
+| `Agent Skills Ninja: Update Instruction`       | Update instruction file manually         |
+| `Agent Skills Ninja: Open Skill Folder`        | Open installed skill folder in OS        |
 
 ### Quick Start
 
 ```
-1. Ctrl+Shift+P → "Agent Skill Ninja: Search Skills"
+1. Ctrl+Shift+P → "Agent Skills Ninja: Search Skills"
 2. Enter keywords (e.g., "pdf", "azure", "git")
 3. Select skill → Choose action (Install / Preview / Favorite / GitHub)
 4. Done! Auto-registered in instruction file
@@ -333,7 +333,7 @@ In GitHub Copilot's **Agent Mode**, tools are automatically available.
 If you don't need MCP tools, you can disable them from GitHub Copilot Chat:
 
 1. Copilot Chat panel → Settings → Tools
-2. Toggle off "Agent Skill Ninja" tools
+2. Toggle off "Agent Skills Ninja" tools
 
 ## ⚙️ Settings
 
@@ -406,7 +406,7 @@ Set up a GitHub Token to enable full search functionality:
 
 ### Option 1: VS Code Settings
 
-Find `Agent Skill Ninja: GitHub Token` in settings and enter your token:
+Find `Agent Skills Ninja: GitHub Token` in settings and enter your token:
 
 ```json
 {
@@ -447,7 +447,7 @@ npm run lint
 
 1. Press `F5` in VS Code
 2. Test the extension in a new VS Code window
-3. Run `Agent Skill Ninja` commands from Command Palette (`Ctrl+Shift+P`)
+3. Run `Agent Skills Ninja` commands from Command Palette (`Ctrl+Shift+P`)
 
 ## � Contributing
 
