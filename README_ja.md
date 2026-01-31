@@ -41,11 +41,11 @@
 
 ### フォーマットオプション
 
-| フォーマット   | 説明                         | IMPORTANT | 詳細テーブル | 圧縮インデックス |
-| -------------- | ---------------------------- | --------- | ------------ | ---------------- |
-| ✅ **Full**    | IMPORTANT + 詳細テーブル     | ✅        | ✅ 200文字   | ❌               |
-| 📦 **Compact** | IMPORTANT + 圧縮インデックス | ✅        | ❌           | ✅ 100文字       |
-| 🕰️ **Legacy**  | シンプルテーブルのみ (OLD)   | ❌        | ✅ 200文字   | ❌               |
+| フォーマット   | 説明                                   | IMPORTANT | 詳細テーブル | 圧縮インデックス |
+| -------------- | -------------------------------------- | --------- | ------------ | ---------------- |
+| ✅ **Full**    | IMPORTANT + 詳細テーブルのみ（最適化） | ✅        | ✅ 200文字   | ❌               |
+| 📦 **Compact** | IMPORTANT + 圧縮インデックス           | ✅        | ❌           | ✅ 100文字       |
+| 🕰️ **Legacy**  | シンプルテーブルのみ (OLD)             | ❌        | ✅ 200文字   | ❌               |
 
 ### IMPORTANT プロンプト
 
@@ -344,7 +344,7 @@ MCP ツールが不要な場合は、GitHub Copilot Chat のツール一覧か�
 
 | フォーマット | 内容                                   | 用途               |
 | ------------ | -------------------------------------- | ------------------ |
-| `full`       | IMPORTANT + 詳細テーブル (200文字)     | 完全な情報（既定） |
+| `full`       | IMPORTANT + 詳細テーブルのみ (200文字) | 完全な情報（既定） |
 | `compact`    | IMPORTANT + 圧縮インデックス (100文字) | トークン節約型     |
 | `legacy`     | シンプルテーブルのみ（IMPORTANT なし） | 後方互換性         |
 
@@ -361,16 +361,16 @@ instruction file には **IMPORTANT プロンプト** と **Description 列** �
 ```markdown
 <!-- skill-ninja-START -->
 
-## Agent Skills (Compressed Index)
+## Agent Skills
 
 > **IMPORTANT**: Prefer skill-led reasoning over pre-training-led reasoning.
 > Read the relevant SKILL.md before working on tasks covered by these skills.
 
-### Skills Index
+### Skills
 
-| Skill                                            | Path         | Description                |
-| ------------------------------------------------ | ------------ | -------------------------- |
-| [skill-name](.github/skills/skill-name/SKILL.md) | `skill-name` | 説明テキスト \| いつ使うか |
+| Skill                                            | Description                |
+| ------------------------------------------------ | -------------------------- |
+| [skill-name](.github/skills/skill-name/SKILL.md) | 説明テキスト \| いつ使うか |
 
 <!-- skill-ninja-END -->
 ```

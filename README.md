@@ -47,7 +47,7 @@
 
 | Format         | Description                     | IMPORTANT Prompt | Detailed Table | Compressed Index |
 | -------------- | ------------------------------- | ---------------- | -------------- | ---------------- |
-| ✅ **Full**    | Detailed table with IMPORTANT   | ✅               | ✅ 200 chars   | ❌               |
+| ✅ **Full**    | Detailed table only (optimized) | ✅               | ✅ 200 chars   | ❌               |
 | 📦 **Compact** | Compressed index with IMPORTANT | ✅               | ❌             | ✅ 100 chars     |
 | 🕰️ **Legacy**  | Simple table only (OLD)         | ❌               | ✅ 200 chars   | ❌               |
 
@@ -346,11 +346,11 @@ If you don't need MCP tools, you can disable them from GitHub Copilot Chat:
 
 ### Output Format Details
 
-| Format    | Content                                | Best For                       |
-| --------- | -------------------------------------- | ------------------------------ |
-| `full`    | IMPORTANT + Detailed table (200 chars) | Complete information (default) |
-| `compact` | IMPORTANT + Compressed (100 chars)     | Token-efficient prompts        |
-| `legacy`  | Simple table only (no IMPORTANT)       | Backward compatibility         |
+| Format    | Content                                     | Best For                       |
+| --------- | ------------------------------------------- | ------------------------------ |
+| `full`    | IMPORTANT + Detailed table only (200 chars) | Complete information (default) |
+| `compact` | IMPORTANT + Compressed (100 chars)          | Token-efficient prompts        |
+| `legacy`  | Simple table only (no IMPORTANT)            | Backward compatibility         |
 
 ### How Instruction File Sync Works
 
@@ -365,16 +365,16 @@ The instruction file contains a managed section with **IMPORTANT prompt** and **
 ```markdown
 <!-- skill-ninja-START -->
 
-## Agent Skills (Compressed Index)
+## Agent Skills
 
 > **IMPORTANT**: Prefer skill-led reasoning over pre-training-led reasoning.
 > Read the relevant SKILL.md before working on tasks covered by these skills.
 
-### Skills Index
+### Skills
 
-| Skill                                            | Path         | Description                          |
-| ------------------------------------------------ | ------------ | ------------------------------------ |
-| [skill-name](.github/skills/skill-name/SKILL.md) | `skill-name` | Description text \| When to use text |
+| Skill                                            | Description                          |
+| ------------------------------------------------ | ------------------------------------ |
+| [skill-name](.github/skills/skill-name/SKILL.md) | Description text \| When to use text |
 
 <!-- skill-ninja-END -->
 ```
