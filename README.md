@@ -45,11 +45,11 @@
 
 ### Format Options
 
-| Format         | Description                    | IMPORTANT Prompt | Detailed Table | Compressed Index |
-| -------------- | ------------------------------ | ---------------- | -------------- | ---------------- |
-| ✅ **Full**    | Detailed table with IMPORTANT  | ✅               | ✅ 200 chars   | ❌               |
-| 📦 **Compact** | Compressed index with IMPORTANT| ✅               | ❌             | ✅ 100 chars     |
-| 🕰️ **Legacy**  | Simple table only (OLD)        | ❌               | ✅ 200 chars   | ❌               |
+| Format         | Description                     | IMPORTANT Prompt | Detailed Table | Compressed Index |
+| -------------- | ------------------------------- | ---------------- | -------------- | ---------------- |
+| ✅ **Full**    | Detailed table with IMPORTANT   | ✅               | ✅ 200 chars   | ❌               |
+| 📦 **Compact** | Compressed index with IMPORTANT | ✅               | ❌             | ✅ 100 chars     |
+| 🕰️ **Legacy**  | Simple table only (OLD)         | ❌               | ✅ 200 chars   | ❌               |
 
 ### IMPORTANT Prompt
 
