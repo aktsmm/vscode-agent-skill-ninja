@@ -568,9 +568,7 @@
       "name": "artifacts-builder",
       "source": "composio-awesome",
       "path": "artifacts-builder",
-      "categories": [
-        "community"
-      ],
+      "categories": ["community"],
       "description": "Artifacts Builder",
       "description_ja": "Artifacts Builder"
     },
@@ -578,9 +576,7 @@
       "name": "brand-guidelines",
       "source": "composio-awesome",
       "path": "brand-guidelines",
-      "categories": [
-        "community"
-      ],
+      "categories": ["community"],
       "description": "Create and manage brand guidelines",
       "description_ja": "Create and manage brand guidelines"
     },
@@ -588,9 +584,7 @@
       "name": "canvas-design",
       "source": "composio-awesome",
       "path": "canvas-design",
-      "categories": [
-        "community"
-      ],
+      "categories": ["community"],
       "description": "Create canvas designs and layouts",
       "description_ja": "Create canvas designs and layouts"
     },
@@ -598,9 +592,7 @@
       "name": "changelog-generator",
       "source": "composio-awesome",
       "path": "changelog-generator",
-      "categories": [
-        "community"
-      ],
+      "categories": ["community"],
       "description": "Changelog Generator",
       "description_ja": "Changelog Generator"
     },
@@ -608,9 +600,7 @@
       "name": "competitive-ads-extractor",
       "source": "composio-awesome",
       "path": "competitive-ads-extractor",
-      "categories": [
-        "community"
-      ],
+      "categories": ["community"],
       "description": "Extract competitive advertising data",
       "description_ja": "Extract competitive advertising data"
     },
@@ -618,9 +608,7 @@
       "name": "connect-apps-plugin",
       "source": "composio-awesome",
       "path": "connect-apps-plugin",
-      "categories": [
-        "community"
-      ],
+      "categories": ["community"],
       "description": "Connect Apps Plugin",
       "description_ja": "Connect Apps Plugin"
     },
@@ -628,9 +616,7 @@
       "name": "connect-apps",
       "source": "composio-awesome",
       "path": "connect-apps",
-      "categories": [
-        "community"
-      ],
+      "categories": ["community"],
       "description": "Connect Apps",
       "description_ja": "Connect Apps"
     },
@@ -638,9 +624,7 @@
       "name": "connect",
       "source": "composio-awesome",
       "path": "connect",
-      "categories": [
-        "community"
-      ],
+      "categories": ["community"],
       "description": "Connect",
       "description_ja": "Connect"
     },
@@ -648,9 +632,7 @@
       "name": "content-research-writer",
       "source": "composio-awesome",
       "path": "content-research-writer",
-      "categories": [
-        "community"
-      ],
+      "categories": ["community"],
       "description": "Content Research Writer",
       "description_ja": "Content Research Writer"
     },
@@ -658,9 +640,7 @@
       "name": "developer-growth-analysis",
       "source": "composio-awesome",
       "path": "developer-growth-analysis",
-      "categories": [
-        "community"
-      ],
+      "categories": ["community"],
       "description": "Developer Growth Analysis",
       "description_ja": "Developer Growth Analysis"
     },
@@ -668,9 +648,7 @@
       "name": "document-skills",
       "source": "composio-awesome",
       "path": "document-skills",
-      "categories": [
-        "community"
-      ],
+      "categories": ["community"],
       "description": "Document Skills",
       "description_ja": "Document Skills"
     },
@@ -678,9 +656,7 @@
       "name": "domain-name-brainstormer",
       "source": "composio-awesome",
       "path": "domain-name-brainstormer",
-      "categories": [
-        "community"
-      ],
+      "categories": ["community"],
       "description": "Brainstorm domain names",
       "description_ja": "Brainstorm domain names"
     },
@@ -688,9 +664,7 @@
       "name": "file-organizer",
       "source": "composio-awesome",
       "path": "file-organizer",
-      "categories": [
-        "community"
-      ],
+      "categories": ["community"],
       "description": "Organize files and directories",
       "description_ja": "Organize files and directories"
     },
@@ -698,9 +672,7 @@
       "name": "image-enhancer",
       "source": "composio-awesome",
       "path": "image-enhancer",
-      "categories": [
-        "community"
-      ],
+      "categories": ["community"],
       "description": "Enhance and edit images",
       "description_ja": "Enhance and edit images"
     },
@@ -708,9 +680,7 @@
       "name": "internal-comms",
       "source": "composio-awesome",
       "path": "internal-comms",
-      "categories": [
-        "community"
-      ],
+      "categories": ["community"],
       "description": "Internal communications management",
       "description_ja": "Internal communications management"
     },
@@ -718,9 +688,7 @@
       "name": "invoice-organizer",
       "source": "composio-awesome",
       "path": "invoice-organizer",
-      "categories": [
-        "community"
-      ],
+      "categories": ["community"],
       "description": "Organize and manage invoices",
       "description_ja": "Organize and manage invoices"
     },
@@ -728,9 +696,7 @@
       "name": "langsmith-fetch",
       "source": "composio-awesome",
       "path": "langsmith-fetch",
-      "categories": [
-        "community"
-      ],
+      "categories": ["community"],
       "description": "Langsmith Fetch",
       "description_ja": "Langsmith Fetch"
     },
@@ -738,9 +704,7 @@
       "name": "lead-research-assistant",
       "source": "composio-awesome",
       "path": "lead-research-assistant",
-      "categories": [
-        "community"
-      ],
+      "categories": ["community"],
       "description": "Research leads and contacts",
       "description_ja": "Research leads and contacts"
     },
@@ -748,9 +712,7 @@
       "name": "mcp-builder",
       "source": "composio-awesome",
       "path": "mcp-builder",
-      "categories": [
-        "community"
-      ],
+      "categories": ["community"],
       "description": "Build MCP (Model Context Protocol) servers",
       "description_ja": "Build MCP (Model Context Protocol) servers"
     },
@@ -758,9 +720,7 @@
       "name": "meeting-insights-analyzer",
       "source": "composio-awesome",
       "path": "meeting-insights-analyzer",
-      "categories": [
-        "community"
-      ],
+      "categories": ["community"],
       "description": "Analyze meeting insights",
       "description_ja": "Analyze meeting insights"
     },
@@ -768,9 +728,7 @@
       "name": "raffle-winner-picker",
       "source": "composio-awesome",
       "path": "raffle-winner-picker",
-      "categories": [
-        "community"
-      ],
+      "categories": ["community"],
       "description": "Pick raffle winners randomly",
       "description_ja": "Pick raffle winners randomly"
     },
@@ -778,9 +736,7 @@
       "name": "skill-creator",
       "source": "composio-awesome",
       "path": "skill-creator",
-      "categories": [
-        "community"
-      ],
+      "categories": ["community"],
       "description": "Create new agent skills",
       "description_ja": "Create new agent skills"
     },
@@ -788,9 +744,7 @@
       "name": "skill-share",
       "source": "composio-awesome",
       "path": "skill-share",
-      "categories": [
-        "community"
-      ],
+      "categories": ["community"],
       "description": "Share skills across teams",
       "description_ja": "Share skills across teams"
     },
@@ -798,9 +752,7 @@
       "name": "slack-gif-creator",
       "source": "composio-awesome",
       "path": "slack-gif-creator",
-      "categories": [
-        "community"
-      ],
+      "categories": ["community"],
       "description": "Create GIFs for Slack",
       "description_ja": "Create GIFs for Slack"
     },
@@ -808,9 +760,7 @@
       "name": "tailored-resume-generator",
       "source": "composio-awesome",
       "path": "tailored-resume-generator",
-      "categories": [
-        "community"
-      ],
+      "categories": ["community"],
       "description": "Tailored Resume Generator",
       "description_ja": "Tailored Resume Generator"
     },
@@ -818,9 +768,7 @@
       "name": "template-skill",
       "source": "composio-awesome",
       "path": "template-skill",
-      "categories": [
-        "community"
-      ],
+      "categories": ["community"],
       "description": "Template for creating new skills",
       "description_ja": "Template for creating new skills"
     },
@@ -828,9 +776,7 @@
       "name": "theme-factory",
       "source": "composio-awesome",
       "path": "theme-factory",
-      "categories": [
-        "community"
-      ],
+      "categories": ["community"],
       "description": "Create and manage themes",
       "description_ja": "Create and manage themes"
     },
@@ -838,9 +784,7 @@
       "name": "twitter-algorithm-optimizer",
       "source": "composio-awesome",
       "path": "twitter-algorithm-optimizer",
-      "categories": [
-        "community"
-      ],
+      "categories": ["community"],
       "description": "Twitter Algorithm Optimizer",
       "description_ja": "Twitter Algorithm Optimizer"
     },
@@ -848,9 +792,7 @@
       "name": "video-downloader",
       "source": "composio-awesome",
       "path": "video-downloader",
-      "categories": [
-        "community"
-      ],
+      "categories": ["community"],
       "description": "Download and process videos",
       "description_ja": "Download and process videos"
     },
@@ -858,9 +800,7 @@
       "name": "webapp-testing",
       "source": "composio-awesome",
       "path": "webapp-testing",
-      "categories": [
-        "community"
-      ],
+      "categories": ["community"],
       "description": "Test web applications",
       "description_ja": "Test web applications"
     },
@@ -1747,11 +1687,7 @@
       "name": "prp-core/prp-commit",
       "source": "prps-agentic",
       "path": ".claude/commands/prp-core/prp-commit.md",
-      "categories": [
-        "prp-core",
-        "claude-code",
-        "prp"
-      ],
+      "categories": ["prp-core", "claude-code", "prp"],
       "description": "Prp Core/prp Commit",
       "description_ja": "Prp Core/prp Commit"
     },
@@ -1759,11 +1695,7 @@
       "name": "prp-core/prp-debug",
       "source": "prps-agentic",
       "path": ".claude/commands/prp-core/prp-debug.md",
-      "categories": [
-        "prp-core",
-        "claude-code",
-        "prp"
-      ],
+      "categories": ["prp-core", "claude-code", "prp"],
       "description": "Prp Core/prp Debug",
       "description_ja": "Prp Core/prp Debug"
     },
@@ -1771,11 +1703,7 @@
       "name": "prp-core/prp-implement",
       "source": "prps-agentic",
       "path": ".claude/commands/prp-core/prp-implement.md",
-      "categories": [
-        "prp-core",
-        "claude-code",
-        "prp"
-      ],
+      "categories": ["prp-core", "claude-code", "prp"],
       "description": "Prp Core/prp Implement",
       "description_ja": "Prp Core/prp Implement"
     },
@@ -1783,11 +1711,7 @@
       "name": "prp-core/prp-issue-fix",
       "source": "prps-agentic",
       "path": ".claude/commands/prp-core/prp-issue-fix.md",
-      "categories": [
-        "prp-core",
-        "claude-code",
-        "prp"
-      ],
+      "categories": ["prp-core", "claude-code", "prp"],
       "description": "Prp Core/prp Issue Fix",
       "description_ja": "Prp Core/prp Issue Fix"
     },
@@ -1795,11 +1719,7 @@
       "name": "prp-core/prp-issue-investigate",
       "source": "prps-agentic",
       "path": ".claude/commands/prp-core/prp-issue-investigate.md",
-      "categories": [
-        "prp-core",
-        "claude-code",
-        "prp"
-      ],
+      "categories": ["prp-core", "claude-code", "prp"],
       "description": "Prp Core/prp Issue Investigate",
       "description_ja": "Prp Core/prp Issue Investigate"
     },
@@ -1807,11 +1727,7 @@
       "name": "prp-core/prp-plan",
       "source": "prps-agentic",
       "path": ".claude/commands/prp-core/prp-plan.md",
-      "categories": [
-        "prp-core",
-        "claude-code",
-        "prp"
-      ],
+      "categories": ["prp-core", "claude-code", "prp"],
       "description": "Prp Core/prp Plan",
       "description_ja": "Prp Core/prp Plan"
     },
@@ -1819,11 +1735,7 @@
       "name": "prp-core/prp-pr",
       "source": "prps-agentic",
       "path": ".claude/commands/prp-core/prp-pr.md",
-      "categories": [
-        "prp-core",
-        "claude-code",
-        "prp"
-      ],
+      "categories": ["prp-core", "claude-code", "prp"],
       "description": "Prp Core/prp Pr",
       "description_ja": "Prp Core/prp Pr"
     },
@@ -1831,11 +1743,7 @@
       "name": "prp-core/prp-prd",
       "source": "prps-agentic",
       "path": ".claude/commands/prp-core/prp-prd.md",
-      "categories": [
-        "prp-core",
-        "claude-code",
-        "prp"
-      ],
+      "categories": ["prp-core", "claude-code", "prp"],
       "description": "Prp Core/prp Prd",
       "description_ja": "Prp Core/prp Prd"
     },
@@ -1843,11 +1751,7 @@
       "name": "prp-core/prp-ralph-cancel",
       "source": "prps-agentic",
       "path": ".claude/commands/prp-core/prp-ralph-cancel.md",
-      "categories": [
-        "prp-core",
-        "claude-code",
-        "prp"
-      ],
+      "categories": ["prp-core", "claude-code", "prp"],
       "description": "Prp Core/prp Ralph Cancel",
       "description_ja": "Prp Core/prp Ralph Cancel"
     },
@@ -1855,11 +1759,7 @@
       "name": "prp-core/prp-ralph",
       "source": "prps-agentic",
       "path": ".claude/commands/prp-core/prp-ralph.md",
-      "categories": [
-        "prp-core",
-        "claude-code",
-        "prp"
-      ],
+      "categories": ["prp-core", "claude-code", "prp"],
       "description": "Prp Core/prp Ralph",
       "description_ja": "Prp Core/prp Ralph"
     },
@@ -1867,11 +1767,7 @@
       "name": "prp-core/prp-review-agents",
       "source": "prps-agentic",
       "path": ".claude/commands/prp-core/prp-review-agents.md",
-      "categories": [
-        "prp-core",
-        "claude-code",
-        "prp"
-      ],
+      "categories": ["prp-core", "claude-code", "prp"],
       "description": "Prp Core/prp Review Agents",
       "description_ja": "Prp Core/prp Review Agents"
     },
@@ -1879,11 +1775,7 @@
       "name": "prp-core/prp-review",
       "source": "prps-agentic",
       "path": ".claude/commands/prp-core/prp-review.md",
-      "categories": [
-        "prp-core",
-        "claude-code",
-        "prp"
-      ],
+      "categories": ["prp-core", "claude-code", "prp"],
       "description": "Prp Core/prp Review",
       "description_ja": "Prp Core/prp Review"
     },
@@ -2186,20 +2078,8 @@
       "source": "pai-packs",
       "description": "Complete PAI infrastructure - Core, Agents, Art, Prompting",
       "description_ja": "PAI完全セット - コア・エージェント・アート・プロンプティング",
-      "skills": [
-        "CORE",
-        "Agents",
-        "Art",
-        "CreateSkill",
-        "Prompting"
-      ],
-      "installOrder": [
-        "CORE",
-        "Agents",
-        "Art",
-        "CreateSkill",
-        "Prompting"
-      ],
+      "skills": ["CORE", "Agents", "Art", "CreateSkill", "Prompting"],
+      "installOrder": ["CORE", "Agents", "Art", "CreateSkill", "Prompting"],
       "coreSkill": "CORE"
     },
     {
