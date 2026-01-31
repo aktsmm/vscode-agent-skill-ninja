@@ -45,11 +45,11 @@
 
 ### Format Options
 
-| Format | Description | IMPORTANT Prompt | Detailed Table | Compressed Index |
-|--------|-------------|------------------|----------------|------------------|
-| ✅ **Full** | Both detailed and compressed tables | ✅ | ✅ 200 chars | ✅ 100 chars |
-| 📦 **Compact** | Compressed index only | ✅ | ❌ | ✅ 100 chars |
-| 🕰️ **Legacy** | Simple table only (OLD) | ❌ | ✅ 200 chars | ❌ |
+| Format         | Description                         | IMPORTANT Prompt | Detailed Table | Compressed Index |
+| -------------- | ----------------------------------- | ---------------- | -------------- | ---------------- |
+| ✅ **Full**    | Both detailed and compressed tables | ✅               | ✅ 200 chars   | ✅ 100 chars     |
+| 📦 **Compact** | Compressed index only               | ✅               | ❌             | ✅ 100 chars     |
+| 🕰️ **Legacy**  | Simple table only (OLD)             | ❌               | ✅ 200 chars   | ❌               |
 
 ### IMPORTANT Prompt
 
@@ -72,17 +72,17 @@ The `full` and `compact` formats include the **IMPORTANT prompt** that instructs
 
 ### Skills
 
-| Skill                                | Description                                           |
-| ------------------------------------ | ----------------------------------------------------- |
-| [docx](.github/skills/docx/SKILL.md) | Process Word documents (.docx). Use for .docx files   |
-| [pdf](.github/skills/pdf/SKILL.md)   | PDF manipulation toolkit. Extract text, create PDFs   |
+| Skill                                | Description                                         |
+| ------------------------------------ | --------------------------------------------------- |
+| [docx](.github/skills/docx/SKILL.md) | Process Word documents (.docx). Use for .docx files |
+| [pdf](.github/skills/pdf/SKILL.md)   | PDF manipulation toolkit. Extract text, create PDFs |
 
 ### Skills Index (Compressed)
 
-| Skill                                | Path   | Description                        |
-| ------------------------------------ | ------ | ---------------------------------- |
-| [docx](.github/skills/docx/SKILL.md) | `docx` | Process Word documents (.docx)     |
-| [pdf](.github/skills/pdf/SKILL.md)   | `pdf`  | PDF manipulation toolkit           |
+| Skill                                | Path   | Description                    |
+| ------------------------------------ | ------ | ------------------------------ |
+| [docx](.github/skills/docx/SKILL.md) | `docx` | Process Word documents (.docx) |
+| [pdf](.github/skills/pdf/SKILL.md)   | `pdf`  | PDF manipulation toolkit       |
 
 <!-- skill-ninja-END -->
 ```
@@ -224,8 +224,8 @@ Or search for **"Agent Skills Ninja"** in VS Code Extensions (`Ctrl+Shift+X`)
 
 ### Command Palette
 
-| Command                                       | Description                              |
-| --------------------------------------------- | ---------------------------------------- |
+| Command                                        | Description                              |
+| ---------------------------------------------- | ---------------------------------------- |
 | `Agent Skills Ninja: Search Skills`            | Search and install skills                |
 | `Agent Skills Ninja: Update Index`             | Update index from all sources            |
 | `Agent Skills Ninja: Search on GitHub`         | Search skills on GitHub                  |
@@ -337,27 +337,27 @@ If you don't need MCP tools, you can disable them from GitHub Copilot Chat:
 
 ## ⚙️ Settings
 
-| Order | Setting                            | Default          | Description                                                 |
-| :---: | ---------------------------------- | ---------------- | ----------------------------------------------------------- |
-|   1   | `skillNinja.autoUpdateInstruction` | `true`           | **Auto-update instruction file on install**                 |
-|   2   | `skillNinja.instructionFile`       | `AGENTS.md`      | Instruction file format _(requires Auto Update)_            |
-|   3   | `skillNinja.customInstructionPath` | `""`             | Custom path _(only when 'custom' selected)_                 |
-|   4   | `skillNinja.includeLocalSkills`    | `true`           | Include local skills in instruction file                    |
-|   5   | `skillNinja.skillsDirectory`       | `.github/skills` | Directory to install skills                                 |
-|   6   | `skillNinja.githubToken`           | `""`             | GitHub Token (for API rate limit)                           |
-|   7   | `skillNinja.language`              | `auto`           | UI language (auto / en / ja)                                |
-|   8   | `skillNinja.outputFormat`          | `full`           | Output format (full / compact / legacy)                     |
-|   9   | `skillNinja.enableToolDetection`   | `true`           | Auto-detect AI tools in workspace                           |
+| Order | Setting                            | Default          | Description                                      |
+| :---: | ---------------------------------- | ---------------- | ------------------------------------------------ |
+|   1   | `skillNinja.autoUpdateInstruction` | `true`           | **Auto-update instruction file on install**      |
+|   2   | `skillNinja.instructionFile`       | `AGENTS.md`      | Instruction file format _(requires Auto Update)_ |
+|   3   | `skillNinja.customInstructionPath` | `""`             | Custom path _(only when 'custom' selected)_      |
+|   4   | `skillNinja.includeLocalSkills`    | `true`           | Include local skills in instruction file         |
+|   5   | `skillNinja.skillsDirectory`       | `.github/skills` | Directory to install skills                      |
+|   6   | `skillNinja.githubToken`           | `""`             | GitHub Token (for API rate limit)                |
+|   7   | `skillNinja.language`              | `auto`           | UI language (auto / en / ja)                     |
+|   8   | `skillNinja.outputFormat`          | `full`           | Output format (full / compact / legacy)          |
+|   9   | `skillNinja.enableToolDetection`   | `true`           | Auto-detect AI tools in workspace                |
 
 > Settings are displayed in the order above
 
 ### Output Format Details
 
-| Format    | Content                                    | Best For                          |
-| --------- | ------------------------------------------ | --------------------------------- |
-| `full`    | IMPORTANT + Detailed table + Compressed    | Complete information (default)    |
-| `compact` | IMPORTANT + Compressed index only          | Token-efficient prompts           |
-| `legacy`  | Simple table only (no IMPORTANT)           | Backward compatibility            |
+| Format    | Content                                 | Best For                       |
+| --------- | --------------------------------------- | ------------------------------ |
+| `full`    | IMPORTANT + Detailed table + Compressed | Complete information (default) |
+| `compact` | IMPORTANT + Compressed index only       | Token-efficient prompts        |
+| `legacy`  | Simple table only (no IMPORTANT)        | Backward compatibility         |
 
 ### How Instruction File Sync Works
 

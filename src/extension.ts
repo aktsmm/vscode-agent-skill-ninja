@@ -2573,9 +2573,7 @@ async function checkVersionAndRefreshMetadata(
 
   // フォーマットがマイグレーションされた場合は、インストラクションファイルを更新
   if (formatMigrated) {
-    console.log(
-      "[Skill Ninja] Format migrated, updating instruction file...",
-    );
+    console.log("[Skill Ninja] Format migrated, updating instruction file...");
     try {
       await updateInstructionFile(workspaceUri, context);
       vscode.window.showInformationMessage(

@@ -41,11 +41,11 @@
 
 ### フォーマットオプション
 
-| フォーマット | 説明 | IMPORTANT | 詳細テーブル | 圧縮インデックス |
-|--------------|------|-----------|--------------|------------------|
-| ✅ **Full** | 詳細+圧縮の両方 | ✅ | ✅ 200文字 | ✅ 100文字 |
-| 📦 **Compact** | 圧縮インデックスのみ | ✅ | ❌ | ✅ 100文字 |
-| 🕰️ **Legacy** | シンプルテーブルのみ (OLD) | ❌ | ✅ 200文字 | ❌ |
+| フォーマット   | 説明                       | IMPORTANT | 詳細テーブル | 圧縮インデックス |
+| -------------- | -------------------------- | --------- | ------------ | ---------------- |
+| ✅ **Full**    | 詳細+圧縮の両方            | ✅        | ✅ 200文字   | ✅ 100文字       |
+| 📦 **Compact** | 圧縮インデックスのみ       | ✅        | ❌           | ✅ 100文字       |
+| 🕰️ **Legacy**  | シンプルテーブルのみ (OLD) | ❌        | ✅ 200文字   | ❌               |
 
 ### IMPORTANT プロンプト
 
@@ -68,17 +68,17 @@
 
 ### Skills
 
-| Skill                                | Description                                           |
-| ------------------------------------ | ----------------------------------------------------- |
-| [docx](.github/skills/docx/SKILL.md) | Process Word documents (.docx). Use for .docx files   |
-| [pdf](.github/skills/pdf/SKILL.md)   | PDF manipulation toolkit. Extract text, create PDFs   |
+| Skill                                | Description                                         |
+| ------------------------------------ | --------------------------------------------------- |
+| [docx](.github/skills/docx/SKILL.md) | Process Word documents (.docx). Use for .docx files |
+| [pdf](.github/skills/pdf/SKILL.md)   | PDF manipulation toolkit. Extract text, create PDFs |
 
 ### Skills Index (Compressed)
 
-| Skill                                | Path   | Description                        |
-| ------------------------------------ | ------ | ---------------------------------- |
-| [docx](.github/skills/docx/SKILL.md) | `docx` | Process Word documents (.docx)     |
-| [pdf](.github/skills/pdf/SKILL.md)   | `pdf`  | PDF manipulation toolkit           |
+| Skill                                | Path   | Description                    |
+| ------------------------------------ | ------ | ------------------------------ |
+| [docx](.github/skills/docx/SKILL.md) | `docx` | Process Word documents (.docx) |
+| [pdf](.github/skills/pdf/SKILL.md)   | `pdf`  | PDF manipulation toolkit       |
 
 <!-- skill-ninja-END -->
 ```
@@ -220,8 +220,8 @@ ext install yamapan.agent-skill-ninja
 
 ### コマンドパレット
 
-| コマンド                                      | 説明                                     |
-| --------------------------------------------- | ---------------------------------------- |
+| コマンド                                       | 説明                                     |
+| ---------------------------------------------- | ---------------------------------------- |
 | `Agent Skills Ninja: Search Skills`            | スキルを検索してインストール             |
 | `Agent Skills Ninja: Update Index`             | 全ソースからインデックスを更新           |
 | `Agent Skills Ninja: Search on GitHub`         | GitHub でスキルを検索                    |
@@ -333,27 +333,27 @@ MCP ツールが不要な場合は、GitHub Copilot Chat のツール一覧か�
 
 ## ⚙️ Settings
 
-| 順序 | Setting                            | Default          | Description                                             |
-| :--: | ---------------------------------- | ---------------- | ------------------------------------------------------- |
-|  1   | `skillNinja.autoUpdateInstruction` | `true`           | **インストール時に instruction file を自動更新**        |
-|  2   | `skillNinja.instructionFile`       | `AGENTS.md`      | スキルを登録するファイル形式 _(要: Auto Update)_        |
-|  3   | `skillNinja.customInstructionPath` | `""`             | カスタムパス _(instructionFile が 'custom' の時のみ)_   |
-|  4   | `skillNinja.includeLocalSkills`    | `true`           | ローカルスキルも instruction file に含める              |
-|  5   | `skillNinja.skillsDirectory`       | `.github/skills` | スキルをインストールするディレクトリ                    |
-|  6   | `skillNinja.githubToken`           | `""`             | GitHub Token（API 制限緩和用）                          |
-|  7   | `skillNinja.language`              | `auto`           | UI 言語（auto / en / ja）                               |
-|  8   | `skillNinja.outputFormat`          | `full`           | 出力形式（full / compact / legacy）                    |
-|  9   | `skillNinja.enableToolDetection`   | `true`           | AI ツール自動検出を有効化                               |
+| 順序 | Setting                            | Default          | Description                                           |
+| :--: | ---------------------------------- | ---------------- | ----------------------------------------------------- |
+|  1   | `skillNinja.autoUpdateInstruction` | `true`           | **インストール時に instruction file を自動更新**      |
+|  2   | `skillNinja.instructionFile`       | `AGENTS.md`      | スキルを登録するファイル形式 _(要: Auto Update)_      |
+|  3   | `skillNinja.customInstructionPath` | `""`             | カスタムパス _(instructionFile が 'custom' の時のみ)_ |
+|  4   | `skillNinja.includeLocalSkills`    | `true`           | ローカルスキルも instruction file に含める            |
+|  5   | `skillNinja.skillsDirectory`       | `.github/skills` | スキルをインストールするディレクトリ                  |
+|  6   | `skillNinja.githubToken`           | `""`             | GitHub Token（API 制限緩和用）                        |
+|  7   | `skillNinja.language`              | `auto`           | UI 言語（auto / en / ja）                             |
+|  8   | `skillNinja.outputFormat`          | `full`           | 出力形式（full / compact / legacy）                   |
+|  9   | `skillNinja.enableToolDetection`   | `true`           | AI ツール自動検出を有効化                             |
 
 > 設定画面では上記の順序で表示されます
 
 ### 出力フォーマット詳細
 
-| フォーマット | 内容                                     | 用途                            |
-| ---------- | ---------------------------------------- | ------------------------------- |
-| `full`     | IMPORTANT + 詳細テーブル + 圧縮インデックス | 完全な情報（既定）                |
-| `compact`  | IMPORTANT + 圧縮インデックスのみ           | トークン節約型                    |
-| `legacy`   | シンプルテーブルのみ（IMPORTANT なし）    | 後方互換性                        |
+| フォーマット | 内容                                        | 用途               |
+| ------------ | ------------------------------------------- | ------------------ |
+| `full`       | IMPORTANT + 詳細テーブル + 圧縮インデックス | 完全な情報（既定） |
+| `compact`    | IMPORTANT + 圧縮インデックスのみ            | トークン節約型     |
+| `legacy`     | シンプルテーブルのみ（IMPORTANT なし）      | 後方互換性         |
 
 ### Instruction File 同期の仕組み
 
