@@ -429,7 +429,7 @@ ${MARKER_END}`;
 
 /**
  * Full 形式のスキルセクションを生成（既定）
- * IMPORTANT + 詳細テーブル（200文字）+ 圧縮インデックス（100文字）
+ * IMPORTANT + 詳細テーブル（200文字）
  */
 function generateFullSection(
   installedSkills: SkillMeta[],
@@ -481,25 +481,6 @@ ${MARKER_END}`;
   for (const skill of allSkills) {
     const safeDesc = skill.description.replace(/\|/g, "\\|");
     content += `| [${skill.name}](${skillsDir}/${skill.path}/SKILL.md) | ${safeDesc} |\n`;
-  }
-
-  // 圧縮インデックスセクション（100文字版）
-  content += `
-### Skills Index (Compressed)
-
-| Skill | Path | Description |
-|-------|------|-------------|
-`;
-
-  for (const skill of allSkills) {
-    // Description のみ100文字
-    const shortDesc = skill.description
-      ? skill.description.length > 100
-        ? skill.description.substring(0, 97) + "..."
-        : skill.description
-      : "";
-    const safeDesc = shortDesc.replace(/\|/g, "\\|");
-    content += `| [${skill.name}](${skillsDir}/${skill.path}/SKILL.md) | \`${skill.path}\` | ${safeDesc} |\n`;
   }
 
   content += `\n${MARKER_END}`;

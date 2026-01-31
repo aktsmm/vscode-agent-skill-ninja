@@ -45,11 +45,11 @@
 
 ### Format Options
 
-| Format         | Description                         | IMPORTANT Prompt | Detailed Table | Compressed Index |
-| -------------- | ----------------------------------- | ---------------- | -------------- | ---------------- |
-| ✅ **Full**    | Both detailed and compressed tables | ✅               | ✅ 200 chars   | ✅ 100 chars     |
-| 📦 **Compact** | Compressed index only               | ✅               | ❌             | ✅ 100 chars     |
-| 🕰️ **Legacy**  | Simple table only (OLD)             | ❌               | ✅ 200 chars   | ❌               |
+| Format         | Description                    | IMPORTANT Prompt | Detailed Table | Compressed Index |
+| -------------- | ------------------------------ | ---------------- | -------------- | ---------------- |
+| ✅ **Full**    | Detailed table with IMPORTANT  | ✅               | ✅ 200 chars   | ❌               |
+| 📦 **Compact** | Compressed index with IMPORTANT| ✅               | ❌             | ✅ 100 chars     |
+| 🕰️ **Legacy**  | Simple table only (OLD)        | ❌               | ✅ 200 chars   | ❌               |
 
 ### IMPORTANT Prompt
 
@@ -76,13 +76,6 @@ The `full` and `compact` formats include the **IMPORTANT prompt** that instructs
 | ------------------------------------ | --------------------------------------------------- |
 | [docx](.github/skills/docx/SKILL.md) | Process Word documents (.docx). Use for .docx files |
 | [pdf](.github/skills/pdf/SKILL.md)   | PDF manipulation toolkit. Extract text, create PDFs |
-
-### Skills Index (Compressed)
-
-| Skill                                | Path   | Description                    |
-| ------------------------------------ | ------ | ------------------------------ |
-| [docx](.github/skills/docx/SKILL.md) | `docx` | Process Word documents (.docx) |
-| [pdf](.github/skills/pdf/SKILL.md)   | `pdf`  | PDF manipulation toolkit       |
 
 <!-- skill-ninja-END -->
 ```
@@ -353,11 +346,11 @@ If you don't need MCP tools, you can disable them from GitHub Copilot Chat:
 
 ### Output Format Details
 
-| Format    | Content                                 | Best For                       |
-| --------- | --------------------------------------- | ------------------------------ |
-| `full`    | IMPORTANT + Detailed table + Compressed | Complete information (default) |
-| `compact` | IMPORTANT + Compressed index only       | Token-efficient prompts        |
-| `legacy`  | Simple table only (no IMPORTANT)        | Backward compatibility         |
+| Format    | Content                                | Best For                       |
+| --------- | -------------------------------------- | ------------------------------ |
+| `full`    | IMPORTANT + Detailed table (200 chars) | Complete information (default) |
+| `compact` | IMPORTANT + Compressed (100 chars)     | Token-efficient prompts        |
+| `legacy`  | Simple table only (no IMPORTANT)       | Backward compatibility         |
 
 ### How Instruction File Sync Works
 

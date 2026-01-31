@@ -41,11 +41,11 @@
 
 ### フォーマットオプション
 
-| フォーマット   | 説明                       | IMPORTANT | 詳細テーブル | 圧縮インデックス |
-| -------------- | -------------------------- | --------- | ------------ | ---------------- |
-| ✅ **Full**    | 詳細+圧縮の両方            | ✅        | ✅ 200文字   | ✅ 100文字       |
-| 📦 **Compact** | 圧縮インデックスのみ       | ✅        | ❌           | ✅ 100文字       |
-| 🕰️ **Legacy**  | シンプルテーブルのみ (OLD) | ❌        | ✅ 200文字   | ❌               |
+| フォーマット   | 説明                             | IMPORTANT | 詳細テーブル | 圧縮インデックス |
+| -------------- | -------------------------------- | --------- | ------------ | ---------------- |
+| ✅ **Full**    | IMPORTANT + 詳細テーブル         | ✅        | ✅ 200文字   | ❌               |
+| 📦 **Compact** | IMPORTANT + 圧縮インデックス     | ✅        | ❌           | ✅ 100文字       |
+| 🕰️ **Legacy**  | シンプルテーブルのみ (OLD)       | ❌        | ✅ 200文字   | ❌               |
 
 ### IMPORTANT プロンプト
 
@@ -72,13 +72,6 @@
 | ------------------------------------ | --------------------------------------------------- |
 | [docx](.github/skills/docx/SKILL.md) | Process Word documents (.docx). Use for .docx files |
 | [pdf](.github/skills/pdf/SKILL.md)   | PDF manipulation toolkit. Extract text, create PDFs |
-
-### Skills Index (Compressed)
-
-| Skill                                | Path   | Description                    |
-| ------------------------------------ | ------ | ------------------------------ |
-| [docx](.github/skills/docx/SKILL.md) | `docx` | Process Word documents (.docx) |
-| [pdf](.github/skills/pdf/SKILL.md)   | `pdf`  | PDF manipulation toolkit       |
 
 <!-- skill-ninja-END -->
 ```
@@ -349,11 +342,11 @@ MCP ツールが不要な場合は、GitHub Copilot Chat のツール一覧か�
 
 ### 出力フォーマット詳細
 
-| フォーマット | 内容                                        | 用途               |
-| ------------ | ------------------------------------------- | ------------------ |
-| `full`       | IMPORTANT + 詳細テーブル + 圧縮インデックス | 完全な情報（既定） |
-| `compact`    | IMPORTANT + 圧縮インデックスのみ            | トークン節約型     |
-| `legacy`     | シンプルテーブルのみ（IMPORTANT なし）      | 後方互換性         |
+| フォーマット | 内容                                | 用途               |
+| ------------ | ----------------------------------- | ------------------ |
+| `full`       | IMPORTANT + 詳細テーブル (200文字)  | 完全な情報（既定） |
+| `compact`    | IMPORTANT + 圧縮インデックス (100文字) | トークン節約型   |
+| `legacy`     | シンプルテーブルのみ（IMPORTANT なし） | 後方互換性       |
 
 ### Instruction File 同期の仕組み
 
