@@ -1,6 +1,6 @@
 {
-  "version": "1.12.0",
-  "lastUpdated": "2026-01-28",
+  "version": "1.13.0",
+  "lastUpdated": "2026-02-01",
   "sources": [
     {
       "id": "anthropics-skills",
@@ -75,14 +75,6 @@
       "type": "community",
       "description": "Claude Command Suite",
       "description_ja": "Claude Command Suite"
-    },
-    {
-      "id": "aktsmm-Agent-Skills",
-      "name": "Agent-Skills",
-      "url": "https://github.com/aktsmm/Agent-Skills",
-      "type": "user-added",
-      "description": "Agent-Skills",
-      "description_ja": "Agent-Skills"
     },
     {
       "id": "openai-skills",
@@ -1911,116 +1903,6 @@
       "description": "Linear Todo Sync",
       "description_ja": "Linear Todo Sync",
       "license": "MIT"
-    },
-    {
-      "name": "agentic-workflow-guide",
-      "source": "aktsmm-Agent-Skills",
-      "path": "agentic-workflow-guide",
-      "categories": [],
-      "description": "Guide for agentic workflows",
-      "description_ja": "Guide for agentic workflows",
-      "license": "CC BY-NC-SA 4.0",
-      "author": "yamapan (https://github.com/aktsmm)"
-    },
-    {
-      "name": "azure-env-builder",
-      "source": "aktsmm-Agent-Skills",
-      "path": "azure-env-builder",
-      "categories": [],
-      "description": "Azure Env Builder",
-      "description_ja": "Azure Env Builder",
-      "license": "CC BY-NC-SA 4.0",
-      "author": "yamapan (https://github.com/aktsmm)"
-    },
-    {
-      "name": "book-writing-workspace",
-      "source": "aktsmm-Agent-Skills",
-      "path": "book-writing-workspace",
-      "categories": [],
-      "description": "Book Writing Workspace",
-      "description_ja": "Book Writing Workspace",
-      "license": "CC BY-NC-SA 4.0",
-      "author": "yamapan (https://github.com/aktsmm)"
-    },
-    {
-      "name": "browser-max-automation",
-      "source": "aktsmm-Agent-Skills",
-      "path": "browser-max-automation",
-      "categories": [],
-      "description": "Browser Max Automation",
-      "description_ja": "Browser Max Automation",
-      "license": "CC BY-NC-SA 4.0",
-      "author": "yamapan (https://github.com/aktsmm)"
-    },
-    {
-      "name": "code-simplifier",
-      "source": "aktsmm-Agent-Skills",
-      "path": "code-simplifier",
-      "categories": [],
-      "description": "Code Simplifier",
-      "description_ja": "Code Simplifier",
-      "license": "CC BY-NC-SA 4.0",
-      "author": "yamapan (https://github.com/aktsmm)"
-    },
-    {
-      "name": "customer-workspace",
-      "source": "aktsmm-Agent-Skills",
-      "path": "customer-workspace",
-      "categories": [],
-      "description": "Customer Workspace",
-      "description_ja": "Customer Workspace",
-      "license": "CC BY-NC-SA 4.0",
-      "author": "yamapan (https://github.com/aktsmm)"
-    },
-    {
-      "name": "drawio-diagram-forge",
-      "source": "aktsmm-Agent-Skills",
-      "path": "drawio-diagram-forge",
-      "categories": [],
-      "description": "Drawio Diagram Forge",
-      "description_ja": "Drawio Diagram Forge",
-      "license": "CC BY-NC-SA 4.0",
-      "author": "yamapan (https://github.com/aktsmm)"
-    },
-    {
-      "name": "ocr-super-surya",
-      "source": "aktsmm-Agent-Skills",
-      "path": "ocr-super-surya",
-      "categories": [],
-      "description": "Ocr Super Surya",
-      "description_ja": "Ocr Super Surya",
-      "license": "CC BY-NC-SA 4.0",
-      "author": "yamapan (https://github.com/aktsmm)"
-    },
-    {
-      "name": "powerpoint-automation",
-      "source": "aktsmm-Agent-Skills",
-      "path": "powerpoint-automation",
-      "categories": [],
-      "description": "Powerpoint Automation",
-      "description_ja": "Powerpoint Automation",
-      "license": "CC BY-NC-SA 4.0",
-      "author": "yamapan (https://github.com/aktsmm)"
-    },
-    {
-      "name": "skill-finder",
-      "source": "aktsmm-Agent-Skills",
-      "path": "skill-finder",
-      "categories": [],
-      "description": "Skill Finder",
-      "description_ja": "Skill Finder",
-      "license": "CC BY-NC-SA 4.0",
-      "author": "yamapan (https://github.com/aktsmm)"
-    },
-    {
-      "name": "vscode-extension-guide",
-      "source": "aktsmm-Agent-Skills",
-      "path": "vscode-extension-guide",
-      "categories": [],
-      "description": "Vscode Extension Guide",
-      "description_ja": "Vscode Extension Guide",
-      "license": "CC BY-NC-SA 4.0",
-      "author": "yamapan (https://github.com/aktsmm)"
     },
     {
       "name": "doc",

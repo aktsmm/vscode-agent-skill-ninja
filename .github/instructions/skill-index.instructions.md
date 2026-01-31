@@ -1,0 +1,61 @@
+---
+applyTo: "**/resources/skill-index.json"
+---
+
+# Skill Index 管理ルール
+
+## プリセットソースの基準
+
+### ✅ 含めるべきソース
+
+1. **Official リポジトリ**
+   - `anthropics/skills` - Anthropic 公式
+   - `openai/skills` - OpenAI 公式
+   - `github/awesome-copilot` - GitHub 公式
+
+2. **Curated リポジトリ（awesome-list）**
+   - `ComposioHQ/awesome-claude-skills` - キュレーション済みリスト
+   - Star 数が多く、活発にメンテナンスされているもの
+
+3. **Community リポジトリ（有名・高品質）**
+   - `obra/superpowers` - 高品質スキル集
+   - `muratcankoylan/Agent-Skills-for-Context-Engineering` - Context Engineering (5k+ stars)
+   - `danielmiessler/Personal_AI_Infrastructure` - PAI Packs (3.5k+ stars)
+   - `EveryInc/compound-engineering-plugin` - Compound Engineering (3.5k+ stars)
+   - `Wirasm/PRPs-agentic-eng` - PRP (Prompt Recipe Patterns)
+   - `qdhenry/Claude-Command-Suite` - Claude Command Suite
+
+### ❌ 含めないソース
+
+1. **個人リポジトリ**
+   - 開発者個人のリポジトリ（例: `aktsmm/Agent-Skills`）
+   - テスト用・実験的なリポジトリ
+   - プライベートまたは非公開予定のリポジトリ
+
+2. **低品質・メンテナンス停止**
+   - Star 数が少ない（目安: 100 未満）
+   - 最終更新が 1 年以上前
+   - README やドキュメントが不十分
+
+3. **重複・派生リポジトリ**
+   - 既存ソースの単純なフォーク
+   - 内容が重複しているもの
+
+## バージョン管理
+
+- マイナーアップデート（スキル追加・削除、メタデータ更新）: `1.X.0` → `1.(X+1).0`
+- パッチ（説明文修正など軽微な変更）: `1.X.Y` → `1.X.(Y+1)`
+
+## 更新時のチェックリスト
+
+- [ ] ソースの type が適切か（official / awesome-list / community）
+- [ ] 個人リポジトリが含まれていないか
+- [ ] バージョン番号を更新したか
+- [ ] lastUpdated を現在の日付に更新したか
+
+## ソース削除時の対応
+
+1. sources セクションから該当ソースを削除
+2. skills セクションから `"source": "削除するソースID"` のスキルをすべて削除
+3. バージョンをインクリメント
+4. README の「Included Skill Sources」も更新
