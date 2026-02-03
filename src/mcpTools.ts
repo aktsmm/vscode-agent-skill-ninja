@@ -89,6 +89,19 @@ function getSourceStats(index: SkillIndex): string {
 }
 
 /**
+ * MCP ツールを別名で登録
+ */
+function registerToolAliases(
+  context: vscode.ExtensionContext,
+  names: string[],
+  createTool: () => vscode.LanguageModelTool<any>,
+): void {
+  for (const name of names) {
+    context.subscriptions.push(vscode.lm.registerTool(name, createTool()));
+  }
+}
+
+/**
  * MCP ツールを登録
  */
 export function registerMcpTools(context: vscode.ExtensionContext): void {
@@ -104,48 +117,72 @@ export function registerMcpTools(context: vscode.ExtensionContext): void {
 
   try {
     // スキル検索ツール
-    context.subscriptions.push(
-      vscode.lm.registerTool("skillNinja_search", new SkillSearchTool()),
-    );
+    registerToolAliases(context, ["skillNinja_search", "searchSkills"], () => {
+      return new SkillSearchTool();
+    });
 
     // スキルインストールツール
-    context.subscriptions.push(
-      vscode.lm.registerTool("skillNinja_install", new SkillInstallTool()),
-    );
+    registerToolAliases(context, ["skillNinja_install", "installSkill"], () => {
+      return new SkillInstallTool();
+    });
 
     // インストール済み一覧ツール
-    context.subscriptions.push(
-      vscode.lm.registerTool("skillNinja_list", new SkillListTool()),
-    );
+    registerToolAliases(context, ["skillNinja_list", "listSkills"], () => {
+      return new SkillListTool();
+    });
 
     // スキル推奨ツール
-    context.subscriptions.push(
-      vscode.lm.registerTool("skillNinja_recommend", new SkillRecommendTool()),
+    registerToolAliases(
+      context,
+      ["skillNinja_recommend", "recommendSkills"],
+      () => {
+        return new SkillRecommendTool();
+      },
     );
 
     // スキルアンインストールツール
-    context.subscriptions.push(
-      vscode.lm.registerTool("skillNinja_uninstall", new SkillUninstallTool()),
+    registerToolAliases(
+      context,
+      ["skillNinja_uninstall", "uninstallSkill"],
+      () => {
+        return new SkillUninstallTool();
+      },
     );
 
     // インデックス更新ツール
-    context.subscriptions.push(
-      vscode.lm.registerTool("skillNinja_updateIndex", new UpdateIndexTool()),
+    registerToolAliases(
+      context,
+      ["skillNinja_updateIndex", "updateSkillIndex"],
+      () => {
+        return new UpdateIndexTool();
+      },
     );
 
     // GitHub 検索ツール
-    context.subscriptions.push(
-      vscode.lm.registerTool("skillNinja_webSearch", new WebSearchTool()),
+    registerToolAliases(
+      context,
+      ["skillNinja_webSearch", "webSearchSkills"],
+      () => {
+        return new WebSearchTool();
+      },
     );
 
     // ソース追加ツール
-    context.subscriptions.push(
-      vscode.lm.registerTool("skillNinja_addSource", new AddSourceTool()),
+    registerToolAliases(
+      context,
+      ["skillNinja_addSource", "addSkillSource"],
+      () => {
+        return new AddSourceTool();
+      },
     );
 
     // スキル説明ローカライズツール
-    context.subscriptions.push(
-      vscode.lm.registerTool("skillNinja_localize", new LocalizeSkillsTool()),
+    registerToolAliases(
+      context,
+      ["skillNinja_localize", "localizeSkill"],
+      () => {
+        return new LocalizeSkillsTool();
+      },
     );
 
     console.log("Agent Skills Ninja: MCP tools registered successfully");

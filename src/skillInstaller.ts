@@ -447,6 +447,12 @@ export async function getInstalledSkills(
   const skillsPath = vscode.Uri.joinPath(workspaceUri, skillsDir);
 
   try {
+    try {
+      await vscode.workspace.fs.stat(skillsPath);
+    } catch {
+      return [];
+    }
+
     const entries = await vscode.workspace.fs.readDirectory(skillsPath);
     // ディレクトリのみを返す
     return entries
@@ -498,6 +504,12 @@ async function scanSkillsRecursively(
   if (depth > 3) return;
 
   try {
+    try {
+      await vscode.workspace.fs.stat(currentPath);
+    } catch {
+      return;
+    }
+
     const entries = await vscode.workspace.fs.readDirectory(currentPath);
     const dirs = entries.filter(
       ([, type]) => type === vscode.FileType.Directory,
@@ -561,6 +573,12 @@ export async function refreshSkillMetadata(
   let updatedCount = 0;
 
   try {
+    try {
+      await vscode.workspace.fs.stat(skillsPath);
+    } catch {
+      return 0;
+    }
+
     const entries = await vscode.workspace.fs.readDirectory(skillsPath);
     const dirs = entries.filter(
       ([, type]) => type === vscode.FileType.Directory,
@@ -712,6 +730,12 @@ export async function getInstalledSkillsWithMeta(
   const skillsPath = vscode.Uri.joinPath(workspaceUri, skillsDir);
 
   try {
+    try {
+      await vscode.workspace.fs.stat(skillsPath);
+    } catch {
+      return [];
+    }
+
     // 再帰的にスキルをスキャン
     const skillEntries: Array<{
       folderName: string;

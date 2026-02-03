@@ -14,6 +14,55 @@ import { getGitHubToken } from "./githubAuth";
 export { checkGitHubAuth } from "./githubAuth";
 import { LICENSE_EXTRACTION, INDEX_LIMITS } from "./constants";
 
+const REQUEST_TIMEOUT_MS = 15000;
+const FETCH_CONCURRENCY = 8;
+
+async function fetchWithTimeout(
+  url: string,
+  options?: RequestInit,
+  timeoutMs: number = REQUEST_TIMEOUT_MS,
+): Promise<Response> {
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+  try {
+    return await fetch(url, { ...options, signal: controller.signal });
+  } catch (error) {
+    if (controller.signal.aborted) {
+      throw new Error(`Request timeout: ${url}`);
+    }
+    throw error;
+  } finally {
+    clearTimeout(timeoutId);
+  }
+}
+
+async function mapWithConcurrency<T, R>(
+  items: T[],
+  limit: number,
+  worker: (item: T) => Promise<R | undefined>,
+): Promise<R[]> {
+  if (items.length === 0) return [];
+  const results: R[] = [];
+  let index = 0;
+
+  const runners = Array.from(
+    { length: Math.min(limit, items.length) },
+    async () => {
+      while (index < items.length) {
+        const current = items[index];
+        index += 1;
+        const result = await worker(current);
+        if (result !== undefined) {
+          results.push(result);
+        }
+      }
+    },
+  );
+
+  await Promise.all(runners);
+  return results;
+}
+
 /**
  * LICENSE.txt を取得してライセンス名を抽出
  */
@@ -29,7 +78,7 @@ async function fetchAndExtractLicense(
   for (const filename of licenseFiles) {
     try {
       const rawUrl = `https://raw.githubusercontent.com/${owner}/${repo}/${branch}/${skillDir}/${filename}`;
-      const response = await fetch(rawUrl);
+      const response = await fetchWithTimeout(rawUrl);
       if (response.ok) {
         const content = await response.text();
         const license = extractLicenseFromContent(content);
@@ -129,7 +178,7 @@ async function githubFetch(url: string, token?: string): Promise<Response> {
     headers["Authorization"] = `token ${effectiveToken}`;
   }
 
-  return fetch(url, { headers });
+  return fetchWithTimeout(url, { headers });
 }
 
 /**
@@ -163,6 +212,21 @@ export async function scanRepositoryForSkills(
     } else {
       branch = "main"; // フォールバック
     }
+  }
+
+  // claude-skill-registry 特別処理: registry.json から読み込む
+  const isSkillRegistry = repoName.toLowerCase().includes("skill-registry");
+  if (isSkillRegistry) {
+    const registryResult = await scanSkillRegistryJson(
+      owner,
+      repoName,
+      branch,
+      token,
+    );
+    if (registryResult) {
+      return registryResult;
+    }
+    // registry.json がない場合は通常処理にフォールバック
   }
 
   // リポジトリのツリーを取得
@@ -267,70 +331,77 @@ async function processTreeResponse(
     return { skills: composioSkills, source };
   }
 
-  const skills: Skill[] = [];
+  const skills = await mapWithConcurrency(
+    skillFiles,
+    FETCH_CONCURRENCY,
+    async (file): Promise<Skill | undefined> => {
+      try {
+        // SKILL.md の内容を取得して frontmatter を解析
+        const rawUrl = `https://raw.githubusercontent.com/${owner}/${repoName}/${branch}/${file.path}`;
+        const contentResponse = await fetchWithTimeout(rawUrl);
+        if (!contentResponse.ok) {
+          return undefined;
+        }
 
-  for (const file of skillFiles) {
-    try {
-      // SKILL.md の内容を取得して frontmatter を解析
-      const rawUrl = `https://raw.githubusercontent.com/${owner}/${repoName}/${branch}/${file.path}`;
-      const contentResponse = await fetch(rawUrl);
-      if (contentResponse.ok) {
         const content = await contentResponse.text();
         const skillInfo = parseSkillFrontmatter(content, file.path);
-        if (skillInfo) {
-          const skill: Skill = {
-            name: skillInfo.name,
-            source: `${owner}-${repoName}`,
-            path: file.path.replace("/SKILL.md", ""),
-            categories: skillInfo.categories || [],
-            description: skillInfo.description || "",
-          };
-          // Bundle/Framework対応フィールドを追加（存在する場合のみ）
-          if (skillInfo.standalone !== undefined) {
-            skill.standalone = skillInfo.standalone;
-          }
-          if (skillInfo.requires?.length) {
-            skill.requires = skillInfo.requires;
-          }
-          if (skillInfo.bundle) {
-            skill.bundle = skillInfo.bundle;
-          }
-          // メタデータフィールドを追加
-          let license = skillInfo.license;
-          // license が曖昧な場合は LICENSE.txt から抽出を試行
-          if (
-            !license ||
-            license.toLowerCase().includes("license.txt") ||
-            license.toLowerCase().includes("complete terms")
-          ) {
-            const skillDir = file.path.replace("/SKILL.md", "");
-            const extractedLicense = await fetchAndExtractLicense(
-              owner,
-              repoName,
-              skillDir,
-              branch,
-            );
-            if (extractedLicense) {
-              license = extractedLicense;
-            }
-          }
-          if (license) {
-            skill.license = license;
-          }
-          if (skillInfo.author) {
-            skill.author = skillInfo.author;
-          }
-          if (skillInfo.version) {
-            skill.version = skillInfo.version;
-          }
-          skills.push(skill);
+        if (!skillInfo) {
+          return undefined;
         }
+
+        const skill: Skill = {
+          name: skillInfo.name,
+          source: `${owner}-${repoName}`,
+          path: file.path.replace("/SKILL.md", ""),
+          categories: skillInfo.categories || [],
+          description: skillInfo.description || "",
+        };
+        // Bundle/Framework対応フィールドを追加（存在する場合のみ）
+        if (skillInfo.standalone !== undefined) {
+          skill.standalone = skillInfo.standalone;
+        }
+        if (skillInfo.requires?.length) {
+          skill.requires = skillInfo.requires;
+        }
+        if (skillInfo.bundle) {
+          skill.bundle = skillInfo.bundle;
+        }
+        // メタデータフィールドを追加
+        let license = skillInfo.license;
+        // license が曖昧な場合は LICENSE.txt から抽出を試行
+        if (
+          !license ||
+          license.toLowerCase().includes("license.txt") ||
+          license.toLowerCase().includes("complete terms")
+        ) {
+          const skillDir = file.path.replace("/SKILL.md", "");
+          const extractedLicense = await fetchAndExtractLicense(
+            owner,
+            repoName,
+            skillDir,
+            branch,
+          );
+          if (extractedLicense) {
+            license = extractedLicense;
+          }
+        }
+        if (license) {
+          skill.license = license;
+        }
+        if (skillInfo.author) {
+          skill.author = skillInfo.author;
+        }
+        if (skillInfo.version) {
+          skill.version = skillInfo.version;
+        }
+        return skill;
+      } catch {
+        // 個別のスキル取得エラーは無視して続行
+        console.warn(`Failed to fetch skill: ${file.path}`);
+        return undefined;
       }
-    } catch {
-      // 個別のスキル取得エラーは無視して続行
-      console.warn(`Failed to fetch skill: ${file.path}`);
-    }
-  }
+    },
+  );
 
   // bundle.json を検出してBundle定義を取得
   const bundles = await scanBundleJson(data, owner, repoName, branch);
@@ -369,7 +440,7 @@ async function scanBundleJson(
   for (const file of bundleFiles) {
     try {
       const rawUrl = `https://raw.githubusercontent.com/${owner}/${repoName}/${branch}/${file.path}`;
-      const contentResponse = await fetch(rawUrl);
+      const contentResponse = await fetchWithTimeout(rawUrl);
       if (contentResponse.ok) {
         const content = await contentResponse.text();
         const bundleData = JSON.parse(content);
@@ -439,14 +510,18 @@ async function scanClaudeCommands(
 
   console.log(`[Skill Ninja] Found ${commandFiles.length} command files`);
 
-  const skills: Skill[] = [];
+  const skills = await mapWithConcurrency(
+    commandFiles,
+    FETCH_CONCURRENCY,
+    async (file): Promise<Skill | undefined> => {
+      try {
+        // コマンドの内容を取得
+        const rawUrl = `https://raw.githubusercontent.com/${owner}/${repoName}/${branch}/${file.path}`;
+        const contentResponse = await fetchWithTimeout(rawUrl);
+        if (!contentResponse.ok) {
+          return undefined;
+        }
 
-  for (const file of commandFiles) {
-    try {
-      // コマンドの内容を取得
-      const rawUrl = `https://raw.githubusercontent.com/${owner}/${repoName}/${branch}/${file.path}`;
-      const contentResponse = await fetch(rawUrl);
-      if (contentResponse.ok) {
         const content = await contentResponse.text();
 
         // パスからスキル名を抽出: .claude/commands/category/command-name.md -> category/command-name
@@ -478,18 +553,19 @@ async function scanClaudeCommands(
         const pathParts = skillName.split("/");
         const category = pathParts.length > 1 ? pathParts[0] : "command";
 
-        skills.push({
+        return {
           name: skillName,
           source: `${owner}-${repoName}`,
           path: file.path,
           categories: [category, "claude-code", "prp"],
           description: description || `Claude Code command: ${skillName}`,
-        });
+        };
+      } catch {
+        console.warn(`Failed to fetch command: ${file.path}`);
+        return undefined;
       }
-    } catch {
-      console.warn(`Failed to fetch command: ${file.path}`);
-    }
-  }
+    },
+  );
 
   return skills;
 }
@@ -531,6 +607,186 @@ function scanComposioSkills(
   }));
 
   return skills;
+}
+
+/**
+ * claude-skill-registry 専用: registry.json から直接スキルを読み込む
+ * このリポジトリは 43,000+ のスキルを registry.json に集約している
+ */
+async function scanSkillRegistryJson(
+  owner: string,
+  repoName: string,
+  branch: string,
+  _token?: string,
+): Promise<{ skills: Skill[]; source: Source } | null> {
+  console.log(
+    `[Skill Ninja] scanSkillRegistryJson: ${owner}/${repoName} branch=${branch}`,
+  );
+
+  // registry.json または search-index.json を取得
+  // search-index.json は軽量（~1MB）なのでこちらを優先
+  const searchIndexUrl = `https://raw.githubusercontent.com/${owner}/${repoName}/${branch}/docs/search-index.json`;
+
+  try {
+    const response = await fetchWithTimeout(searchIndexUrl, undefined, 30000);
+    if (!response.ok) {
+      console.log(
+        `[Skill Ninja] search-index.json not found, trying registry.json`,
+      );
+      // registry.json にフォールバック（大きいので注意）
+      const registryUrl = `https://raw.githubusercontent.com/${owner}/${repoName}/${branch}/registry.json`;
+      const registryResponse = await fetchWithTimeout(
+        registryUrl,
+        undefined,
+        60000,
+      );
+      if (!registryResponse.ok) {
+        return null;
+      }
+      const registryData = (await registryResponse.json()) as {
+        skills?: RegistrySkill[];
+        total?: number;
+      };
+      return parseRegistryJson(registryData, owner, repoName);
+    }
+
+    const searchIndex = (await response.json()) as {
+      v?: string;
+      t?: number;
+      s?: SearchIndexSkill[];
+    };
+    return parseSearchIndex(searchIndex, owner, repoName);
+  } catch (error) {
+    console.error(`[Skill Ninja] Failed to fetch skill registry:`, error);
+    return null;
+  }
+}
+
+/**
+ * search-index.json を解析してスキルに変換
+ */
+interface SearchIndexSkill {
+  n: string; // name
+  d: string; // description
+  c: string; // category code
+  g?: string[]; // tags
+  r?: number; // stars
+  i: string; // install path
+}
+
+function parseSearchIndex(
+  data: { v?: string; t?: number; s?: SearchIndexSkill[] },
+  owner: string,
+  repoName: string,
+): { skills: Skill[]; source: Source } {
+  const sourceId = `${owner}-${repoName}`;
+  const skills: Skill[] = [];
+
+  // カテゴリコードをフルネームにマッピング
+  const categoryMap: Record<string, string> = {
+    dev: "development",
+    dat: "data",
+    des: "design",
+    tst: "testing",
+    ops: "devops",
+    doc: "documents",
+    pro: "productivity",
+    prd: "product",
+    sec: "security",
+    mkt: "marketing",
+  };
+
+  if (data.s && Array.isArray(data.s)) {
+    // 上限を設定（全部入れると重すぎる）
+    const MAX_SKILLS = 5000;
+    const skillsToProcess = data.s.slice(0, MAX_SKILLS);
+
+    for (const item of skillsToProcess) {
+      const category = categoryMap[item.c] || item.c || "other";
+      const tags = item.g || [];
+
+      skills.push({
+        name: item.n,
+        source: sourceId,
+        path: item.i,
+        categories: [category, ...tags.slice(0, 3)],
+        description: item.d || "",
+        stars: item.r,
+      });
+    }
+
+    console.log(
+      `[Skill Ninja] Loaded ${skills.length} skills from search-index.json (total: ${data.t || data.s.length})`,
+    );
+  }
+
+  const source: Source = {
+    id: sourceId,
+    name: `${repoName} (Registry)`,
+    url: `https://github.com/${owner}/${repoName}`,
+    type: "user-added",
+    description: `Claude Skills Registry - ${data.t || skills.length} skills indexed`,
+  };
+
+  return { skills, source };
+}
+
+/**
+ * registry.json を解析してスキルに変換（フォールバック用）
+ */
+interface RegistrySkill {
+  name: string;
+  description?: string;
+  category?: string;
+  tags?: string[];
+  stars?: number;
+  repo?: string;
+  path?: string;
+  install_path?: string;
+}
+
+function parseRegistryJson(
+  data: { skills?: RegistrySkill[]; total?: number },
+  owner: string,
+  repoName: string,
+): { skills: Skill[]; source: Source } {
+  const sourceId = `${owner}-${repoName}`;
+  const skills: Skill[] = [];
+
+  if (data.skills && Array.isArray(data.skills)) {
+    // 上限を設定
+    const MAX_SKILLS = 5000;
+    const skillsToProcess = data.skills.slice(0, MAX_SKILLS);
+
+    for (const item of skillsToProcess) {
+      const categories: string[] = [];
+      if (item.category) categories.push(item.category);
+      if (item.tags) categories.push(...item.tags.slice(0, 3));
+
+      skills.push({
+        name: item.name,
+        source: sourceId,
+        path: item.install_path || item.path || item.repo || "",
+        categories: categories.length > 0 ? categories : ["other"],
+        description: item.description || "",
+        stars: item.stars,
+      });
+    }
+
+    console.log(
+      `[Skill Ninja] Loaded ${skills.length} skills from registry.json (total: ${data.total || data.skills.length})`,
+    );
+  }
+
+  const source: Source = {
+    id: sourceId,
+    name: `${repoName} (Registry)`,
+    url: `https://github.com/${owner}/${repoName}`,
+    type: "user-added",
+    description: `Claude Skills Registry - ${data.total || skills.length} skills indexed`,
+  };
+
+  return { skills, source };
 }
 
 /**

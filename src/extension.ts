@@ -1492,13 +1492,28 @@ export function activate(context: vscode.ExtensionContext) {
   const addSourceCmd = vscode.commands.registerCommand(
     "skillNinja.addSource",
     async (urlArg?: string | unknown) => {
+      const normalizeRepoUrl = (value: string): string | undefined => {
+        const trimmed = value.trim();
+        if (!trimmed) return undefined;
+
+        if (trimmed.startsWith("http")) {
+          return trimmed.match(/github\.com\/[^/]+\/[^/]+/)
+            ? trimmed
+            : undefined;
+        }
+
+        return trimmed.match(/^[^/]+\/[^/]+$/)
+          ? `https://github.com/${trimmed}`
+          : undefined;
+      };
+
       // 引数で URL が渡された場合はそれを使用、なければ入力を求める
       // TreeViewから呼ばれた場合、urlArgがオブジェクトになる可能性があるため型チェック
       let repoUrl: string | undefined =
-        typeof urlArg === "string" ? urlArg : undefined;
+        typeof urlArg === "string" ? normalizeRepoUrl(urlArg) : undefined;
 
       // 渡された URL のバリデーション
-      if (repoUrl && !repoUrl.match(/github\.com\/[^/]+\/[^/]+/)) {
+      if (typeof urlArg === "string" && !repoUrl) {
         vscode.window.showErrorMessage(messages.invalidRepoUrl());
         return;
       }
@@ -1508,12 +1523,15 @@ export function activate(context: vscode.ExtensionContext) {
           prompt: messages.enterRepoUrl(),
           placeHolder: messages.repoUrlPlaceholder(),
           validateInput: (value) => {
-            if (!value.match(/github\.com\/[^/]+\/[^/]+/)) {
+            if (!normalizeRepoUrl(value)) {
               return messages.invalidRepoUrl();
             }
             return null;
           },
         });
+        if (repoUrl) {
+          repoUrl = normalizeRepoUrl(repoUrl);
+        }
       }
 
       if (!repoUrl) {
