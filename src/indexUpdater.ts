@@ -406,6 +406,22 @@ async function processTreeResponse(
   // bundle.json を検出してBundle定義を取得
   const bundles = await scanBundleJson(data, owner, repoName, branch);
 
+  // 同じスキル名の重複を除去（パスが短い方を優先）
+  // 例: vscode-extension-guide と skills/vscode-extension-guide がある場合、前者を優先
+  const skillMap = new Map<string, Skill>();
+  for (const skill of skills) {
+    const existing = skillMap.get(skill.name.toLowerCase());
+    if (!existing) {
+      skillMap.set(skill.name.toLowerCase(), skill);
+    } else {
+      // パスが短い方を優先（ルートに近い方）
+      if (skill.path.length < existing.path.length) {
+        skillMap.set(skill.name.toLowerCase(), skill);
+      }
+    }
+  }
+  const deduplicatedSkills = Array.from(skillMap.values());
+
   const source: Source = {
     id: `${owner}-${repoName}`,
     name: repoName,
@@ -414,7 +430,7 @@ async function processTreeResponse(
     description: `User added repository: ${owner}/${repoName}`,
   };
 
-  return { skills, source, bundles };
+  return { skills: deduplicatedSkills, source, bundles };
 }
 
 /**
