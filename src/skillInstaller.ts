@@ -35,7 +35,16 @@ async function listGitHubDirectory(
 }
 
 /**
+ * サブディレクトリの最大ダウンロード数
+ * 巨大なリポジトリ（例: Fabric の Patterns 240+ディレクトリ）で
+ * GitHub API レート制限に当たるのを防止
+ */
+const MAX_SUBDIRECTORY_DOWNLOADS = 50;
+
+/**
  * フォルダを再帰的にダウンロード
+ * ファイルをディレクトリより先にダウンロードし、
+ * サブディレクトリのエラーは個別にキャッチして全体のクラッシュを防止
  */
 async function downloadDirectory(
   owner: string,
@@ -44,9 +53,12 @@ async function downloadDirectory(
   localPath: vscode.Uri,
   branch: string = "main",
   token?: string,
-): Promise<void> {
+  depth: number = 0,
+): Promise<{ errors: string[] }> {
+  const errors: string[] = [];
+
   console.log(
-    `[Skill Ninja] Downloading directory: ${owner}/${repo}/${remotePath} (branch: ${branch})`,
+    `[Skill Ninja] Downloading directory: ${owner}/${repo}/${remotePath} (branch: ${branch}, depth: ${depth})`,
   );
 
   const entries = await listGitHubDirectory(
@@ -58,28 +70,65 @@ async function downloadDirectory(
   );
   console.log(`[Skill Ninja] Found ${entries.length} entries`);
 
-  for (const entry of entries) {
-    const localFilePath = vscode.Uri.joinPath(localPath, entry.name);
+  // ファイルとディレクトリを分離し、ファイルを先にダウンロード
+  // （SKILL.md などの重要ファイルを確実に取得するため）
+  const files = entries.filter(
+    (e) => e.type === "file" && e.download_url,
+  );
+  const dirs = entries.filter((e) => e.type === "dir");
 
-    if (entry.type === "file" && entry.download_url) {
+  // 1. ファイルを先にダウンロード
+  for (const entry of files) {
+    const localFilePath = vscode.Uri.joinPath(localPath, entry.name);
+    try {
       console.log(`[Skill Ninja] Downloading file: ${entry.name}`);
-      const content = await fetchFileContent(entry.download_url, token);
+      const content = await fetchFileContent(entry.download_url!, token);
       await vscode.workspace.fs.writeFile(
         localFilePath,
         Buffer.from(content, "utf-8"),
       );
-    } else if (entry.type === "dir") {
+    } catch (error) {
+      const msg = `Failed to download file ${entry.name}: ${error instanceof Error ? error.message : String(error)}`;
+      console.error(`[Skill Ninja] ${msg}`);
+      errors.push(msg);
+    }
+  }
+
+  // 2. サブディレクトリを再帰的にダウンロード（数の制限あり）
+  if (dirs.length > MAX_SUBDIRECTORY_DOWNLOADS) {
+    console.warn(
+      `[Skill Ninja] Too many subdirectories (${dirs.length}), limiting to ${MAX_SUBDIRECTORY_DOWNLOADS}`,
+    );
+    errors.push(
+      `Skipped ${dirs.length - MAX_SUBDIRECTORY_DOWNLOADS} of ${dirs.length} subdirectories (limit: ${MAX_SUBDIRECTORY_DOWNLOADS})`,
+    );
+  }
+
+  const dirsToDownload = dirs.slice(0, MAX_SUBDIRECTORY_DOWNLOADS);
+
+  for (const entry of dirsToDownload) {
+    const localFilePath = vscode.Uri.joinPath(localPath, entry.name);
+    try {
       await vscode.workspace.fs.createDirectory(localFilePath);
-      await downloadDirectory(
+      const subResult = await downloadDirectory(
         owner,
         repo,
         `${remotePath}/${entry.name}`,
         localFilePath,
         branch,
         token,
+        depth + 1,
       );
+      errors.push(...subResult.errors);
+    } catch (error) {
+      const msg = `Failed to download directory ${entry.name}: ${error instanceof Error ? error.message : String(error)}`;
+      console.error(`[Skill Ninja] ${msg}`);
+      errors.push(msg);
+      // サブディレクトリのエラーは致命的ではない - 続行
     }
   }
+
+  return { errors };
 }
 
 /**
@@ -207,7 +256,7 @@ export async function installSkill(
       } else {
         // フォルダ全体をダウンロード
         try {
-          await downloadDirectory(
+          const result = await downloadDirectory(
             owner,
             repo,
             remotePath,
@@ -215,6 +264,7 @@ export async function installSkill(
             branch,
             token,
           );
+
           // SKILL.md がなければ作成
           try {
             await vscode.workspace.fs.stat(
@@ -222,6 +272,29 @@ export async function installSkill(
             );
           } catch {
             await createFallbackSkillMd(skillPath, skill);
+          }
+
+          // サブディレクトリで部分的なエラーがあった場合は通知
+          if (result.errors.length > 0) {
+            console.warn(
+              `[Skill Ninja] Partial errors during download:`,
+              result.errors,
+            );
+            // SKILL.md が正常にダウンロードされていれば警告のみ
+            const skillMdPath = vscode.Uri.joinPath(skillPath, "SKILL.md");
+            try {
+              const stat =
+                await vscode.workspace.fs.stat(skillMdPath);
+              if (stat.size > 100) {
+                vscode.window.showWarningMessage(
+                  isJapanese()
+                    ? `スキル "${skill.name}" の一部のファイルがダウンロードできませんでした。SKILL.md は正常にインストールされています。`
+                    : `Some files for skill "${skill.name}" could not be downloaded. SKILL.md was installed successfully.`,
+                );
+              }
+            } catch {
+              // SKILL.md 自体がない場合はフォールバック（上で処理済み）
+            }
           }
         } catch (error) {
           console.error(`[Skill Ninja] Failed to download directory:`, error);
