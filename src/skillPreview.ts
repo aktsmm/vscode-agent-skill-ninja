@@ -452,13 +452,14 @@ export async function showSkillPreview(
                 url = skill.url.replace("/blob/", "/tree/");
               } else if (skill.source && skill.path) {
                 // source が owner/repo 形式か source ID 形式かを判定
-                const branch = "main";
+                // ソース情報からブランチを取得（なければ main にフォールバック）
+                const sourceInfo = sources.find((s) => s.id === skill.source);
+                const branch = sourceInfo?.branch || "main";
                 if (skill.source.includes("/")) {
                   // owner/repo 形式（検索結果から）
                   url = `https://github.com/${skill.source}/tree/${branch}/${skill.path}`;
                 } else {
                   // source ID 形式（インデックスから）→ ソース情報からURLを取得
-                  const sourceInfo = sources.find((s) => s.id === skill.source);
                   if (sourceInfo) {
                     const match = sourceInfo.url.match(
                       /github\.com\/([^/]+\/[^/]+)/,

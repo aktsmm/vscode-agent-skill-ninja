@@ -25,6 +25,11 @@ async function listGitHubDirectory(
   }
   const response = await fetch(url, { headers });
   if (!response.ok) {
+    if (response.status === 403) {
+      throw new Error(
+        `GitHub API rate limit exceeded (403). Please authenticate with a GitHub token.`,
+      );
+    }
     throw new Error(`Failed to list directory: ${response.status}`);
   }
   return (await response.json()) as {
@@ -38,8 +43,10 @@ async function listGitHubDirectory(
  * サブディレクトリの最大ダウンロード数
  * 巨大なリポジトリ（例: Fabric の Patterns 240+ディレクトリ）で
  * GitHub API レート制限に当たるのを防止
+ * 認証済み(5000回/時)なら余裕、未認証(60回/時)だと厳しいが
+ * 未認証の場合はそもそも他の処理でも制限に当たるので300で許容
  */
-const MAX_SUBDIRECTORY_DOWNLOADS = 50;
+const MAX_SUBDIRECTORY_DOWNLOADS = 300;
 
 /**
  * フォルダを再帰的にダウンロード
@@ -72,9 +79,7 @@ async function downloadDirectory(
 
   // ファイルとディレクトリを分離し、ファイルを先にダウンロード
   // （SKILL.md などの重要ファイルを確実に取得するため）
-  const files = entries.filter(
-    (e) => e.type === "file" && e.download_url,
-  );
+  const files = entries.filter((e) => e.type === "file" && e.download_url);
   const dirs = entries.filter((e) => e.type === "dir");
 
   // 1. ファイルを先にダウンロード
@@ -283,8 +288,7 @@ export async function installSkill(
             // SKILL.md が正常にダウンロードされていれば警告のみ
             const skillMdPath = vscode.Uri.joinPath(skillPath, "SKILL.md");
             try {
-              const stat =
-                await vscode.workspace.fs.stat(skillMdPath);
+              const stat = await vscode.workspace.fs.stat(skillMdPath);
               if (stat.size > 100) {
                 vscode.window.showWarningMessage(
                   isJapanese()
@@ -616,9 +620,12 @@ async function scanSkillsRecursively(
           metaPath,
           skillMdPath,
         });
+        // スキルを検出したら、そのサブフォルダは再帰スキャンしない
+        // （スキルの中にあるスキルは別のスキルとして扱わない）
+        continue;
       }
 
-      // サブフォルダも再帰的にスキャン
+      // サブフォルダも再帰的にスキャン（まだスキルが見つかっていない場合のみ）
       await scanSkillsRecursively(
         basePath,
         subPath,

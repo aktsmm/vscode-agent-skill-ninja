@@ -310,6 +310,7 @@ async function processTreeResponse(
       name: repoName,
       url: repoUrl.replace(/\.git$/, ""),
       type: "user-added",
+      branch, // ブランチを保存
       description: `User added repository: ${owner}/${repoName}`,
     };
     return { skills: claudeCommandSkills, source };
@@ -326,6 +327,7 @@ async function processTreeResponse(
       name: repoName,
       url: repoUrl.replace(/\.git$/, ""),
       type: "user-added",
+      branch, // ブランチを保存
       description: `User added repository: ${owner}/${repoName}`,
     };
     return { skills: composioSkills, source };
@@ -427,6 +429,7 @@ async function processTreeResponse(
     name: repoName,
     url: repoUrl.replace(/\.git$/, ""),
     type: "user-added",
+    branch, // ブランチを保存
     description: `User added repository: ${owner}/${repoName}`,
   };
 
@@ -663,7 +666,7 @@ async function scanSkillRegistryJson(
         skills?: RegistrySkill[];
         total?: number;
       };
-      return parseRegistryJson(registryData, owner, repoName);
+      return parseRegistryJson(registryData, owner, repoName, branch);
     }
 
     const searchIndex = (await response.json()) as {
@@ -671,7 +674,7 @@ async function scanSkillRegistryJson(
       t?: number;
       s?: SearchIndexSkill[];
     };
-    return parseSearchIndex(searchIndex, owner, repoName);
+    return parseSearchIndex(searchIndex, owner, repoName, branch);
   } catch (error) {
     console.error(`[Skill Ninja] Failed to fetch skill registry:`, error);
     return null;
@@ -694,6 +697,7 @@ function parseSearchIndex(
   data: { v?: string; t?: number; s?: SearchIndexSkill[] },
   owner: string,
   repoName: string,
+  branch: string,
 ): { skills: Skill[]; source: Source } {
   const sourceId = `${owner}-${repoName}`;
   const skills: Skill[] = [];
@@ -741,6 +745,7 @@ function parseSearchIndex(
     name: `${repoName} (Registry)`,
     url: `https://github.com/${owner}/${repoName}`,
     type: "user-added",
+    branch, // ブランチを保存
     description: `Claude Skills Registry - ${data.t || skills.length} skills indexed`,
   };
 
@@ -765,6 +770,7 @@ function parseRegistryJson(
   data: { skills?: RegistrySkill[]; total?: number },
   owner: string,
   repoName: string,
+  branch: string,
 ): { skills: Skill[]; source: Source } {
   const sourceId = `${owner}-${repoName}`;
   const skills: Skill[] = [];
@@ -799,6 +805,7 @@ function parseRegistryJson(
     name: `${repoName} (Registry)`,
     url: `https://github.com/${owner}/${repoName}`,
     type: "user-added",
+    branch, // ブランチを保存
     description: `Claude Skills Registry - ${data.total || skills.length} skills indexed`,
   };
 

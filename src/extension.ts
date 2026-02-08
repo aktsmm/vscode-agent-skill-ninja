@@ -627,7 +627,17 @@ export function activate(context: vscode.ExtensionContext) {
           });
         }
       } catch (error) {
-        vscode.window.showErrorMessage(messages.installFailed(String(error)));
+        const errorMessage =
+          error instanceof Error ? error.message : String(error);
+        if (
+          errorMessage.includes("rate limit") ||
+          errorMessage.includes("403") ||
+          errorMessage.includes("authentication")
+        ) {
+          await showAuthHelp();
+        } else {
+          vscode.window.showErrorMessage(messages.installFailed(errorMessage));
+        }
       }
     },
   );
