@@ -620,12 +620,9 @@ async function scanSkillsRecursively(
           metaPath,
           skillMdPath,
         });
-        // スキルを検出したら、そのサブフォルダは再帰スキャンしない
-        // （スキルの中にあるスキルは別のスキルとして扱わない）
-        continue;
       }
 
-      // サブフォルダも再帰的にスキャン（まだスキルが見つかっていない場合のみ）
+      // サブフォルダも再帰的にスキャン
       await scanSkillsRecursively(
         basePath,
         subPath,

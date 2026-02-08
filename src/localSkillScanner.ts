@@ -65,47 +65,10 @@ export async function scanLocalSkills(
     }
   }
 
-  // ネストされたスキル（スキルの中にあるスキル）を除外
-  // 親ディレクトリにも SKILL.md があるスキルはネストされたスキルとして除外
-  const filteredSkills = filterNestedSkills(skills);
-
   // AGENTS.md の登録状態をチェック
-  await checkRegistrationStatus(filteredSkills, workspaceUri);
+  await checkRegistrationStatus(skills, workspaceUri);
 
-  return filteredSkills;
-}
-
-/**
- * ネストされたスキルを除外する
- * スキルAのパスがスキルBのパスの子ディレクトリの場合、スキルAを除外
- * 例: .github/skills/parent/child はparent があれば除外
- */
-function filterNestedSkills(skills: LocalSkill[]): LocalSkill[] {
-  // パスでソート（短い順）
-  const sortedSkills = [...skills].sort(
-    (a, b) => a.relativePath.length - b.relativePath.length,
-  );
-
-  const result: LocalSkill[] = [];
-  const parentPaths = new Set<string>();
-
-  for (const skill of sortedSkills) {
-    // このスキルのパスが既存のパスの子ディレクトリかチェック
-    let isNested = false;
-    for (const parentPath of parentPaths) {
-      if (skill.relativePath.startsWith(parentPath + "/")) {
-        isNested = true;
-        break;
-      }
-    }
-
-    if (!isNested) {
-      result.push(skill);
-      parentPaths.add(skill.relativePath);
-    }
-  }
-
-  return result;
+  return skills;
 }
 
 /**

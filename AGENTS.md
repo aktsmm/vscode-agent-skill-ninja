@@ -17,6 +17,7 @@
 | [Pdf](.github/skills/documents/Pdf/SKILL.md) | PDF processing. USE WHEN pdf, PDF file. SkillSearch('pdf') for docs. |
 | [Pptx](.github/skills/documents/Pptx/SKILL.md) | PowerPoint processing. USE WHEN pptx, PowerPoint, slides. SkillSearch('pptx') for docs. |
 | [Xlsx](.github/skills/documents/Xlsx/SKILL.md) | Excel file processing. USE WHEN xlsx, Excel, spreadsheet. SkillSearch('xlsx') for docs. |
+| [Fabric](.github/skills/fabric/SKILL.md) | Fabric \| Intelligent prompt pattern system providing 240+ specialized patterns for content analysis, extraction, summarization, threat modeling, and transformation. |
 | [vscode-extension-guide](.github/skills/vscode-extension-guide/SKILL.md) | Guide for creating VS Code extensions from scratch to Marketplace publication. Use when: (1) Crea... \| VS Code extension, extension development, vscode plugin; Creating a new VS Code extension from sc... |
 
 <!-- skill-ninja-END -->
