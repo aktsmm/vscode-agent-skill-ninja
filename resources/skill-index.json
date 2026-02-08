@@ -1,6 +1,6 @@
 {
-  "version": "1.13.0",
-  "lastUpdated": "2026-02-01",
+  "version": "1.14.0",
+  "lastUpdated": "2026-02-08",
   "sources": [
     {
       "id": "anthropics-skills",
@@ -83,1878 +83,6 @@
       "type": "official",
       "description": "OpenAI Skills (Official)",
       "description_ja": "OpenAI Skills (Official)"
-    }
-  ],
-  "skills": [
-    {
-      "name": "algorithmic-art",
-      "source": "anthropics-skills",
-      "path": "skills/algorithmic-art",
-      "categories": [],
-      "description": "Generate algorithmic art and creative visualizations",
-      "description_ja": "Generate algorithmic art and creative visualizations",
-      "license": "Complete terms in LICENSE.txt"
-    },
-    {
-      "name": "brand-guidelines",
-      "source": "anthropics-skills",
-      "path": "skills/brand-guidelines",
-      "categories": [],
-      "description": "Create and manage brand guidelines",
-      "description_ja": "Create and manage brand guidelines",
-      "license": "Complete terms in LICENSE.txt"
-    },
-    {
-      "name": "canvas-design",
-      "source": "anthropics-skills",
-      "path": "skills/canvas-design",
-      "categories": [],
-      "description": "Create canvas designs and layouts",
-      "description_ja": "Create canvas designs and layouts",
-      "license": "Complete terms in LICENSE.txt"
-    },
-    {
-      "name": "doc-coauthoring",
-      "source": "anthropics-skills",
-      "path": "skills/doc-coauthoring",
-      "categories": [],
-      "description": "Collaborative document co-authoring",
-      "description_ja": "Collaborative document co-authoring"
-    },
-    {
-      "name": "docx",
-      "source": "anthropics-skills",
-      "path": "skills/docx",
-      "categories": [],
-      "description": "Process Word documents (.docx)",
-      "description_ja": "Process Word documents (.docx)",
-      "license": "Proprietary. LICENSE.txt has complete terms"
-    },
-    {
-      "name": "frontend-design",
-      "source": "anthropics-skills",
-      "path": "skills/frontend-design",
-      "categories": [],
-      "description": "Create frontend designs and UI layouts",
-      "description_ja": "Create frontend designs and UI layouts",
-      "license": "Complete terms in LICENSE.txt"
-    },
-    {
-      "name": "internal-comms",
-      "source": "anthropics-skills",
-      "path": "skills/internal-comms",
-      "categories": [],
-      "description": "Internal communications management",
-      "description_ja": "Internal communications management",
-      "license": "Complete terms in LICENSE.txt"
-    },
-    {
-      "name": "mcp-builder",
-      "source": "anthropics-skills",
-      "path": "skills/mcp-builder",
-      "categories": [],
-      "description": "Build MCP (Model Context Protocol) servers",
-      "description_ja": "Build MCP (Model Context Protocol) servers",
-      "license": "Complete terms in LICENSE.txt"
-    },
-    {
-      "name": "pdf",
-      "source": "anthropics-skills",
-      "path": "skills/pdf",
-      "categories": [],
-      "description": "Process PDF files",
-      "description_ja": "Process PDF files",
-      "license": "Proprietary. LICENSE.txt has complete terms"
-    },
-    {
-      "name": "pptx",
-      "source": "anthropics-skills",
-      "path": "skills/pptx",
-      "categories": [],
-      "description": "Process PowerPoint presentations (.pptx)",
-      "description_ja": "Process PowerPoint presentations (.pptx)",
-      "license": "Proprietary. LICENSE.txt has complete terms"
-    },
-    {
-      "name": "skill-creator",
-      "source": "anthropics-skills",
-      "path": "skills/skill-creator",
-      "categories": [],
-      "description": "Create new agent skills",
-      "description_ja": "Create new agent skills",
-      "license": "Complete terms in LICENSE.txt"
-    },
-    {
-      "name": "slack-gif-creator",
-      "source": "anthropics-skills",
-      "path": "skills/slack-gif-creator",
-      "categories": [],
-      "description": "Create GIFs for Slack",
-      "description_ja": "Create GIFs for Slack",
-      "license": "Complete terms in LICENSE.txt"
-    },
-    {
-      "name": "theme-factory",
-      "source": "anthropics-skills",
-      "path": "skills/theme-factory",
-      "categories": [],
-      "description": "Create and manage themes",
-      "description_ja": "Create and manage themes",
-      "license": "Complete terms in LICENSE.txt"
-    },
-    {
-      "name": "web-artifacts-builder",
-      "source": "anthropics-skills",
-      "path": "skills/web-artifacts-builder",
-      "categories": [],
-      "description": "Build web artifacts and components",
-      "description_ja": "Build web artifacts and components",
-      "license": "Complete terms in LICENSE.txt"
-    },
-    {
-      "name": "webapp-testing",
-      "source": "anthropics-skills",
-      "path": "skills/webapp-testing",
-      "categories": [],
-      "description": "Test web applications",
-      "description_ja": "Test web applications",
-      "license": "Complete terms in LICENSE.txt"
-    },
-    {
-      "name": "xlsx",
-      "source": "anthropics-skills",
-      "path": "skills/xlsx",
-      "categories": [],
-      "description": "Process Excel spreadsheets (.xlsx)",
-      "description_ja": "Process Excel spreadsheets (.xlsx)",
-      "license": "Proprietary. LICENSE.txt has complete terms"
-    },
-    {
-      "name": "template-skill",
-      "source": "anthropics-skills",
-      "path": "template",
-      "categories": [],
-      "description": "Template for creating new skills",
-      "description_ja": "Template for creating new skills"
-    },
-    {
-      "name": "agentic-eval",
-      "source": "github-awesome-copilot",
-      "path": "skills/agentic-eval",
-      "categories": [],
-      "description": "Agentic Eval",
-      "description_ja": "Agentic Eval"
-    },
-    {
-      "name": "appinsights-instrumentation",
-      "source": "github-awesome-copilot",
-      "path": "skills/appinsights-instrumentation",
-      "categories": [],
-      "description": "Appinsights Instrumentation",
-      "description_ja": "Appinsights Instrumentation"
-    },
-    {
-      "name": "azure-deployment-preflight",
-      "source": "github-awesome-copilot",
-      "path": "skills/azure-deployment-preflight",
-      "categories": [],
-      "description": "Azure Deployment Preflight",
-      "description_ja": "Azure Deployment Preflight"
-    },
-    {
-      "name": "azure-devops-cli",
-      "source": "github-awesome-copilot",
-      "path": "skills/azure-devops-cli",
-      "categories": [],
-      "description": "Azure Devops Cli",
-      "description_ja": "Azure Devops Cli"
-    },
-    {
-      "name": "azure-resource-visualizer",
-      "source": "github-awesome-copilot",
-      "path": "skills/azure-resource-visualizer",
-      "categories": [],
-      "description": "Azure Resource Visualizer",
-      "description_ja": "Azure Resource Visualizer",
-      "license": "Complete terms in LICENSE.txt",
-      "author": "Tom Meschter (tom.meschter@microsoft.com)"
-    },
-    {
-      "name": "azure-role-selector",
-      "source": "github-awesome-copilot",
-      "path": "skills/azure-role-selector",
-      "categories": [],
-      "description": "Azure Role Selector",
-      "description_ja": "Azure Role Selector"
-    },
-    {
-      "name": "azure-static-web-apps",
-      "source": "github-awesome-copilot",
-      "path": "skills/azure-static-web-apps",
-      "categories": [],
-      "description": "Azure Static Web Apps",
-      "description_ja": "Azure Static Web Apps"
-    },
-    {
-      "name": "chrome-devtools",
-      "source": "github-awesome-copilot",
-      "path": "skills/chrome-devtools",
-      "categories": [],
-      "description": "Chrome Devtools",
-      "description_ja": "Chrome Devtools",
-      "license": "MIT"
-    },
-    {
-      "name": "gh-cli",
-      "source": "github-awesome-copilot",
-      "path": "skills/gh-cli",
-      "categories": [],
-      "description": "Gh Cli",
-      "description_ja": "Gh Cli"
-    },
-    {
-      "name": "git-commit",
-      "source": "github-awesome-copilot",
-      "path": "skills/git-commit",
-      "categories": [],
-      "description": "Git Commit",
-      "description_ja": "Git Commit",
-      "license": "MIT"
-    },
-    {
-      "name": "github-issues",
-      "source": "github-awesome-copilot",
-      "path": "skills/github-issues",
-      "categories": [],
-      "description": "Github Issues",
-      "description_ja": "Github Issues"
-    },
-    {
-      "name": "image-manipulation-image-magick",
-      "source": "github-awesome-copilot",
-      "path": "skills/image-manipulation-image-magick",
-      "categories": [],
-      "description": "Image Manipulation Image Magick",
-      "description_ja": "Image Manipulation Image Magick"
-    },
-    {
-      "name": "legacy-circuit-mockups",
-      "source": "github-awesome-copilot",
-      "path": "skills/legacy-circuit-mockups",
-      "categories": [],
-      "description": "Legacy Circuit Mockups",
-      "description_ja": "Legacy Circuit Mockups"
-    },
-    {
-      "name": "make-skill-template",
-      "source": "github-awesome-copilot",
-      "path": "skills/make-skill-template",
-      "categories": [],
-      "description": "Make Skill Template",
-      "description_ja": "Make Skill Template"
-    },
-    {
-      "name": "mcp-cli",
-      "source": "github-awesome-copilot",
-      "path": "skills/mcp-cli",
-      "categories": [],
-      "description": "Mcp Cli",
-      "description_ja": "Mcp Cli"
-    },
-    {
-      "name": "microsoft-code-reference",
-      "source": "github-awesome-copilot",
-      "path": "skills/microsoft-code-reference",
-      "categories": [],
-      "description": "Microsoft Code Reference",
-      "description_ja": "Microsoft Code Reference"
-    },
-    {
-      "name": "microsoft-docs",
-      "source": "github-awesome-copilot",
-      "path": "skills/microsoft-docs",
-      "categories": [],
-      "description": "Microsoft Docs",
-      "description_ja": "Microsoft Docs"
-    },
-    {
-      "name": "nuget-manager",
-      "source": "github-awesome-copilot",
-      "path": "skills/nuget-manager",
-      "categories": [],
-      "description": "Nuget Manager",
-      "description_ja": "Nuget Manager"
-    },
-    {
-      "name": "plantuml-ascii",
-      "source": "github-awesome-copilot",
-      "path": "skills/plantuml-ascii",
-      "categories": [],
-      "description": "Plantuml Ascii",
-      "description_ja": "Plantuml Ascii",
-      "license": "MIT"
-    },
-    {
-      "name": "prd",
-      "source": "github-awesome-copilot",
-      "path": "skills/prd",
-      "categories": [],
-      "description": "Prd",
-      "description_ja": "Prd",
-      "license": "MIT"
-    },
-    {
-      "name": "refactor",
-      "source": "github-awesome-copilot",
-      "path": "skills/refactor",
-      "categories": [],
-      "description": "Refactor",
-      "description_ja": "Refactor",
-      "license": "MIT"
-    },
-    {
-      "name": "snowflake-semanticview",
-      "source": "github-awesome-copilot",
-      "path": "skills/snowflake-semanticview",
-      "categories": [],
-      "description": "Snowflake Semanticview",
-      "description_ja": "Snowflake Semanticview"
-    },
-    {
-      "name": "vscode-ext-commands",
-      "source": "github-awesome-copilot",
-      "path": "skills/vscode-ext-commands",
-      "categories": [],
-      "description": "Vscode Ext Commands",
-      "description_ja": "Vscode Ext Commands"
-    },
-    {
-      "name": "vscode-ext-localization",
-      "source": "github-awesome-copilot",
-      "path": "skills/vscode-ext-localization",
-      "categories": [],
-      "description": "Vscode Ext Localization",
-      "description_ja": "Vscode Ext Localization"
-    },
-    {
-      "name": "web-design-reviewer",
-      "source": "github-awesome-copilot",
-      "path": "skills/web-design-reviewer",
-      "categories": [],
-      "description": "Web Design Reviewer",
-      "description_ja": "Web Design Reviewer"
-    },
-    {
-      "name": "webapp-testing",
-      "source": "github-awesome-copilot",
-      "path": "skills/webapp-testing",
-      "categories": [],
-      "description": "Test web applications",
-      "description_ja": "Test web applications"
-    },
-    {
-      "name": "brainstorming",
-      "source": "obra-superpowers",
-      "path": "skills/brainstorming",
-      "categories": [],
-      "description": "Brainstorming",
-      "description_ja": "Brainstorming"
-    },
-    {
-      "name": "dispatching-parallel-agents",
-      "source": "obra-superpowers",
-      "path": "skills/dispatching-parallel-agents",
-      "categories": [],
-      "description": "Dispatching Parallel Agents",
-      "description_ja": "Dispatching Parallel Agents"
-    },
-    {
-      "name": "executing-plans",
-      "source": "obra-superpowers",
-      "path": "skills/executing-plans",
-      "categories": [],
-      "description": "Executing Plans",
-      "description_ja": "Executing Plans"
-    },
-    {
-      "name": "finishing-a-development-branch",
-      "source": "obra-superpowers",
-      "path": "skills/finishing-a-development-branch",
-      "categories": [],
-      "description": "Finishing A Development Branch",
-      "description_ja": "Finishing A Development Branch"
-    },
-    {
-      "name": "receiving-code-review",
-      "source": "obra-superpowers",
-      "path": "skills/receiving-code-review",
-      "categories": [],
-      "description": "Receiving Code Review",
-      "description_ja": "Receiving Code Review"
-    },
-    {
-      "name": "requesting-code-review",
-      "source": "obra-superpowers",
-      "path": "skills/requesting-code-review",
-      "categories": [],
-      "description": "Requesting Code Review",
-      "description_ja": "Requesting Code Review"
-    },
-    {
-      "name": "subagent-driven-development",
-      "source": "obra-superpowers",
-      "path": "skills/subagent-driven-development",
-      "categories": [],
-      "description": "Subagent Driven Development",
-      "description_ja": "Subagent Driven Development"
-    },
-    {
-      "name": "systematic-debugging",
-      "source": "obra-superpowers",
-      "path": "skills/systematic-debugging",
-      "categories": [],
-      "description": "Systematic Debugging",
-      "description_ja": "Systematic Debugging"
-    },
-    {
-      "name": "test-driven-development",
-      "source": "obra-superpowers",
-      "path": "skills/test-driven-development",
-      "categories": [],
-      "description": "Test-driven development (TDD)",
-      "description_ja": "Test-driven development (TDD)"
-    },
-    {
-      "name": "using-git-worktrees",
-      "source": "obra-superpowers",
-      "path": "skills/using-git-worktrees",
-      "categories": [],
-      "description": "Using Git Worktrees",
-      "description_ja": "Using Git Worktrees"
-    },
-    {
-      "name": "using-superpowers",
-      "source": "obra-superpowers",
-      "path": "skills/using-superpowers",
-      "categories": [],
-      "description": "Using Superpowers",
-      "description_ja": "Using Superpowers"
-    },
-    {
-      "name": "verification-before-completion",
-      "source": "obra-superpowers",
-      "path": "skills/verification-before-completion",
-      "categories": [],
-      "description": "Verification Before Completion",
-      "description_ja": "Verification Before Completion"
-    },
-    {
-      "name": "writing-plans",
-      "source": "obra-superpowers",
-      "path": "skills/writing-plans",
-      "categories": [],
-      "description": "Writing Plans",
-      "description_ja": "Writing Plans"
-    },
-    {
-      "name": "writing-skills",
-      "source": "obra-superpowers",
-      "path": "skills/writing-skills",
-      "categories": [],
-      "description": "Writing Skills",
-      "description_ja": "Writing Skills"
-    },
-    {
-      "name": "artifacts-builder",
-      "source": "composio-awesome",
-      "path": "artifacts-builder",
-      "categories": ["community"],
-      "description": "Artifacts Builder",
-      "description_ja": "Artifacts Builder"
-    },
-    {
-      "name": "brand-guidelines",
-      "source": "composio-awesome",
-      "path": "brand-guidelines",
-      "categories": ["community"],
-      "description": "Create and manage brand guidelines",
-      "description_ja": "Create and manage brand guidelines"
-    },
-    {
-      "name": "canvas-design",
-      "source": "composio-awesome",
-      "path": "canvas-design",
-      "categories": ["community"],
-      "description": "Create canvas designs and layouts",
-      "description_ja": "Create canvas designs and layouts"
-    },
-    {
-      "name": "changelog-generator",
-      "source": "composio-awesome",
-      "path": "changelog-generator",
-      "categories": ["community"],
-      "description": "Changelog Generator",
-      "description_ja": "Changelog Generator"
-    },
-    {
-      "name": "competitive-ads-extractor",
-      "source": "composio-awesome",
-      "path": "competitive-ads-extractor",
-      "categories": ["community"],
-      "description": "Extract competitive advertising data",
-      "description_ja": "Extract competitive advertising data"
-    },
-    {
-      "name": "connect-apps-plugin",
-      "source": "composio-awesome",
-      "path": "connect-apps-plugin",
-      "categories": ["community"],
-      "description": "Connect Apps Plugin",
-      "description_ja": "Connect Apps Plugin"
-    },
-    {
-      "name": "connect-apps",
-      "source": "composio-awesome",
-      "path": "connect-apps",
-      "categories": ["community"],
-      "description": "Connect Apps",
-      "description_ja": "Connect Apps"
-    },
-    {
-      "name": "connect",
-      "source": "composio-awesome",
-      "path": "connect",
-      "categories": ["community"],
-      "description": "Connect",
-      "description_ja": "Connect"
-    },
-    {
-      "name": "content-research-writer",
-      "source": "composio-awesome",
-      "path": "content-research-writer",
-      "categories": ["community"],
-      "description": "Content Research Writer",
-      "description_ja": "Content Research Writer"
-    },
-    {
-      "name": "developer-growth-analysis",
-      "source": "composio-awesome",
-      "path": "developer-growth-analysis",
-      "categories": ["community"],
-      "description": "Developer Growth Analysis",
-      "description_ja": "Developer Growth Analysis"
-    },
-    {
-      "name": "document-skills",
-      "source": "composio-awesome",
-      "path": "document-skills",
-      "categories": ["community"],
-      "description": "Document Skills",
-      "description_ja": "Document Skills"
-    },
-    {
-      "name": "domain-name-brainstormer",
-      "source": "composio-awesome",
-      "path": "domain-name-brainstormer",
-      "categories": ["community"],
-      "description": "Brainstorm domain names",
-      "description_ja": "Brainstorm domain names"
-    },
-    {
-      "name": "file-organizer",
-      "source": "composio-awesome",
-      "path": "file-organizer",
-      "categories": ["community"],
-      "description": "Organize files and directories",
-      "description_ja": "Organize files and directories"
-    },
-    {
-      "name": "image-enhancer",
-      "source": "composio-awesome",
-      "path": "image-enhancer",
-      "categories": ["community"],
-      "description": "Enhance and edit images",
-      "description_ja": "Enhance and edit images"
-    },
-    {
-      "name": "internal-comms",
-      "source": "composio-awesome",
-      "path": "internal-comms",
-      "categories": ["community"],
-      "description": "Internal communications management",
-      "description_ja": "Internal communications management"
-    },
-    {
-      "name": "invoice-organizer",
-      "source": "composio-awesome",
-      "path": "invoice-organizer",
-      "categories": ["community"],
-      "description": "Organize and manage invoices",
-      "description_ja": "Organize and manage invoices"
-    },
-    {
-      "name": "langsmith-fetch",
-      "source": "composio-awesome",
-      "path": "langsmith-fetch",
-      "categories": ["community"],
-      "description": "Langsmith Fetch",
-      "description_ja": "Langsmith Fetch"
-    },
-    {
-      "name": "lead-research-assistant",
-      "source": "composio-awesome",
-      "path": "lead-research-assistant",
-      "categories": ["community"],
-      "description": "Research leads and contacts",
-      "description_ja": "Research leads and contacts"
-    },
-    {
-      "name": "mcp-builder",
-      "source": "composio-awesome",
-      "path": "mcp-builder",
-      "categories": ["community"],
-      "description": "Build MCP (Model Context Protocol) servers",
-      "description_ja": "Build MCP (Model Context Protocol) servers"
-    },
-    {
-      "name": "meeting-insights-analyzer",
-      "source": "composio-awesome",
-      "path": "meeting-insights-analyzer",
-      "categories": ["community"],
-      "description": "Analyze meeting insights",
-      "description_ja": "Analyze meeting insights"
-    },
-    {
-      "name": "raffle-winner-picker",
-      "source": "composio-awesome",
-      "path": "raffle-winner-picker",
-      "categories": ["community"],
-      "description": "Pick raffle winners randomly",
-      "description_ja": "Pick raffle winners randomly"
-    },
-    {
-      "name": "skill-creator",
-      "source": "composio-awesome",
-      "path": "skill-creator",
-      "categories": ["community"],
-      "description": "Create new agent skills",
-      "description_ja": "Create new agent skills"
-    },
-    {
-      "name": "skill-share",
-      "source": "composio-awesome",
-      "path": "skill-share",
-      "categories": ["community"],
-      "description": "Share skills across teams",
-      "description_ja": "Share skills across teams"
-    },
-    {
-      "name": "slack-gif-creator",
-      "source": "composio-awesome",
-      "path": "slack-gif-creator",
-      "categories": ["community"],
-      "description": "Create GIFs for Slack",
-      "description_ja": "Create GIFs for Slack"
-    },
-    {
-      "name": "tailored-resume-generator",
-      "source": "composio-awesome",
-      "path": "tailored-resume-generator",
-      "categories": ["community"],
-      "description": "Tailored Resume Generator",
-      "description_ja": "Tailored Resume Generator"
-    },
-    {
-      "name": "template-skill",
-      "source": "composio-awesome",
-      "path": "template-skill",
-      "categories": ["community"],
-      "description": "Template for creating new skills",
-      "description_ja": "Template for creating new skills"
-    },
-    {
-      "name": "theme-factory",
-      "source": "composio-awesome",
-      "path": "theme-factory",
-      "categories": ["community"],
-      "description": "Create and manage themes",
-      "description_ja": "Create and manage themes"
-    },
-    {
-      "name": "twitter-algorithm-optimizer",
-      "source": "composio-awesome",
-      "path": "twitter-algorithm-optimizer",
-      "categories": ["community"],
-      "description": "Twitter Algorithm Optimizer",
-      "description_ja": "Twitter Algorithm Optimizer"
-    },
-    {
-      "name": "video-downloader",
-      "source": "composio-awesome",
-      "path": "video-downloader",
-      "categories": ["community"],
-      "description": "Download and process videos",
-      "description_ja": "Download and process videos"
-    },
-    {
-      "name": "webapp-testing",
-      "source": "composio-awesome",
-      "path": "webapp-testing",
-      "categories": ["community"],
-      "description": "Test web applications",
-      "description_ja": "Test web applications"
-    },
-    {
-      "name": "context-engineering-collection",
-      "source": "context-engineering-skills",
-      "path": "SKILL.md",
-      "categories": [],
-      "description": "Context Engineering Collection",
-      "description_ja": "Context Engineering Collection"
-    },
-    {
-      "name": "book-sft-pipeline",
-      "source": "context-engineering-skills",
-      "path": "examples/book-sft-pipeline",
-      "categories": [],
-      "description": "Book SFT pipeline",
-      "description_ja": "Book SFT pipeline",
-      "version": "2.0.0"
-    },
-    {
-      "name": "digital-brain",
-      "source": "context-engineering-skills",
-      "path": "examples/digital-brain-skill",
-      "categories": [],
-      "description": "Digital Brain",
-      "description_ja": "Digital Brain",
-      "version": "1.0.0"
-    },
-    {
-      "name": "reasoning-trace-optimizer",
-      "source": "context-engineering-skills",
-      "path": "examples/interleaved_thinking",
-      "categories": [],
-      "description": "Reasoning Trace Optimizer",
-      "description_ja": "Reasoning Trace Optimizer"
-    },
-    {
-      "name": "comprehensive-research-agent",
-      "source": "context-engineering-skills",
-      "path": "examples/interleaved_thinking/generated_skills/comprehensive-research-agent",
-      "categories": [],
-      "description": "Comprehensive Research Agent",
-      "description_ja": "Comprehensive Research Agent"
-    },
-    {
-      "name": "advanced-evaluation",
-      "source": "context-engineering-skills",
-      "path": "skills/advanced-evaluation",
-      "categories": [],
-      "description": "Advanced evaluation techniques",
-      "description_ja": "Advanced evaluation techniques"
-    },
-    {
-      "name": "bdi-mental-states",
-      "source": "context-engineering-skills",
-      "path": "skills/bdi-mental-states",
-      "categories": [],
-      "description": "Bdi Mental States",
-      "description_ja": "Bdi Mental States"
-    },
-    {
-      "name": "context-compression",
-      "source": "context-engineering-skills",
-      "path": "skills/context-compression",
-      "categories": [],
-      "description": "Compress context efficiently",
-      "description_ja": "Compress context efficiently"
-    },
-    {
-      "name": "context-degradation",
-      "source": "context-engineering-skills",
-      "path": "skills/context-degradation",
-      "categories": [],
-      "description": "Handle context degradation",
-      "description_ja": "Handle context degradation"
-    },
-    {
-      "name": "context-fundamentals",
-      "source": "context-engineering-skills",
-      "path": "skills/context-fundamentals",
-      "categories": [],
-      "description": "Context engineering fundamentals",
-      "description_ja": "Context engineering fundamentals"
-    },
-    {
-      "name": "context-optimization",
-      "source": "context-engineering-skills",
-      "path": "skills/context-optimization",
-      "categories": [],
-      "description": "Optimize context usage",
-      "description_ja": "Optimize context usage"
-    },
-    {
-      "name": "evaluation",
-      "source": "context-engineering-skills",
-      "path": "skills/evaluation",
-      "categories": [],
-      "description": "Evaluate agent performance",
-      "description_ja": "Evaluate agent performance"
-    },
-    {
-      "name": "filesystem-context",
-      "source": "context-engineering-skills",
-      "path": "skills/filesystem-context",
-      "categories": [],
-      "description": "Filesystem Context",
-      "description_ja": "Filesystem Context"
-    },
-    {
-      "name": "hosted-agents",
-      "source": "context-engineering-skills",
-      "path": "skills/hosted-agents",
-      "categories": [],
-      "description": "Hosted Agents",
-      "description_ja": "Hosted Agents"
-    },
-    {
-      "name": "memory-systems",
-      "source": "context-engineering-skills",
-      "path": "skills/memory-systems",
-      "categories": [],
-      "description": "Memory system design",
-      "description_ja": "Memory system design"
-    },
-    {
-      "name": "multi-agent-patterns",
-      "source": "context-engineering-skills",
-      "path": "skills/multi-agent-patterns",
-      "categories": [],
-      "description": "Multi-agent design patterns",
-      "description_ja": "Multi-agent design patterns"
-    },
-    {
-      "name": "project-development",
-      "source": "context-engineering-skills",
-      "path": "skills/project-development",
-      "categories": [],
-      "description": "Project development workflow",
-      "description_ja": "Project development workflow"
-    },
-    {
-      "name": "tool-design",
-      "source": "context-engineering-skills",
-      "path": "skills/tool-design",
-      "categories": [],
-      "description": "Design agent tools",
-      "description_ja": "Design agent tools"
-    },
-    {
-      "name": "skill-template",
-      "source": "context-engineering-skills",
-      "path": "template",
-      "categories": [],
-      "description": "Skill Template",
-      "description_ja": "Skill Template"
-    },
-    {
-      "name": "Agents",
-      "source": "pai-packs",
-      "path": "Packs/pai-agents-skill/src/skills/Agents",
-      "categories": [],
-      "description": "Agents",
-      "description_ja": "Agents"
-    },
-    {
-      "name": "THEALGORITHM",
-      "source": "pai-packs",
-      "path": "Packs/pai-algorithm-skill/src/skills/THEALGORITHM",
-      "categories": [],
-      "description": "THEALGORITHM",
-      "description_ja": "THEALGORITHM"
-    },
-    {
-      "name": "AnnualReports",
-      "source": "pai-packs",
-      "path": "Packs/pai-annualreports-skill/src/skills/AnnualReports",
-      "categories": [],
-      "description": "AnnualReports",
-      "description_ja": "AnnualReports"
-    },
-    {
-      "name": "Art",
-      "source": "pai-packs",
-      "path": "Packs/pai-art-skill/src/skills/Art",
-      "categories": [],
-      "description": "Art",
-      "description_ja": "Art"
-    },
-    {
-      "name": "BrightData",
-      "source": "pai-packs",
-      "path": "Packs/pai-brightdata-skill/src/skills/BrightData",
-      "categories": [],
-      "description": "BrightData",
-      "description_ja": "BrightData"
-    },
-    {
-      "name": "Browser",
-      "source": "pai-packs",
-      "path": "Packs/pai-browser-skill/src/skills/Browser",
-      "categories": [],
-      "description": "Browser",
-      "description_ja": "Browser",
-      "version": "2.0.0"
-    },
-    {
-      "name": "CORE",
-      "source": "pai-packs",
-      "path": "Packs/pai-core-install/src/skills/CORE",
-      "categories": [],
-      "description": "CORE",
-      "description_ja": "CORE"
-    },
-    {
-      "name": "Council",
-      "source": "pai-packs",
-      "path": "Packs/pai-council-skill/src/skills/Council",
-      "categories": [],
-      "description": "Council",
-      "description_ja": "Council"
-    },
-    {
-      "name": "CreateCLI",
-      "source": "pai-packs",
-      "path": "Packs/pai-createcli-skill/src/skills/CreateCLI",
-      "categories": [],
-      "description": "CreateCLI",
-      "description_ja": "CreateCLI"
-    },
-    {
-      "name": "CreateSkill",
-      "source": "pai-packs",
-      "path": "Packs/pai-createskill-skill/src/skills/CreateSkill",
-      "categories": [],
-      "description": "CreateSkill",
-      "description_ja": "CreateSkill"
-    },
-    {
-      "name": "FirstPrinciples",
-      "source": "pai-packs",
-      "path": "Packs/pai-firstprinciples-skill/src/skills/FirstPrinciples",
-      "categories": [],
-      "description": "FirstPrinciples",
-      "description_ja": "FirstPrinciples"
-    },
-    {
-      "name": "OSINT",
-      "source": "pai-packs",
-      "path": "Packs/pai-osint-skill/src/skills",
-      "categories": [],
-      "description": "OSINT",
-      "description_ja": "OSINT"
-    },
-    {
-      "name": "PrivateInvestigator",
-      "source": "pai-packs",
-      "path": "Packs/pai-privateinvestigator-skill/src/skills/PrivateInvestigator",
-      "categories": [],
-      "description": "PrivateInvestigator",
-      "description_ja": "PrivateInvestigator"
-    },
-    {
-      "name": "Prompting",
-      "source": "pai-packs",
-      "path": "Packs/pai-prompting-skill/src/skills/Prompting",
-      "categories": [],
-      "description": "Prompting",
-      "description_ja": "Prompting"
-    },
-    {
-      "name": "Recon",
-      "source": "pai-packs",
-      "path": "Packs/pai-recon-skill/src/skills",
-      "categories": [],
-      "description": "Recon",
-      "description_ja": "Recon"
-    },
-    {
-      "name": "RedTeam",
-      "source": "pai-packs",
-      "path": "Packs/pai-redteam-skill/src/skills/RedTeam",
-      "categories": [],
-      "description": "RedTeam",
-      "description_ja": "RedTeam"
-    },
-    {
-      "name": "Research",
-      "source": "pai-packs",
-      "path": "Packs/pai-research-skill/src/skills/Research",
-      "categories": [],
-      "description": "Research",
-      "description_ja": "Research"
-    },
-    {
-      "name": "System",
-      "source": "pai-packs",
-      "path": "Packs/pai-system-skill/src/skills/System",
-      "categories": [],
-      "description": "System",
-      "description_ja": "System"
-    },
-    {
-      "name": "Telos",
-      "source": "pai-packs",
-      "path": "Packs/pai-telos-skill/src",
-      "categories": [],
-      "description": "Telos",
-      "description_ja": "Telos"
-    },
-    {
-      "name": "Agents",
-      "source": "pai-packs",
-      "path": "Releases/v2.3/.claude/skills/Agents",
-      "categories": [],
-      "description": "Agents",
-      "description_ja": "Agents"
-    },
-    {
-      "name": "AnnualReports",
-      "source": "pai-packs",
-      "path": "Releases/v2.3/.claude/skills/AnnualReports",
-      "categories": [],
-      "description": "AnnualReports",
-      "description_ja": "AnnualReports"
-    },
-    {
-      "name": "Art",
-      "source": "pai-packs",
-      "path": "Releases/v2.3/.claude/skills/Art",
-      "categories": [],
-      "description": "Art",
-      "description_ja": "Art"
-    },
-    {
-      "name": "BrightData",
-      "source": "pai-packs",
-      "path": "Releases/v2.3/.claude/skills/BrightData",
-      "categories": [],
-      "description": "BrightData",
-      "description_ja": "BrightData"
-    },
-    {
-      "name": "Browser",
-      "source": "pai-packs",
-      "path": "Releases/v2.3/.claude/skills/Browser",
-      "categories": [],
-      "description": "Browser",
-      "description_ja": "Browser",
-      "version": "2.0.0"
-    },
-    {
-      "name": "CORE",
-      "source": "pai-packs",
-      "path": "Releases/v2.3/.claude/skills/CORE",
-      "categories": [],
-      "description": "CORE",
-      "description_ja": "CORE"
-    },
-    {
-      "name": "Council",
-      "source": "pai-packs",
-      "path": "Releases/v2.3/.claude/skills/Council",
-      "categories": [],
-      "description": "Council",
-      "description_ja": "Council"
-    },
-    {
-      "name": "CreateCLI",
-      "source": "pai-packs",
-      "path": "Releases/v2.3/.claude/skills/CreateCLI",
-      "categories": [],
-      "description": "CreateCLI",
-      "description_ja": "CreateCLI"
-    },
-    {
-      "name": "CreateSkill",
-      "source": "pai-packs",
-      "path": "Releases/v2.3/.claude/skills/CreateSkill",
-      "categories": [],
-      "description": "CreateSkill",
-      "description_ja": "CreateSkill"
-    },
-    {
-      "name": "FirstPrinciples",
-      "source": "pai-packs",
-      "path": "Releases/v2.3/.claude/skills/FirstPrinciples",
-      "categories": [],
-      "description": "FirstPrinciples",
-      "description_ja": "FirstPrinciples"
-    },
-    {
-      "name": "OSINT",
-      "source": "pai-packs",
-      "path": "Releases/v2.3/.claude/skills/OSINT",
-      "categories": [],
-      "description": "OSINT",
-      "description_ja": "OSINT"
-    },
-    {
-      "name": "PAIUpgrade",
-      "source": "pai-packs",
-      "path": "Releases/v2.3/.claude/skills/PAIUpgrade",
-      "categories": [],
-      "description": "PAIUpgrade",
-      "description_ja": "PAIUpgrade"
-    },
-    {
-      "name": "PrivateInvestigator",
-      "source": "pai-packs",
-      "path": "Releases/v2.3/.claude/skills/PrivateInvestigator",
-      "categories": [],
-      "description": "PrivateInvestigator",
-      "description_ja": "PrivateInvestigator"
-    },
-    {
-      "name": "Prompting",
-      "source": "pai-packs",
-      "path": "Releases/v2.3/.claude/skills/Prompting",
-      "categories": [],
-      "description": "Prompting",
-      "description_ja": "Prompting"
-    },
-    {
-      "name": "Recon",
-      "source": "pai-packs",
-      "path": "Releases/v2.3/.claude/skills/Recon",
-      "categories": [],
-      "description": "Recon",
-      "description_ja": "Recon"
-    },
-    {
-      "name": "RedTeam",
-      "source": "pai-packs",
-      "path": "Releases/v2.3/.claude/skills/RedTeam",
-      "categories": [],
-      "description": "RedTeam",
-      "description_ja": "RedTeam"
-    },
-    {
-      "name": "Research",
-      "source": "pai-packs",
-      "path": "Releases/v2.3/.claude/skills/Research",
-      "categories": [],
-      "description": "Research",
-      "description_ja": "Research"
-    },
-    {
-      "name": "System",
-      "source": "pai-packs",
-      "path": "Releases/v2.3/.claude/skills/System",
-      "categories": [],
-      "description": "System",
-      "description_ja": "System"
-    },
-    {
-      "name": "THEALGORITHM",
-      "source": "pai-packs",
-      "path": "Releases/v2.3/.claude/skills/THEALGORITHM",
-      "categories": [],
-      "description": "THEALGORITHM",
-      "description_ja": "THEALGORITHM"
-    },
-    {
-      "name": "Telos",
-      "source": "pai-packs",
-      "path": "Releases/v2.3/.claude/skills/Telos",
-      "categories": [],
-      "description": "Telos",
-      "description_ja": "Telos"
-    },
-    {
-      "name": "Agents",
-      "source": "pai-packs",
-      "path": "Releases/v2.4/.claude/skills/Agents",
-      "categories": [],
-      "description": "Agents",
-      "description_ja": "Agents"
-    },
-    {
-      "name": "AnnualReports",
-      "source": "pai-packs",
-      "path": "Releases/v2.4/.claude/skills/AnnualReports",
-      "categories": [],
-      "description": "AnnualReports",
-      "description_ja": "AnnualReports"
-    },
-    {
-      "name": "Aphorisms",
-      "source": "pai-packs",
-      "path": "Releases/v2.4/.claude/skills/Aphorisms",
-      "categories": [],
-      "description": "Aphorisms",
-      "description_ja": "Aphorisms"
-    },
-    {
-      "name": "Apify",
-      "source": "pai-packs",
-      "path": "Releases/v2.4/.claude/skills/Apify",
-      "categories": [],
-      "description": "Apify",
-      "description_ja": "Apify"
-    },
-    {
-      "name": "Art",
-      "source": "pai-packs",
-      "path": "Releases/v2.4/.claude/skills/Art",
-      "categories": [],
-      "description": "Art",
-      "description_ja": "Art"
-    },
-    {
-      "name": "BeCreative",
-      "source": "pai-packs",
-      "path": "Releases/v2.4/.claude/skills/BeCreative",
-      "categories": [],
-      "description": "BeCreative",
-      "description_ja": "BeCreative"
-    },
-    {
-      "name": "BrightData",
-      "source": "pai-packs",
-      "path": "Releases/v2.4/.claude/skills/BrightData",
-      "categories": [],
-      "description": "BrightData",
-      "description_ja": "BrightData"
-    },
-    {
-      "name": "Browser",
-      "source": "pai-packs",
-      "path": "Releases/v2.4/.claude/skills/Browser",
-      "categories": [],
-      "description": "Browser",
-      "description_ja": "Browser",
-      "version": "2.0.0"
-    },
-    {
-      "name": "CORE",
-      "source": "pai-packs",
-      "path": "Releases/v2.4/.claude/skills/CORE",
-      "categories": [],
-      "description": "CORE",
-      "description_ja": "CORE"
-    },
-    {
-      "name": "Council",
-      "source": "pai-packs",
-      "path": "Releases/v2.4/.claude/skills/Council",
-      "categories": [],
-      "description": "Council",
-      "description_ja": "Council"
-    },
-    {
-      "name": "CreateCLI",
-      "source": "pai-packs",
-      "path": "Releases/v2.4/.claude/skills/CreateCLI",
-      "categories": [],
-      "description": "CreateCLI",
-      "description_ja": "CreateCLI"
-    },
-    {
-      "name": "CreateSkill",
-      "source": "pai-packs",
-      "path": "Releases/v2.4/.claude/skills/CreateSkill",
-      "categories": [],
-      "description": "CreateSkill",
-      "description_ja": "CreateSkill"
-    },
-    {
-      "name": "Docx",
-      "source": "pai-packs",
-      "path": "Releases/v2.4/.claude/skills/Documents/Docx",
-      "categories": [],
-      "description": "Docx",
-      "description_ja": "Docx"
-    },
-    {
-      "name": "Pdf",
-      "source": "pai-packs",
-      "path": "Releases/v2.4/.claude/skills/Documents/Pdf",
-      "categories": [],
-      "description": "Pdf",
-      "description_ja": "Pdf"
-    },
-    {
-      "name": "Pptx",
-      "source": "pai-packs",
-      "path": "Releases/v2.4/.claude/skills/Documents/Pptx",
-      "categories": [],
-      "description": "Pptx",
-      "description_ja": "Pptx"
-    },
-    {
-      "name": "Documents",
-      "source": "pai-packs",
-      "path": "Releases/v2.4/.claude/skills/Documents",
-      "categories": [],
-      "description": "Documents",
-      "description_ja": "Documents"
-    },
-    {
-      "name": "Xlsx",
-      "source": "pai-packs",
-      "path": "Releases/v2.4/.claude/skills/Documents/Xlsx",
-      "categories": [],
-      "description": "Xlsx",
-      "description_ja": "Xlsx"
-    },
-    {
-      "name": "Evals",
-      "source": "pai-packs",
-      "path": "Releases/v2.4/.claude/skills/Evals",
-      "categories": [],
-      "description": "Evals",
-      "description_ja": "Evals"
-    },
-    {
-      "name": "Fabric",
-      "source": "pai-packs",
-      "path": "Releases/v2.4/.claude/skills/Fabric",
-      "categories": [],
-      "description": "Fabric",
-      "description_ja": "Fabric"
-    },
-    {
-      "name": "FirstPrinciples",
-      "source": "pai-packs",
-      "path": "Releases/v2.4/.claude/skills/FirstPrinciples",
-      "categories": [],
-      "description": "FirstPrinciples",
-      "description_ja": "FirstPrinciples"
-    },
-    {
-      "name": "OSINT",
-      "source": "pai-packs",
-      "path": "Releases/v2.4/.claude/skills/OSINT",
-      "categories": [],
-      "description": "OSINT",
-      "description_ja": "OSINT"
-    },
-    {
-      "name": "PAIUpgrade",
-      "source": "pai-packs",
-      "path": "Releases/v2.4/.claude/skills/PAIUpgrade",
-      "categories": [],
-      "description": "PAIUpgrade",
-      "description_ja": "PAIUpgrade"
-    },
-    {
-      "name": "PrivateInvestigator",
-      "source": "pai-packs",
-      "path": "Releases/v2.4/.claude/skills/PrivateInvestigator",
-      "categories": [],
-      "description": "PrivateInvestigator",
-      "description_ja": "PrivateInvestigator"
-    },
-    {
-      "name": "PromptInjection",
-      "source": "pai-packs",
-      "path": "Releases/v2.4/.claude/skills/PromptInjection",
-      "categories": [],
-      "description": "PromptInjection",
-      "description_ja": "PromptInjection"
-    },
-    {
-      "name": "Prompting",
-      "source": "pai-packs",
-      "path": "Releases/v2.4/.claude/skills/Prompting",
-      "categories": [],
-      "description": "Prompting",
-      "description_ja": "Prompting"
-    },
-    {
-      "name": "Recon",
-      "source": "pai-packs",
-      "path": "Releases/v2.4/.claude/skills/Recon",
-      "categories": [],
-      "description": "Recon",
-      "description_ja": "Recon"
-    },
-    {
-      "name": "RedTeam",
-      "source": "pai-packs",
-      "path": "Releases/v2.4/.claude/skills/RedTeam",
-      "categories": [],
-      "description": "RedTeam",
-      "description_ja": "RedTeam"
-    },
-    {
-      "name": "Research",
-      "source": "pai-packs",
-      "path": "Releases/v2.4/.claude/skills/Research",
-      "categories": [],
-      "description": "Research",
-      "description_ja": "Research"
-    },
-    {
-      "name": "SECUpdates",
-      "source": "pai-packs",
-      "path": "Releases/v2.4/.claude/skills/SECUpdates",
-      "categories": [],
-      "description": "SECUpdates",
-      "description_ja": "SECUpdates"
-    },
-    {
-      "name": "Telos",
-      "source": "pai-packs",
-      "path": "Releases/v2.4/.claude/skills/Telos",
-      "categories": [],
-      "description": "Telos",
-      "description_ja": "Telos"
-    },
-    {
-      "name": "VoiceServer",
-      "source": "pai-packs",
-      "path": "Releases/v2.4/.claude/skills/VoiceServer",
-      "categories": [],
-      "description": "VoiceServer",
-      "description_ja": "VoiceServer"
-    },
-    {
-      "name": "WebAssessment",
-      "source": "pai-packs",
-      "path": "Releases/v2.4/.claude/skills/WebAssessment",
-      "categories": [],
-      "description": "WebAssessment",
-      "description_ja": "WebAssessment"
-    },
-    {
-      "name": "coding-tutor",
-      "source": "compound-engineering",
-      "path": "plugins/coding-tutor/skills/coding-tutor",
-      "categories": [],
-      "description": "Coding Tutor",
-      "description_ja": "Coding Tutor"
-    },
-    {
-      "name": "agent-browser",
-      "source": "compound-engineering",
-      "path": "plugins/compound-engineering/skills/agent-browser",
-      "categories": [],
-      "description": "Agent Browser",
-      "description_ja": "Agent Browser"
-    },
-    {
-      "name": "agent-native-architecture",
-      "source": "compound-engineering",
-      "path": "plugins/compound-engineering/skills/agent-native-architecture",
-      "categories": [],
-      "description": "Agent Native Architecture",
-      "description_ja": "Agent Native Architecture"
-    },
-    {
-      "name": "andrew-kane-gem-writer",
-      "source": "compound-engineering",
-      "path": "plugins/compound-engineering/skills/andrew-kane-gem-writer",
-      "categories": [],
-      "description": "Andrew Kane Gem Writer",
-      "description_ja": "Andrew Kane Gem Writer"
-    },
-    {
-      "name": "brainstorming",
-      "source": "compound-engineering",
-      "path": "plugins/compound-engineering/skills/brainstorming",
-      "categories": [],
-      "description": "Brainstorming",
-      "description_ja": "Brainstorming"
-    },
-    {
-      "name": "compound-docs",
-      "source": "compound-engineering",
-      "path": "plugins/compound-engineering/skills/compound-docs",
-      "categories": [],
-      "description": "Compound Docs",
-      "description_ja": "Compound Docs"
-    },
-    {
-      "name": "creating-agent-skills",
-      "source": "compound-engineering",
-      "path": "plugins/compound-engineering/skills/create-agent-skills",
-      "categories": [],
-      "description": "Creating Agent Skills",
-      "description_ja": "Creating Agent Skills"
-    },
-    {
-      "name": "dhh-rails-style",
-      "source": "compound-engineering",
-      "path": "plugins/compound-engineering/skills/dhh-rails-style",
-      "categories": [],
-      "description": "Dhh Rails Style",
-      "description_ja": "Dhh Rails Style"
-    },
-    {
-      "name": "dspy-ruby",
-      "source": "compound-engineering",
-      "path": "plugins/compound-engineering/skills/dspy-ruby",
-      "categories": [],
-      "description": "Dspy Ruby",
-      "description_ja": "Dspy Ruby"
-    },
-    {
-      "name": "every-style-editor",
-      "source": "compound-engineering",
-      "path": "plugins/compound-engineering/skills/every-style-editor",
-      "categories": [],
-      "description": "Every Style Editor",
-      "description_ja": "Every Style Editor"
-    },
-    {
-      "name": "file-todos",
-      "source": "compound-engineering",
-      "path": "plugins/compound-engineering/skills/file-todos",
-      "categories": [],
-      "description": "File Todos",
-      "description_ja": "File Todos"
-    },
-    {
-      "name": "frontend-design",
-      "source": "compound-engineering",
-      "path": "plugins/compound-engineering/skills/frontend-design",
-      "categories": [],
-      "description": "Create frontend designs and UI layouts",
-      "description_ja": "Create frontend designs and UI layouts",
-      "license": "Complete terms in LICENSE.txt"
-    },
-    {
-      "name": "gemini-imagegen",
-      "source": "compound-engineering",
-      "path": "plugins/compound-engineering/skills/gemini-imagegen",
-      "categories": [],
-      "description": "Gemini Imagegen",
-      "description_ja": "Gemini Imagegen"
-    },
-    {
-      "name": "git-worktree",
-      "source": "compound-engineering",
-      "path": "plugins/compound-engineering/skills/git-worktree",
-      "categories": [],
-      "description": "Git Worktree",
-      "description_ja": "Git Worktree"
-    },
-    {
-      "name": "rclone",
-      "source": "compound-engineering",
-      "path": "plugins/compound-engineering/skills/rclone",
-      "categories": [],
-      "description": "Rclone",
-      "description_ja": "Rclone"
-    },
-    {
-      "name": "skill-creator",
-      "source": "compound-engineering",
-      "path": "plugins/compound-engineering/skills/skill-creator",
-      "categories": [],
-      "description": "Create new agent skills",
-      "description_ja": "Create new agent skills",
-      "license": "Complete terms in LICENSE.txt"
-    },
-    {
-      "name": "custom-skill",
-      "source": "compound-engineering",
-      "path": "tests/fixtures/custom-paths/custom-skills/custom-skill",
-      "categories": [],
-      "description": "Custom Skill",
-      "description_ja": "Custom Skill"
-    },
-    {
-      "name": "default-skill",
-      "source": "compound-engineering",
-      "path": "tests/fixtures/custom-paths/skills/default-skill",
-      "categories": [],
-      "description": "Default Skill",
-      "description_ja": "Default Skill"
-    },
-    {
-      "name": "skill-one",
-      "source": "compound-engineering",
-      "path": "tests/fixtures/sample-plugin/skills/skill-one",
-      "categories": [],
-      "description": "Skill One",
-      "description_ja": "Skill One"
-    },
-    {
-      "name": "prp-core/prp-commit",
-      "source": "prps-agentic",
-      "path": ".claude/commands/prp-core/prp-commit.md",
-      "categories": ["prp-core", "claude-code", "prp"],
-      "description": "Prp Core/prp Commit",
-      "description_ja": "Prp Core/prp Commit"
-    },
-    {
-      "name": "prp-core/prp-debug",
-      "source": "prps-agentic",
-      "path": ".claude/commands/prp-core/prp-debug.md",
-      "categories": ["prp-core", "claude-code", "prp"],
-      "description": "Prp Core/prp Debug",
-      "description_ja": "Prp Core/prp Debug"
-    },
-    {
-      "name": "prp-core/prp-implement",
-      "source": "prps-agentic",
-      "path": ".claude/commands/prp-core/prp-implement.md",
-      "categories": ["prp-core", "claude-code", "prp"],
-      "description": "Prp Core/prp Implement",
-      "description_ja": "Prp Core/prp Implement"
-    },
-    {
-      "name": "prp-core/prp-issue-fix",
-      "source": "prps-agentic",
-      "path": ".claude/commands/prp-core/prp-issue-fix.md",
-      "categories": ["prp-core", "claude-code", "prp"],
-      "description": "Prp Core/prp Issue Fix",
-      "description_ja": "Prp Core/prp Issue Fix"
-    },
-    {
-      "name": "prp-core/prp-issue-investigate",
-      "source": "prps-agentic",
-      "path": ".claude/commands/prp-core/prp-issue-investigate.md",
-      "categories": ["prp-core", "claude-code", "prp"],
-      "description": "Prp Core/prp Issue Investigate",
-      "description_ja": "Prp Core/prp Issue Investigate"
-    },
-    {
-      "name": "prp-core/prp-plan",
-      "source": "prps-agentic",
-      "path": ".claude/commands/prp-core/prp-plan.md",
-      "categories": ["prp-core", "claude-code", "prp"],
-      "description": "Prp Core/prp Plan",
-      "description_ja": "Prp Core/prp Plan"
-    },
-    {
-      "name": "prp-core/prp-pr",
-      "source": "prps-agentic",
-      "path": ".claude/commands/prp-core/prp-pr.md",
-      "categories": ["prp-core", "claude-code", "prp"],
-      "description": "Prp Core/prp Pr",
-      "description_ja": "Prp Core/prp Pr"
-    },
-    {
-      "name": "prp-core/prp-prd",
-      "source": "prps-agentic",
-      "path": ".claude/commands/prp-core/prp-prd.md",
-      "categories": ["prp-core", "claude-code", "prp"],
-      "description": "Prp Core/prp Prd",
-      "description_ja": "Prp Core/prp Prd"
-    },
-    {
-      "name": "prp-core/prp-ralph-cancel",
-      "source": "prps-agentic",
-      "path": ".claude/commands/prp-core/prp-ralph-cancel.md",
-      "categories": ["prp-core", "claude-code", "prp"],
-      "description": "Prp Core/prp Ralph Cancel",
-      "description_ja": "Prp Core/prp Ralph Cancel"
-    },
-    {
-      "name": "prp-core/prp-ralph",
-      "source": "prps-agentic",
-      "path": ".claude/commands/prp-core/prp-ralph.md",
-      "categories": ["prp-core", "claude-code", "prp"],
-      "description": "Prp Core/prp Ralph",
-      "description_ja": "Prp Core/prp Ralph"
-    },
-    {
-      "name": "prp-core/prp-review-agents",
-      "source": "prps-agentic",
-      "path": ".claude/commands/prp-core/prp-review-agents.md",
-      "categories": ["prp-core", "claude-code", "prp"],
-      "description": "Prp Core/prp Review Agents",
-      "description_ja": "Prp Core/prp Review Agents"
-    },
-    {
-      "name": "prp-core/prp-review",
-      "source": "prps-agentic",
-      "path": ".claude/commands/prp-core/prp-review.md",
-      "categories": ["prp-core", "claude-code", "prp"],
-      "description": "Prp Core/prp Review",
-      "description_ja": "Prp Core/prp Review"
-    },
-    {
-      "name": "Cloudflare Manager",
-      "source": "claude-command-suite",
-      "path": ".claude/skills/cloudflare-manager",
-      "categories": [],
-      "description": "Cloudflare Manager",
-      "description_ja": "Cloudflare Manager"
-    },
-    {
-      "name": "Linear Todo Sync",
-      "source": "claude-command-suite",
-      "path": ".claude/skills/linear-todo-sync",
-      "categories": [],
-      "description": "Linear Todo Sync",
-      "description_ja": "Linear Todo Sync",
-      "license": "MIT"
-    },
-    {
-      "name": "doc",
-      "source": "openai-skills",
-      "path": "skills/.curated/doc",
-      "categories": [],
-      "description": "Doc",
-      "description_ja": "Doc"
-    },
-    {
-      "name": "gh-address-comments",
-      "source": "openai-skills",
-      "path": "skills/.curated/gh-address-comments",
-      "categories": [],
-      "description": "Gh Address Comments",
-      "description_ja": "Gh Address Comments"
-    },
-    {
-      "name": "gh-fix-ci",
-      "source": "openai-skills",
-      "path": "skills/.curated/gh-fix-ci",
-      "categories": [],
-      "description": "Gh Fix Ci",
-      "description_ja": "Gh Fix Ci"
-    },
-    {
-      "name": "imagegen",
-      "source": "openai-skills",
-      "path": "skills/.curated/imagegen",
-      "categories": [],
-      "description": "Imagegen",
-      "description_ja": "Imagegen"
-    },
-    {
-      "name": "notion-knowledge-capture",
-      "source": "openai-skills",
-      "path": "skills/.curated/notion-knowledge-capture",
-      "categories": [],
-      "description": "Notion Knowledge Capture",
-      "description_ja": "Notion Knowledge Capture"
-    },
-    {
-      "name": "notion-meeting-intelligence",
-      "source": "openai-skills",
-      "path": "skills/.curated/notion-meeting-intelligence",
-      "categories": [],
-      "description": "Notion Meeting Intelligence",
-      "description_ja": "Notion Meeting Intelligence"
-    },
-    {
-      "name": "notion-research-documentation",
-      "source": "openai-skills",
-      "path": "skills/.curated/notion-research-documentation",
-      "categories": [],
-      "description": "Notion Research Documentation",
-      "description_ja": "Notion Research Documentation"
-    },
-    {
-      "name": "notion-spec-to-implementation",
-      "source": "openai-skills",
-      "path": "skills/.curated/notion-spec-to-implementation",
-      "categories": [],
-      "description": "Notion Spec To Implementation",
-      "description_ja": "Notion Spec To Implementation"
-    },
-    {
-      "name": "pdf",
-      "source": "openai-skills",
-      "path": "skills/.curated/pdf",
-      "categories": [],
-      "description": "Process PDF files",
-      "description_ja": "Process PDF files"
-    },
-    {
-      "name": "screenshot",
-      "source": "openai-skills",
-      "path": "skills/.curated/screenshot",
-      "categories": [],
-      "description": "Screenshot",
-      "description_ja": "Screenshot"
-    },
-    {
-      "name": "sora",
-      "source": "openai-skills",
-      "path": "skills/.curated/sora",
-      "categories": [],
-      "description": "Sora",
-      "description_ja": "Sora"
-    },
-    {
-      "name": "speech",
-      "source": "openai-skills",
-      "path": "skills/.curated/speech",
-      "categories": [],
-      "description": "Speech",
-      "description_ja": "Speech"
-    },
-    {
-      "name": "spreadsheet",
-      "source": "openai-skills",
-      "path": "skills/.curated/spreadsheet",
-      "categories": [],
-      "description": "Spreadsheet",
-      "description_ja": "Spreadsheet"
-    },
-    {
-      "name": "yeet",
-      "source": "openai-skills",
-      "path": "skills/.curated/yeet",
-      "categories": [],
-      "description": "Yeet",
-      "description_ja": "Yeet"
-    },
-    {
-      "name": "codex-readiness-integration-test",
-      "source": "openai-skills",
-      "path": "skills/.experimental/codex-readiness-integration-test",
-      "categories": [],
-      "description": "Codex Readiness Integration Test",
-      "description_ja": "Codex Readiness Integration Test"
-    },
-    {
-      "name": "codex-readiness-unit-test",
-      "source": "openai-skills",
-      "path": "skills/.experimental/codex-readiness-unit-test",
-      "categories": [],
-      "description": "Codex Readiness Unit Test",
-      "description_ja": "Codex Readiness Unit Test"
-    },
-    {
-      "name": "create-plan",
-      "source": "openai-skills",
-      "path": "skills/.experimental/create-plan",
-      "categories": [],
-      "description": "Create Plan",
-      "description_ja": "Create Plan"
-    },
-    {
-      "name": "linear",
-      "source": "openai-skills",
-      "path": "skills/.experimental/linear",
-      "categories": [],
-      "description": "Linear",
-      "description_ja": "Linear"
-    },
-    {
-      "name": "skill-creator",
-      "source": "openai-skills",
-      "path": "skills/.system/skill-creator",
-      "categories": [],
-      "description": "Create new agent skills",
-      "description_ja": "Create new agent skills"
-    },
-    {
-      "name": "skill-installer",
-      "source": "openai-skills",
-      "path": "skills/.system/skill-installer",
-      "categories": [],
-      "description": "Skill Installer",
-      "description_ja": "Skill Installer"
     }
   ],
   "categories": [
@@ -2078,8 +206,20 @@
       "source": "pai-packs",
       "description": "Complete PAI infrastructure - Core, Agents, Art, Prompting",
       "description_ja": "PAI完全セット - コア・エージェント・アート・プロンプティング",
-      "skills": ["CORE", "Agents", "Art", "CreateSkill", "Prompting"],
-      "installOrder": ["CORE", "Agents", "Art", "CreateSkill", "Prompting"],
+      "skills": [
+        "CORE",
+        "Agents",
+        "Art",
+        "CreateSkill",
+        "Prompting"
+      ],
+      "installOrder": [
+        "CORE",
+        "Agents",
+        "Art",
+        "CreateSkill",
+        "Prompting"
+      ],
       "coreSkill": "CORE"
     },
     {
@@ -2106,6 +246,2172 @@
         "prp-core/prp-core-new-branch",
         "prp-core/prp-core-run-all"
       ]
+    }
+  ],
+  "skills": [
+    {
+      "name": "activecampaign-automation",
+      "source": "composio-awesome",
+      "path": "activecampaign-automation",
+      "categories": [],
+      "description": "Automate ActiveCampaign tasks via Rube MCP (Composio): manage contacts, tags, list subscriptions, automation enrollment, and tasks. Always search tools first for current schemas.",
+      "description_ja": ""
+    },
+    {
+      "name": "advanced-evaluation",
+      "source": "context-engineering-skills",
+      "path": "skills/advanced-evaluation",
+      "categories": [],
+      "description": "This skill should be used when the user asks to \"implement LLM-as-judge\", \"compare model outputs\", \"create evaluation rubrics\", \"mitigate evaluation bias\", or mentions direct scoring, pairwise comparison, position bias, evaluation pipelines, or automated quality assessment.",
+      "description_ja": "Advanced evaluation techniques"
+    },
+    {
+      "name": "agent-browser",
+      "source": "compound-engineering",
+      "path": "plugins/compound-engineering/skills/agent-browser",
+      "categories": [],
+      "description": "Browser automation using Vercel's agent-browser CLI. Use when you need to interact with web pages, fill forms, take screenshots, or scrape data. Alternative to Playwright MCP - uses Bash commands with ref-based element selection. Triggers on \"browse website\", \"fill form\", \"click button\", \"take screenshot\", \"scrape page\", \"web automation\".",
+      "description_ja": "Agent Browser"
+    },
+    {
+      "name": "agent-native-architecture",
+      "source": "compound-engineering",
+      "path": "plugins/compound-engineering/skills/agent-native-architecture",
+      "categories": [],
+      "description": "Build applications where agents are first-class citizens. Use this skill when designing autonomous agents, creating MCP tools, implementing self-modifying systems, or building apps where features are outcomes achieved by agents operating in a loop.",
+      "description_ja": "Agent Native Architecture"
+    },
+    {
+      "name": "agentic-eval",
+      "source": "github-awesome-copilot",
+      "path": "skills/agentic-eval",
+      "categories": [],
+      "description": "|",
+      "description_ja": "Agentic Eval"
+    },
+    {
+      "name": "Agents",
+      "source": "pai-packs",
+      "path": "Packs/pai-agents-skill/src/skills/Agents",
+      "categories": [],
+      "description": "Dynamic agent composition and management system. USE WHEN user says create custom agents, spin up custom agents, specialized agents, OR asks for agent personalities, available traits, agent voices. Handles custom agent creation, personality assignment, voice mapping, and parallel agent orchestration.",
+      "description_ja": "Agents"
+    },
+    {
+      "name": "airtable-automation",
+      "source": "composio-awesome",
+      "path": "airtable-automation",
+      "categories": [],
+      "description": "Automate Airtable tasks via Rube MCP (Composio): records, bases, tables, fields, views. Always search tools first for current schemas.",
+      "description_ja": ""
+    },
+    {
+      "name": "algorithmic-art",
+      "source": "anthropics-skills",
+      "path": "skills/algorithmic-art",
+      "categories": [],
+      "description": "Creating algorithmic art using p5.js with seeded randomness and interactive parameter exploration. Use this when users request creating art using code, generative art, algorithmic art, flow fields, or particle systems. Create original algorithmic art rather than copying existing artists' work to avoid copyright violations.",
+      "description_ja": "Generate algorithmic art and creative visualizations"
+    },
+    {
+      "name": "amplitude-automation",
+      "source": "composio-awesome",
+      "path": "amplitude-automation",
+      "categories": [],
+      "description": "Automate Amplitude tasks via Rube MCP (Composio): events, user activity, cohorts, user identification. Always search tools first for current schemas.",
+      "description_ja": ""
+    },
+    {
+      "name": "andrew-kane-gem-writer",
+      "source": "compound-engineering",
+      "path": "plugins/compound-engineering/skills/andrew-kane-gem-writer",
+      "categories": [],
+      "description": "This skill should be used when writing Ruby gems following Andrew Kane's proven patterns and philosophy. It applies when creating new Ruby gems, refactoring existing gems, designing gem APIs, or when clean, minimal, production-ready Ruby library code is needed. Triggers on requests like \"create a gem\", \"write a Ruby library\", \"design a gem API\", or mentions of Andrew Kane's style.",
+      "description_ja": "Andrew Kane Gem Writer"
+    },
+    {
+      "name": "AnnualReports",
+      "source": "pai-packs",
+      "path": "Packs/pai-annualreports-skill/src/skills/AnnualReports",
+      "categories": [],
+      "description": "Annual security report aggregation and analysis. USE WHEN annual reports, security reports, threat reports, industry reports, update reports, analyze reports, vendor reports, threat landscape.",
+      "description_ja": "AnnualReports"
+    },
+    {
+      "name": "Aphorisms",
+      "source": "pai-packs",
+      "path": "Releases/v2.4/.claude/skills/Aphorisms",
+      "categories": [],
+      "description": "Aphorism management. USE WHEN aphorism, quote, saying. SkillSearch('aphorisms') for docs.",
+      "description_ja": "Aphorisms"
+    },
+    {
+      "name": "Apify",
+      "source": "pai-packs",
+      "path": "Releases/v2.4/.claude/skills/Apify",
+      "categories": [],
+      "description": "Social media scraping, business data, e-commerce via Apify actors. USE WHEN Twitter, Instagram, LinkedIn, TikTok, YouTube, Facebook, Google Maps, Amazon scraping.",
+      "description_ja": "Apify"
+    },
+    {
+      "name": "appinsights-instrumentation",
+      "source": "github-awesome-copilot",
+      "path": "skills/appinsights-instrumentation",
+      "categories": [],
+      "description": "Instrument a webapp to send useful telemetry data to Azure App Insights",
+      "description_ja": "Appinsights Instrumentation"
+    },
+    {
+      "name": "Art",
+      "source": "pai-packs",
+      "path": "Packs/pai-art-skill/src/skills/Art",
+      "categories": [],
+      "description": "Complete visual content system. USE WHEN user wants to create visual content, illustrations, diagrams, OR mentions art, header images, visualizations, mermaid, flowchart, technical diagram, infographic, PAI icon, pack icon, or PAI pack icon.",
+      "description_ja": "Art"
+    },
+    {
+      "name": "artifacts-builder",
+      "source": "composio-awesome",
+      "path": "artifacts-builder",
+      "categories": [
+        "community"
+      ],
+      "description": "Suite of tools for creating elaborate, multi-component claude.ai HTML artifacts using modern frontend web technologies (React, Tailwind CSS, shadcn/ui). Use for complex artifacts requiring state management, routing, or shadcn/ui components - not for simple single-file HTML/JSX artifacts.",
+      "description_ja": "Artifacts Builder"
+    },
+    {
+      "name": "asana-automation",
+      "source": "composio-awesome",
+      "path": "asana-automation",
+      "categories": [],
+      "description": "Automate Asana tasks via Rube MCP (Composio): tasks, projects, sections, teams, workspaces. Always search tools first for current schemas.",
+      "description_ja": ""
+    },
+    {
+      "name": "azure-deployment-preflight",
+      "source": "github-awesome-copilot",
+      "path": "skills/azure-deployment-preflight",
+      "categories": [],
+      "description": "Performs comprehensive preflight validation of Bicep deployments to Azure, including template syntax validation, what-if analysis, and permission checks. Use this skill before any deployment to Azure to preview changes, identify potential issues, and ensure the deployment will succeed. Activate when users mention deploying to Azure, validating Bicep files, checking deployment permissions, previewing infrastructure changes, running what-if, or preparing for azd provision.",
+      "description_ja": "Azure Deployment Preflight"
+    },
+    {
+      "name": "azure-devops-cli",
+      "source": "github-awesome-copilot",
+      "path": "skills/azure-devops-cli",
+      "categories": [],
+      "description": "Manage Azure DevOps resources via CLI including projects, repos, pipelines, builds, pull requests, work items, artifacts, and service endpoints. Use when working with Azure DevOps, az commands, devops automation, CI/CD, or when user mentions Azure DevOps CLI.",
+      "description_ja": "Azure Devops Cli"
+    },
+    {
+      "name": "azure-resource-visualizer",
+      "source": "github-awesome-copilot",
+      "path": "skills/azure-resource-visualizer",
+      "categories": [],
+      "description": "Analyze Azure resource groups and generate detailed Mermaid architecture diagrams showing the relationships between individual resources. Use this skill when the user asks for a diagram of their Azure resources or help in understanding how the resources relate to each other.",
+      "description_ja": "Azure Resource Visualizer"
+    },
+    {
+      "name": "azure-role-selector",
+      "source": "github-awesome-copilot",
+      "path": "skills/azure-role-selector",
+      "categories": [],
+      "description": "When user is asking for guidance for which role to assign to an identity given desired permissions, this agent helps them understand the role that will meet the requirements with least privilege access and how to apply that role.",
+      "description_ja": "Azure Role Selector"
+    },
+    {
+      "name": "azure-static-web-apps",
+      "source": "github-awesome-copilot",
+      "path": "skills/azure-static-web-apps",
+      "categories": [],
+      "description": "Helps create, configure, and deploy Azure Static Web Apps using the SWA CLI. Use when deploying static sites to Azure, setting up SWA local development, configuring staticwebapp.config.json, adding Azure Functions APIs to SWA, or setting up GitHub Actions CI/CD for Static Web Apps.",
+      "description_ja": "Azure Static Web Apps"
+    },
+    {
+      "name": "bamboohr-automation",
+      "source": "composio-awesome",
+      "path": "bamboohr-automation",
+      "categories": [],
+      "description": "Automate BambooHR tasks via Rube MCP (Composio): employees, time-off, benefits, dependents, employee updates. Always search tools first for current schemas.",
+      "description_ja": ""
+    },
+    {
+      "name": "basecamp-automation",
+      "source": "composio-awesome",
+      "path": "basecamp-automation",
+      "categories": [],
+      "description": "Automate Basecamp project management, to-dos, messages, people, and to-do list organization via Rube MCP (Composio). Always search tools first for current schemas.",
+      "description_ja": ""
+    },
+    {
+      "name": "bdi-mental-states",
+      "source": "context-engineering-skills",
+      "path": "skills/bdi-mental-states",
+      "categories": [],
+      "description": "This skill should be used when the user asks to \"model agent mental states\", \"implement BDI architecture\", \"create belief-desire-intention models\", \"transform RDF to beliefs\", \"build cognitive agent\", or mentions BDI ontology, mental state modeling, rational agency, or neuro-symbolic AI integration.",
+      "description_ja": "Bdi Mental States"
+    },
+    {
+      "name": "BeCreative",
+      "source": "pai-packs",
+      "path": "Releases/v2.4/.claude/skills/BeCreative",
+      "categories": [],
+      "description": "Extended thinking mode. USE WHEN be creative, deep thinking, deep thinking, extended reasoning. SkillSearch('becreative') for docs.",
+      "description_ja": "BeCreative"
+    },
+    {
+      "name": "bitbucket-automation",
+      "source": "composio-awesome",
+      "path": "bitbucket-automation",
+      "categories": [],
+      "description": "Automate Bitbucket repositories, pull requests, branches, issues, and workspace management via Rube MCP (Composio). Always search tools first for current schemas.",
+      "description_ja": ""
+    },
+    {
+      "name": "book-sft-pipeline",
+      "source": "context-engineering-skills",
+      "path": "examples/book-sft-pipeline",
+      "categories": [],
+      "description": "This skill should be used when the user asks to \"fine-tune on books\", \"create SFT dataset\", \"train style model\", \"extract ePub text\", or mentions style transfer, LoRA training, book segmentation, or author voice replication.",
+      "description_ja": "Book SFT pipeline"
+    },
+    {
+      "name": "box-automation",
+      "source": "composio-awesome",
+      "path": "box-automation",
+      "categories": [],
+      "description": "Automate Box cloud storage operations including file upload/download, search, folder management, sharing, collaborations, and metadata queries via Rube MCP (Composio). Always search tools first for current schemas.",
+      "description_ja": ""
+    },
+    {
+      "name": "brainstorming",
+      "source": "obra-superpowers",
+      "path": "skills/brainstorming",
+      "categories": [],
+      "description": "You MUST use this before any creative work - creating features, building components, adding functionality, or modifying behavior. Explores user intent, requirements and design before implementation.",
+      "description_ja": "Brainstorming"
+    },
+    {
+      "name": "brand-guidelines",
+      "source": "anthropics-skills",
+      "path": "skills/brand-guidelines",
+      "categories": [],
+      "description": "Applies Anthropic's official brand colors and typography to any sort of artifact that may benefit from having Anthropic's look-and-feel. Use it when brand colors or style guidelines, visual formatting, or company design standards apply.",
+      "description_ja": "Create and manage brand guidelines"
+    },
+    {
+      "name": "brevo-automation",
+      "source": "composio-awesome",
+      "path": "brevo-automation",
+      "categories": [],
+      "description": "Automate Brevo (Sendinblue) tasks via Rube MCP (Composio): manage email campaigns, create/edit templates, track senders, and monitor campaign performance. Always search tools first for current schemas.",
+      "description_ja": ""
+    },
+    {
+      "name": "BrightData",
+      "source": "pai-packs",
+      "path": "Packs/pai-brightdata-skill/src/skills/BrightData",
+      "categories": [],
+      "description": "Progressive URL scraping with four-tier fallback - WebFetch, Curl, Browser Automation, Bright Data MCP. USE WHEN scrape URL, fetch URL, web scraping, bot detection, can't access site.",
+      "description_ja": "BrightData"
+    },
+    {
+      "name": "Browser",
+      "source": "pai-packs",
+      "path": "Packs/pai-browser-skill/src/skills/Browser",
+      "categories": [],
+      "description": "Debug-first browser automation with always-on visibility. Console logs, network requests, and errors captured by default. USE WHEN browser, screenshot, debug web, verify UI, troubleshoot frontend.",
+      "description_ja": "Browser"
+    },
+    {
+      "name": "cal-com-automation",
+      "source": "composio-awesome",
+      "path": "cal-com-automation",
+      "categories": [],
+      "description": "Automate Cal.com tasks via Rube MCP (Composio): manage bookings, check availability, configure webhooks, and handle teams. Always search tools first for current schemas.",
+      "description_ja": ""
+    },
+    {
+      "name": "calendly-automation",
+      "source": "composio-awesome",
+      "path": "calendly-automation",
+      "categories": [],
+      "description": "Automate Calendly scheduling, event management, invitee tracking, availability checks, and organization administration via Rube MCP (Composio). Always search tools first for current schemas.",
+      "description_ja": ""
+    },
+    {
+      "name": "canva-automation",
+      "source": "composio-awesome",
+      "path": "canva-automation",
+      "categories": [],
+      "description": "Automate Canva tasks via Rube MCP (Composio): designs, exports, folders, brand templates, autofill. Always search tools first for current schemas.",
+      "description_ja": ""
+    },
+    {
+      "name": "canvas-design",
+      "source": "anthropics-skills",
+      "path": "skills/canvas-design",
+      "categories": [],
+      "description": "Create beautiful visual art in .png and .pdf documents using design philosophy. You should use this skill when the user asks to create a poster, piece of art, design, or other static piece. Create original visual designs, never copying existing artists' work to avoid copyright violations.",
+      "description_ja": "Create canvas designs and layouts"
+    },
+    {
+      "name": "changelog-generator",
+      "source": "composio-awesome",
+      "path": "changelog-generator",
+      "categories": [
+        "community"
+      ],
+      "description": "Automatically creates user-facing changelogs from git commits by analyzing commit history, categorizing changes, and transforming technical commits into clear, customer-friendly release notes. Turns hours of manual changelog writing into minutes of automated generation.",
+      "description_ja": "Changelog Generator"
+    },
+    {
+      "name": "chrome-devtools",
+      "source": "github-awesome-copilot",
+      "path": "skills/chrome-devtools",
+      "categories": [],
+      "description": "Expert-level browser automation, debugging, and performance analysis using Chrome DevTools MCP. Use for interacting with web pages, capturing screenshots, analyzing network traffic, and profiling performance.",
+      "description_ja": "Chrome Devtools"
+    },
+    {
+      "name": "circleci-automation",
+      "source": "composio-awesome",
+      "path": "circleci-automation",
+      "categories": [],
+      "description": "Automate CircleCI tasks via Rube MCP (Composio): trigger pipelines, monitor workflows/jobs, retrieve artifacts and test metadata. Always search tools first for current schemas.",
+      "description_ja": ""
+    },
+    {
+      "name": "clickup-automation",
+      "source": "composio-awesome",
+      "path": "clickup-automation",
+      "categories": [],
+      "description": "Automate ClickUp project management including tasks, spaces, folders, lists, comments, and team operations via Rube MCP (Composio). Always search tools first for current schemas.",
+      "description_ja": ""
+    },
+    {
+      "name": "close-automation",
+      "source": "composio-awesome",
+      "path": "close-automation",
+      "categories": [],
+      "description": "Automate Close CRM tasks via Rube MCP (Composio): create leads, manage calls/SMS, handle tasks, and track notes. Always search tools first for current schemas.",
+      "description_ja": ""
+    },
+    {
+      "name": "Cloudflare Manager",
+      "source": "claude-command-suite",
+      "path": ".claude/skills/cloudflare-manager",
+      "categories": [],
+      "description": "Comprehensive Cloudflare account management for deploying Workers, KV Storage, R2, Pages, DNS, and Routes. Use when deploying cloudflare services, managing worker containers, configuring KV/R2 storage, or setting up DNS/routing. Requires CLOUDFLARE_API_KEY in .env and Bun runtime with dependencies installed.",
+      "description_ja": "Cloudflare Manager"
+    },
+    {
+      "name": "cloudflare-deploy",
+      "source": "openai-skills",
+      "path": "skills/.curated/cloudflare-deploy",
+      "categories": [],
+      "description": "Deploy applications and infrastructure to Cloudflare using Workers, Pages, and related platform services. Use when the user asks to deploy, host, publish, or set up a project on Cloudflare.",
+      "description_ja": ""
+    },
+    {
+      "name": "coda-automation",
+      "source": "composio-awesome",
+      "path": "coda-automation",
+      "categories": [],
+      "description": "Automate Coda tasks via Rube MCP (Composio): manage docs, pages, tables, rows, formulas, permissions, and publishing. Always search tools first for current schemas.",
+      "description_ja": ""
+    },
+    {
+      "name": "coding-tutor",
+      "source": "compound-engineering",
+      "path": "plugins/coding-tutor/skills/coding-tutor",
+      "categories": [],
+      "description": "Personalized coding tutorials that build on your existing knowledge and use your actual codebase for examples. Creates a persistent learning trail that compounds over time using the power of AI, spaced repetition and quizes.",
+      "description_ja": "Coding Tutor"
+    },
+    {
+      "name": "competitive-ads-extractor",
+      "source": "composio-awesome",
+      "path": "competitive-ads-extractor",
+      "categories": [
+        "community"
+      ],
+      "description": "Extracts and analyzes competitors' ads from ad libraries (Facebook, LinkedIn, etc.) to understand what messaging, problems, and creative approaches are working. Helps inspire and improve your own ad campaigns.",
+      "description_ja": "Extract competitive advertising data"
+    },
+    {
+      "name": "composio",
+      "source": "composio-awesome",
+      "path": "composio-sdk",
+      "categories": [],
+      "description": "Build AI agents and apps with Composio - access 200+ external tools with Tool Router or direct execution",
+      "description_ja": ""
+    },
+    {
+      "name": "compound-docs",
+      "source": "compound-engineering",
+      "path": "plugins/compound-engineering/skills/compound-docs",
+      "categories": [],
+      "description": "Capture solved problems as categorized documentation with YAML frontmatter for fast lookup",
+      "description_ja": "Compound Docs"
+    },
+    {
+      "name": "comprehensive-research-agent",
+      "source": "context-engineering-skills",
+      "path": "examples/interleaved_thinking/generated_skills/comprehensive-research-agent",
+      "categories": [],
+      "description": "Ensure thorough validation, error recovery, and transparent reasoning in research tasks with multiple tool calls",
+      "description_ja": "Comprehensive Research Agent"
+    },
+    {
+      "name": "confluence-automation",
+      "source": "composio-awesome",
+      "path": "confluence-automation",
+      "categories": [],
+      "description": "Automate Confluence page creation, content search, space management, labels, and hierarchy navigation via Rube MCP (Composio). Always search tools first for current schemas.",
+      "description_ja": ""
+    },
+    {
+      "name": "connect",
+      "source": "composio-awesome",
+      "path": "connect",
+      "categories": [
+        "community"
+      ],
+      "description": "Connect Claude to any app. Send emails, create issues, post messages, update databases - take real actions across Gmail, Slack, GitHub, Notion, and 1000+ services.",
+      "description_ja": "Connect"
+    },
+    {
+      "name": "connect-apps",
+      "source": "composio-awesome",
+      "path": "connect-apps",
+      "categories": [
+        "community"
+      ],
+      "description": "Connect Claude to external apps like Gmail, Slack, GitHub. Use this skill when the user wants to send emails, create issues, post messages, or take actions in external services.",
+      "description_ja": "Connect Apps"
+    },
+    {
+      "name": "content-research-writer",
+      "source": "composio-awesome",
+      "path": "content-research-writer",
+      "categories": [
+        "community"
+      ],
+      "description": "Assists in writing high-quality content by conducting research, adding citations, improving hooks, iterating on outlines, and providing real-time feedback on each section. Transforms your writing process from solo effort to collaborative partnership.",
+      "description_ja": "Content Research Writer"
+    },
+    {
+      "name": "context-compression",
+      "source": "context-engineering-skills",
+      "path": "skills/context-compression",
+      "categories": [],
+      "description": "This skill should be used when the user asks to \"compress context\", \"summarize conversation history\", \"implement compaction\", \"reduce token usage\", or mentions context compression, structured summarization, tokens-per-task optimization, or long-running agent sessions exceeding context limits.",
+      "description_ja": "Compress context efficiently"
+    },
+    {
+      "name": "context-degradation",
+      "source": "context-engineering-skills",
+      "path": "skills/context-degradation",
+      "categories": [],
+      "description": "This skill should be used when the user asks to \"diagnose context problems\", \"fix lost-in-middle issues\", \"debug agent failures\", \"understand context poisoning\", or mentions context degradation, attention patterns, context clash, context confusion, or agent performance degradation. Provides patterns for recognizing and mitigating context failures.",
+      "description_ja": "Handle context degradation"
+    },
+    {
+      "name": "context-engineering-collection",
+      "source": "context-engineering-skills",
+      "path": "",
+      "categories": [],
+      "description": "A comprehensive collection of Agent Skills for context engineering, multi-agent architectures, and production agent systems. Use when building, optimizing, or debugging agent systems that require effective context management.",
+      "description_ja": "Context Engineering Collection"
+    },
+    {
+      "name": "context-fundamentals",
+      "source": "context-engineering-skills",
+      "path": "skills/context-fundamentals",
+      "categories": [],
+      "description": "This skill should be used when the user asks to \"understand context\", \"explain context windows\", \"design agent architecture\", \"debug context issues\", \"optimize context usage\", or discusses context components, attention mechanics, progressive disclosure, or context budgeting. Provides foundational understanding of context engineering for AI agent systems.",
+      "description_ja": "Context engineering fundamentals"
+    },
+    {
+      "name": "context-optimization",
+      "source": "context-engineering-skills",
+      "path": "skills/context-optimization",
+      "categories": [],
+      "description": "This skill should be used when the user asks to \"optimize context\", \"reduce token costs\", \"improve context efficiency\", \"implement KV-cache optimization\", \"partition context\", or mentions context limits, observation masking, context budgeting, or extending effective context capacity.",
+      "description_ja": "Optimize context usage"
+    },
+    {
+      "name": "convertkit-automation",
+      "source": "composio-awesome",
+      "path": "convertkit-automation",
+      "categories": [],
+      "description": "Automate ConvertKit (Kit) tasks via Rube MCP (Composio): manage subscribers, tags, broadcasts, and broadcast stats. Always search tools first for current schemas.",
+      "description_ja": ""
+    },
+    {
+      "name": "copilot-sdk",
+      "source": "github-awesome-copilot",
+      "path": "skills/copilot-sdk",
+      "categories": [],
+      "description": "Build agentic applications with GitHub Copilot SDK. Use when embedding AI agents in apps, creating custom tools, implementing streaming responses, managing sessions, connecting to MCP servers, or creating custom agents. Triggers on Copilot SDK, GitHub SDK, agentic app, embed Copilot, programmable agent, MCP server, custom agent.",
+      "description_ja": ""
+    },
+    {
+      "name": "CORE",
+      "source": "pai-packs",
+      "path": "Packs/pai-core-install/src/skills/CORE",
+      "categories": [],
+      "description": "Personal AI Infrastructure core. AUTO-LOADS at session start. The authoritative reference for how the PAI system works, how to use it, and all system-level configuration. USE WHEN any session begins, user asks about the system, identity, configuration, workflows, security, or any other question about how the PAI system operates.",
+      "description_ja": "CORE"
+    },
+    {
+      "name": "Council",
+      "source": "pai-packs",
+      "path": "Packs/pai-council-skill/src/skills/Council",
+      "categories": [],
+      "description": "Multi-agent debate system. USE WHEN council, debate, perspectives, agents discuss. SkillSearch('council') for docs.",
+      "description_ja": "Council"
+    },
+    {
+      "name": "CreateCLI",
+      "source": "pai-packs",
+      "path": "Packs/pai-createcli-skill/src/skills/CreateCLI",
+      "categories": [],
+      "description": "Generate TypeScript CLIs. USE WHEN create CLI, build CLI, command-line tool. SkillSearch('createcli') for docs.",
+      "description_ja": "CreateCLI"
+    },
+    {
+      "name": "CreateSkill",
+      "source": "pai-packs",
+      "path": "Packs/pai-createskill-skill/src/skills/CreateSkill",
+      "categories": [],
+      "description": "Create and validate skills. USE WHEN create skill, new skill, skill structure, canonicalize. SkillSearch('createskill') for docs.",
+      "description_ja": "CreateSkill"
+    },
+    {
+      "name": "creating-agent-skills",
+      "source": "compound-engineering",
+      "path": "plugins/compound-engineering/skills/create-agent-skills",
+      "categories": [],
+      "description": "Expert guidance for creating, writing, and refining Claude Code Skills. Use when working with SKILL.md files, authoring new skills, improving existing skills, or understanding skill structure and best practices.",
+      "description_ja": "Creating Agent Skills"
+    },
+    {
+      "name": "custom-skill",
+      "source": "compound-engineering",
+      "path": "tests/fixtures/custom-paths/custom-skills/custom-skill",
+      "categories": [],
+      "description": "Custom skill",
+      "description_ja": "Custom Skill"
+    },
+    {
+      "name": "datadog-automation",
+      "source": "composio-awesome",
+      "path": "datadog-automation",
+      "categories": [],
+      "description": "Automate Datadog tasks via Rube MCP (Composio): query metrics, search logs, manage monitors/dashboards, create events and downtimes. Always search tools first for current schemas.",
+      "description_ja": ""
+    },
+    {
+      "name": "default-skill",
+      "source": "compound-engineering",
+      "path": "tests/fixtures/custom-paths/skills/default-skill",
+      "categories": [],
+      "description": "Default skill",
+      "description_ja": "Default Skill"
+    },
+    {
+      "name": "develop-web-game",
+      "source": "openai-skills",
+      "path": "skills/.curated/develop-web-game",
+      "categories": [],
+      "description": "Use when Codex is building or iterating on a web game (HTML/JS) and needs a reliable development + testing loop: implement small changes, run a Playwright-based test script with short input bursts and intentional pauses, inspect screenshots/text, and review console errors with render_game_to_text.",
+      "description_ja": ""
+    },
+    {
+      "name": "developer-growth-analysis",
+      "source": "composio-awesome",
+      "path": "developer-growth-analysis",
+      "categories": [
+        "community"
+      ],
+      "description": "Analyzes your recent Claude Code chat history to identify coding patterns, development gaps, and areas for improvement, curates relevant learning resources from HackerNews, and automatically sends a personalized growth report to your Slack DMs.",
+      "description_ja": "Developer Growth Analysis"
+    },
+    {
+      "name": "dhh-rails-style",
+      "source": "compound-engineering",
+      "path": "plugins/compound-engineering/skills/dhh-rails-style",
+      "categories": [],
+      "description": "This skill should be used when writing Ruby and Rails code in DHH's distinctive 37signals style. It applies when writing Ruby code, Rails applications, creating models, controllers, or any Ruby file. Triggers on Ruby/Rails code generation, refactoring requests, code review, or when the user mentions DHH, 37signals, Basecamp, HEY, or Campfire style. Embodies REST purity, fat models, thin controllers, Current attributes, Hotwire patterns, and the \"clarity over cleverness\" philosophy.",
+      "description_ja": "Dhh Rails Style"
+    },
+    {
+      "name": "digital-brain",
+      "source": "context-engineering-skills",
+      "path": "examples/digital-brain-skill",
+      "categories": [],
+      "description": "This skill should be used when the user asks to \"write a post\", \"check my voice\", \"look up contact\", \"prepare for meeting\", \"weekly review\", \"track goals\", or mentions personal brand, content creation, network management, or voice consistency.",
+      "description_ja": "Digital Brain"
+    },
+    {
+      "name": "discord-automation",
+      "source": "composio-awesome",
+      "path": "discord-automation",
+      "categories": [],
+      "description": "Automate Discord tasks via Rube MCP (Composio): messages, channels, roles, webhooks, reactions. Always search tools first for current schemas.",
+      "description_ja": ""
+    },
+    {
+      "name": "dispatching-parallel-agents",
+      "source": "obra-superpowers",
+      "path": "skills/dispatching-parallel-agents",
+      "categories": [],
+      "description": "Use when facing 2+ independent tasks that can be worked on without shared state or sequential dependencies",
+      "description_ja": "Dispatching Parallel Agents"
+    },
+    {
+      "name": "doc",
+      "source": "openai-skills",
+      "path": "skills/.curated/doc",
+      "categories": [],
+      "description": "Use when the task involves reading, creating, or editing `.docx` documents, especially when formatting or layout fidelity matters; prefer `python-docx` plus the bundled `scripts/render_docx.py` for visual checks.",
+      "description_ja": "Doc"
+    },
+    {
+      "name": "doc-coauthoring",
+      "source": "anthropics-skills",
+      "path": "skills/doc-coauthoring",
+      "categories": [],
+      "description": "Guide users through a structured workflow for co-authoring documentation. Use when user wants to write documentation, proposals, technical specs, decision docs, or similar structured content. This workflow helps users efficiently transfer context, refine content through iteration, and verify the doc works for readers. Trigger when user mentions writing docs, creating proposals, drafting specs, or similar documentation tasks.",
+      "description_ja": "Collaborative document co-authoring"
+    },
+    {
+      "name": "Documents",
+      "source": "pai-packs",
+      "path": "Releases/v2.4/.claude/skills/Documents",
+      "categories": [],
+      "description": "Document processing. USE WHEN document, process file. SkillSearch('documents') for docs.",
+      "description_ja": "Documents"
+    },
+    {
+      "name": "docusign-automation",
+      "source": "composio-awesome",
+      "path": "docusign-automation",
+      "categories": [],
+      "description": "Automate DocuSign tasks via Rube MCP (Composio): templates, envelopes, signatures, document management. Always search tools first for current schemas.",
+      "description_ja": ""
+    },
+    {
+      "name": "docx",
+      "source": "anthropics-skills",
+      "path": "skills/docx",
+      "categories": [],
+      "description": "Use this skill whenever the user wants to create, read, edit, or manipulate Word documents (.docx files). Triggers include: any mention of \\\"Word doc\\\", \\\"word document\\\", \\\".docx\\\", or requests to produce professional documents with formatting like tables of contents, headings, page numbers, or letterheads. Also use when extracting or reorganizing content from .docx files, inserting or replacing images in documents, performing find-and-replace in Word files, working with tracked changes or comments, or converting content into a polished Word document. If the user asks for a \\\"report\\\", \\\"memo\\\", \\\"letter\\\", \\\"template\\\", or similar deliverable as a Word or .docx file, use this skill. Do NOT use for PDFs, spreadsheets, Google Docs, or general coding tasks unrelated to document generation.",
+      "description_ja": "Process Word documents (.docx)"
+    },
+    {
+      "name": "domain-name-brainstormer",
+      "source": "composio-awesome",
+      "path": "domain-name-brainstormer",
+      "categories": [
+        "community"
+      ],
+      "description": "Generates creative domain name ideas for your project and checks availability across multiple TLDs (.com, .io, .dev, .ai, etc.). Saves hours of brainstorming and manual checking.",
+      "description_ja": "Brainstorm domain names"
+    },
+    {
+      "name": "dropbox-automation",
+      "source": "composio-awesome",
+      "path": "dropbox-automation",
+      "categories": [],
+      "description": "Automate Dropbox file management, sharing, search, uploads, downloads, and folder operations via Rube MCP (Composio). Always search tools first for current schemas.",
+      "description_ja": ""
+    },
+    {
+      "name": "dspy-ruby",
+      "source": "compound-engineering",
+      "path": "plugins/compound-engineering/skills/dspy-ruby",
+      "categories": [],
+      "description": "This skill should be used when working with DSPy.rb, a Ruby framework for building type-safe, composable LLM applications. Use this when implementing predictable AI features, creating LLM signatures and modules, configuring language model providers (OpenAI, Anthropic, Gemini, Ollama), building agent systems with tools, optimizing prompts, or testing LLM-powered functionality in Ruby applications.",
+      "description_ja": "Dspy Ruby"
+    },
+    {
+      "name": "Evals",
+      "source": "pai-packs",
+      "path": "Releases/v2.4/.claude/skills/Evals",
+      "categories": [],
+      "description": "Agent evaluation framework based on Anthropic's best practices. USE WHEN eval, evaluate, test agent, benchmark, verify behavior, regression test, capability test. Includes three grader types (code-based, model-based, human), transcript capture, pass@k/pass^k metrics, and ALGORITHM integration.",
+      "description_ja": "Evals"
+    },
+    {
+      "name": "evaluation",
+      "source": "context-engineering-skills",
+      "path": "skills/evaluation",
+      "categories": [],
+      "description": "This skill should be used when the user asks to \"evaluate agent performance\", \"build test framework\", \"measure agent quality\", \"create evaluation rubrics\", or mentions LLM-as-judge, multi-dimensional evaluation, agent testing, or quality gates for agent pipelines.",
+      "description_ja": "Evaluate agent performance"
+    },
+    {
+      "name": "every-style-editor",
+      "source": "compound-engineering",
+      "path": "plugins/compound-engineering/skills/every-style-editor",
+      "categories": [],
+      "description": "This skill should be used when reviewing or editing copy to ensure adherence to Every's style guide. It provides a systematic line-by-line review process for grammar, punctuation, mechanics, and style guide compliance.",
+      "description_ja": "Every Style Editor"
+    },
+    {
+      "name": "excalidraw-diagram-generator",
+      "source": "github-awesome-copilot",
+      "path": "skills/excalidraw-diagram-generator",
+      "categories": [],
+      "description": "Generate Excalidraw diagrams from natural language descriptions. Use when asked to \"create a diagram\", \"make a flowchart\", \"visualize a process\", \"draw a system architecture\", \"create a mind map\", or \"generate an Excalidraw file\". Supports flowcharts, relationship diagrams, mind maps, and system architecture diagrams. Outputs .excalidraw JSON files that can be opened directly in Excalidraw.",
+      "description_ja": ""
+    },
+    {
+      "name": "executing-plans",
+      "source": "obra-superpowers",
+      "path": "skills/executing-plans",
+      "categories": [],
+      "description": "Use when you have a written implementation plan to execute in a separate session with review checkpoints",
+      "description_ja": "Executing Plans"
+    },
+    {
+      "name": "Fabric",
+      "source": "pai-packs",
+      "path": "Releases/v2.4/.claude/skills/Fabric",
+      "categories": [],
+      "description": "Intelligent prompt pattern system with 240+ specialized patterns for content analysis, extraction, and transformation. USE WHEN user says 'use fabric', 'fabric pattern', 'run fabric', 'update fabric', 'update patterns', 'sync fabric', 'extract wisdom', 'summarize with fabric', 'create threat model', 'analyze with fabric', OR any request to apply Fabric patterns to content.",
+      "description_ja": "Fabric"
+    },
+    {
+      "name": "figma",
+      "source": "openai-skills",
+      "path": "skills/.curated/figma",
+      "categories": [],
+      "description": "Use the Figma MCP server to fetch design context, screenshots, variables, and assets from Figma, and to translate Figma nodes into production code. Trigger when a task involves Figma URLs, node IDs, design-to-code implementation, or Figma MCP setup and troubleshooting.",
+      "description_ja": ""
+    },
+    {
+      "name": "figma-automation",
+      "source": "composio-awesome",
+      "path": "figma-automation",
+      "categories": [],
+      "description": "Automate Figma tasks via Rube MCP (Composio): files, components, design tokens, comments, exports. Always search tools first for current schemas.",
+      "description_ja": ""
+    },
+    {
+      "name": "figma-implement-design",
+      "source": "openai-skills",
+      "path": "skills/.curated/figma-implement-design",
+      "categories": [],
+      "description": "Translate Figma nodes into production-ready code with 1:1 visual fidelity using the Figma MCP workflow (design context, screenshots, assets, and project-convention translation). Trigger when the user provides Figma URLs or node IDs, or asks to implement designs or components that must match Figma specs. Requires a working Figma MCP server connection.",
+      "description_ja": ""
+    },
+    {
+      "name": "file-organizer",
+      "source": "composio-awesome",
+      "path": "file-organizer",
+      "categories": [
+        "community"
+      ],
+      "description": "Intelligently organizes your files and folders across your computer by understanding context, finding duplicates, suggesting better structures, and automating cleanup tasks. Reduces cognitive load and keeps your digital workspace tidy without manual effort.",
+      "description_ja": "Organize files and directories"
+    },
+    {
+      "name": "file-todos",
+      "source": "compound-engineering",
+      "path": "plugins/compound-engineering/skills/file-todos",
+      "categories": [],
+      "description": "This skill should be used when managing the file-based todo tracking system in the todos/ directory. It provides workflows for creating todos, managing status and dependencies, conducting triage, and integrating with slash commands and code review processes.",
+      "description_ja": "File Todos"
+    },
+    {
+      "name": "filesystem-context",
+      "source": "context-engineering-skills",
+      "path": "skills/filesystem-context",
+      "categories": [],
+      "description": "This skill should be used when the user asks to \"offload context to files\", \"implement dynamic context discovery\", \"use filesystem for agent memory\", \"reduce context window bloat\", or mentions file-based context management, tool output persistence, agent scratch pads, or just-in-time context loading.",
+      "description_ja": "Filesystem Context"
+    },
+    {
+      "name": "finishing-a-development-branch",
+      "source": "obra-superpowers",
+      "path": "skills/finishing-a-development-branch",
+      "categories": [],
+      "description": "Use when implementation is complete, all tests pass, and you need to decide how to integrate the work - guides completion of development work by presenting structured options for merge, PR, or cleanup",
+      "description_ja": "Finishing A Development Branch"
+    },
+    {
+      "name": "FirstPrinciples",
+      "source": "pai-packs",
+      "path": "Packs/pai-firstprinciples-skill/src/skills/FirstPrinciples",
+      "categories": [],
+      "description": "First principles analysis. USE WHEN first principles, fundamental, root cause, decompose. SkillSearch('firstprinciples') for docs.",
+      "description_ja": "FirstPrinciples"
+    },
+    {
+      "name": "freshdesk-automation",
+      "source": "composio-awesome",
+      "path": "freshdesk-automation",
+      "categories": [],
+      "description": "Automate Freshdesk helpdesk operations including tickets, contacts, companies, notes, and replies via Rube MCP (Composio). Always search tools first for current schemas.",
+      "description_ja": ""
+    },
+    {
+      "name": "freshservice-automation",
+      "source": "composio-awesome",
+      "path": "freshservice-automation",
+      "categories": [],
+      "description": "Automate Freshservice ITSM tasks via Rube MCP (Composio): create/update tickets, bulk operations, service requests, and outbound emails. Always search tools first for current schemas.",
+      "description_ja": ""
+    },
+    {
+      "name": "frontend-design",
+      "source": "anthropics-skills",
+      "path": "skills/frontend-design",
+      "categories": [],
+      "description": "Create distinctive, production-grade frontend interfaces with high design quality. Use this skill when the user asks to build web components, pages, artifacts, posters, or applications (examples include websites, landing pages, dashboards, React components, HTML/CSS layouts, or when styling/beautifying any web UI). Generates creative, polished code and UI design that avoids generic AI aesthetics.",
+      "description_ja": "Create frontend designs and UI layouts"
+    },
+    {
+      "name": "gemini-imagegen",
+      "source": "compound-engineering",
+      "path": "plugins/compound-engineering/skills/gemini-imagegen",
+      "categories": [],
+      "description": "This skill should be used when generating and editing images using the Gemini API (Nano Banana Pro). It applies when creating images from text prompts, editing existing images, applying style transfers, generating logos with text, creating stickers, product mockups, or any image generation/manipulation task. Supports text-to-image, image editing, multi-turn refinement, and composition from multiple reference images.",
+      "description_ja": "Gemini Imagegen"
+    },
+    {
+      "name": "gh-address-comments",
+      "source": "openai-skills",
+      "path": "skills/.curated/gh-address-comments",
+      "categories": [],
+      "description": "Help address review/issue comments on the open GitHub PR for the current branch using gh CLI; verify gh auth first and prompt the user to authenticate if not logged in.",
+      "description_ja": "Gh Address Comments"
+    },
+    {
+      "name": "gh-cli",
+      "source": "github-awesome-copilot",
+      "path": "skills/gh-cli",
+      "categories": [],
+      "description": "GitHub CLI (gh) comprehensive reference for repositories, issues, pull requests, Actions, projects, releases, gists, codespaces, organizations, extensions, and all GitHub operations from the command line.",
+      "description_ja": "Gh Cli"
+    },
+    {
+      "name": "gh-fix-ci",
+      "source": "openai-skills",
+      "path": "skills/.curated/gh-fix-ci",
+      "categories": [],
+      "description": "Use when a user asks to debug or fix failing GitHub PR checks that run in GitHub Actions; use `gh` to inspect checks and logs, summarize failure context, draft a fix plan, and implement only after explicit approval. Treat external providers (for example Buildkite) as out of scope and report only the details URL.",
+      "description_ja": "Gh Fix Ci"
+    },
+    {
+      "name": "git-commit",
+      "source": "github-awesome-copilot",
+      "path": "skills/git-commit",
+      "categories": [],
+      "description": "Execute git commit with conventional commit message analysis, intelligent staging, and message generation. Use when user asks to commit changes, create a git commit, or mentions \"/commit\". Supports: (1) Auto-detecting type and scope from changes, (2) Generating conventional commit messages from diff, (3) Interactive commit with optional type/scope/description overrides, (4) Intelligent file staging for logical grouping",
+      "description_ja": "Git Commit"
+    },
+    {
+      "name": "git-worktree",
+      "source": "compound-engineering",
+      "path": "plugins/compound-engineering/skills/git-worktree",
+      "categories": [],
+      "description": "This skill manages Git worktrees for isolated parallel development. It handles creating, listing, switching, and cleaning up worktrees with a simple interactive interface, following KISS principles.",
+      "description_ja": "Git Worktree"
+    },
+    {
+      "name": "github-automation",
+      "source": "composio-awesome",
+      "path": "github-automation",
+      "categories": [],
+      "description": "Automate GitHub repositories, issues, pull requests, branches, CI/CD, and permissions via Rube MCP (Composio). Manage code workflows, review PRs, search code, and handle deployments programmatically.",
+      "description_ja": ""
+    },
+    {
+      "name": "github-issues",
+      "source": "github-awesome-copilot",
+      "path": "skills/github-issues",
+      "categories": [],
+      "description": "Create, update, and manage GitHub issues using MCP tools. Use this skill when users want to create bug reports, feature requests, or task issues, update existing issues, add labels/assignees/milestones, or manage issue workflows. Triggers on requests like \"create an issue\", \"file a bug\", \"request a feature\", \"update issue X\", or any GitHub issue management task.",
+      "description_ja": "Github Issues"
+    },
+    {
+      "name": "gitlab-automation",
+      "source": "composio-awesome",
+      "path": "gitlab-automation",
+      "categories": [],
+      "description": "Automate GitLab project management, issues, merge requests, pipelines, branches, and user operations via Rube MCP (Composio). Always search tools first for current schemas.",
+      "description_ja": ""
+    },
+    {
+      "name": "gmail-automation",
+      "source": "composio-awesome",
+      "path": "gmail-automation",
+      "categories": [],
+      "description": "Automate Gmail tasks via Rube MCP (Composio): send/reply, search, labels, drafts, attachments. Always search tools first for current schemas.",
+      "description_ja": ""
+    },
+    {
+      "name": "google-analytics-automation",
+      "source": "composio-awesome",
+      "path": "google-analytics-automation",
+      "categories": [],
+      "description": "Automate Google Analytics tasks via Rube MCP (Composio): run reports, list accounts/properties, funnels, pivots, key events. Always search tools first for current schemas.",
+      "description_ja": ""
+    },
+    {
+      "name": "google-calendar-automation",
+      "source": "composio-awesome",
+      "path": "google-calendar-automation",
+      "categories": [],
+      "description": "Automate Google Calendar events, scheduling, availability checks, and attendee management via Rube MCP (Composio). Create events, find free slots, manage attendees, and list calendars programmatically.",
+      "description_ja": ""
+    },
+    {
+      "name": "google-drive-automation",
+      "source": "composio-awesome",
+      "path": "google-drive-automation",
+      "categories": [],
+      "description": "Automate Google Drive file operations (upload, download, search, share, organize) via Rube MCP (Composio). Upload/download files, manage folders, share with permissions, and search across drives programmatically.",
+      "description_ja": ""
+    },
+    {
+      "name": "googlesheets-automation",
+      "source": "composio-awesome",
+      "path": "googlesheets-automation",
+      "categories": [],
+      "description": "Automate Google Sheets operations (read, write, format, filter, manage spreadsheets) via Rube MCP (Composio). Read/write data, manage tabs, apply formatting, and search rows programmatically.",
+      "description_ja": ""
+    },
+    {
+      "name": "helpdesk-automation",
+      "source": "composio-awesome",
+      "path": "helpdesk-automation",
+      "categories": [],
+      "description": "Automate HelpDesk tasks via Rube MCP (Composio): list tickets, manage views, use canned responses, and configure custom fields. Always search tools first for current schemas.",
+      "description_ja": ""
+    },
+    {
+      "name": "hosted-agents",
+      "source": "context-engineering-skills",
+      "path": "skills/hosted-agents",
+      "categories": [],
+      "description": "This skill should be used when the user asks to \"build background agent\", \"create hosted coding agent\", \"set up sandboxed execution\", \"implement multiplayer agent\", or mentions background agents, sandboxed VMs, agent infrastructure, Modal sandboxes, self-spawning agents, or remote coding environments.",
+      "description_ja": "Hosted Agents"
+    },
+    {
+      "name": "hubspot-automation",
+      "source": "composio-awesome",
+      "path": "hubspot-automation",
+      "categories": [],
+      "description": "Automate HubSpot CRM operations (contacts, companies, deals, tickets, properties) via Rube MCP using Composio integration.",
+      "description_ja": ""
+    },
+    {
+      "name": "image-enhancer",
+      "source": "composio-awesome",
+      "path": "image-enhancer",
+      "categories": [
+        "community"
+      ],
+      "description": "Improves the quality of images, especially screenshots, by enhancing resolution, sharpness, and clarity. Perfect for preparing images for presentations, documentation, or social media posts.",
+      "description_ja": "Enhance and edit images"
+    },
+    {
+      "name": "image-manipulation-image-magick",
+      "source": "github-awesome-copilot",
+      "path": "skills/image-manipulation-image-magick",
+      "categories": [],
+      "description": "Process and manipulate images using ImageMagick. Supports resizing, format conversion, batch processing, and retrieving image metadata. Use when working with images, creating thumbnails, resizing wallpapers, or performing batch image operations.",
+      "description_ja": "Image Manipulation Image Magick"
+    },
+    {
+      "name": "imagegen",
+      "source": "openai-skills",
+      "path": "skills/.curated/imagegen",
+      "categories": [],
+      "description": "Use when the user asks to generate or edit images via the OpenAI Image API (for example: generate image, edit/inpaint/mask, background removal or replacement, transparent background, product shots, concept art, covers, or batch variants); run the bundled CLI (`scripts/image_gen.py`) and require `OPENAI_API_KEY` for live calls.",
+      "description_ja": "Imagegen"
+    },
+    {
+      "name": "instagram-automation",
+      "source": "composio-awesome",
+      "path": "instagram-automation",
+      "categories": [],
+      "description": "Automate Instagram tasks via Rube MCP (Composio): create posts, carousels, manage media, get insights, and publishing limits. Always search tools first for current schemas.",
+      "description_ja": ""
+    },
+    {
+      "name": "intercom-automation",
+      "source": "composio-awesome",
+      "path": "intercom-automation",
+      "categories": [],
+      "description": "Automate Intercom tasks via Rube MCP (Composio): conversations, contacts, companies, segments, admins. Always search tools first for current schemas.",
+      "description_ja": ""
+    },
+    {
+      "name": "internal-comms",
+      "source": "anthropics-skills",
+      "path": "skills/internal-comms",
+      "categories": [],
+      "description": "A set of resources to help me write all kinds of internal communications, using the formats that my company likes to use. Claude should use this skill whenever asked to write some sort of internal communications (status reports, leadership updates, 3P updates, company newsletters, FAQs, incident reports, project updates, etc.).",
+      "description_ja": "Internal communications management"
+    },
+    {
+      "name": "invoice-organizer",
+      "source": "composio-awesome",
+      "path": "invoice-organizer",
+      "categories": [
+        "community"
+      ],
+      "description": "Automatically organizes invoices and receipts for tax preparation by reading messy files, extracting key information, renaming them consistently, and sorting them into logical folders. Turns hours of manual bookkeeping into minutes of automated organization.",
+      "description_ja": "Organize and manage invoices"
+    },
+    {
+      "name": "jira-automation",
+      "source": "composio-awesome",
+      "path": "jira-automation",
+      "categories": [],
+      "description": "Automate Jira tasks via Rube MCP (Composio): issues, projects, sprints, boards, comments, users. Always search tools first for current schemas.",
+      "description_ja": ""
+    },
+    {
+      "name": "jupyter-notebook",
+      "source": "openai-skills",
+      "path": "skills/.curated/jupyter-notebook",
+      "categories": [],
+      "description": "Use when the user asks to create, scaffold, or edit Jupyter notebooks (`.ipynb`) for experiments, explorations, or tutorials; prefer the bundled templates and run the helper script `new_notebook.py` to generate a clean starting notebook.",
+      "description_ja": ""
+    },
+    {
+      "name": "klaviyo-automation",
+      "source": "composio-awesome",
+      "path": "klaviyo-automation",
+      "categories": [],
+      "description": "Automate Klaviyo tasks via Rube MCP (Composio): manage email/SMS campaigns, inspect campaign messages, track tags, and monitor send jobs. Always search tools first for current schemas.",
+      "description_ja": ""
+    },
+    {
+      "name": "langsmith-fetch",
+      "source": "composio-awesome",
+      "path": "langsmith-fetch",
+      "categories": [
+        "community"
+      ],
+      "description": "Debug LangChain and LangGraph agents by fetching execution traces from LangSmith Studio. Use when debugging agent behavior, investigating errors, analyzing tool calls, checking memory operations, or examining agent performance. Automatically fetches recent traces and analyzes execution patterns. Requires langsmith-fetch CLI installed.",
+      "description_ja": "Langsmith Fetch"
+    },
+    {
+      "name": "lead-research-assistant",
+      "source": "composio-awesome",
+      "path": "lead-research-assistant",
+      "categories": [
+        "community"
+      ],
+      "description": "Identifies high-quality leads for your product or service by analyzing your business, searching for target companies, and providing actionable contact strategies. Perfect for sales, business development, and marketing professionals.",
+      "description_ja": "Research leads and contacts"
+    },
+    {
+      "name": "legacy-circuit-mockups",
+      "source": "github-awesome-copilot",
+      "path": "skills/legacy-circuit-mockups",
+      "categories": [],
+      "description": "Generate breadboard circuit mockups and visual diagrams using HTML5 Canvas drawing techniques. Use when asked to create circuit layouts, visualize electronic component placements, draw breadboard diagrams, mockup 6502 builds, generate retro computer schematics, or design vintage electronics projects. Supports 555 timers, W65C02S microprocessors, 28C256 EEPROMs, W65C22 VIA chips, 7400-series logic gates, LEDs, resistors, capacitors, switches, buttons, crystals, and wires.",
+      "description_ja": "Legacy Circuit Mockups"
+    },
+    {
+      "name": "linear",
+      "source": "openai-skills",
+      "path": "skills/.curated/linear",
+      "categories": [],
+      "description": "Manage issues, projects & team workflows in Linear. Use when the user wants to read, create or updates tickets in Linear.",
+      "description_ja": "Linear"
+    },
+    {
+      "name": "Linear Todo Sync",
+      "source": "claude-command-suite",
+      "path": ".claude/skills/linear-todo-sync",
+      "categories": [],
+      "description": "This skill fetches open tasks assigned to the user from the Linear API and generates a markdown todo list file in the project root. This skill should be used when the user asks about their work items, wants to see what they need to work on, or requests to load/sync their Linear tasks. Requires Python 3.7+, requests, mdutils, and python-dotenv packages. Requires LINEAR_API_KEY in .env file.",
+      "description_ja": "Linear Todo Sync"
+    },
+    {
+      "name": "linear-automation",
+      "source": "composio-awesome",
+      "path": "linear-automation",
+      "categories": [],
+      "description": "Automate Linear tasks via Rube MCP (Composio): issues, projects, cycles, teams, labels. Always search tools first for current schemas.",
+      "description_ja": ""
+    },
+    {
+      "name": "linkedin-automation",
+      "source": "composio-awesome",
+      "path": "linkedin-automation",
+      "categories": [],
+      "description": "Automate LinkedIn tasks via Rube MCP (Composio): create posts, manage profile, company info, comments, and image uploads. Always search tools first for current schemas.",
+      "description_ja": ""
+    },
+    {
+      "name": "mailchimp-automation",
+      "source": "composio-awesome",
+      "path": "mailchimp-automation",
+      "categories": [],
+      "description": "Automate Mailchimp email marketing including campaigns, audiences, subscribers, segments, and analytics via Rube MCP (Composio). Always search tools first for current schemas.",
+      "description_ja": ""
+    },
+    {
+      "name": "make-automation",
+      "source": "composio-awesome",
+      "path": "make-automation",
+      "categories": [],
+      "description": "Automate Make (Integromat) tasks via Rube MCP (Composio): operations, enums, language and timezone lookups. Always search tools first for current schemas.",
+      "description_ja": ""
+    },
+    {
+      "name": "make-repo-contribution",
+      "source": "github-awesome-copilot",
+      "path": "skills/make-repo-contribution",
+      "categories": [],
+      "description": "All changes to code must follow the guidance documented in the repository. Before any issue is filed, branch is made, commits generated, or pull request (or PR) created, a search must be done to ensure the right steps are followed. Whenever asked to create an issue, commit messages, to push code, or create a PR, use this skill so everything is done correctly.",
+      "description_ja": ""
+    },
+    {
+      "name": "make-skill-template",
+      "source": "github-awesome-copilot",
+      "path": "skills/make-skill-template",
+      "categories": [],
+      "description": "Create new Agent Skills for GitHub Copilot from prompts or by duplicating this template. Use when asked to \"create a skill\", \"make a new skill\", \"scaffold a skill\", or when building specialized AI capabilities with bundled resources. Generates SKILL.md files with proper frontmatter, directory structure, and optional scripts/references/assets folders.",
+      "description_ja": "Make Skill Template"
+    },
+    {
+      "name": "markdown-to-html",
+      "source": "github-awesome-copilot",
+      "path": "skills/markdown-to-html",
+      "categories": [],
+      "description": "Convert Markdown files to HTML similar to `marked.js`, `pandoc`, `gomarkdown/markdown`, or similar tools; or writing custom script to convert markdown to html and/or working on web template systems like `jekyll/jekyll`, `gohugoio/hugo`, or similar web templating systems that utilize markdown documents, converting them to html. Use when asked to \"convert markdown to html\", \"transform md to html\", \"render markdown\", \"generate html from markdown\", or when working with .md files and/or web a templating system that converts markdown to HTML output. Supports CLI and Node.js workflows with GFM, CommonMark, and standard Markdown flavors.",
+      "description_ja": ""
+    },
+    {
+      "name": "mcp-builder",
+      "source": "anthropics-skills",
+      "path": "skills/mcp-builder",
+      "categories": [],
+      "description": "Guide for creating high-quality MCP (Model Context Protocol) servers that enable LLMs to interact with external services through well-designed tools. Use when building MCP servers to integrate external APIs or services, whether in Python (FastMCP) or Node/TypeScript (MCP SDK).",
+      "description_ja": "Build MCP (Model Context Protocol) servers"
+    },
+    {
+      "name": "mcp-cli",
+      "source": "github-awesome-copilot",
+      "path": "skills/mcp-cli",
+      "categories": [],
+      "description": "Interface for MCP (Model Context Protocol) servers via CLI. Use when you need to interact with external tools, APIs, or data sources through MCP servers, list available MCP servers/tools, or call MCP tools from command line.",
+      "description_ja": "Mcp Cli"
+    },
+    {
+      "name": "meeting-insights-analyzer",
+      "source": "composio-awesome",
+      "path": "meeting-insights-analyzer",
+      "categories": [
+        "community"
+      ],
+      "description": "Analyzes meeting transcripts and recordings to uncover behavioral patterns, communication insights, and actionable feedback. Identifies when you avoid conflict, use filler words, dominate conversations, or miss opportunities to listen. Perfect for professionals seeking to improve their communication and leadership skills.",
+      "description_ja": "Analyze meeting insights"
+    },
+    {
+      "name": "meeting-minutes",
+      "source": "github-awesome-copilot",
+      "path": "skills/meeting-minutes",
+      "categories": [],
+      "description": "Generate concise, actionable meeting minutes for internal meetings. Includes metadata, attendees, agenda, decisions, action items (owner + due date), and follow-up steps.",
+      "description_ja": ""
+    },
+    {
+      "name": "memory-systems",
+      "source": "context-engineering-skills",
+      "path": "skills/memory-systems",
+      "categories": [],
+      "description": "This skill should be used when the user asks to \"implement agent memory\", \"persist state across sessions\", \"build knowledge graph\", \"track entities\", or mentions memory architecture, temporal knowledge graphs, vector stores, entity memory, or cross-session persistence.",
+      "description_ja": "Memory system design"
+    },
+    {
+      "name": "microsoft-code-reference",
+      "source": "github-awesome-copilot",
+      "path": "skills/microsoft-code-reference",
+      "categories": [],
+      "description": "Look up Microsoft API references, find working code samples, and verify SDK code is correct. Use when working with Azure SDKs, .NET libraries, or Microsoft APIs—to find the right method, check parameters, get working examples, or troubleshoot errors. Catches hallucinated methods, wrong signatures, and deprecated patterns by querying official docs.",
+      "description_ja": "Microsoft Code Reference"
+    },
+    {
+      "name": "microsoft-docs",
+      "source": "github-awesome-copilot",
+      "path": "skills/microsoft-docs",
+      "categories": [],
+      "description": "Query official Microsoft documentation to understand concepts, find tutorials, and learn how services work. Use for Azure, .NET, Microsoft 365, Windows, Power Platform, and all Microsoft technologies. Get accurate, current information from learn.microsoft.com and other official Microsoft websites—architecture overviews, quickstarts, configuration guides, limits, and best practices.",
+      "description_ja": "Microsoft Docs"
+    },
+    {
+      "name": "microsoft-teams-automation",
+      "source": "composio-awesome",
+      "path": "microsoft-teams-automation",
+      "categories": [],
+      "description": "Automate Microsoft Teams tasks via Rube MCP (Composio): send messages, manage channels, create meetings, handle chats, and search messages. Always search tools first for current schemas.",
+      "description_ja": ""
+    },
+    {
+      "name": "miro-automation",
+      "source": "composio-awesome",
+      "path": "miro-automation",
+      "categories": [],
+      "description": "Automate Miro tasks via Rube MCP (Composio): boards, items, sticky notes, frames, sharing, connectors. Always search tools first for current schemas.",
+      "description_ja": ""
+    },
+    {
+      "name": "mixpanel-automation",
+      "source": "composio-awesome",
+      "path": "mixpanel-automation",
+      "categories": [],
+      "description": "Automate Mixpanel tasks via Rube MCP (Composio): events, segmentation, funnels, cohorts, user profiles, JQL queries. Always search tools first for current schemas.",
+      "description_ja": ""
+    },
+    {
+      "name": "monday-automation",
+      "source": "composio-awesome",
+      "path": "monday-automation",
+      "categories": [],
+      "description": "Automate Monday.com work management including boards, items, columns, groups, subitems, and updates via Rube MCP (Composio). Always search tools first for current schemas.",
+      "description_ja": ""
+    },
+    {
+      "name": "multi-agent-patterns",
+      "source": "context-engineering-skills",
+      "path": "skills/multi-agent-patterns",
+      "categories": [],
+      "description": "This skill should be used when the user asks to \"design multi-agent system\", \"implement supervisor pattern\", \"create swarm architecture\", \"coordinate multiple agents\", or mentions multi-agent patterns, context isolation, agent handoffs, sub-agents, or parallel agent execution.",
+      "description_ja": "Multi-agent design patterns"
+    },
+    {
+      "name": "netlify-deploy",
+      "source": "openai-skills",
+      "path": "skills/.curated/netlify-deploy",
+      "categories": [],
+      "description": "Deploy web projects to Netlify using the Netlify CLI (`npx netlify`). Use when the user asks to deploy, host, publish, or link a site/repo on Netlify, including preview and production deploys.",
+      "description_ja": ""
+    },
+    {
+      "name": "notion-automation",
+      "source": "composio-awesome",
+      "path": "notion-automation",
+      "categories": [],
+      "description": "Automate Notion tasks via Rube MCP (Composio): pages, databases, blocks, comments, users. Always search tools first for current schemas.",
+      "description_ja": ""
+    },
+    {
+      "name": "notion-knowledge-capture",
+      "source": "openai-skills",
+      "path": "skills/.curated/notion-knowledge-capture",
+      "categories": [],
+      "description": "Capture conversations and decisions into structured Notion pages; use when turning chats/notes into wiki entries, how-tos, decisions, or FAQs with proper linking.",
+      "description_ja": "Notion Knowledge Capture"
+    },
+    {
+      "name": "notion-meeting-intelligence",
+      "source": "openai-skills",
+      "path": "skills/.curated/notion-meeting-intelligence",
+      "categories": [],
+      "description": "Prepare meeting materials with Notion context and Codex research; use when gathering context, drafting agendas/pre-reads, and tailoring materials to attendees.",
+      "description_ja": "Notion Meeting Intelligence"
+    },
+    {
+      "name": "notion-research-documentation",
+      "source": "openai-skills",
+      "path": "skills/.curated/notion-research-documentation",
+      "categories": [],
+      "description": "Research across Notion and synthesize into structured documentation; use when gathering info from multiple Notion sources to produce briefs, comparisons, or reports with citations.",
+      "description_ja": "Notion Research Documentation"
+    },
+    {
+      "name": "notion-spec-to-implementation",
+      "source": "openai-skills",
+      "path": "skills/.curated/notion-spec-to-implementation",
+      "categories": [],
+      "description": "Turn Notion specs into implementation plans, tasks, and progress tracking; use when implementing PRDs/feature specs and creating Notion plans + tasks from them.",
+      "description_ja": "Notion Spec To Implementation"
+    },
+    {
+      "name": "nuget-manager",
+      "source": "github-awesome-copilot",
+      "path": "skills/nuget-manager",
+      "categories": [],
+      "description": "Manage NuGet packages in .NET projects/solutions. Use this skill when adding, removing, or updating NuGet package versions. It enforces using `dotnet` CLI for package management and provides strict procedures for direct file edits only when updating versions.",
+      "description_ja": "Nuget Manager"
+    },
+    {
+      "name": "one-drive-automation",
+      "source": "composio-awesome",
+      "path": "one-drive-automation",
+      "categories": [],
+      "description": "Automate OneDrive file management, search, uploads, downloads, sharing, permissions, and folder operations via Rube MCP (Composio). Always search tools first for current schemas.",
+      "description_ja": ""
+    },
+    {
+      "name": "openai-docs",
+      "source": "openai-skills",
+      "path": "skills/.curated/openai-docs",
+      "categories": [],
+      "description": "Use when the user asks how to build with OpenAI products or APIs and needs up-to-date official documentation with citations (for example: Codex, Responses API, Chat Completions, Apps SDK, Agents SDK, Realtime, model capabilities or limits); prioritize OpenAI docs MCP tools and restrict any fallback browsing to official OpenAI domains.",
+      "description_ja": ""
+    },
+    {
+      "name": "orchestrating-swarms",
+      "source": "compound-engineering",
+      "path": "plugins/compound-engineering/skills/orchestrating-swarms",
+      "categories": [],
+      "description": "This skill should be used when orchestrating multi-agent swarms using Claude Code's TeammateTool and Task system. It applies when coordinating multiple agents, running parallel code reviews, creating pipeline workflows with dependencies, building self-organizing task queues, or any task benefiting from divide-and-conquer patterns.",
+      "description_ja": ""
+    },
+    {
+      "name": "OSINT",
+      "source": "pai-packs",
+      "path": "Packs/pai-osint-skill/src/skills",
+      "categories": [],
+      "description": "Open source intelligence gathering. USE WHEN OSINT, due diligence, background check, research person, company intel, investigate.",
+      "description_ja": "OSINT"
+    },
+    {
+      "name": "outlook-automation",
+      "source": "composio-awesome",
+      "path": "outlook-automation",
+      "categories": [],
+      "description": "Automate Outlook tasks via Rube MCP (Composio): emails, calendar, contacts, folders, attachments. Always search tools first for current schemas.",
+      "description_ja": ""
+    },
+    {
+      "name": "outlook-calendar-automation",
+      "source": "composio-awesome",
+      "path": "outlook-calendar-automation",
+      "categories": [],
+      "description": "Automate Outlook Calendar tasks via Rube MCP (Composio): create events, manage attendees, find meeting times, and handle invitations. Always search tools first for current schemas.",
+      "description_ja": ""
+    },
+    {
+      "name": "pagerduty-automation",
+      "source": "composio-awesome",
+      "path": "pagerduty-automation",
+      "categories": [],
+      "description": "Automate PagerDuty tasks via Rube MCP (Composio): manage incidents, services, schedules, escalation policies, and on-call rotations. Always search tools first for current schemas.",
+      "description_ja": ""
+    },
+    {
+      "name": "PAI",
+      "source": "pai-packs",
+      "path": "Releases/v2.5/.claude/skills/PAI",
+      "categories": [],
+      "description": "🔨 GENERATED FILE - Do not edit directly",
+      "description_ja": ""
+    },
+    {
+      "name": "PAIUpgrade",
+      "source": "pai-packs",
+      "path": "Releases/v2.3/.claude/skills/PAIUpgrade",
+      "categories": [],
+      "description": "Extract system improvements from content AND monitor external sources (Anthropic ecosystem, YouTube). USE WHEN upgrade, improve system, system upgrade, analyze for improvements, check Anthropic, Anthropic changes, new Claude features, check YouTube, new videos. SkillSearch('upgrade') for docs.",
+      "description_ja": "PAIUpgrade"
+    },
+    {
+      "name": "pdf",
+      "source": "anthropics-skills",
+      "path": "skills/pdf",
+      "categories": [],
+      "description": "Use this skill whenever the user wants to do anything with PDF files. This includes reading or extracting text/tables from PDFs, combining or merging multiple PDFs into one, splitting PDFs apart, rotating pages, adding watermarks, creating new PDFs, filling PDF forms, encrypting/decrypting PDFs, extracting images, and OCR on scanned PDFs to make them searchable. If the user mentions a .pdf file or asks to produce one, use this skill.",
+      "description_ja": "Process PDF files"
+    },
+    {
+      "name": "penpot-uiux-design",
+      "source": "github-awesome-copilot",
+      "path": "skills/penpot-uiux-design",
+      "categories": [],
+      "description": "Comprehensive guide for creating professional UI/UX designs in Penpot using MCP tools. Use this skill when: (1) Creating new UI/UX designs for web, mobile, or desktop applications, (2) Building design systems with components and tokens, (3) Designing dashboards, forms, navigation, or landing pages, (4) Applying accessibility standards and best practices, (5) Following platform guidelines (iOS, Android, Material Design), (6) Reviewing or improving existing Penpot designs for usability. Triggers: \"design a UI\", \"create interface\", \"build layout\", \"design dashboard\", \"create form\", \"design landing page\", \"make it accessible\", \"design system\", \"component library\".",
+      "description_ja": ""
+    },
+    {
+      "name": "pipedrive-automation",
+      "source": "composio-awesome",
+      "path": "pipedrive-automation",
+      "categories": [],
+      "description": "Automate Pipedrive CRM operations including deals, contacts, organizations, activities, notes, and pipeline management via Rube MCP (Composio). Always search tools first for current schemas.",
+      "description_ja": ""
+    },
+    {
+      "name": "plantuml-ascii",
+      "source": "github-awesome-copilot",
+      "path": "skills/plantuml-ascii",
+      "categories": [],
+      "description": "Generate ASCII art diagrams using PlantUML text mode. Use when user asks to create ASCII diagrams, text-based diagrams, terminal-friendly diagrams, or mentions plantuml ascii, text diagram, ascii art diagram. Supports: Converting PlantUML diagrams to ASCII art, Creating sequence diagrams, class diagrams, flowcharts in ASCII format, Generating Unicode-enhanced ASCII art with -utxt flag",
+      "description_ja": "Plantuml Ascii"
+    },
+    {
+      "name": "playwright",
+      "source": "openai-skills",
+      "path": "skills/.curated/playwright",
+      "categories": [],
+      "description": "Use when the task requires automating a real browser from the terminal (navigation, form filling, snapshots, screenshots, data extraction, UI-flow debugging) via `playwright-cli` or the bundled wrapper script.",
+      "description_ja": ""
+    },
+    {
+      "name": "posthog-automation",
+      "source": "composio-awesome",
+      "path": "posthog-automation",
+      "categories": [],
+      "description": "Automate PostHog tasks via Rube MCP (Composio): events, feature flags, projects, user profiles, annotations. Always search tools first for current schemas.",
+      "description_ja": ""
+    },
+    {
+      "name": "postmark-automation",
+      "source": "composio-awesome",
+      "path": "postmark-automation",
+      "categories": [],
+      "description": "Automate Postmark email delivery tasks via Rube MCP (Composio): send templated emails, manage templates, monitor delivery stats and bounces. Always search tools first for current schemas.",
+      "description_ja": ""
+    },
+    {
+      "name": "powerbi-modeling",
+      "source": "github-awesome-copilot",
+      "path": "skills/powerbi-modeling",
+      "categories": [],
+      "description": "Power BI semantic modeling assistant for building optimized data models. Use when working with Power BI semantic models, creating measures, designing star schemas, configuring relationships, implementing RLS, or optimizing model performance. Triggers on queries about DAX calculations, table relationships, dimension/fact table design, naming conventions, model documentation, cardinality, cross-filter direction, calculation groups, and data model best practices. Always connects to the active model first using power-bi-modeling MCP tools to understand the data structure before providing guidance.",
+      "description_ja": ""
+    },
+    {
+      "name": "pptx",
+      "source": "anthropics-skills",
+      "path": "skills/pptx",
+      "categories": [],
+      "description": "Use this skill any time a .pptx file is involved in any way — as input, output, or both. This includes: creating slide decks, pitch decks, or presentations; reading, parsing, or extracting text from any .pptx file (even if the extracted content will be used elsewhere, like in an email or summary); editing, modifying, or updating existing presentations; combining or splitting slide files; working with templates, layouts, speaker notes, or comments. Trigger whenever the user mentions \\\"deck,\\\" \\\"slides,\\\" \\\"presentation,\\\" or references a .pptx filename, regardless of what they plan to do with the content afterward. If a .pptx file needs to be opened, created, or touched, use this skill.",
+      "description_ja": "Process PowerPoint presentations (.pptx)"
+    },
+    {
+      "name": "prd",
+      "source": "github-awesome-copilot",
+      "path": "skills/prd",
+      "categories": [],
+      "description": "Generate high-quality Product Requirements Documents (PRDs) for software systems and AI-powered features. Includes executive summaries, user stories, technical specifications, and risk analysis.",
+      "description_ja": "Prd"
+    },
+    {
+      "name": "PrivateInvestigator",
+      "source": "pai-packs",
+      "path": "Packs/pai-privateinvestigator-skill/src/skills/PrivateInvestigator",
+      "categories": [],
+      "description": "Ethical people-finding. USE WHEN find person, locate, reconnect, people search, skip trace. SkillSearch('privateinvestigator') for docs.",
+      "description_ja": "PrivateInvestigator"
+    },
+    {
+      "name": "project-development",
+      "source": "context-engineering-skills",
+      "path": "skills/project-development",
+      "categories": [],
+      "description": "This skill should be used when the user asks to \"start an LLM project\", \"design batch pipeline\", \"evaluate task-model fit\", \"structure agent project\", or mentions pipeline architecture, agent-assisted development, cost estimation, or choosing between LLM and traditional approaches.",
+      "description_ja": "Project development workflow"
+    },
+    {
+      "name": "Prompting",
+      "source": "pai-packs",
+      "path": "Packs/pai-prompting-skill/src/skills/Prompting",
+      "categories": [],
+      "description": "Meta-prompting system for dynamic prompt generation using templates, standards, and patterns. USE WHEN meta-prompting, template generation, prompt optimization, or programmatic prompt composition.",
+      "description_ja": "Prompting"
+    },
+    {
+      "name": "PromptInjection",
+      "source": "pai-packs",
+      "path": "Releases/v2.4/.claude/skills/PromptInjection",
+      "categories": [],
+      "description": "Prompt injection testing. USE WHEN prompt injection, jailbreak, LLM security, AI security assessment, pentest AI application, test chatbot vulnerabilities.",
+      "description_ja": "PromptInjection"
+    },
+    {
+      "name": "prp-core-runner",
+      "source": "prps-agentic",
+      "path": ".claude/skills/prp-core-runner",
+      "categories": [],
+      "description": "Orchestrate complete PRP workflow from feature request to pull request. Run create branch, create PRP, execute implementation, commit changes, and create PR in sequence. Use when implementing features using PRP methodology or when user requests full PRP workflow.",
+      "description_ja": ""
+    },
+    {
+      "name": "prp-ralph-loop",
+      "source": "prps-agentic",
+      "path": "plugins/prp-core/skills/prp-ralph-loop",
+      "categories": [],
+      "description": "Autonomous iteration execution guide for PRP Ralph loops. Use when .claude/prp-ralph.state.md exists, when continuing Ralph iterations, or when executing plans autonomously until all validations pass. Provides iteration behavior, completion protocol, validation requirements, and progress logging.",
+      "description_ja": ""
+    },
+    {
+      "name": "raffle-winner-picker",
+      "source": "composio-awesome",
+      "path": "raffle-winner-picker",
+      "categories": [
+        "community"
+      ],
+      "description": "Picks random winners from lists, spreadsheets, or Google Sheets for giveaways, raffles, and contests. Ensures fair, unbiased selection with transparency.",
+      "description_ja": "Pick raffle winners randomly"
+    },
+    {
+      "name": "rclone",
+      "source": "compound-engineering",
+      "path": "plugins/compound-engineering/skills/rclone",
+      "categories": [],
+      "description": "Upload, sync, and manage files across cloud storage providers using rclone. Use when uploading files (images, videos, documents) to S3, Cloudflare R2, Backblaze B2, Google Drive, Dropbox, or any S3-compatible storage. Triggers on \"upload to S3\", \"sync to cloud\", \"rclone\", \"backup files\", \"upload video/image to bucket\", or requests to transfer files to remote storage.",
+      "description_ja": "Rclone"
+    },
+    {
+      "name": "reasoning-trace-optimizer",
+      "source": "context-engineering-skills",
+      "path": "examples/interleaved_thinking",
+      "categories": [],
+      "description": "Debug and optimize AI agents by analyzing reasoning traces. Activates on 'debug agent', 'optimize prompt', 'analyze reasoning', 'why did the agent fail', 'improve agent performance', or when diagnosing agent failures and context degradation.",
+      "description_ja": "Reasoning Trace Optimizer"
+    },
+    {
+      "name": "receiving-code-review",
+      "source": "obra-superpowers",
+      "path": "skills/receiving-code-review",
+      "categories": [],
+      "description": "Use when receiving code review feedback, before implementing suggestions, especially if feedback seems unclear or technically questionable - requires technical rigor and verification, not performative agreement or blind implementation",
+      "description_ja": "Receiving Code Review"
+    },
+    {
+      "name": "Recon",
+      "source": "pai-packs",
+      "path": "Packs/pai-recon-skill/src/skills",
+      "categories": [],
+      "description": "Security reconnaissance. USE WHEN recon, reconnaissance, bug bounty, attack surface. SkillSearch('recon') for docs.",
+      "description_ja": "Recon"
+    },
+    {
+      "name": "reddit-automation",
+      "source": "composio-awesome",
+      "path": "reddit-automation",
+      "categories": [],
+      "description": "Automate Reddit tasks via Rube MCP (Composio): search subreddits, create posts, manage comments, and browse top content. Always search tools first for current schemas.",
+      "description_ja": ""
+    },
+    {
+      "name": "RedTeam",
+      "source": "pai-packs",
+      "path": "Packs/pai-redteam-skill/src/skills/RedTeam",
+      "categories": [],
+      "description": "Adversarial analysis with 32 agents. USE WHEN red team, attack idea, counterarguments, critique, stress test. SkillSearch('redteam') for docs.",
+      "description_ja": "RedTeam"
+    },
+    {
+      "name": "refactor",
+      "source": "github-awesome-copilot",
+      "path": "skills/refactor",
+      "categories": [],
+      "description": "Surgical code refactoring to improve maintainability without changing behavior. Covers extracting functions, renaming variables, breaking down god functions, improving type safety, eliminating code smells, and applying design patterns. Less drastic than repo-rebuilder; use for gradual improvements.",
+      "description_ja": "Refactor"
+    },
+    {
+      "name": "render-automation",
+      "source": "composio-awesome",
+      "path": "render-automation",
+      "categories": [],
+      "description": "Automate Render tasks via Rube MCP (Composio): services, deployments, projects. Always search tools first for current schemas.",
+      "description_ja": ""
+    },
+    {
+      "name": "render-deploy",
+      "source": "openai-skills",
+      "path": "skills/.curated/render-deploy",
+      "categories": [],
+      "description": "Deploy applications to Render by analyzing codebases, generating render.yaml Blueprints, and providing Dashboard deeplinks. Use when the user wants to deploy, host, publish, or set up their application on Render's cloud platform.",
+      "description_ja": ""
+    },
+    {
+      "name": "requesting-code-review",
+      "source": "obra-superpowers",
+      "path": "skills/requesting-code-review",
+      "categories": [],
+      "description": "Use when completing tasks, implementing major features, or before merging to verify work meets requirements",
+      "description_ja": "Requesting Code Review"
+    },
+    {
+      "name": "Research",
+      "source": "pai-packs",
+      "path": "Packs/pai-research-skill/src/skills/Research",
+      "categories": [],
+      "description": "Comprehensive research, analysis, and content extraction system. USE WHEN user says 'do research', 'do extensive research', 'quick research', 'minor research', 'research this', 'find information', 'investigate', 'extract wisdom', 'extract alpha', 'analyze content', 'can't get this content', 'use fabric', OR requests any web/content research. Supports three research modes (quick/standard/extensive), deep content analysis, intelligent retrieval, and 242+ Fabric patterns. NOTE: For due diligence, OSINT, or background checks, use OSINT skill instead.",
+      "description_ja": "Research"
+    },
+    {
+      "name": "salesforce-automation",
+      "source": "composio-awesome",
+      "path": "salesforce-automation",
+      "categories": [],
+      "description": "Automate Salesforce tasks via Rube MCP (Composio): leads, contacts, accounts, opportunities, SOQL queries. Always search tools first for current schemas.",
+      "description_ja": ""
+    },
+    {
+      "name": "scoutqa-test",
+      "source": "github-awesome-copilot",
+      "path": "skills/scoutqa-test",
+      "categories": [],
+      "description": "|",
+      "description_ja": ""
+    },
+    {
+      "name": "screenshot",
+      "source": "openai-skills",
+      "path": "skills/.curated/screenshot",
+      "categories": [],
+      "description": "Use when the user explicitly asks for a desktop or system screenshot (full screen, specific app or window, or a pixel region), or when tool-specific capture capabilities are unavailable and an OS-level capture is needed.",
+      "description_ja": "Screenshot"
+    },
+    {
+      "name": "SECUpdates",
+      "source": "pai-packs",
+      "path": "Releases/v2.4/.claude/skills/SECUpdates",
+      "categories": [],
+      "description": "Security news aggregation from tldrsec, no.security, and other sources. USE WHEN security news, security updates, what's new in security, breaches, security research, sec updates. SkillSearch('secupdates') for docs.",
+      "description_ja": "SECUpdates"
+    },
+    {
+      "name": "security-best-practices",
+      "source": "openai-skills",
+      "path": "skills/.curated/security-best-practices",
+      "categories": [],
+      "description": "Perform language and framework specific security best-practice reviews and suggest improvements. Trigger only when the user explicitly requests security best practices guidance, a security review/report, or secure-by-default coding help. Trigger only for supported languages (python, javascript/typescript, go). Do not trigger for general code review, debugging, or non-security tasks.",
+      "description_ja": ""
+    },
+    {
+      "name": "security-ownership-map",
+      "source": "openai-skills",
+      "path": "skills/.curated/security-ownership-map",
+      "categories": [],
+      "description": "Analyze git repositories to build a security ownership topology (people-to-file), compute bus factor and sensitive-code ownership, and export CSV/JSON for graph databases and visualization. Trigger only when the user explicitly wants a security-oriented ownership or bus-factor analysis grounded in git history (for example: orphaned sensitive code, security maintainers, CODEOWNERS reality checks for risk, sensitive hotspots, or ownership clusters). Do not trigger for general maintainer lists or non-security ownership questions.",
+      "description_ja": ""
+    },
+    {
+      "name": "security-threat-model",
+      "source": "openai-skills",
+      "path": "skills/.curated/security-threat-model",
+      "categories": [],
+      "description": "Repository-grounded threat modeling that enumerates trust boundaries, assets, attacker capabilities, abuse paths, and mitigations, and writes a concise Markdown threat model. Trigger only when the user explicitly asks to threat model a codebase or path, enumerate threats/abuse paths, or perform AppSec threat modeling. Do not trigger for general architecture summaries, code review, or non-security design work.",
+      "description_ja": ""
+    },
+    {
+      "name": "segment-automation",
+      "source": "composio-awesome",
+      "path": "segment-automation",
+      "categories": [],
+      "description": "Automate Segment tasks via Rube MCP (Composio): track events, identify users, manage groups, page views, aliases, batch operations. Always search tools first for current schemas.",
+      "description_ja": ""
+    },
+    {
+      "name": "sendgrid-automation",
+      "source": "composio-awesome",
+      "path": "sendgrid-automation",
+      "categories": [],
+      "description": "Automate SendGrid email operations including sending emails, managing contacts/lists, sender identities, templates, and analytics via Rube MCP (Composio). Always search tools first for current schemas.",
+      "description_ja": ""
+    },
+    {
+      "name": "sentry",
+      "source": "openai-skills",
+      "path": "skills/.curated/sentry",
+      "categories": [],
+      "description": "Use when the user asks to inspect Sentry issues or events, summarize recent production errors, or pull basic Sentry health data via the Sentry API; perform read-only queries with the bundled script and require `SENTRY_AUTH_TOKEN`.",
+      "description_ja": ""
+    },
+    {
+      "name": "sentry-automation",
+      "source": "composio-awesome",
+      "path": "sentry-automation",
+      "categories": [],
+      "description": "Automate Sentry tasks via Rube MCP (Composio): manage issues/events, configure alerts, track releases, monitor projects and teams. Always search tools first for current schemas.",
+      "description_ja": ""
+    },
+    {
+      "name": "shopify-automation",
+      "source": "composio-awesome",
+      "path": "shopify-automation",
+      "categories": [],
+      "description": "Automate Shopify tasks via Rube MCP (Composio): products, orders, customers, inventory, collections. Always search tools first for current schemas.",
+      "description_ja": ""
+    },
+    {
+      "name": "skill-creator",
+      "source": "anthropics-skills",
+      "path": "skills/skill-creator",
+      "categories": [],
+      "description": "Guide for creating effective skills. This skill should be used when users want to create a new skill (or update an existing skill) that extends Claude's capabilities with specialized knowledge, workflows, or tool integrations.",
+      "description_ja": "Create new agent skills"
+    },
+    {
+      "name": "skill-installer",
+      "source": "openai-skills",
+      "path": "skills/.system/skill-installer",
+      "categories": [],
+      "description": "Install Codex skills into $CODEX_HOME/skills from a curated list or a GitHub repo path. Use when a user asks to list installable skills, install a curated skill, or install a skill from another repo (including private repos).",
+      "description_ja": "Skill Installer"
+    },
+    {
+      "name": "skill-one",
+      "source": "compound-engineering",
+      "path": "tests/fixtures/sample-plugin/skills/skill-one",
+      "categories": [],
+      "description": "Sample skill",
+      "description_ja": "Skill One"
+    },
+    {
+      "name": "skill-share",
+      "source": "composio-awesome",
+      "path": "skill-share",
+      "categories": [
+        "community"
+      ],
+      "description": "A skill that creates new Claude skills and automatically shares them on Slack using Rube for seamless team collaboration and skill discovery.",
+      "description_ja": "Share skills across teams"
+    },
+    {
+      "name": "skill-template",
+      "source": "context-engineering-skills",
+      "path": "template",
+      "categories": [],
+      "description": "Template for creating new Agent Skills for context engineering. Use this template when adding new skills to the collection.",
+      "description_ja": "Skill Template"
+    },
+    {
+      "name": "slack-automation",
+      "source": "composio-awesome",
+      "path": "slack-automation",
+      "categories": [],
+      "description": "Automate Slack messaging, channel management, search, reactions, and threads via Rube MCP (Composio). Send messages, search conversations, manage channels/users, and react to messages programmatically.",
+      "description_ja": ""
+    },
+    {
+      "name": "slack-gif-creator",
+      "source": "anthropics-skills",
+      "path": "skills/slack-gif-creator",
+      "categories": [],
+      "description": "Knowledge and utilities for creating animated GIFs optimized for Slack. Provides constraints, validation tools, and animation concepts. Use when users request animated GIFs for Slack like \"make me a GIF of X doing Y for Slack.",
+      "description_ja": "Create GIFs for Slack"
+    },
+    {
+      "name": "snowflake-semanticview",
+      "source": "github-awesome-copilot",
+      "path": "skills/snowflake-semanticview",
+      "categories": [],
+      "description": "Create, alter, and validate Snowflake semantic views using Snowflake CLI (snow). Use when asked to build or troubleshoot semantic views/semantic layer definitions with CREATE/ALTER SEMANTIC VIEW, to validate semantic-view DDL against Snowflake via CLI, or to guide Snowflake CLI installation and connection setup.",
+      "description_ja": "Snowflake Semanticview"
+    },
+    {
+      "name": "sora",
+      "source": "openai-skills",
+      "path": "skills/.curated/sora",
+      "categories": [],
+      "description": "Use when the user asks to generate, remix, poll, list, download, or delete Sora videos via OpenAI\\u2019s video API using the bundled CLI (`scripts/sora.py`), including requests like \\u201cgenerate AI video,\\u201d \\u201cSora,\\u201d \\u201cvideo remix,\\u201d \\u201cdownload video/thumbnail/spritesheet,\\u201d and batch video generation; requires `OPENAI_API_KEY` and Sora API access.",
+      "description_ja": "Sora"
+    },
+    {
+      "name": "speech",
+      "source": "openai-skills",
+      "path": "skills/.curated/speech",
+      "categories": [],
+      "description": "Use when the user asks for text-to-speech narration or voiceover, accessibility reads, audio prompts, or batch speech generation via the OpenAI Audio API; run the bundled CLI (`scripts/text_to_speech.py`) with built-in voices and require `OPENAI_API_KEY` for live calls. Custom voice creation is out of scope.",
+      "description_ja": "Speech"
+    },
+    {
+      "name": "spreadsheet",
+      "source": "openai-skills",
+      "path": "skills/.curated/spreadsheet",
+      "categories": [],
+      "description": "Use when tasks involve creating, editing, analyzing, or formatting spreadsheets (`.xlsx`, `.csv`, `.tsv`) using Python (`openpyxl`, `pandas`), especially when formulas, references, and formatting need to be preserved and verified.",
+      "description_ja": "Spreadsheet"
+    },
+    {
+      "name": "square-automation",
+      "source": "composio-awesome",
+      "path": "square-automation",
+      "categories": [],
+      "description": "Automate Square tasks via Rube MCP (Composio): payments, orders, invoices, locations. Always search tools first for current schemas.",
+      "description_ja": ""
+    },
+    {
+      "name": "stripe-automation",
+      "source": "composio-awesome",
+      "path": "stripe-automation",
+      "categories": [],
+      "description": "Automate Stripe tasks via Rube MCP (Composio): customers, charges, subscriptions, invoices, products, refunds. Always search tools first for current schemas.",
+      "description_ja": ""
+    },
+    {
+      "name": "subagent-driven-development",
+      "source": "obra-superpowers",
+      "path": "skills/subagent-driven-development",
+      "categories": [],
+      "description": "Use when executing implementation plans with independent tasks in the current session",
+      "description_ja": "Subagent Driven Development"
+    },
+    {
+      "name": "supabase-automation",
+      "source": "composio-awesome",
+      "path": "supabase-automation",
+      "categories": [],
+      "description": "Automate Supabase database queries, table management, project administration, storage, edge functions, and SQL execution via Rube MCP (Composio). Always search tools first for current schemas.",
+      "description_ja": ""
+    },
+    {
+      "name": "System",
+      "source": "pai-packs",
+      "path": "Packs/pai-system-skill/src/skills/System",
+      "categories": [],
+      "description": "System maintenance with four core operations - integrity check (find/fix broken references), document session (current transcript), document recent (catch-up since last update), git push (git commit + push). Plus security workflows. USE WHEN integrity check, audit system, document session, document this session, document today, document recent, catch up docs, what's undocumented, git push, commit and push, check for secrets, security scan, privacy check, cross-repo validation, OR asking about past work (\"we just worked on\", \"remember when we\").",
+      "description_ja": "System"
+    },
+    {
+      "name": "systematic-debugging",
+      "source": "obra-superpowers",
+      "path": "skills/systematic-debugging",
+      "categories": [],
+      "description": "Use when encountering any bug, test failure, or unexpected behavior, before proposing fixes",
+      "description_ja": "Systematic Debugging"
+    },
+    {
+      "name": "tailored-resume-generator",
+      "source": "composio-awesome",
+      "path": "tailored-resume-generator",
+      "categories": [
+        "community"
+      ],
+      "description": "Analyzes job descriptions and generates tailored resumes that highlight relevant experience, skills, and achievements to maximize interview chances",
+      "description_ja": "Tailored Resume Generator"
+    },
+    {
+      "name": "telegram-automation",
+      "source": "composio-awesome",
+      "path": "telegram-automation",
+      "categories": [],
+      "description": "Automate Telegram tasks via Rube MCP (Composio): send messages, manage chats, share photos/documents, and handle bot commands. Always search tools first for current schemas.",
+      "description_ja": ""
+    },
+    {
+      "name": "Telos",
+      "source": "pai-packs",
+      "path": "Packs/pai-telos-skill/src",
+      "categories": [],
+      "description": "Life OS and project analysis. USE WHEN TELOS, life goals, projects, dependencies, books, movies. SkillSearch('telos') for docs.",
+      "description_ja": "Telos"
+    },
+    {
+      "name": "template-skill",
+      "source": "anthropics-skills",
+      "path": "template",
+      "categories": [],
+      "description": "Replace with description of the skill and when Claude should use it.",
+      "description_ja": "Template for creating new skills"
+    },
+    {
+      "name": "terraform-azurerm-set-diff-analyzer",
+      "source": "github-awesome-copilot",
+      "path": "skills/terraform-azurerm-set-diff-analyzer",
+      "categories": [],
+      "description": "Analyze Terraform plan JSON output for AzureRM Provider to distinguish between false-positive diffs (order-only changes in Set-type attributes) and actual resource changes. Use when reviewing terraform plan output for Azure resources like Application Gateway, Load Balancer, Firewall, Front Door, NSG, and other resources with Set-type attributes that cause spurious diffs due to internal ordering changes.",
+      "description_ja": ""
+    },
+    {
+      "name": "test-driven-development",
+      "source": "obra-superpowers",
+      "path": "skills/test-driven-development",
+      "categories": [],
+      "description": "Use when implementing any feature or bugfix, before writing implementation code",
+      "description_ja": "Test-driven development (TDD)"
+    },
+    {
+      "name": "THEALGORITHM",
+      "source": "pai-packs",
+      "path": "Packs/pai-algorithm-skill/src/skills/THEALGORITHM",
+      "categories": [],
+      "description": "Universal execution engine using scientific method to achieve ideal state. USE WHEN complex tasks, multi-step work, \"run the algorithm\", \"use the algorithm\", OR any non-trivial request that benefits from structured execution with ISC (Ideal State Criteria) tracking.",
+      "description_ja": "THEALGORITHM"
+    },
+    {
+      "name": "theme-factory",
+      "source": "anthropics-skills",
+      "path": "skills/theme-factory",
+      "categories": [],
+      "description": "Toolkit for styling artifacts with a theme. These artifacts can be slides, docs, reportings, HTML landing pages, etc. There are 10 pre-set themes with colors/fonts that you can apply to any artifact that has been creating, or can generate a new theme on-the-fly.",
+      "description_ja": "Create and manage themes"
+    },
+    {
+      "name": "tiktok-automation",
+      "source": "composio-awesome",
+      "path": "tiktok-automation",
+      "categories": [],
+      "description": "Automate TikTok tasks via Rube MCP (Composio): upload/publish videos, post photos, manage content, and view user profiles/stats. Always search tools first for current schemas.",
+      "description_ja": ""
+    },
+    {
+      "name": "todoist-automation",
+      "source": "composio-awesome",
+      "path": "todoist-automation",
+      "categories": [],
+      "description": "Automate Todoist task management, projects, sections, filtering, and bulk operations via Rube MCP (Composio). Always search tools first for current schemas.",
+      "description_ja": ""
+    },
+    {
+      "name": "tool-design",
+      "source": "context-engineering-skills",
+      "path": "skills/tool-design",
+      "categories": [],
+      "description": "This skill should be used when the user asks to \"design agent tools\", \"create tool descriptions\", \"reduce tool complexity\", \"implement MCP tools\", or mentions tool consolidation, architectural reduction, tool naming conventions, or agent-tool interfaces.",
+      "description_ja": "Design agent tools"
+    },
+    {
+      "name": "transcribe",
+      "source": "openai-skills",
+      "path": "skills/.curated/transcribe",
+      "categories": [],
+      "description": "Transcribe audio files to text with optional diarization and known-speaker hints. Use when a user asks to transcribe speech from audio/video, extract text from recordings, or label speakers in interviews or meetings.",
+      "description_ja": ""
+    },
+    {
+      "name": "trello-automation",
+      "source": "composio-awesome",
+      "path": "trello-automation",
+      "categories": [],
+      "description": "Automate Trello boards, cards, and workflows via Rube MCP (Composio). Create cards, manage lists, assign members, and search across boards programmatically.",
+      "description_ja": ""
+    },
+    {
+      "name": "twitter-algorithm-optimizer",
+      "source": "composio-awesome",
+      "path": "twitter-algorithm-optimizer",
+      "categories": [
+        "community"
+      ],
+      "description": "Analyze and optimize tweets for maximum reach using Twitter's open-source algorithm insights. Rewrite and edit user tweets to improve engagement and visibility based on how the recommendation system ranks content.",
+      "description_ja": "Twitter Algorithm Optimizer"
+    },
+    {
+      "name": "twitter-automation",
+      "source": "composio-awesome",
+      "path": "twitter-automation",
+      "categories": [],
+      "description": "Automate Twitter/X tasks via Rube MCP (Composio): posts, search, users, bookmarks, lists, media. Always search tools first for current schemas.",
+      "description_ja": ""
+    },
+    {
+      "name": "using-git-worktrees",
+      "source": "obra-superpowers",
+      "path": "skills/using-git-worktrees",
+      "categories": [],
+      "description": "Use when starting feature work that needs isolation from current workspace or before executing implementation plans - creates isolated git worktrees with smart directory selection and safety verification",
+      "description_ja": "Using Git Worktrees"
+    },
+    {
+      "name": "using-superpowers",
+      "source": "obra-superpowers",
+      "path": "skills/using-superpowers",
+      "categories": [],
+      "description": "Use when starting any conversation - establishes how to find and use skills, requiring Skill tool invocation before ANY response including clarifying questions",
+      "description_ja": "Using Superpowers"
+    },
+    {
+      "name": "vercel-automation",
+      "source": "composio-awesome",
+      "path": "vercel-automation",
+      "categories": [],
+      "description": "Automate Vercel tasks via Rube MCP (Composio): manage deployments, domains, DNS, env vars, projects, and teams. Always search tools first for current schemas.",
+      "description_ja": ""
+    },
+    {
+      "name": "vercel-deploy",
+      "source": "openai-skills",
+      "path": "skills/.curated/vercel-deploy",
+      "categories": [],
+      "description": "Deploy applications and websites to Vercel. Use when the user requests deployment actions like \"deploy my app\", \"deploy and give me the link\", \"push this live\", or \"create a preview deployment\".",
+      "description_ja": ""
+    },
+    {
+      "name": "verification-before-completion",
+      "source": "obra-superpowers",
+      "path": "skills/verification-before-completion",
+      "categories": [],
+      "description": "Use when about to claim work is complete, fixed, or passing, before committing or creating PRs - requires running verification commands and confirming output before making any success claims; evidence before assertions always",
+      "description_ja": "Verification Before Completion"
+    },
+    {
+      "name": "VoiceServer",
+      "source": "pai-packs",
+      "path": "Releases/v2.4/.claude/skills/VoiceServer",
+      "categories": [],
+      "description": "Voice server management. USE WHEN voice server, TTS server, voice notification, prosody.",
+      "description_ja": "VoiceServer"
+    },
+    {
+      "name": "vscode-ext-commands",
+      "source": "github-awesome-copilot",
+      "path": "skills/vscode-ext-commands",
+      "categories": [],
+      "description": "Guidelines for contributing commands in VS Code extensions. Indicates naming convention, visibility, localization and other relevant attributes, following VS Code extension development guidelines, libraries and good practices",
+      "description_ja": "Vscode Ext Commands"
+    },
+    {
+      "name": "vscode-ext-localization",
+      "source": "github-awesome-copilot",
+      "path": "skills/vscode-ext-localization",
+      "categories": [],
+      "description": "Guidelines for proper localization of VS Code extensions, following VS Code extension development guidelines, libraries and good practices",
+      "description_ja": "Vscode Ext Localization"
+    },
+    {
+      "name": "web-artifacts-builder",
+      "source": "anthropics-skills",
+      "path": "skills/web-artifacts-builder",
+      "categories": [],
+      "description": "Suite of tools for creating elaborate, multi-component claude.ai HTML artifacts using modern frontend web technologies (React, Tailwind CSS, shadcn/ui). Use for complex artifacts requiring state management, routing, or shadcn/ui components - not for simple single-file HTML/JSX artifacts.",
+      "description_ja": "Build web artifacts and components"
+    },
+    {
+      "name": "web-design-reviewer",
+      "source": "github-awesome-copilot",
+      "path": "skills/web-design-reviewer",
+      "categories": [],
+      "description": "This skill enables visual inspection of websites running locally or remotely to identify and fix design issues. Triggers on requests like \"review website design\", \"check the UI\", \"fix the layout\", \"find design problems\". Detects issues with responsive design, accessibility, visual consistency, and layout breakage, then performs fixes at the source code level.",
+      "description_ja": "Web Design Reviewer"
+    },
+    {
+      "name": "webapp-testing",
+      "source": "anthropics-skills",
+      "path": "skills/webapp-testing",
+      "categories": [],
+      "description": "Toolkit for interacting with and testing local web applications using Playwright. Supports verifying frontend functionality, debugging UI behavior, capturing browser screenshots, and viewing browser logs.",
+      "description_ja": "Test web applications"
+    },
+    {
+      "name": "WebAssessment",
+      "source": "pai-packs",
+      "path": "Releases/v2.4/.claude/skills/WebAssessment",
+      "categories": [],
+      "description": "Web security assessment. USE WHEN web assessment, pentest, security testing, vulnerability scan. SkillSearch('webassessment') for docs.",
+      "description_ja": "WebAssessment"
+    },
+    {
+      "name": "webflow-automation",
+      "source": "composio-awesome",
+      "path": "webflow-automation",
+      "categories": [],
+      "description": "Automate Webflow CMS collections, site publishing, page management, asset uploads, and ecommerce orders via Rube MCP (Composio). Always search tools first for current schemas.",
+      "description_ja": ""
+    },
+    {
+      "name": "whatsapp-automation",
+      "source": "composio-awesome",
+      "path": "whatsapp-automation",
+      "categories": [],
+      "description": "Automate WhatsApp Business tasks via Rube MCP (Composio): send messages, manage templates, upload media, and handle contacts. Always search tools first for current schemas.",
+      "description_ja": ""
+    },
+    {
+      "name": "winapp-cli",
+      "source": "github-awesome-copilot",
+      "path": "skills/winapp-cli",
+      "categories": [],
+      "description": "Windows App Development CLI (winapp) for building, packaging, and deploying Windows applications. Use when asked to initialize Windows app projects, create MSIX packages, generate AppxManifest.xml, manage development certificates, add package identity for debugging, sign packages, or access Windows SDK build tools. Supports .NET, C++, Electron, Rust, Tauri, and cross-platform frameworks targeting Windows.",
+      "description_ja": ""
+    },
+    {
+      "name": "workiq-copilot",
+      "source": "github-awesome-copilot",
+      "path": "skills/workiq-copilot",
+      "categories": [],
+      "description": "Guides the Copilot CLI on how to use the WorkIQ CLI/MCP server to query Microsoft 365 Copilot data (emails, meetings, docs, Teams, people) for live context, summaries, and recommendations.",
+      "description_ja": ""
+    },
+    {
+      "name": "wrike-automation",
+      "source": "composio-awesome",
+      "path": "wrike-automation",
+      "categories": [],
+      "description": "Automate Wrike project management via Rube MCP (Composio): create tasks/folders, manage projects, assign work, and track progress. Always search tools first for current schemas.",
+      "description_ja": ""
+    },
+    {
+      "name": "writing-plans",
+      "source": "obra-superpowers",
+      "path": "skills/writing-plans",
+      "categories": [],
+      "description": "Use when you have a spec or requirements for a multi-step task, before touching code",
+      "description_ja": "Writing Plans"
+    },
+    {
+      "name": "writing-skills",
+      "source": "obra-superpowers",
+      "path": "skills/writing-skills",
+      "categories": [],
+      "description": "Use when creating new skills, editing existing skills, or verifying skills work before deployment",
+      "description_ja": "Writing Skills"
+    },
+    {
+      "name": "xlsx",
+      "source": "anthropics-skills",
+      "path": "skills/xlsx",
+      "categories": [],
+      "description": "Use this skill any time a spreadsheet file is the primary input or output. This means any task where the user wants to: open, read, edit, or fix an existing .xlsx, .xlsm, .csv, or .tsv file (e.g., adding columns, computing formulas, formatting, charting, cleaning messy data); create a new spreadsheet from scratch or from other data sources; or convert between tabular file formats. Trigger especially when the user references a spreadsheet file by name or path — even casually (like \\\"the xlsx in my downloads\\\") — and wants something done to it or produced from it. Also trigger for cleaning or restructuring messy tabular data files (malformed rows, misplaced headers, junk data) into proper spreadsheets. The deliverable must be a spreadsheet file. Do NOT trigger when the primary deliverable is a Word document, HTML report, standalone Python script, database pipeline, or Google Sheets API integration, even if tabular data is involved.",
+      "description_ja": "Process Excel spreadsheets (.xlsx)"
+    },
+    {
+      "name": "yeet",
+      "source": "openai-skills",
+      "path": "skills/.curated/yeet",
+      "categories": [],
+      "description": "Use only when the user explicitly asks to stage, commit, push, and open a GitHub pull request in one flow using the GitHub CLI (`gh`).",
+      "description_ja": "Yeet"
+    },
+    {
+      "name": "youtube-automation",
+      "source": "composio-awesome",
+      "path": "youtube-automation",
+      "categories": [],
+      "description": "Automate YouTube tasks via Rube MCP (Composio): upload videos, manage playlists, search content, get analytics, and handle comments. Always search tools first for current schemas.",
+      "description_ja": ""
+    },
+    {
+      "name": "youtube-downloader",
+      "source": "composio-awesome",
+      "path": "video-downloader",
+      "categories": [],
+      "description": "Download YouTube videos with customizable quality and format options. Use this skill when the user asks to download, save, or grab YouTube videos. Supports various quality settings (best, 1080p, 720p, 480p, 360p), multiple formats (mp4, webm, mkv), and audio-only downloads as MP3.",
+      "description_ja": ""
+    },
+    {
+      "name": "zendesk-automation",
+      "source": "composio-awesome",
+      "path": "zendesk-automation",
+      "categories": [],
+      "description": "Automate Zendesk tasks via Rube MCP (Composio): tickets, users, organizations, replies. Always search tools first for current schemas.",
+      "description_ja": ""
+    },
+    {
+      "name": "zoho-crm-automation",
+      "source": "composio-awesome",
+      "path": "zoho-crm-automation",
+      "categories": [],
+      "description": "Automate Zoho CRM tasks via Rube MCP (Composio): create/update records, search contacts, manage leads, and convert leads. Always search tools first for current schemas.",
+      "description_ja": ""
+    },
+    {
+      "name": "zoom-automation",
+      "source": "composio-awesome",
+      "path": "zoom-automation",
+      "categories": [],
+      "description": "Automate Zoom meeting creation, management, recordings, webinars, and participant tracking via Rube MCP (Composio). Always search tools first for current schemas.",
+      "description_ja": ""
     }
   ]
 }
