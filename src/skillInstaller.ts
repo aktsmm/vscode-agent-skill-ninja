@@ -1352,9 +1352,8 @@ async function fetchFileContent(url: string, token?: string): Promise<string> {
       `HTTP ${response.status}: ${response.statusText} (URL: ${url})`,
     );
   }
+  // 空ファイル（例: Python の __init__.py）も正常なので、
+  // HTTP 200 が返れば内容が空でもエラーにしない
   const text = await response.text();
-  if (!text || text.trim().length === 0) {
-    throw new Error(`Empty response from ${url}`);
-  }
   return text;
 }
