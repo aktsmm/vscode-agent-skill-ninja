@@ -874,10 +874,10 @@ async function extractNameAndDescriptionFromSkillMd(
   try {
     const content = await vscode.workspace.fs.readFile(skillMdUri);
     const text = Buffer.from(content).toString("utf-8");
-        const normalizedText = normalizeNewlines(text);
+    const normalizedText = normalizeNewlines(text);
 
     // frontmatter を解析
-        const frontmatterMatch = normalizedText.match(/^---\n([\s\S]*?)\n---/);
+    const frontmatterMatch = normalizedText.match(/^---\n([\s\S]*?)\n---/);
     if (frontmatterMatch) {
       const frontmatter = frontmatterMatch[1];
 
@@ -895,11 +895,11 @@ async function extractNameAndDescriptionFromSkillMd(
     }
 
     // frontmatter がない場合は # ヘッダーから name を抽出
-        const headerMatch = normalizedText.match(/^#\s+(.+)$/m);
+    const headerMatch = normalizedText.match(/^#\s+(.+)$/m);
     if (headerMatch) {
       const name = headerMatch[1].trim();
       // 2行目以降で説明文を探す（空行を除く）
-          const lines = normalizedText.split("\n").slice(1);
+      const lines = normalizedText.split("\n").slice(1);
       let description = "";
       for (const line of lines) {
         const trimmed = line.trim();
@@ -938,10 +938,10 @@ async function extractMetadataFromSkillMd(
   try {
     const content = await vscode.workspace.fs.readFile(skillMdUri);
     const text = Buffer.from(content).toString("utf-8");
-        const normalizedText = normalizeNewlines(text);
+    const normalizedText = normalizeNewlines(text);
 
     // frontmatter を解析
-        const frontmatterMatch = normalizedText.match(/^---\n([\s\S]*?)\n---/);
+    const frontmatterMatch = normalizedText.match(/^---\n([\s\S]*?)\n---/);
     if (frontmatterMatch) {
       const frontmatter = frontmatterMatch[1];
 
@@ -1050,10 +1050,10 @@ async function extractDescriptionFromSkillMd(
   try {
     const content = await vscode.workspace.fs.readFile(skillMdUri);
     const text = Buffer.from(content).toString("utf-8");
-        const normalizedText = normalizeNewlines(text);
+    const normalizedText = normalizeNewlines(text);
 
     // frontmatter を解析
-        const frontmatterMatch = normalizedText.match(/^---\n([\s\S]*?)\n---/);
+    const frontmatterMatch = normalizedText.match(/^---\n([\s\S]*?)\n---/);
     if (!frontmatterMatch) {
       return "";
     }
@@ -1091,11 +1091,11 @@ async function extractWhenToUseFromSkillMd(
  * @returns 抽出された When to Use 文字列（最大200文字）
  */
 export function parseWhenToUseFromText(text: string): string {
-    const normalizedText = normalizeNewlines(text);
+  const normalizedText = normalizeNewlines(text);
   // "When to Use" セクションを検出（英語・日本語対応）
   // 終了条件: 次の ## セクション、--- 区切り、または EOF
   // m フラグを使わず \n## で行頭をマッチさせる（$ がマルチラインで各行末にマッチするのを防ぐ）
-    const sectionMatch = normalizedText.match(
+  const sectionMatch = normalizedText.match(
     /\n##\s*(When to Use|When To Use|いつ使うか|使用タイミング|Usage|使い方)\s*\n([\s\S]*?)(?=\n##\s|\n---\n|\n*$)/i,
   );
 
@@ -1106,10 +1106,10 @@ export function parseWhenToUseFromText(text: string): string {
   } else {
     // フォールバック: # タイトルの次の段落を抽出
     // frontmatter をスキップ
-      let bodyText = normalizedText;
-      const frontmatterMatch = normalizedText.match(/^---\n[\s\S]*?\n---\n*/);
+    let bodyText = normalizedText;
+    const frontmatterMatch = normalizedText.match(/^---\n[\s\S]*?\n---\n*/);
     if (frontmatterMatch) {
-        bodyText = normalizedText.substring(frontmatterMatch[0].length);
+      bodyText = normalizedText.substring(frontmatterMatch[0].length);
     }
 
     // # タイトル行を見つけて、その後の最初の段落を取得

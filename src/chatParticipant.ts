@@ -29,7 +29,7 @@ async function getSkillIndex(): Promise<SkillIndex> {
 
 /** Chat Participant のリクエストハンドラー */
 export function createChatParticipant(
-  context: vscode.ExtensionContext
+  context: vscode.ExtensionContext,
 ): vscode.ChatParticipant {
   // コンテキストをキャッシュ
   indexContext = context;
@@ -37,7 +37,7 @@ export function createChatParticipant(
   // Chat Participant を作成
   const participant = vscode.chat.createChatParticipant(
     "skill",
-    handleChatRequest
+    handleChatRequest,
   );
 
   // アイコン設定
@@ -63,7 +63,7 @@ async function handleChatRequest(
   request: vscode.ChatRequest,
   _context: vscode.ChatContext,
   stream: vscode.ChatResponseStream,
-  token: vscode.CancellationToken
+  token: vscode.CancellationToken,
 ): Promise<vscode.ChatResult> {
   const command = request.command;
   const query = request.prompt.trim();
@@ -84,7 +84,7 @@ async function handleChatRequest(
     }
   } catch (error) {
     stream.markdown(
-      `❌ Error: ${error instanceof Error ? error.message : String(error)}`
+      `❌ Error: ${error instanceof Error ? error.message : String(error)}`,
     );
     return { errorDetails: { message: String(error) } };
   }
@@ -94,11 +94,11 @@ async function handleChatRequest(
 async function handleSearch(
   query: string,
   stream: vscode.ChatResponseStream,
-  _token: vscode.CancellationToken
+  _token: vscode.CancellationToken,
 ): Promise<vscode.ChatResult> {
   if (!query) {
     stream.markdown(
-      "🔍 **Please provide a search query**\n\nExample: `/search MCP server` or `/search github tools`"
+      "🔍 **Please provide a search query**\n\nExample: `/search MCP server` or `/search github tools`",
     );
     return {};
   }
@@ -114,14 +114,14 @@ async function handleSearch(
         skill.name.toLowerCase().includes(lowerQuery) ||
         skill.description?.toLowerCase().includes(lowerQuery) ||
         skill.categories?.some((cat: string) =>
-          cat.toLowerCase().includes(lowerQuery)
-        )
+          cat.toLowerCase().includes(lowerQuery),
+        ),
     )
     .slice(0, 10);
 
   if (results.length === 0) {
     stream.markdown(
-      `🔍 No skills found for "${query}"\n\nTry a different search term.`
+      `🔍 No skills found for "${query}"\n\nTry a different search term.`,
     );
     return {};
   }
@@ -156,11 +156,11 @@ async function handleSearch(
 async function handleInstall(
   query: string,
   stream: vscode.ChatResponseStream,
-  _token: vscode.CancellationToken
+  _token: vscode.CancellationToken,
 ): Promise<vscode.ChatResult> {
   if (!query) {
     stream.markdown(
-      "📦 **Please provide a skill name to install**\n\nExample: `/install github-mcp`"
+      "📦 **Please provide a skill name to install**\n\nExample: `/install github-mcp`",
     );
     return {};
   }
@@ -176,7 +176,7 @@ async function handleInstall(
 
   if (!skill) {
     stream.markdown(
-      `❓ Skill "${query}" not found.\n\nUse \`/search ${query}\` to find available skills.`
+      `❓ Skill "${query}" not found.\n\nUse \`/search ${query}\` to find available skills.`,
     );
     return {};
   }
@@ -200,7 +200,7 @@ async function handleInstall(
 
   stream.markdown(`✅ **${skill.name}** has been installed successfully!\n\n`);
   stream.markdown(
-    `📂 Check your \`.github/skills/\` folder for the skill configuration.`
+    `📂 Check your \`.github/skills/\` folder for the skill configuration.`,
   );
 
   return { metadata: { command: "install", skill: skill.name } };
@@ -208,7 +208,7 @@ async function handleInstall(
 
 /** /list コマンド - インストール済みスキル一覧 */
 async function handleList(
-  stream: vscode.ChatResponseStream
+  stream: vscode.ChatResponseStream,
 ): Promise<vscode.ChatResult> {
   const workspaceFolder = vscode.workspace.workspaceFolders?.[0];
   if (!workspaceFolder) {
@@ -220,7 +220,7 @@ async function handleList(
 
   if (installed.length === 0) {
     stream.markdown(
-      "📋 **No skills installed yet**\n\nUse `/search` to find skills or `/recommend` for suggestions."
+      "📋 **No skills installed yet**\n\nUse `/search` to find skills or `/recommend` for suggestions.",
     );
     return {};
   }
@@ -237,7 +237,7 @@ async function handleList(
 /** /recommend コマンド - プロジェクトに基づくスキル推奨 */
 async function handleRecommend(
   stream: vscode.ChatResponseStream,
-  _token: vscode.CancellationToken
+  _token: vscode.CancellationToken,
 ): Promise<vscode.ChatResult> {
   stream.markdown("## 💡 Recommended Skills\n\n");
 
@@ -282,17 +282,17 @@ async function handleRecommend(
     const files = await vscode.workspace.findFiles(
       pattern.glob,
       "**/node_modules/**",
-      1
+      1,
     );
     if (files.length > 0) {
       // カテゴリに該当するスキルを探す
       const matchingSkills = skills.filter(
         (s: Skill) =>
           s.categories?.some((c: string) =>
-            c.toLowerCase().includes(pattern.category)
+            c.toLowerCase().includes(pattern.category),
           ) ||
           s.name.toLowerCase().includes(pattern.category) ||
-          s.description?.toLowerCase().includes(pattern.category)
+          s.description?.toLowerCase().includes(pattern.category),
       );
 
       for (const skill of matchingSkills.slice(0, 2)) {
@@ -326,7 +326,7 @@ async function handleRecommend(
 
 /** 人気スキルを表示 */
 async function showPopularSkills(
-  stream: vscode.ChatResponseStream
+  stream: vscode.ChatResponseStream,
 ): Promise<vscode.ChatResult> {
   const index = await getSkillIndex();
   const skills = index.skills;
@@ -342,7 +342,7 @@ async function showPopularSkills(
     stream.markdown(
       `- **${skill.name}** ⭐ ${skill.stars} - ${
         skill.description || "No description"
-      }\n`
+      }\n`,
     );
   }
 
@@ -353,12 +353,12 @@ async function showPopularSkills(
 async function handleSmartQuery(
   query: string,
   stream: vscode.ChatResponseStream,
-  token: vscode.CancellationToken
+  token: vscode.CancellationToken,
 ): Promise<vscode.ChatResult> {
   if (!query) {
     stream.markdown(`# 🥷 Agent Skills Ninja\n\n`);
     stream.markdown(
-      `I can help you find and manage Agent Skills for GitHub Copilot.\n\n`
+      `I can help you find and manage Agent Skills for GitHub Copilot.\n\n`,
     );
     stream.markdown(`## Commands\n\n`);
     stream.markdown(`- \`/search <query>\` - Search for skills\n`);
@@ -366,7 +366,7 @@ async function handleSmartQuery(
     stream.markdown(`- \`/list\` - List installed skills\n`);
     stream.markdown(`- \`/recommend\` - Get skill recommendations\n\n`);
     stream.markdown(
-      `Or just describe what you need, and I'll find relevant skills!\n`
+      `Or just describe what you need, and I'll find relevant skills!\n`,
     );
     return {};
   }

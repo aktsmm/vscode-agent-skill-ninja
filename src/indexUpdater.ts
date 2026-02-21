@@ -49,10 +49,10 @@ async function mapWithConcurrency<T, R>(
     { length: Math.min(limit, items.length) },
     async () => {
       while (index < items.length) {
-          const currentIndex = index;
-          const current = items[currentIndex];
-          index += 1;
-          results[currentIndex] = await worker(current);
+        const currentIndex = index;
+        const current = items[currentIndex];
+        index += 1;
+        results[currentIndex] = await worker(current);
       }
     },
   );

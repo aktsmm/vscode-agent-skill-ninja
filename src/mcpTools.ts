@@ -384,16 +384,16 @@ class SkillInstallTool implements vscode.LanguageModelTool<{
       ]);
     }
 
-        const context = requireExtContext();
+    const context = requireExtContext();
 
     // インストール実行
     try {
-          await installSkill(skill, workspaceFolder.uri, context);
+      await installSkill(skill, workspaceFolder.uri, context);
 
       // インストラクションファイル (AGENTS.md) を更新（設定で有効な場合のみ）
       const config = vscode.workspace.getConfiguration("skillNinja");
       if (config.get<boolean>("autoUpdateInstruction")) {
-            await updateInstructionFile(workspaceFolder.uri, context);
+        await updateInstructionFile(workspaceFolder.uri, context);
       }
 
       // ツリービューをリフレッシュ
