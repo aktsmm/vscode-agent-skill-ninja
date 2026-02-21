@@ -162,8 +162,9 @@ async function processTree(data, owner, repoName, branch, source) {
  * SKILL.md の frontmatter を解析
  */
 function parseSkillFrontmatter(content, filePath) {
+  const normalizedContent = content.replace(/\r\n/g, "\n");
   // frontmatter を抽出
-  const frontmatterMatch = content.match(/^---\n([\s\S]*?)\n---/);
+  const frontmatterMatch = normalizedContent.match(/^---\n([\s\S]*?)\n---/);
 
   let name = "";
   let description = "";
@@ -212,7 +213,7 @@ function parseSkillFrontmatter(content, filePath) {
 
   // # ヘッダーから name を取得
   if (!name) {
-    const headerMatch = content.match(/^#\s+(.+)$/m);
+    const headerMatch = normalizedContent.match(/^#\s+(.+)$/m);
     if (headerMatch) {
       name = headerMatch[1].trim();
     }
@@ -224,7 +225,7 @@ function parseSkillFrontmatter(content, filePath) {
 
   // description がない場合は本文から抽出
   if (!description) {
-    const lines = content.split("\n");
+    const lines = normalizedContent.split("\n");
     let inFrontmatter = false;
     for (const line of lines) {
       if (line.trim() === "---") {

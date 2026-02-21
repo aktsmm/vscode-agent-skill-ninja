@@ -14,6 +14,52 @@ import { getGitHubToken } from "./githubAuth";
 
 let previewPanel: vscode.WebviewPanel | undefined;
 
+function getNonce(): string {
+  const alphabet =
+    "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
+  let result = "";
+  for (let i = 0; i < 32; i++) {
+    result += alphabet.charAt(Math.floor(Math.random() * alphabet.length));
+  }
+  return result;
+}
+
+function escapeHtml(text: string): string {
+  return text
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
+}
+
+function sanitizeHref(href: string): string {
+  const trimmed = href.trim();
+  if (!trimmed) return "#";
+  if (trimmed.startsWith("#")) return trimmed;
+
+  try {
+    const url = new URL(trimmed);
+    if (
+      url.protocol === "http:" ||
+      url.protocol === "https:" ||
+      url.protocol === "mailto:"
+    ) {
+      return url.toString();
+    }
+  } catch {
+    // Relative URL: allow only safe-ish relative links
+    if (
+      trimmed.startsWith("/") ||
+      trimmed.startsWith("./") ||
+      trimmed.startsWith("../")
+    ) {
+      return trimmed;
+    }
+  }
+  return "#";
+}
+
 /**
  * SKILL.md の内容を取得
  */
@@ -77,33 +123,74 @@ async function fetchSkillContent(
  * Markdown を HTML に変換（シンプルな実装）
  */
 function markdownToHtml(markdown: string): string {
-  let html = markdown
-    // コードブロック
-    .replace(
-      /```(\w*)\n([\s\S]*?)```/g,
-      '<pre><code class="language-$1">$2</code></pre>',
-    )
-    // インラインコード
-    .replace(/`([^`]+)`/g, "<code>$1</code>")
-    // 見出し
+  const normalized = markdown.replace(/\r\n/g, "\n");
+
+  const placeholders = new Map<string, string>();
+  let placeholderId = 0;
+  const makePlaceholder = (html: string): string => {
+    const key = `@@SKILL_NINJA_PH_${placeholderId++}@@`;
+    placeholders.set(key, html);
+    return key;
+  };
+
+  // Code fences first
+  let text = normalized.replace(
+    /```(\w*)\n([\s\S]*?)```/g,
+    (_match, lang: string, code: string) => {
+      const safeLang = escapeHtml(lang);
+      const safeCode = escapeHtml(code);
+      return makePlaceholder(
+        `<pre><code class="language-${safeLang}">${safeCode}</code></pre>`,
+      );
+    },
+  );
+
+  // Inline code
+  text = text.replace(/`([^`]+)`/g, (_match, code: string) => {
+    return makePlaceholder(`<code>${escapeHtml(code)}</code>`);
+  });
+
+  // Links
+  text = text.replace(
+    /\[([^\]]+)\]\(([^)]+)\)/g,
+    (_match, label: string, href: string) => {
+      const safeLabel = escapeHtml(label);
+      const safeHref = escapeHtml(sanitizeHref(href));
+      return makePlaceholder(
+        `<a href="${safeHref}" target="_blank" rel="noopener noreferrer">${safeLabel}</a>`,
+      );
+    },
+  );
+
+  // Escape everything else (prevents raw HTML injection)
+  let html = escapeHtml(text);
+
+  // Headings
+  html = html
     .replace(/^### (.+)$/gm, "<h3>$1</h3>")
     .replace(/^## (.+)$/gm, "<h2>$1</h2>")
-    .replace(/^# (.+)$/gm, "<h1>$1</h1>")
-    // 太字
-    .replace(/\*\*([^*]+)\*\*/g, "<strong>$1</strong>")
-    // 斜体
-    .replace(/\*([^*]+)\*/g, "<em>$1</em>")
-    // リンク
-    .replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2">$1</a>')
-    // リスト
-    .replace(/^- (.+)$/gm, "<li>$1</li>")
-    .replace(/^(\d+)\. (.+)$/gm, "<li>$2</li>")
-    // 段落
-    .replace(/\n\n/g, "</p><p>")
-    // 改行
-    .replace(/\n/g, "<br>");
+    .replace(/^# (.+)$/gm, "<h1>$1</h1>");
 
-  return `<p>${html}</p>`;
+  // Bold / italic
+  html = html
+    .replace(/\*\*([^*]+)\*\*/g, "<strong>$1</strong>")
+    .replace(/\*([^*]+)\*/g, "<em>$1</em>");
+
+  // Lists
+  html = html
+    .replace(/^- (.+)$/gm, "<li>$1</li>")
+    .replace(/^(\d+)\. (.+)$/gm, "<li>$2</li>");
+
+  // Paragraphs / line breaks
+  html = html.replace(/\n\n/g, "</p><p>").replace(/\n/g, "<br>");
+  html = `<p>${html}</p>`;
+
+  // Restore placeholders
+  for (const [key, value] of placeholders.entries()) {
+    html = html.replaceAll(key, value);
+  }
+
+  return html;
 }
 
 /**
@@ -113,6 +200,7 @@ function getWebviewContent(
   skill: Skill,
   content: string,
   isFavorite: boolean,
+  nonce: string,
   isInIndex: boolean = true,
 ): string {
   const htmlContent = markdownToHtml(content);
@@ -154,6 +242,7 @@ function getWebviewContent(
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'none'; img-src https: data:; style-src 'unsafe-inline'; script-src 'nonce-${nonce}';">
   <title>${skill.name}</title>
   <style>
     body {
@@ -284,7 +373,7 @@ function getWebviewContent(
   <div class="content">
     ${htmlContent}
   </div>
-  <script>
+  <script nonce="${nonce}">
     const vscode = acquireVsCodeApi();
     
     function install() {
@@ -363,10 +452,12 @@ export async function showSkillPreview(
     previewPanel.webview.html = `<p>Loading...</p>`;
 
     const content = await fetchSkillContent(skill, sources, token);
+    const nonce = getNonce();
     previewPanel.webview.html = getWebviewContent(
       skill,
       content,
       isFavorite,
+      nonce,
       isInIndex,
     );
 
@@ -491,10 +582,12 @@ export async function showSkillPreview(
               [],
             );
             const newIsFavorite = newFavorites.includes(getSkillId(skill));
+            const newNonce = getNonce();
             previewPanel!.webview.html = getWebviewContent(
               skill,
               content,
               newIsFavorite,
+              newNonce,
               isInIndex,
             );
             break;

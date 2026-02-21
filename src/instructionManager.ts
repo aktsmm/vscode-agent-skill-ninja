@@ -332,11 +332,11 @@ export async function removeSkillSection(
 ): Promise<void> {
   const config = vscode.workspace.getConfiguration("skillNinja");
   let instructionPath =
-    config.get<string>("instructionFile") || ".github/agents.md";
+    config.get<string>("instructionFile") || "AGENTS.md";
 
   if (instructionPath === "custom") {
     instructionPath =
-      config.get<string>("customInstructionPath") || ".github/agents.md";
+      config.get<string>("customInstructionPath") || "AGENTS.md";
   }
 
   const instructionUri = vscode.Uri.joinPath(workspaceUri, instructionPath);

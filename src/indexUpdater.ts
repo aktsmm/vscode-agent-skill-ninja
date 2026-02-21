@@ -42,25 +42,23 @@ async function mapWithConcurrency<T, R>(
   worker: (item: T) => Promise<R | undefined>,
 ): Promise<R[]> {
   if (items.length === 0) return [];
-  const results: R[] = [];
+  const results: Array<R | undefined> = new Array(items.length);
   let index = 0;
 
   const runners = Array.from(
     { length: Math.min(limit, items.length) },
     async () => {
       while (index < items.length) {
-        const current = items[index];
-        index += 1;
-        const result = await worker(current);
-        if (result !== undefined) {
-          results.push(result);
-        }
+          const currentIndex = index;
+          const current = items[currentIndex];
+          index += 1;
+          results[currentIndex] = await worker(current);
       }
     },
   );
 
   await Promise.all(runners);
-  return results;
+  return results.filter((r): r is R => r !== undefined);
 }
 
 /**
@@ -158,9 +156,6 @@ function extractLicenseFromContent(content: string): string | null {
 
   return null;
 }
-
-/**
-export const checkGitHubAuth = checkGitHubAuthShared;
 
 /**
  * GitHub API リクエストを実行（認証付き）

@@ -80,9 +80,10 @@ async function parseLocalSkillFile(
 ): Promise<LocalSkill | null> {
   const content = await vscode.workspace.fs.readFile(fileUri);
   const text = Buffer.from(content).toString("utf8");
+  const normalizedText = text.replace(/\r\n/g, "\n");
 
   // frontmatter を解析
-  const frontmatterMatch = text.match(/^---\n([\s\S]*?)\n---/);
+  const frontmatterMatch = normalizedText.match(/^---\n([\s\S]*?)\n---/);
 
   let name = "";
   let description = "";
@@ -108,7 +109,7 @@ async function parseLocalSkillFile(
 
   // 名前がない場合は # ヘッダーから取得
   if (!name) {
-    const headerMatch = text.match(/^#\s+(.+)$/m);
+    const headerMatch = normalizedText.match(/^#\s+(.+)$/m);
     if (headerMatch) {
       name = headerMatch[1].trim();
     }
@@ -292,12 +293,12 @@ export async function parseInstructionFile(
 export async function registerLocalSkill(
   _skill: LocalSkill,
   workspaceUri: vscode.Uri,
-  context?: vscode.ExtensionContext,
+  context: vscode.ExtensionContext,
 ): Promise<boolean> {
   try {
     // instructionManager の updateInstructionFile を使用
     // これにより、全てのスキル（インストール済み＋ローカル）がマーカー内で管理される
-    await updateInstructionFile(workspaceUri, context!);
+    await updateInstructionFile(workspaceUri, context);
     return true;
   } catch (error) {
     console.error("Failed to register local skill:", error);
@@ -314,7 +315,7 @@ export async function registerLocalSkill(
 export async function unregisterLocalSkill(
   _skill: LocalSkill,
   workspaceUri: vscode.Uri,
-  context?: vscode.ExtensionContext,
+  context: vscode.ExtensionContext,
 ): Promise<boolean> {
   try {
     // 注: 現在の実装では、ローカルスキルは自動的にスキャンされるため、
@@ -324,7 +325,7 @@ export async function unregisterLocalSkill(
     // 暫定: includeLocalSkills が false の場合のみ解除が有効
     const config = vscode.workspace.getConfiguration("skillNinja");
     if (!config.get<boolean>("includeLocalSkills")) {
-      await updateInstructionFile(workspaceUri, context!);
+      await updateInstructionFile(workspaceUri, context);
     }
     return true;
   } catch (error) {

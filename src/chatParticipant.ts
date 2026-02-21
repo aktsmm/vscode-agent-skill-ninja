@@ -11,12 +11,20 @@ import { installSkill, getInstalledSkills } from "./skillInstaller";
 let cachedIndex: SkillIndex | undefined;
 let indexContext: vscode.ExtensionContext | undefined;
 
+function requireIndexContext(): vscode.ExtensionContext {
+  if (!indexContext) {
+    throw new Error("Extension context is not initialized");
+  }
+  return indexContext;
+}
+
 /** スキルインデックスを取得 */
 async function getSkillIndex(): Promise<SkillIndex> {
-  if (!cachedIndex && indexContext) {
-    cachedIndex = await loadSkillIndex(indexContext);
+  const context = requireIndexContext();
+  if (!cachedIndex) {
+    cachedIndex = await loadSkillIndex(context);
   }
-  return cachedIndex!;
+  return cachedIndex;
 }
 
 /** Chat Participant のリクエストハンドラー */
@@ -188,7 +196,7 @@ async function handleInstall(
   stream.progress("Installing...");
 
   // インストール実行
-  await installSkill(skill, workspaceFolder.uri, indexContext!);
+  await installSkill(skill, workspaceFolder.uri, requireIndexContext());
 
   stream.markdown(`✅ **${skill.name}** has been installed successfully!\n\n`);
   stream.markdown(

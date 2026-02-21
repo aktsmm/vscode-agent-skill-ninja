@@ -43,6 +43,14 @@ export interface ToolDetectionResult {
   recommendedInstructionFile: string;
 }
 
+const TOOL_PRIORITY_ORDER: ReadonlyArray<AITool> = [
+  "cursor",
+  "windsurf",
+  "cline",
+  "claude-code",
+  "github-copilot",
+];
+
 /**
  * ワークスペース内の AI ツールを検出
  */
@@ -162,19 +170,11 @@ export async function detectAITools(
     }
   }
 
-  // 推奨フォーマットを決定（優先順位: cursor > windsurf > cline > claude-code > github-copilot）
-  const priorityOrder: AITool[] = [
-    "cursor",
-    "windsurf",
-    "cline",
-    "claude-code",
-    "github-copilot",
-  ];
-
   let recommendedFormat: OutputFormat = "full";
   let recommendedInstructionFile = "AGENTS.md";
 
-  for (const tool of priorityOrder) {
+  // 推奨フォーマットを決定（優先順位: cursor > windsurf > cline > claude-code > github-copilot）
+  for (const tool of TOOL_PRIORITY_ORDER) {
     const detected = detectedTools.find((d) => d.tool === tool);
     if (detected) {
       recommendedFormat = detected.suggestedFormat;
@@ -258,6 +258,13 @@ export async function promptToolSelection(
 
   // 複数のツールが検出された場合は選択させる
   if (result.detectedTools.length > 1) {
+    const recommendedTool = TOOL_PRIORITY_ORDER.find((tool) =>
+      result.detectedTools.some((d) => d.tool === tool),
+    );
+    const recommendedDetected = recommendedTool
+      ? result.detectedTools.find((d) => d.tool === recommendedTool)
+      : undefined;
+
     const items: vscode.QuickPickItem[] = result.detectedTools.map((d) => ({
       label: getToolDisplayName(d.tool),
       description: d.suggestedInstructionFile,
@@ -267,7 +274,7 @@ export async function promptToolSelection(
     // 推奨を先頭に
     items.unshift({
       label: `$(star) Recommended: ${getToolDisplayName(
-        result.detectedTools[0].tool,
+        recommendedDetected?.tool ?? result.detectedTools[0].tool,
       )}`,
       description: result.recommendedInstructionFile,
       detail: "Based on detected configuration",

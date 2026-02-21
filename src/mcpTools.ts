@@ -26,12 +26,20 @@ import { getGitHubToken } from "./githubAuth";
 let cachedIndex: SkillIndex | undefined;
 let extContext: vscode.ExtensionContext | undefined;
 
+function requireExtContext(): vscode.ExtensionContext {
+  if (!extContext) {
+    throw new Error("Extension context is not initialized");
+  }
+  return extContext;
+}
+
 /** スキルインデックスを取得 */
 async function getSkillIndex(): Promise<SkillIndex> {
-  if (!cachedIndex && extContext) {
-    cachedIndex = await loadSkillIndex(extContext);
+  const context = requireExtContext();
+  if (!cachedIndex) {
+    cachedIndex = await loadSkillIndex(context);
   }
-  return cachedIndex!;
+  return cachedIndex;
 }
 
 /**
@@ -376,14 +384,16 @@ class SkillInstallTool implements vscode.LanguageModelTool<{
       ]);
     }
 
+        const context = requireExtContext();
+
     // インストール実行
     try {
-      await installSkill(skill, workspaceFolder.uri, extContext!);
+          await installSkill(skill, workspaceFolder.uri, context);
 
       // インストラクションファイル (AGENTS.md) を更新（設定で有効な場合のみ）
       const config = vscode.workspace.getConfiguration("skillNinja");
       if (config.get<boolean>("autoUpdateInstruction")) {
-        await updateInstructionFile(workspaceFolder.uri, extContext!);
+            await updateInstructionFile(workspaceFolder.uri, context);
       }
 
       // ツリービューをリフレッシュ
@@ -779,7 +789,7 @@ class SkillUninstallTool implements vscode.LanguageModelTool<{
       // インストラクションファイルを更新（設定で有効な場合のみ）
       const config = vscode.workspace.getConfiguration("skillNinja");
       if (config.get<boolean>("autoUpdateInstruction")) {
-        await updateInstructionFile(workspaceFolder.uri, extContext!);
+        await updateInstructionFile(workspaceFolder.uri, requireExtContext());
       }
 
       // ツリービューをリフレッシュ
@@ -1164,7 +1174,7 @@ Try searching for the skill first with skillNinja_search.`,
 
       if (updated) {
         // インデックスを保存
-        await saveSkillIndex(extContext!, index);
+        await saveSkillIndex(requireExtContext(), index);
         cachedIndex = index;
       }
 
