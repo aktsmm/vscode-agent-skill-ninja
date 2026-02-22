@@ -10,3 +10,8 @@ scripts/debug-*.js
 .github/prompts/
 .github/copilot-instructions.md
 # .github/instructions/ はリリース手順を含むためリポジトリに含める
+
+# Copilot agent artifacts (keep local in public repos)
+/research/
+/.github/skills/
+/output_sessions/
