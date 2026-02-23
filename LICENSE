@@ -37,26 +37,6 @@ https://creativecommons.org/licenses/by-nc-sa/4.0/legalcode
 
 ---
 
-日本語（要約）
-
-本リポジトリの内容は CC BY-NC-SA 4.0（表示-非営利-継承 4.0 国際）に基づいて提供されます。
-
-あなたは以下ができます：
-
-- 共有：あらゆる媒体・形式で複製・再配布
-- 改変：リミックス、改変、二次的著作物の作成
-
-ただし、以下の条件があります：
-
-- 表示：適切なクレジット、ライセンスへのリンク、変更有無の明示
-- 非営利：商用目的での利用は禁止
-- 継承：改変した場合、同一ライセンスで配布
-- 追加制限なし：許可される行為を法的/技術的手段で制限してはならない
-
-完全なライセンス本文は上記 URL を参照してください。
-
----
-
 Supplementary Terms
 
 The following supplementary terms apply in addition to the CC BY-NC-SA 4.0
@@ -91,12 +71,20 @@ files in this repository unless otherwise noted.
 
    yamapan (@aktsmm) - https://github.com/aktsmm
 
+5. Commercial Licensing
+
+   For commercial use beyond the scope of this license, please contact:
+   yamapan (@aktsmm) - https://github.com/aktsmm
+
+   Individual use for personal learning and study is welcome and encouraged.
+
 ---
 
 補足条項（日本語）
 
 以下の補足条項は、上記 CC BY-NC-SA 4.0 に加えて適用されます。
-これらの補足条項は著作権者が定めるものであり、特に注記がない限り本リポジトリ内の全ファイルに適用されます。
+これらの補足条項は著作権者が定めるものであり、特に注記がない限り本リポジトリ内の
+全ファイルに適用されます。
 
 1. Microsoft 社員例外
 
@@ -121,3 +109,10 @@ files in this repository unless otherwise noted.
    クレジット表記は、以下の形式を使用してください：
 
    yamapan (@aktsmm) - https://github.com/aktsmm
+
+5. 商用ライセンス
+
+   本ライセンスの範囲を超える商用利用を希望される場合は、以下までご連絡ください：
+   yamapan (@aktsmm) - https://github.com/aktsmm
+
+   個人の学習・研究目的での利用は歓迎します。
