@@ -304,7 +304,8 @@ export async function installSkill(
           }
         } catch (error) {
           console.error(`[Skill Ninja] Failed to download directory:`, error);
-          const errorMsg = error instanceof Error ? error.message : String(error);
+          const errorMsg =
+            error instanceof Error ? error.message : String(error);
 
           // 404エラーの場合はインストールをキャンセル（フォールバック作らない）
           if (errorMsg.includes("404")) {
