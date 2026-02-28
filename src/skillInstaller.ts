@@ -242,10 +242,8 @@ export async function installSkill(
             );
 
             if (choice === updateIndex) {
-              // Update Index from Sources コマンドを実行
-              await vscode.commands.executeCommand(
-                "skillNinja.updateIndexFromSources",
-              );
+              // Update Index コマンドを実行
+              await vscode.commands.executeCommand("skillNinja.updateIndex");
             } else if (choice === reportBug) {
               // バグレポートを作成
               await openBugReport(skill, source, rawUrl, "404 Not Found");
@@ -306,6 +304,41 @@ export async function installSkill(
           }
         } catch (error) {
           console.error(`[Skill Ninja] Failed to download directory:`, error);
+          const errorMsg = error instanceof Error ? error.message : String(error);
+
+          // 404エラーの場合はインストールをキャンセル（フォールバック作らない）
+          if (errorMsg.includes("404")) {
+            // 作成したフォルダを削除
+            try {
+              await vscode.workspace.fs.delete(skillPath, { recursive: true });
+            } catch {
+              // 削除失敗は無視
+            }
+
+            // バグレポートオプションを提供
+            const updateIndex = isJapanese()
+              ? "インデックス更新"
+              : "Update Index";
+            const reportBug = isJapanese() ? "バグ報告" : "Report Bug";
+
+            const choice = await vscode.window.showErrorMessage(
+              isJapanese()
+                ? `スキル "${skill.name}" が見つかりません。\nスキルインデックスの情報が古い可能性があります。`
+                : `Skill "${skill.name}" not found.\nThe skill index may be outdated.`,
+              updateIndex,
+              reportBug,
+            );
+
+            if (choice === updateIndex) {
+              await vscode.commands.executeCommand("skillNinja.updateIndex");
+            } else if (choice === reportBug) {
+              const repoTreeUrl = `https://github.com/${owner}/${repo}/tree/${branch}/${remotePath}`;
+              await openBugReport(skill, source, repoTreeUrl, "404 Not Found");
+            }
+
+            throw new Error(`Skill not found: ${skill.name}`);
+          }
+
           // Don't overwrite SKILL.md with fallback if it was already downloaded
           const skillMdPath = vscode.Uri.joinPath(skillPath, "SKILL.md");
           let skillMdExists = false;
