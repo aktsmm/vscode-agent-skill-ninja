@@ -9,10 +9,12 @@ import {
   Skill,
   Source,
 } from "./skillIndex";
-import messages from "./i18n";
+import messages, { isJapanese } from "./i18n";
 import { getGitHubToken } from "./githubAuth";
 
 let previewPanel: vscode.WebviewPanel | undefined;
+let previewMessageListener: vscode.Disposable | undefined;
+let previewRequestCounter = 0;
 
 function getNonce(): string {
   const alphabet =
@@ -37,6 +39,7 @@ function sanitizeHref(href: string): string {
   const trimmed = href.trim();
   if (!trimmed) return "#";
   if (trimmed.startsWith("#")) return trimmed;
+  if (trimmed.startsWith("//")) return "#";
 
   try {
     const url = new URL(trimmed);
@@ -50,7 +53,7 @@ function sanitizeHref(href: string): string {
   } catch {
     // Relative URL: allow only safe-ish relative links
     if (
-      trimmed.startsWith("/") ||
+      (trimmed.startsWith("/") && !trimmed.startsWith("//")) ||
       trimmed.startsWith("./") ||
       trimmed.startsWith("../")
     ) {
@@ -58,6 +61,145 @@ function sanitizeHref(href: string): string {
     }
   }
   return "#";
+}
+
+function normalizeListMarkup(html: string): string {
+  const lines = html.split("\n");
+  const normalized: string[] = [];
+  let listItems: string[] = [];
+  let currentListType: "ul" | "ol" | undefined;
+
+  const flushList = (): void => {
+    if (listItems.length === 0) {
+      return;
+    }
+    const listTag = currentListType || "ul";
+    normalized.push(`<${listTag}>${listItems.join("")}</${listTag}>`);
+    listItems = [];
+    currentListType = undefined;
+  };
+
+  for (const line of lines) {
+    const trimmed = line.trim();
+    const match = trimmed.match(/^<li(?:\s+data-list="(ul|ol)")?>.*<\/li>$/);
+    if (match) {
+      const listType = (match[1] as "ul" | "ol" | undefined) || "ul";
+
+      if (currentListType && currentListType !== listType) {
+        flushList();
+      }
+
+      currentListType = listType;
+      listItems.push(trimmed.replace(/\s+data-list="(?:ul|ol)"/, ""));
+      continue;
+    }
+    flushList();
+    normalized.push(line);
+  }
+
+  flushList();
+  return normalized.join("\n");
+}
+
+function formatHtmlBlocks(html: string): string {
+  const blockPattern =
+    /(<pre>[\s\S]*?<\/pre>|<ul>[\s\S]*?<\/ul>|<ol>[\s\S]*?<\/ol>|<h[1-3]>[\s\S]*?<\/h[1-3]>)/g;
+  const segments = html
+    .split(blockPattern)
+    .filter((segment) => segment.length > 0);
+
+  return segments
+    .map((segment) => {
+      const trimmed = segment.trim();
+      if (!trimmed) {
+        return "";
+      }
+
+      if (/^<(?:pre|ul|ol|h[1-3])/.test(trimmed)) {
+        return trimmed;
+      }
+
+      return trimmed
+        .split(/\n{2,}/)
+        .filter((paragraph) => paragraph.trim().length > 0)
+        .map((paragraph) => `<p>${paragraph.replace(/\n/g, "<br>")}</p>`)
+        .join("\n");
+    })
+    .filter((segment) => segment.length > 0)
+    .join("\n");
+}
+
+function normalizeOwnerRepo(value: string): string {
+  return value
+    .trim()
+    .toLowerCase()
+    .replace(/\.git$/, "");
+}
+
+function extractOwnerRepoFromSourceUrl(url: string): string | undefined {
+  const match = url.match(/github\.com\/([^/]+\/[^/]+)/i);
+  if (!match) {
+    return undefined;
+  }
+  return normalizeOwnerRepo(match[1]);
+}
+
+function resolveSourceIdFromSourceValue(
+  sourceValue: string,
+  sources: Source[],
+): string | undefined {
+  const directSource = sources.find((source) => source.id === sourceValue);
+  if (directSource) {
+    return directSource.id;
+  }
+
+  if (!sourceValue.includes("/")) {
+    return undefined;
+  }
+
+  const ownerRepo = normalizeOwnerRepo(sourceValue);
+  const matchedSource = sources.find((source) => {
+    const sourceOwnerRepo = extractOwnerRepoFromSourceUrl(source.url);
+    return sourceOwnerRepo === ownerRepo;
+  });
+
+  return matchedSource?.id;
+}
+
+function findIndexedSkill(
+  skill: Skill,
+  indexedSkills: Skill[],
+  sources: Source[],
+): Skill | undefined {
+  const candidateSourceIds = new Set<string>([skill.source]);
+  const resolvedSourceId = resolveSourceIdFromSourceValue(
+    skill.source,
+    sources,
+  );
+  if (resolvedSourceId) {
+    candidateSourceIds.add(resolvedSourceId);
+  }
+
+  const sourceScopedSkills = indexedSkills.filter((indexedSkill) =>
+    candidateSourceIds.has(indexedSkill.source),
+  );
+
+  const matchedByPath = sourceScopedSkills.find(
+    (indexedSkill) =>
+      indexedSkill.name === skill.name && indexedSkill.path === skill.path,
+  );
+  if (matchedByPath) {
+    return matchedByPath;
+  }
+
+  const nameMatches = sourceScopedSkills.filter(
+    (indexedSkill) => indexedSkill.name === skill.name,
+  );
+  if (nameMatches.length === 1) {
+    return nameMatches[0];
+  }
+
+  return undefined;
 }
 
 /**
@@ -122,7 +264,7 @@ async function fetchSkillContent(
 /**
  * Markdown を HTML に変換（シンプルな実装）
  */
-function markdownToHtml(markdown: string): string {
+export function markdownToHtml(markdown: string): string {
   const normalized = markdown.replace(/\r\n/g, "\n");
 
   const placeholders = new Map<string, string>();
@@ -178,19 +320,17 @@ function markdownToHtml(markdown: string): string {
 
   // Lists
   html = html
-    .replace(/^- (.+)$/gm, "<li>$1</li>")
-    .replace(/^(\d+)\. (.+)$/gm, "<li>$2</li>");
+    .replace(/^- (.+)$/gm, '<li data-list="ul">$1</li>')
+    .replace(/^(\d+)\. (.+)$/gm, '<li data-list="ol">$2</li>');
 
-  // Paragraphs / line breaks
-  html = html.replace(/\n\n/g, "</p><p>").replace(/\n/g, "<br>");
-  html = `<p>${html}</p>`;
+  html = normalizeListMarkup(html);
 
   // Restore placeholders
   for (const [key, value] of placeholders.entries()) {
     html = html.replaceAll(key, value);
   }
 
-  return html;
+  return formatHtmlBlocks(html);
 }
 
 /**
@@ -204,13 +344,23 @@ function getWebviewContent(
   isInIndex: boolean = true,
 ): string {
   const htmlContent = markdownToHtml(content);
+  const htmlLang = isJapanese() ? "ja" : "en";
+  const safeSkillName = escapeHtml(skill.name);
+  const safeSource = escapeHtml(skill.source);
+  const safeCategories = skill.categories
+    .map((category) => escapeHtml(category))
+    .join(", ");
+  const safeRequires = skill.requires
+    ?.map((requiredSkill) => escapeHtml(requiredSkill))
+    .join(", ");
+  const safeBundle = skill.bundle ? escapeHtml(skill.bundle) : "";
   const starIcon = isFavorite ? "★" : "☆";
   const starClass = isFavorite ? "favorite" : "";
 
   // インデックスにないスキル（検索結果から）の場合は Add Source ボタンを表示
   const addSourceButton = isInIndex
     ? ""
-    : `<button class="btn-secondary" onclick="addSource()">Add Source</button>`;
+    : `<button class="btn-secondary" onclick="addSource()">${messages.addSourceButtonLabel()}</button>`;
 
   // インデックスにないスキルはお気に入り機能が使えないので非表示
   const favoriteButton = isInIndex
@@ -223,27 +373,27 @@ function getWebviewContent(
   const standaloneWarning =
     skill.standalone === false
       ? `<div class="warning">
-          <strong>⚠️ Warning:</strong> This skill requires other skills to work properly.
+          <strong>${messages.standaloneWarningTitle()}</strong> ${messages.standaloneWarningBody()}
           ${
-            skill.requires?.length
-              ? `<br><strong>Requires:</strong> ${skill.requires.join(", ")}`
+            safeRequires
+              ? `<br><strong>${messages.requiresLabel()}</strong> ${safeRequires}`
               : ""
           }
           ${
-            skill.bundle
-              ? `<br><strong>Bundle:</strong> ${skill.bundle} (Install full bundle recommended)`
+            safeBundle
+              ? `<br><strong>${messages.bundleLabel()}</strong> ${safeBundle} ${messages.bundleInstallRecommended()}`
               : ""
           }
         </div>`
       : "";
 
   return `<!DOCTYPE html>
-<html lang="en">
+<html lang="${htmlLang}">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta http-equiv="Content-Security-Policy" content="default-src 'none'; img-src https: data:; style-src 'unsafe-inline'; script-src 'nonce-${nonce}';">
-  <title>${skill.name}</title>
+  <title>${safeSkillName}</title>
   <style>
     body {
       font-family: var(--vscode-font-family);
@@ -347,26 +497,28 @@ function getWebviewContent(
 </head>
 <body>
   <div class="header">
-    <h1 class="title">${skill.name}</h1>
+    <h1 class="title">${safeSkillName}</h1>
     <div class="actions">
       ${favoriteButton}
       <button class="btn-primary" onclick="install()">
-        Install
+        ${messages.actionInstall()}
       </button>
       ${addSourceButton}
       <button class="btn-primary" onclick="openGitHub()">
-        GitHub
+        ${messages.githubButtonLabel()}
       </button>
     </div>
   </div>
   <div class="meta">
-    <strong>Source:</strong> ${skill.source} | 
-    <strong>Categories:</strong> ${skill.categories.join(", ") || "None"}${
+    <strong>${messages.sourceLabel()}:</strong> ${safeSource} | 
+    <strong>${messages.categoriesLabel()}:</strong> ${safeCategories || messages.noneLabel()}${
       skill.stars
-        ? ` | <strong>Stars:</strong> ⭐ ${skill.stars.toLocaleString()}`
+        ? ` | <strong>${messages.starsLabel()}:</strong> ⭐ ${skill.stars.toLocaleString()}`
         : ""
-    }${skill.isOrg ? " | 🏢 Organization" : ""}${
-      skill.bundle ? ` | <strong>Bundle:</strong> ${skill.bundle}` : ""
+    }${skill.isOrg ? ` | 🏢 ${messages.organizationLabel()}` : ""}${
+      safeBundle
+        ? ` | <strong>${messages.bundleLabel()}:</strong> ${safeBundle}`
+        : ""
     }
   </div>
   ${standaloneWarning}
@@ -417,15 +569,15 @@ export async function showSkillPreview(
   const sources = skillIndex.sources;
 
   // スキルがインデックスに登録されているか確認
-  const isInIndex =
-    skillIndex.skills.some(
-      (s: Skill) => s.name === skill.name && s.source === skill.source,
-    ) || sources.some((s: Source) => s.id === skill.source);
+  const indexedSkill = findIndexedSkill(skill, skillIndex.skills, sources);
+  const installTargetSkill = indexedSkill || skill;
+  const isInIndex = !!indexedSkill;
 
   // お気に入り状態を取得
   const favorites = context.globalState.get<string[]>("favorites", []);
-  const skillId = getSkillId(skill);
+  const skillId = getSkillId(installTargetSkill);
   const isFavorite = favorites.includes(skillId);
+  const requestId = ++previewRequestCounter;
 
   try {
     // 既存のパネルがあれば再利用
@@ -443,17 +595,32 @@ export async function showSkillPreview(
       );
 
       previewPanel.onDidDispose(() => {
+        previewMessageListener?.dispose();
+        previewMessageListener = undefined;
         previewPanel = undefined;
       });
     }
 
+    const activePanel = previewPanel;
+    if (!activePanel) {
+      return;
+    }
+
     // コンテンツを読み込み
-    previewPanel.title = `${messages.previewTitle()}: ${skill.name}`;
-    previewPanel.webview.html = `<p>Loading...</p>`;
+    activePanel.title = `${messages.previewTitle()}: ${skill.name}`;
+    activePanel.webview.html = `<p>${messages.loading()}</p>`;
 
     const content = await fetchSkillContent(skill, sources, token);
+    if (
+      !previewPanel ||
+      activePanel !== previewPanel ||
+      requestId !== previewRequestCounter
+    ) {
+      return;
+    }
+
     const nonce = getNonce();
-    previewPanel.webview.html = getWebviewContent(
+    activePanel.webview.html = getWebviewContent(
       skill,
       content,
       isFavorite,
@@ -462,7 +629,8 @@ export async function showSkillPreview(
     );
 
     // メッセージハンドラー
-    previewPanel.webview.onDidReceiveMessage(
+    previewMessageListener?.dispose();
+    previewMessageListener = activePanel.webview.onDidReceiveMessage(
       async (message) => {
         switch (message.command) {
           case "install": {
@@ -480,7 +648,7 @@ export async function showSkillPreview(
                   repoUrl = sourceInfo.url;
                 } else {
                   vscode.window.showErrorMessage(
-                    `Source not found: ${skill.source}. Please add the source manually.`,
+                    messages.sourceNotFoundInPreview(skill.source),
                   );
                   return;
                 }
@@ -491,9 +659,33 @@ export async function showSkillPreview(
               );
               // ソース追加後、インデックスを再読み込みしてスキルを検索
               const updatedIndex = await loadSkillIndex(context);
-              const installedSkill = updatedIndex.skills.find(
+              const resolvedSourceId = resolveSourceIdFromSourceValue(
+                skill.source,
+                updatedIndex.sources,
+              );
+
+              if (skill.source.includes("/") && !resolvedSourceId) {
+                vscode.window.showWarningMessage(
+                  messages.sourceResolutionFailedInPreview(skill.source),
+                );
+                return;
+              }
+
+              const targetSourceId = resolvedSourceId || skill.source;
+              const sourceScopedSkills = updatedIndex.skills.filter(
+                (s: Skill) => s.source === targetSourceId,
+              );
+
+              const matchedByPath = sourceScopedSkills.find(
+                (s: Skill) => s.name === skill.name && s.path === skill.path,
+              );
+              const nameMatches = sourceScopedSkills.filter(
                 (s: Skill) => s.name === skill.name,
               );
+
+              const installedSkill =
+                matchedByPath ||
+                (nameMatches.length === 1 ? nameMatches[0] : undefined);
               if (installedSkill) {
                 await vscode.commands.executeCommand(
                   "skillNinja.install",
@@ -501,11 +693,14 @@ export async function showSkillPreview(
                 );
               } else {
                 vscode.window.showWarningMessage(
-                  `Skill "${skill.name}" not found after adding source. Please try installing manually.`,
+                  messages.skillNotFoundAfterAddSource(skill.name),
                 );
               }
             } else {
-              await vscode.commands.executeCommand("skillNinja.install", skill);
+              await vscode.commands.executeCommand(
+                "skillNinja.install",
+                installTargetSkill,
+              );
             }
             break;
           }
@@ -523,7 +718,7 @@ export async function showSkillPreview(
                 repoUrl = sourceInfo.url;
               } else {
                 vscode.window.showErrorMessage(
-                  `Source not found: ${skill.source}. Please add the source manually.`,
+                  messages.sourceNotFoundInPreview(skill.source),
                 );
                 return;
               }
@@ -566,7 +761,7 @@ export async function showSkillPreview(
               await vscode.env.openExternal(vscode.Uri.parse(url));
             } else {
               vscode.window.showWarningMessage(
-                `GitHub URL could not be determined for ${skill.name}`,
+                messages.githubUrlNotDetermined(skill.name),
               );
             }
             break;
@@ -574,16 +769,21 @@ export async function showSkillPreview(
           case "toggleFavorite": {
             await vscode.commands.executeCommand(
               "skillNinja.toggleFavorite",
-              skill,
+              installTargetSkill,
             );
             // パネルを更新
             const newFavorites = context.globalState.get<string[]>(
               "favorites",
               [],
             );
-            const newIsFavorite = newFavorites.includes(getSkillId(skill));
+            const newIsFavorite = newFavorites.includes(
+              getSkillId(installTargetSkill),
+            );
             const newNonce = getNonce();
-            previewPanel!.webview.html = getWebviewContent(
+            if (!previewPanel) {
+              return;
+            }
+            previewPanel.webview.html = getWebviewContent(
               skill,
               content,
               newIsFavorite,
@@ -594,10 +794,12 @@ export async function showSkillPreview(
           }
         }
       },
-      undefined,
-      context.subscriptions,
     );
   } catch (error) {
-    vscode.window.showErrorMessage(`Preview failed: ${error}`);
+    if (requestId !== previewRequestCounter || !previewPanel) {
+      return;
+    }
+    previewPanel.webview.html = `<p>${escapeHtml(messages.previewFailed(String(error)))}</p>`;
+    vscode.window.showErrorMessage(messages.previewFailed(String(error)));
   }
 }

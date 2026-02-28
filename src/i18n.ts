@@ -4,7 +4,7 @@
 import * as vscode from "vscode";
 
 // 日本語メッセージ
-const jaMessages: Record<string, string> = {
+const jaMessages = {
   noWorkspace: "ワークスペースを開いてください",
   installSuccess: "✅ {0} をインストールしました",
   installFailed: "インストール失敗: {0}",
@@ -23,6 +23,11 @@ const jaMessages: Record<string, string> = {
   indexUpdated: "✅ インデックスを更新しました ({0} → {1} スキル, {2})",
   updateFailed: "更新失敗: {0}",
   updating: "{0} を更新中...",
+  updateSourceSelectRequired:
+    "Remote Skills ビューから更新するソースを選択してください。",
+  sourceIdNotFound: "ソース ID が見つかりません。",
+  copiedToClipboard: "コピーしました",
+  copiedToClipboardWithValue: "コピーしました: {0}",
   enterRepoUrl: "GitHub リポジトリの URL を入力してください",
   repoUrlPlaceholder: "https://github.com/owner/repo",
   invalidRepoUrl: "有効な GitHub リポジトリ URL を入力してください",
@@ -65,6 +70,27 @@ const jaMessages: Record<string, string> = {
   actionNewSearch: "新しい検索",
   actionBack: "戻る",
   previewTitle: "スキル プレビュー",
+  loading: "読み込み中...",
+  addSourceButtonLabel: "ソース追加",
+  githubButtonLabel: "GitHub",
+  sourceLabel: "ソース",
+  categoriesLabel: "カテゴリ",
+  noneLabel: "なし",
+  starsLabel: "スター",
+  organizationLabel: "組織",
+  standaloneWarningTitle: "⚠️ 警告:",
+  standaloneWarningBody: "このスキルは他のスキルと組み合わせて動作します。",
+  requiresLabel: "必要スキル:",
+  bundleLabel: "バンドル:",
+  bundleInstallRecommended: "（バンドル全体のインストール推奨）",
+  previewFailed: "プレビューに失敗しました: {0}",
+  sourceNotFoundInPreview:
+    "ソースが見つかりません: {0}。手動でソースを追加してください。",
+  sourceResolutionFailedInPreview:
+    "ソースIDを特定できませんでした: {0}。ソース追加後の解決に失敗しました。",
+  skillNotFoundAfterAddSource:
+    'ソース追加後にスキル "{0}" が見つかりませんでした。手動でインストールしてください。',
+  githubUrlNotDetermined: "{0} の GitHub URL を特定できませんでした",
   addToFavorites: "お気に入りに追加",
   removeFromFavorites: "お気に入りから削除",
   favorites: "お気に入り",
@@ -88,10 +114,13 @@ const jaMessages: Record<string, string> = {
   noLocalSkills: "ローカルスキルが見つかりません",
   instructionFileUpdatedOnSettingChange:
     "✅ 設定変更により AGENTS.md を更新しました",
-};
+} as const;
+
+type MessageKey = keyof typeof jaMessages;
+type MessageDictionary = Readonly<Record<MessageKey, string>>;
 
 // 英語メッセージ（デフォルト）
-const enMessages: Record<string, string> = {
+const enMessages: MessageDictionary = {
   noWorkspace: "Please open a workspace",
   installSuccess: "✅ {0} installed successfully",
   installFailed: "Installation failed: {0}",
@@ -110,6 +139,11 @@ const enMessages: Record<string, string> = {
   indexUpdated: "✅ Index updated ({0} → {1} skills, {2})",
   updateFailed: "Update failed: {0}",
   updating: "Updating {0}...",
+  updateSourceSelectRequired:
+    "Please select a source to update from the Remote Skills view.",
+  sourceIdNotFound: "Source ID not found.",
+  copiedToClipboard: "Copied to clipboard",
+  copiedToClipboardWithValue: "Copied: {0}",
   enterRepoUrl: "Enter GitHub repository URL",
   repoUrlPlaceholder: "https://github.com/owner/repo",
   invalidRepoUrl: "Please enter a valid GitHub repository URL",
@@ -152,6 +186,27 @@ const enMessages: Record<string, string> = {
   actionNewSearch: "New Search",
   actionBack: "Back",
   previewTitle: "Skill Preview",
+  loading: "Loading...",
+  addSourceButtonLabel: "Add Source",
+  githubButtonLabel: "GitHub",
+  sourceLabel: "Source",
+  categoriesLabel: "Categories",
+  noneLabel: "None",
+  starsLabel: "Stars",
+  organizationLabel: "Organization",
+  standaloneWarningTitle: "⚠️ Warning:",
+  standaloneWarningBody: "This skill requires other skills to work properly.",
+  requiresLabel: "Requires:",
+  bundleLabel: "Bundle:",
+  bundleInstallRecommended: "(Install full bundle recommended)",
+  previewFailed: "Preview failed: {0}",
+  sourceNotFoundInPreview:
+    "Source not found: {0}. Please add the source manually.",
+  sourceResolutionFailedInPreview:
+    "Unable to resolve source ID after adding source: {0}",
+  skillNotFoundAfterAddSource:
+    'Skill "{0}" not found after adding source. Please try installing manually.',
+  githubUrlNotDetermined: "GitHub URL could not be determined for {0}",
   addToFavorites: "Add to Favorites",
   removeFromFavorites: "Remove from Favorites",
   favorites: "Favorites",
@@ -198,7 +253,7 @@ export function isJapanese(): boolean {
 }
 
 // 現在の言語に応じたメッセージを取得
-function getMessages(): Record<string, string> {
+function getMessages(): MessageDictionary {
   if (isJapanese()) {
     return jaMessages;
   }
@@ -214,9 +269,9 @@ function format(template: string, ...args: (string | number)[]): string {
 }
 
 // ローカライズ関数
-function localize(key: string, ...args: (string | number)[]): string {
+function localize(key: MessageKey, ...args: (string | number)[]): string {
   const messages = getMessages();
-  const template = messages[key] || enMessages[key] || key;
+  const template = messages[key];
   return format(template, ...args);
 }
 
@@ -250,6 +305,11 @@ export const messages = {
     localize("indexUpdated", oldCount, newCount, diff),
   updateFailed: (error: string) => localize("updateFailed", error),
   updating: (name: string) => localize("updating", name),
+  updateSourceSelectRequired: () => localize("updateSourceSelectRequired"),
+  sourceIdNotFound: () => localize("sourceIdNotFound"),
+  copiedToClipboard: () => localize("copiedToClipboard"),
+  copiedToClipboardWithValue: (value: string) =>
+    localize("copiedToClipboardWithValue", value),
 
   // ソース追加
   enterRepoUrl: () => localize("enterRepoUrl"),
@@ -307,6 +367,28 @@ export const messages = {
   actionNewSearch: () => localize("actionNewSearch"),
   actionBack: () => localize("actionBack"),
   previewTitle: () => localize("previewTitle"),
+  loading: () => localize("loading"),
+  addSourceButtonLabel: () => localize("addSourceButtonLabel"),
+  githubButtonLabel: () => localize("githubButtonLabel"),
+  sourceLabel: () => localize("sourceLabel"),
+  categoriesLabel: () => localize("categoriesLabel"),
+  noneLabel: () => localize("noneLabel"),
+  starsLabel: () => localize("starsLabel"),
+  organizationLabel: () => localize("organizationLabel"),
+  standaloneWarningTitle: () => localize("standaloneWarningTitle"),
+  standaloneWarningBody: () => localize("standaloneWarningBody"),
+  requiresLabel: () => localize("requiresLabel"),
+  bundleLabel: () => localize("bundleLabel"),
+  bundleInstallRecommended: () => localize("bundleInstallRecommended"),
+  previewFailed: (error: string) => localize("previewFailed", error),
+  sourceNotFoundInPreview: (source: string) =>
+    localize("sourceNotFoundInPreview", source),
+  sourceResolutionFailedInPreview: (source: string) =>
+    localize("sourceResolutionFailedInPreview", source),
+  skillNotFoundAfterAddSource: (name: string) =>
+    localize("skillNotFoundAfterAddSource", name),
+  githubUrlNotDetermined: (name: string) =>
+    localize("githubUrlNotDetermined", name),
   addToFavorites: () => localize("addToFavorites"),
   removeFromFavorites: () => localize("removeFromFavorites"),
   favorites: () => localize("favorites"),

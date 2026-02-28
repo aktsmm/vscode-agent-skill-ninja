@@ -214,7 +214,7 @@ function mergeSkillIndexes(
   // 既存スキルの説明を更新（description と description_ja をマージ）
   const updatedSkills = localIndex.skills.map((localSkill) => {
     const bundledSkill = bundledIndex.skills.find(
-      (s) => s.name === localSkill.name,
+      (s) => s.name === localSkill.name && s.source === localSkill.source,
     );
     if (bundledSkill) {
       return {

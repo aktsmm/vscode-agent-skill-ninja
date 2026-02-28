@@ -1438,15 +1438,13 @@ export function activate(context: vscode.ExtensionContext) {
     "skillNinja.updateSourceIndex",
     async (item?: SkillTreeItem) => {
       if (!item || item.contextValue !== "source") {
-        vscode.window.showErrorMessage(
-          "Please select a source to update from the Remote Skills view.",
-        );
+        vscode.window.showErrorMessage(messages.updateSourceSelectRequired());
         return;
       }
 
       const sourceId = item.source?.id;
       if (!sourceId) {
-        vscode.window.showErrorMessage("Source ID not found.");
+        vscode.window.showErrorMessage(messages.sourceIdNotFound());
         return;
       }
 
@@ -2400,7 +2398,9 @@ Add examples here
         const branch = source.branch || "main";
         const url = `${source.url}/tree/${branch}/${item.skill.path}`;
         await vscode.env.clipboard.writeText(url);
-        vscode.window.showInformationMessage(`Copied: ${url}`);
+        vscode.window.showInformationMessage(
+          messages.copiedToClipboardWithValue(url),
+        );
       }
     },
   );
@@ -2412,7 +2412,9 @@ Add examples here
       if (item.resourceUri) {
         const path = item.resourceUri.fsPath;
         await vscode.env.clipboard.writeText(path);
-        vscode.window.showInformationMessage(`Copied: ${path}`);
+        vscode.window.showInformationMessage(
+          messages.copiedToClipboardWithValue(path),
+        );
       }
     },
   );
