@@ -11,7 +11,13 @@ scripts/debug-*.js
 .github/copilot-instructions.md
 # .github/instructions/ はリリース手順を含むためリポジトリに含める
 
+# .vscode/ のうち個人設定は除外（launch.json, tasks.json は開発用に同期）
+.vscode/settings.json
+
+# Review workflow generated files
+.github/review-learnings.md
+DASHBOARD.md
+
 # Copilot agent artifacts (keep local in public repos)
 /research/
-/.github/skills/
 /output_sessions/
