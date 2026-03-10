@@ -13,6 +13,10 @@ const path = require("path");
 const INDEX_PATH = path.join(__dirname, "..", "resources", "skill-index.json");
 const FETCH_TIMEOUT = 15000;
 const CONCURRENCY = 5;
+const SOURCE_FILTER = (process.env.SKILL_NINJA_SOURCES || "")
+  .split(",")
+  .map((id) => id.trim())
+  .filter(Boolean);
 
 // GitHub API トークン（環境変数から取得）
 const GITHUB_TOKEN = process.env.GITHUB_TOKEN || process.env.GH_TOKEN;
@@ -46,7 +50,144 @@ async function githubFetch(url) {
   if (GITHUB_TOKEN) {
     headers["Authorization"] = `token ${GITHUB_TOKEN}`;
   }
-  return fetchWithTimeout(url, { headers });
+  const response = await fetchWithTimeout(url, { headers });
+  if (response.status === 403 && headers.Authorization) {
+    const bodyText = await response.clone().text();
+    if (
+      bodyText.includes("forbids access via a personal access tokens (classic)")
+    ) {
+      console.warn(
+        "  ⚠️  Retrying without token because the repository rejects this classic PAT policy",
+      );
+      const retryHeaders = {
+        Accept: "application/vnd.github.v3+json",
+        "User-Agent": "SkillNinja-IndexUpdater",
+      };
+      return fetchWithTimeout(url, { headers: retryHeaders });
+    }
+  }
+  return response;
+}
+
+function unquoteYamlValue(value) {
+  return value.trim().replace(/^['"]|['"]$/g, "");
+}
+
+function stripYamlInlineComment(value) {
+  let inSingleQuote = false;
+  let inDoubleQuote = false;
+  let bracketDepth = 0;
+
+  for (let index = 0; index < value.length; index += 1) {
+    const char = value[index];
+
+    if (char === '"' && !inSingleQuote) {
+      inDoubleQuote = !inDoubleQuote;
+      continue;
+    }
+
+    if (char === "'" && !inDoubleQuote) {
+      inSingleQuote = !inSingleQuote;
+      continue;
+    }
+
+    if (inSingleQuote || inDoubleQuote) {
+      continue;
+    }
+
+    if (char === "[") {
+      bracketDepth += 1;
+      continue;
+    }
+
+    if (char === "]") {
+      bracketDepth = Math.max(0, bracketDepth - 1);
+      continue;
+    }
+
+    if (char === "#" && bracketDepth === 0) {
+      const previousChar = index > 0 ? value[index - 1] : "";
+      if (index === 0 || /\s/.test(previousChar)) {
+        return value.slice(0, index).trimEnd();
+      }
+    }
+  }
+
+  return value.trimEnd();
+}
+
+function parseInlineYamlArray(value) {
+  const match = stripYamlInlineComment(value).match(/^\[(.*)\]$/);
+  if (!match) {
+    return [];
+  }
+  return match[1]
+    .split(",")
+    .map((item) => unquoteYamlValue(item))
+    .filter(Boolean);
+}
+
+function getBlockScalarStyle(value) {
+  const match = value.match(
+    /^([>|])(?:([1-9])([+-])?|([+-])([1-9])?)?(?:\s+#.*)?$/,
+  );
+  return match ? match[1] : null;
+}
+
+function parseTopLevelFrontmatter(frontmatter) {
+  const values = new Map();
+  const lines = frontmatter.split("\n");
+
+  for (let index = 0; index < lines.length; index += 1) {
+    const line = lines[index];
+    const keyMatch = line.match(/^([A-Za-z0-9_-]+):\s*(.*)$/);
+    if (!keyMatch) {
+      continue;
+    }
+
+    const [, key, rawValue] = keyMatch;
+    const trimmedValue = rawValue.trim();
+
+    const blockScalarStyle = getBlockScalarStyle(trimmedValue);
+    if (blockScalarStyle) {
+      const blockLines = [];
+      let blockIndent = null;
+
+      while (index + 1 < lines.length) {
+        const nextLine = lines[index + 1];
+        if (!nextLine.trim()) {
+          blockLines.push("");
+          index += 1;
+          continue;
+        }
+
+        const indentMatch = nextLine.match(/^(\s+)/);
+        if (!indentMatch) {
+          break;
+        }
+
+        const indentLength = indentMatch[1].length;
+        if (blockIndent === null) {
+          blockIndent = indentLength;
+        }
+        if (indentLength < blockIndent) {
+          break;
+        }
+
+        blockLines.push(nextLine.slice(blockIndent));
+        index += 1;
+      }
+
+      const joined =
+        blockScalarStyle === ">" ? blockLines.join(" ") : blockLines.join("\n");
+      values.set(key, joined.trim());
+      continue;
+    }
+
+    values.set(key, unquoteYamlValue(stripYamlInlineComment(trimmedValue)));
+  }
+
+  return values;
 }
 
 /**
@@ -95,8 +236,7 @@ async function scanRepositoryForSkills(source) {
         return await processTree(data, owner, repoName, fallbackBranch, source);
       }
     }
-    console.error(`  ❌ Failed to fetch tree: ${response.status}`);
-    return [];
+    throw new Error(`Failed to fetch tree: ${response.status}`);
   }
 
   const data = await response.json();
@@ -145,6 +285,12 @@ async function processTree(data, owner, repoName, branch, source) {
             categories: skillInfo.categories || [],
             description: skillInfo.description || "",
             description_ja: skillInfo.description_ja,
+            standalone: skillInfo.standalone,
+            requires: skillInfo.requires,
+            bundle: skillInfo.bundle,
+            license: skillInfo.license,
+            author: skillInfo.author,
+            version: skillInfo.version,
           };
         } catch (error) {
           return null;
@@ -170,36 +316,33 @@ function parseSkillFrontmatter(content, filePath) {
   let description = "";
   let description_ja = "";
   let categories = [];
+  let standalone;
+  let requires;
+  let bundle;
+  let license;
+  let author;
+  let version;
 
   if (frontmatterMatch) {
-    const frontmatter = frontmatterMatch[1];
-
-    // name
-    const nameMatch = frontmatter.match(/^name:\s*(.+)$/m);
-    if (nameMatch) {
-      name = nameMatch[1].trim().replace(/^["']|["']$/g, "");
-    }
-
-    // description
-    const descMatch = frontmatter.match(/^description:\s*(.+)$/m);
-    if (descMatch) {
-      description = descMatch[1].trim().replace(/^["']|["']$/g, "");
-    }
-
-    // description_ja
-    const descJaMatch = frontmatter.match(/^description_ja:\s*(.+)$/m);
-    if (descJaMatch) {
-      description_ja = descJaMatch[1].trim().replace(/^["']|["']$/g, "");
-    }
-
-    // categories
-    const catMatch = frontmatter.match(/^categories:\s*\[([^\]]*)\]/m);
-    if (catMatch) {
-      categories = catMatch[1]
-        .split(",")
-        .map((c) => c.trim().replace(/^["']|["']$/g, ""))
-        .filter(Boolean);
-    }
+    const frontmatter = parseTopLevelFrontmatter(frontmatterMatch[1]);
+    const metadataMatch = frontmatterMatch[1].match(
+      /metadata:[\s\S]*?author:\s*["']?([^"'\n]+)["']?/m,
+    );
+    name = frontmatter.get("name") || "";
+    description = frontmatter.get("description") || "";
+    description_ja = frontmatter.get("description_ja") || "";
+    categories = parseInlineYamlArray(frontmatter.get("categories") || "[]");
+    standalone =
+      frontmatter.get("standalone") === "true"
+        ? true
+        : frontmatter.get("standalone") === "false"
+          ? false
+          : undefined;
+    requires = parseInlineYamlArray(frontmatter.get("requires") || "[]");
+    bundle = frontmatter.get("bundle") || undefined;
+    license = frontmatter.get("license") || undefined;
+    author = frontmatter.get("author") || metadataMatch?.[1]?.trim();
+    version = frontmatter.get("version") || undefined;
   }
 
   // name がない場合はパスから推測
@@ -247,7 +390,18 @@ function parseSkillFrontmatter(content, filePath) {
     }
   }
 
-  return { name, description, description_ja, categories };
+  return {
+    name,
+    description,
+    description_ja,
+    categories,
+    standalone,
+    requires: requires?.length ? requires : undefined,
+    bundle,
+    license,
+    author,
+    version,
+  };
 }
 
 /**
@@ -280,7 +434,25 @@ async function main() {
 
   // 各ソースをスキャン
   const allSkills = [];
-  for (const source of index.sources) {
+  const failures = [];
+  const sourcesToUpdate =
+    SOURCE_FILTER.length > 0
+      ? index.sources.filter((source) => SOURCE_FILTER.includes(source.id))
+      : index.sources;
+
+  if (SOURCE_FILTER.length > 0 && sourcesToUpdate.length === 0) {
+    const availableSourceIds = index.sources
+      .map((source) => source.id)
+      .join(", ");
+    console.error(
+      "\n❌ Preset index update aborted. SKILL_NINJA_SOURCES did not match any source IDs.",
+    );
+    console.error(`Requested: ${SOURCE_FILTER.join(", ")}`);
+    console.error(`Available: ${availableSourceIds}`);
+    process.exit(1);
+  }
+
+  for (const source of sourcesToUpdate) {
     console.log(`\n🔄 Updating: ${source.name}`);
     try {
       const skills = await scanRepositoryForSkills(source);
@@ -305,27 +477,69 @@ async function main() {
           ) {
             skill.categories = existing.categories;
           }
+          if (
+            skill.standalone === undefined &&
+            existing.standalone !== undefined
+          ) {
+            skill.standalone = existing.standalone;
+          }
+          if (!skill.requires?.length && existing.requires?.length) {
+            skill.requires = existing.requires;
+          }
+          if (!skill.bundle && existing.bundle) {
+            skill.bundle = existing.bundle;
+          }
+          if (!skill.license && existing.license) {
+            skill.license = existing.license;
+          }
+          if (!skill.author && existing.author) {
+            skill.author = existing.author;
+          }
+          if (!skill.version && existing.version) {
+            skill.version = existing.version;
+          }
         }
       }
 
       allSkills.push(...skills);
       console.log(`  ✅ ${skills.length} skills`);
     } catch (error) {
-      console.error(`  ❌ Error: ${error.message}`);
-      // エラー時は既存のスキルを保持
-      const existingSkills = existingSkillsBySource[source.id] || [];
-      allSkills.push(...existingSkills);
-      console.log(`  ⚠️  Kept ${existingSkills.length} existing skills`);
+      const message = error instanceof Error ? error.message : String(error);
+      console.error(`  ❌ Error: ${message}`);
+      failures.push({ source: source.name, message });
     }
   }
 
-  // 重複を除去（名前で）
+  // Preserve all-or-nothing semantics here.
+  // Falling back to stale per-source data on failure makes bundled counts look fresh
+  // while silently locking in degraded index contents.
+  if (failures.length > 0) {
+    console.error(
+      "\n❌ Preset index update aborted. One or more sources failed:",
+    );
+    for (const failure of failures) {
+      console.error(`  - ${failure.source}: ${failure.message}`);
+    }
+    console.error("\nNo changes were written to resources/skill-index.json.");
+    process.exit(1);
+  }
+
+  if (SOURCE_FILTER.length > 0) {
+    const untouchedSkills = index.skills.filter(
+      (skill) => !SOURCE_FILTER.includes(skill.source),
+    );
+    allSkills.push(...untouchedSkills);
+  }
+
+  // 重複を除去（name で判定）
+  // インストール先ディレクトリは skill name ベースのため、
+  // 同名スキルを複数残すと上書き衝突を起こす。
   const uniqueSkills = [];
-  const seenNames = new Set();
+  const seenSkills = new Set();
   for (const skill of allSkills) {
     const key = skill.name.toLowerCase();
-    if (!seenNames.has(key)) {
-      seenNames.add(key);
+    if (!seenSkills.has(key)) {
+      seenSkills.add(key);
       uniqueSkills.push(skill);
     }
   }

@@ -97,7 +97,7 @@ Settings → **Output Format** → Select `full`, `compact`, or `legacy`
 
 ### 🔍 Skill Search & Discovery
 
-- Search **100+ skills** by keyword (local & GitHub)
+- Search skills by keyword (local & GitHub)
 - **Multi-keyword Search** - Scored by name, path, description relevance
 - **Parallel Fetch** - Fast results with 50 concurrent requests
 - **Fallback Search** - Auto-retry with fewer keywords if no results
@@ -170,20 +170,23 @@ Or search for **"Agent Skills Ninja"** in VS Code Extensions (`Ctrl+Shift+X`)
 
 ## 📚 Included Skill Sources
 
-| Source                                                                                                                        | Type      | Description                          |
-| ----------------------------------------------------------------------------------------------------------------------------- | --------- | ------------------------------------ |
-| [anthropics/skills](https://github.com/anthropics/skills)                                                                     | Official  | Anthropic official Claude Skills     |
-| [openai/skills](https://github.com/openai/skills)                                                                             | Official  | OpenAI official Codex Skills (1.7k+) |
-| [github/awesome-copilot](https://github.com/github/awesome-copilot)                                                           | Official  | GitHub official Copilot resources    |
-| [ComposioHQ/awesome-claude-skills](https://github.com/ComposioHQ/awesome-claude-skills)                                       | Curated   | Curated Claude Skills list           |
-| [obra/superpowers](https://github.com/obra/superpowers)                                                                       | Community | High-quality skills & agents         |
-| [muratcankoylan/Agent-Skills-for-Context-Engineering](https://github.com/muratcankoylan/Agent-Skills-for-Context-Engineering) | Community | Context Engineering skills (5k+)     |
-| [danielmiessler/Personal_AI_Infrastructure](https://github.com/danielmiessler/Personal_AI_Infrastructure)                     | Community | PAI Packs - Skills & Features        |
-| [EveryInc/compound-engineering-plugin](https://github.com/EveryInc/compound-engineering-plugin)                               | Community | Compound Engineering (3.5k+)         |
-| [Wirasm/PRPs-agentic-eng](https://github.com/Wirasm/PRPs-agentic-eng)                                                         | Community | PRP (Prompt Recipe Patterns)         |
-| [qdhenry/Claude-Command-Suite](https://github.com/qdhenry/Claude-Command-Suite)                                               | Community | Claude commands & skills             |
+Preset index includes skills from official, curated, and community sources out of the box.
 
-> Use `Update Index` command to fetch the latest skills
+| Source                                                                                                                        | Type      | Description                           |
+| ----------------------------------------------------------------------------------------------------------------------------- | --------- | ------------------------------------- |
+| [anthropics/skills](https://github.com/anthropics/skills)                                                                     | Official  | Anthropic official Claude Skills      |
+| [openai/skills](https://github.com/openai/skills)                                                                             | Official  | OpenAI official Codex Skills (1.7k+)  |
+| [github/awesome-copilot](https://github.com/github/awesome-copilot)                                                           | Official  | GitHub official Copilot resources     |
+| [MicrosoftDocs/Agent-Skills](https://github.com/MicrosoftDocs/Agent-Skills)                                                   | Official  | Microsoft official Azure agent skills |
+| [ComposioHQ/awesome-claude-skills](https://github.com/ComposioHQ/awesome-claude-skills)                                       | Curated   | Curated Claude Skills list            |
+| [obra/superpowers](https://github.com/obra/superpowers)                                                                       | Community | High-quality skills & agents          |
+| [muratcankoylan/Agent-Skills-for-Context-Engineering](https://github.com/muratcankoylan/Agent-Skills-for-Context-Engineering) | Community | Context Engineering skills (5k+)      |
+| [danielmiessler/Personal_AI_Infrastructure](https://github.com/danielmiessler/Personal_AI_Infrastructure)                     | Community | PAI Packs - Skills & Features         |
+| [EveryInc/compound-engineering-plugin](https://github.com/EveryInc/compound-engineering-plugin)                               | Community | Compound Engineering (3.5k+)          |
+| [Wirasm/PRPs-agentic-eng](https://github.com/Wirasm/PRPs-agentic-eng)                                                         | Community | PRP (Prompt Recipe Patterns)          |
+| [qdhenry/Claude-Command-Suite](https://github.com/qdhenry/Claude-Command-Suite)                                               | Community | Claude commands & skills              |
+
+> Use `Update Index` to refresh the latest skills and metadata from these sources.
 
 ## 🥷 Usage
 
@@ -205,15 +208,15 @@ Or search for **"Agent Skills Ninja"** in VS Code Extensions (`Ctrl+Shift+X`)
 
 ### Icon Legend
 
-| Icon               | Meaning                                          |
-| ------------------ | ------------------------------------------------ |
-| check (green)      | Installed skill                                  |
-| circle (yellow)    | Local skill (not registered in instruction file) |
-| NEW badge          | Recently installed (temporary badge)             |
-| star-full (yellow) | Favorites section                                |
-| verified (blue)    | Official source (Anthropic, GitHub)              |
-| star (yellow)      | Curated awesome-list                             |
-| repo               | Community repository                             |
+| Icon               | Meaning                                                |
+| ------------------ | ------------------------------------------------------ |
+| check (green)      | Installed skill                                        |
+| circle (yellow)    | Local skill (not registered in instruction file)       |
+| NEW badge          | Recently installed (temporary badge)                   |
+| star-full (yellow) | Favorites section                                      |
+| verified (blue)    | Official source (Anthropic, OpenAI, GitHub, Microsoft) |
+| star (yellow)      | Curated awesome-list                                   |
+| repo               | Community repository                                   |
 
 ### Command Palette
 
@@ -464,6 +467,8 @@ npm run lint
 
 - [anthropics/skills](https://github.com/anthropics/skills) - Official Claude Skills
 - [github/awesome-copilot](https://github.com/github/awesome-copilot) - Official Copilot Resources
+- [microsoft/skills](https://github.com/microsoft/skills) - Upstream Microsoft Skills reference (not bundled in preset)
+- [MicrosoftDocs/Agent-Skills](https://github.com/MicrosoftDocs/Agent-Skills) - Official Azure Agent Skills (bundled in preset)
 - [ComposioHQ/awesome-claude-skills](https://github.com/ComposioHQ/awesome-claude-skills) - Curated Skills List
 
 ## 👤 Author

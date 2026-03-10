@@ -101,6 +101,25 @@ export interface SkillIndex {
   bundles?: Bundle[]; // Bundle一覧
 }
 
+function createSkillKey(skill: Pick<Skill, "source" | "name">): string {
+  return `${skill.source}:${skill.name}`;
+}
+
+function createBundleKey(bundle: Pick<Bundle, "source" | "id">): string {
+  return `${bundle.source}:${bundle.id}`;
+}
+
+function normalizeSkillIndex(index: Partial<SkillIndex>): SkillIndex {
+  return {
+    version: index.version || "1.0.0",
+    lastUpdated: index.lastUpdated || new Date().toISOString().split("T")[0],
+    sources: Array.isArray(index.sources) ? index.sources : [],
+    skills: Array.isArray(index.skills) ? index.skills : [],
+    categories: Array.isArray(index.categories) ? index.categories : [],
+    bundles: Array.isArray(index.bundles) ? index.bundles : [],
+  };
+}
+
 /**
  * スキルインデックスを読み込む
  * 1. globalStorageUri にローカルインデックスがあればそれを使用
@@ -125,7 +144,11 @@ export async function loadSkillIndex(
   let bundledIndex: SkillIndex | null = null;
   try {
     const bundledContent = await vscode.workspace.fs.readFile(bundledIndexPath);
-    bundledIndex = JSON.parse(Buffer.from(bundledContent).toString("utf-8"));
+    bundledIndex = normalizeSkillIndex(
+      JSON.parse(
+        Buffer.from(bundledContent).toString("utf-8"),
+      ) as Partial<SkillIndex>,
+    );
   } catch {
     // バンドルがなければ null のまま
   }
@@ -133,15 +156,15 @@ export async function loadSkillIndex(
   try {
     // ローカルインデックスを読み込む
     const content = await vscode.workspace.fs.readFile(localIndexPath);
-    const localIndex: SkillIndex = JSON.parse(
-      Buffer.from(content).toString("utf-8"),
+    const localIndex = normalizeSkillIndex(
+      JSON.parse(Buffer.from(content).toString("utf-8")) as Partial<SkillIndex>,
     );
 
     // バンドル版がある場合は常にマージ（description_ja の補完のため）
     if (bundledIndex) {
       const mergedIndex = mergeSkillIndexes(localIndex, bundledIndex);
-      // バージョンが新しい場合、または description_ja が追加された場合に保存
-      if (bundledIndex.version > localIndex.version) {
+      // バンドル版で補完できるメタデータがあれば保存する
+      if (shouldPersistMergedIndex(localIndex, mergedIndex)) {
         await saveSkillIndex(context, mergedIndex);
       }
       return mergedIndex;
@@ -181,23 +204,47 @@ function mergeSkillIndexes(
   localIndex: SkillIndex,
   bundledIndex: SkillIndex,
 ): SkillIndex {
+  const bundledSourcesById = new Map(
+    bundledIndex.sources.map((source) => [source.id, source]),
+  );
+  const bundledCategoriesById = new Map(
+    bundledIndex.categories.map((category) => [category.id, category]),
+  );
+  const bundledBundlesByKey = new Map(
+    (bundledIndex.bundles || []).map((bundle) => [
+      createBundleKey(bundle),
+      bundle,
+    ]),
+  );
+  const bundledSkillsByKey = new Map(
+    bundledIndex.skills.map((skill) => [createSkillKey(skill), skill]),
+  );
+
   // ローカルのソース ID セット
   const localSourceIds = new Set(localIndex.sources.map((s) => s.id));
+  const localCategoryIds = new Set(localIndex.categories.map((c) => c.id));
+  const localBundleKeys = new Set(
+    (localIndex.bundles || []).map((bundle) => createBundleKey(bundle)),
+  );
 
   // バンドル版の新しいソースを追加
   const newSources = bundledIndex.sources.filter(
     (s) => !localSourceIds.has(s.id),
   );
+  const newCategories = bundledIndex.categories.filter(
+    (category) => !localCategoryIds.has(category.id),
+  );
+  const newBundles = (bundledIndex.bundles || []).filter(
+    (bundle) => !localBundleKeys.has(createBundleKey(bundle)),
+  );
 
-  // 既存ソースの説明を更新（description_ja を追加）
+  // 既存ソースをバンドル版で補完・更新
   const updatedSources = localIndex.sources.map((localSource) => {
-    const bundledSource = bundledIndex.sources.find(
-      (s) => s.id === localSource.id,
-    );
+    const bundledSource = bundledSourcesById.get(localSource.id);
     if (bundledSource) {
       return {
         ...localSource,
-        description: bundledSource.description,
+        ...bundledSource,
         description_ja:
           bundledSource.description_ja || localSource.description_ja,
       };
@@ -205,34 +252,199 @@ function mergeSkillIndexes(
     return localSource;
   });
 
-  // バンドル版の新しいスキルを追加（新ソースからのもの）
-  const newSourceIds = new Set(newSources.map((s) => s.id));
-  const newSkills = bundledIndex.skills.filter((s) =>
-    newSourceIds.has(s.source),
+  // 既存カテゴリをバンドル版で補完・更新
+  const updatedCategories = localIndex.categories.map((localCategory) => {
+    const bundledCategory = bundledCategoriesById.get(localCategory.id);
+    if (bundledCategory) {
+      return {
+        ...localCategory,
+        ...bundledCategory,
+        name_ja: bundledCategory.name_ja || localCategory.name_ja,
+        description_ja:
+          bundledCategory.description_ja || localCategory.description_ja,
+      };
+    }
+    return localCategory;
+  });
+
+  // バンドル版の新しいスキルを追加
+  // 既存ソースでも新スキルが追加されるため、source+name で欠分を補完する
+  const localSkillKeys = new Set(
+    localIndex.skills.map((skill) => createSkillKey(skill)),
+  );
+  const newSkills = bundledIndex.skills.filter(
+    (skill) => !localSkillKeys.has(createSkillKey(skill)),
   );
 
-  // 既存スキルの説明を更新（description と description_ja をマージ）
+  // 既存スキルをバンドル版で補完・更新
   const updatedSkills = localIndex.skills.map((localSkill) => {
-    const bundledSkill = bundledIndex.skills.find(
-      (s) => s.name === localSkill.name && s.source === localSkill.source,
-    );
+    const bundledSkill = bundledSkillsByKey.get(createSkillKey(localSkill));
     if (bundledSkill) {
       return {
         ...localSkill,
-        description: bundledSkill.description,
+        ...bundledSkill,
         description_ja:
           bundledSkill.description_ja || localSkill.description_ja,
+        requires:
+          bundledSkill.requires && bundledSkill.requires.length > 0
+            ? bundledSkill.requires
+            : localSkill.requires,
+        categories:
+          bundledSkill.categories.length > 0
+            ? bundledSkill.categories
+            : localSkill.categories,
+        standalone: bundledSkill.standalone ?? localSkill.standalone,
+        bundle: bundledSkill.bundle || localSkill.bundle,
+        license: bundledSkill.license || localSkill.license,
+        author: bundledSkill.author || localSkill.author,
+        version: bundledSkill.version || localSkill.version,
       };
     }
     return localSkill;
   });
 
+  // 既存バンドルをバンドル版で補完・更新
+  const updatedBundles = (localIndex.bundles || []).map((localBundle) => {
+    const bundledBundle = bundledBundlesByKey.get(createBundleKey(localBundle));
+    if (bundledBundle) {
+      return {
+        ...localBundle,
+        ...bundledBundle,
+        description_ja:
+          bundledBundle.description_ja || localBundle.description_ja,
+      };
+    }
+    return localBundle;
+  });
+
   return {
     ...localIndex,
     version: bundledIndex.version,
+    lastUpdated: bundledIndex.lastUpdated,
     sources: [...updatedSources, ...newSources],
+    categories: [...updatedCategories, ...newCategories],
     skills: [...updatedSkills, ...newSkills],
+    bundles:
+      updatedBundles.length > 0 || newBundles.length > 0
+        ? [...updatedBundles, ...newBundles]
+        : localIndex.bundles,
   };
+}
+
+function areStringArraysEqual(left?: string[], right?: string[]): boolean {
+  const leftValues = left || [];
+  const rightValues = right || [];
+
+  if (leftValues.length !== rightValues.length) {
+    return false;
+  }
+
+  return leftValues.every((value, index) => value === rightValues[index]);
+}
+
+function shouldPersistMergedIndex(
+  localIndex: SkillIndex,
+  mergedIndex: SkillIndex,
+): boolean {
+  if (
+    localIndex.version !== mergedIndex.version ||
+    localIndex.lastUpdated !== mergedIndex.lastUpdated
+  ) {
+    return true;
+  }
+
+  if (localIndex.sources.length !== mergedIndex.sources.length) {
+    return true;
+  }
+
+  for (let index = 0; index < localIndex.sources.length; index += 1) {
+    const localSource = localIndex.sources[index];
+    const mergedSource = mergedIndex.sources[index];
+    if (
+      localSource.id !== mergedSource.id ||
+      localSource.name !== mergedSource.name ||
+      localSource.url !== mergedSource.url ||
+      localSource.type !== mergedSource.type ||
+      localSource.branch !== mergedSource.branch ||
+      localSource.description !== mergedSource.description ||
+      localSource.description_ja !== mergedSource.description_ja
+    ) {
+      return true;
+    }
+  }
+
+  if (localIndex.categories.length !== mergedIndex.categories.length) {
+    return true;
+  }
+
+  for (let index = 0; index < localIndex.categories.length; index += 1) {
+    const localCategory = localIndex.categories[index];
+    const mergedCategory = mergedIndex.categories[index];
+    if (
+      localCategory.id !== mergedCategory.id ||
+      localCategory.name !== mergedCategory.name ||
+      localCategory.name_ja !== mergedCategory.name_ja ||
+      localCategory.description !== mergedCategory.description ||
+      localCategory.description_ja !== mergedCategory.description_ja
+    ) {
+      return true;
+    }
+  }
+
+  const localBundles = localIndex.bundles || [];
+  const mergedBundles = mergedIndex.bundles || [];
+  if (localBundles.length !== mergedBundles.length) {
+    return true;
+  }
+
+  for (let index = 0; index < localBundles.length; index += 1) {
+    const localBundle = localBundles[index];
+    const mergedBundle = mergedBundles[index];
+    if (
+      localBundle.id !== mergedBundle.id ||
+      localBundle.name !== mergedBundle.name ||
+      localBundle.source !== mergedBundle.source ||
+      localBundle.description !== mergedBundle.description ||
+      localBundle.description_ja !== mergedBundle.description_ja ||
+      localBundle.coreSkill !== mergedBundle.coreSkill ||
+      !areStringArraysEqual(localBundle.skills, mergedBundle.skills) ||
+      !areStringArraysEqual(localBundle.installOrder, mergedBundle.installOrder)
+    ) {
+      return true;
+    }
+  }
+
+  if (localIndex.skills.length !== mergedIndex.skills.length) {
+    return true;
+  }
+
+  for (let index = 0; index < localIndex.skills.length; index += 1) {
+    const localSkill = localIndex.skills[index];
+    const mergedSkill = mergedIndex.skills[index];
+    if (
+      localSkill.name !== mergedSkill.name ||
+      localSkill.source !== mergedSkill.source ||
+      localSkill.path !== mergedSkill.path ||
+      localSkill.description !== mergedSkill.description ||
+      localSkill.description_ja !== mergedSkill.description_ja ||
+      localSkill.url !== mergedSkill.url ||
+      localSkill.rawUrl !== mergedSkill.rawUrl ||
+      localSkill.stars !== mergedSkill.stars ||
+      localSkill.owner !== mergedSkill.owner ||
+      localSkill.isOrg !== mergedSkill.isOrg ||
+      localSkill.standalone !== mergedSkill.standalone ||
+      localSkill.bundle !== mergedSkill.bundle ||
+      localSkill.license !== mergedSkill.license ||
+      localSkill.author !== mergedSkill.author ||
+      localSkill.version !== mergedSkill.version ||
+      !areStringArraysEqual(localSkill.categories, mergedSkill.categories) ||
+      !areStringArraysEqual(localSkill.requires, mergedSkill.requires)
+    ) {
+      return true;
+    }
+  }
+
+  return false;
 }
 
 /**

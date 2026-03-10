@@ -26,6 +26,136 @@ export interface SkillReference {
   isLocal: boolean;
 }
 
+function unquoteYamlValue(value: string): string {
+  return value.trim().replace(/^["']|["']$/g, "");
+}
+
+function stripYamlInlineComment(value: string): string {
+  let inSingleQuote = false;
+  let inDoubleQuote = false;
+  let bracketDepth = 0;
+
+  for (let index = 0; index < value.length; index += 1) {
+    const char = value[index];
+
+    if (char === '"' && !inSingleQuote) {
+      inDoubleQuote = !inDoubleQuote;
+      continue;
+    }
+
+    if (char === "'" && !inDoubleQuote) {
+      inSingleQuote = !inSingleQuote;
+      continue;
+    }
+
+    if (inSingleQuote || inDoubleQuote) {
+      continue;
+    }
+
+    if (char === "[") {
+      bracketDepth += 1;
+      continue;
+    }
+
+    if (char === "]") {
+      bracketDepth = Math.max(0, bracketDepth - 1);
+      continue;
+    }
+
+    if (char === "#" && bracketDepth === 0) {
+      const previousChar = index > 0 ? value[index - 1] : "";
+      if (index === 0 || /\s/.test(previousChar)) {
+        return value.slice(0, index).trimEnd();
+      }
+    }
+  }
+
+  return value.trimEnd();
+}
+
+function parseInlineYamlArray(value: string): string[] {
+  const match = stripYamlInlineComment(value).match(/^\[(.*)\]$/);
+  if (!match) {
+    return [];
+  }
+
+  return match[1]
+    .split(",")
+    .map((item) => unquoteYamlValue(item))
+    .filter(Boolean);
+}
+
+function getBlockScalarStyle(value: string): ">" | "|" | null {
+  const match = value.match(
+    /^([>|])(?:([1-9])([+-])?|([+-])([1-9])?)?(?:\s+#.*)?$/,
+  );
+  if (!match) {
+    return null;
+  }
+
+  return match[1] as ">" | "|";
+}
+
+function parseTopLevelFrontmatter(frontmatter: string): Map<string, string> {
+  const values = new Map<string, string>();
+  const lines = frontmatter.split("\n");
+
+  for (let index = 0; index < lines.length; index += 1) {
+    const line = lines[index];
+    const keyMatch = line.match(/^([A-Za-z0-9_-]+):\s*(.*)$/);
+    if (!keyMatch) {
+      continue;
+    }
+
+    const [, key, rawValue] = keyMatch;
+    const trimmedValue = rawValue.trim();
+    const blockScalarStyle = getBlockScalarStyle(trimmedValue);
+
+    if (blockScalarStyle) {
+      const blockLines: string[] = [];
+      let blockIndent: number | null = null;
+
+      while (index + 1 < lines.length) {
+        const nextLine = lines[index + 1];
+        if (!nextLine.trim()) {
+          blockLines.push("");
+          index += 1;
+          continue;
+        }
+
+        const indentMatch = nextLine.match(/^(\s+)/);
+        if (!indentMatch) {
+          break;
+        }
+
+        const indentLength = indentMatch[1].length;
+        if (blockIndent === null) {
+          blockIndent = indentLength;
+        }
+        if (indentLength < blockIndent) {
+          break;
+        }
+
+        blockLines.push(nextLine.slice(blockIndent));
+        index += 1;
+      }
+
+      values.set(
+        key,
+        (blockScalarStyle === ">"
+          ? blockLines.join(" ")
+          : blockLines.join("\n")
+        ).trim(),
+      );
+      continue;
+    }
+
+    values.set(key, unquoteYamlValue(stripYamlInlineComment(trimmedValue)));
+  }
+
+  return values;
+}
+
 /**
  * ワークスペース内の SKILL.md をスキャン
  * @param workspaceUri ワークスペースの URI
@@ -87,24 +217,15 @@ async function parseLocalSkillFile(
 
   let name = "";
   let description = "";
+  let description_ja = "";
   let categories: string[] = [];
 
   if (frontmatterMatch) {
-    const frontmatter = frontmatterMatch[1];
-    const nameMatch = frontmatter.match(/^name:\s*["']?([^"'\n]+)["']?/m);
-    const descMatch = frontmatter.match(
-      /^description:\s*["']?([^"'\n]+)["']?/m,
-    );
-    const categoriesMatch = frontmatter.match(/^categories:\s*\[([^\]]+)\]/m);
-
-    name = nameMatch?.[1]?.trim() || "";
-    description = descMatch?.[1]?.trim() || "";
-
-    if (categoriesMatch) {
-      categories = categoriesMatch[1]
-        .split(",")
-        .map((c) => c.trim().replace(/["']/g, ""));
-    }
+    const frontmatter = parseTopLevelFrontmatter(frontmatterMatch[1]);
+    name = frontmatter.get("name")?.trim() || "";
+    description = frontmatter.get("description")?.trim() || "";
+    description_ja = frontmatter.get("description_ja")?.trim() || "";
+    categories = parseInlineYamlArray(frontmatter.get("categories") || "[]");
   }
 
   // 名前がない場合は # ヘッダーから取得
@@ -128,6 +249,7 @@ async function parseLocalSkillFile(
   return {
     name,
     description,
+    description_ja,
     categories,
     source: "local",
     path: skillDir,

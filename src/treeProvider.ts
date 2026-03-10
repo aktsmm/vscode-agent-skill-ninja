@@ -55,8 +55,6 @@ export class WorkspaceSkillsProvider implements vscode.TreeDataProvider<SkillTre
 
   refresh(): void {
     this.workspaceSkills = [];
-    // リフレッシュ時に「最近インストール」をクリア（🆕バッジを消す）
-    this.recentlyInstalled?.clear();
     this._onDidChangeTreeData.fire();
   }
 

@@ -12,6 +12,7 @@ applyTo: "**/resources/skill-index.json"
    - `anthropics/skills` - Anthropic 公式
    - `openai/skills` - OpenAI 公式
    - `github/awesome-copilot` - GitHub 公式
+   - `MicrosoftDocs/Agent-Skills` - Microsoft 公式 Azure Agent Skills
 
 2. **Curated リポジトリ（awesome-list）**
    - `ComposioHQ/awesome-claude-skills` - キュレーション済みリスト
@@ -24,6 +25,12 @@ applyTo: "**/resources/skill-index.json"
    - `EveryInc/compound-engineering-plugin` - Compound Engineering (3.5k+ stars)
    - `Wirasm/PRPs-agentic-eng` - PRP (Prompt Recipe Patterns)
    - `qdhenry/Claude-Command-Suite` - Claude Command Suite
+
+### 除外済みソース
+
+- `microsoft/skills` - 2026-03 にプリセット対象から除外
+   - 理由: 公開 compatibility path (`skills/...`) が upstream で broken state になっており、プリセット登録済みなのにインストール失敗する UX リスクがある
+   - 扱い: Related Projects での参照は可。ただし bundled preset source には戻さない
 
 ### ❌ 含めないソース
 

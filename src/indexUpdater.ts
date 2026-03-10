@@ -173,7 +173,154 @@ async function githubFetch(url: string, token?: string): Promise<Response> {
     headers["Authorization"] = `token ${effectiveToken}`;
   }
 
-  return fetchWithTimeout(url, { headers });
+  const response = await fetchWithTimeout(url, { headers });
+  if (response.status === 403 && headers.Authorization) {
+    const bodyText = await response.clone().text();
+    if (
+      bodyText.includes("forbids access via a personal access tokens (classic)")
+    ) {
+      console.warn(
+        "[Skill Ninja] Retrying without token because the repository rejects this classic PAT policy",
+      );
+      const retryHeaders: Record<string, string> = {
+        Accept: "application/vnd.github.v3+json",
+        "User-Agent": "VSCode-SkillNinja",
+      };
+      return fetchWithTimeout(url, { headers: retryHeaders });
+    }
+  }
+
+  return response;
+}
+
+function unquoteYamlValue(value: string): string {
+  return value.trim().replace(/^["']|["']$/g, "");
+}
+
+function stripYamlInlineComment(value: string): string {
+  let inSingleQuote = false;
+  let inDoubleQuote = false;
+  let bracketDepth = 0;
+
+  for (let index = 0; index < value.length; index += 1) {
+    const char = value[index];
+
+    if (char === '"' && !inSingleQuote) {
+      inDoubleQuote = !inDoubleQuote;
+      continue;
+    }
+
+    if (char === "'" && !inDoubleQuote) {
+      inSingleQuote = !inSingleQuote;
+      continue;
+    }
+
+    if (inSingleQuote || inDoubleQuote) {
+      continue;
+    }
+
+    if (char === "[") {
+      bracketDepth += 1;
+      continue;
+    }
+
+    if (char === "]") {
+      bracketDepth = Math.max(0, bracketDepth - 1);
+      continue;
+    }
+
+    if (char === "#" && bracketDepth === 0) {
+      const previousChar = index > 0 ? value[index - 1] : "";
+      if (index === 0 || /\s/.test(previousChar)) {
+        return value.slice(0, index).trimEnd();
+      }
+    }
+  }
+
+  return value.trimEnd();
+}
+
+function parseInlineYamlArray(value: string): string[] {
+  const match = stripYamlInlineComment(value).match(/^\[(.*)\]$/);
+  if (!match) {
+    return [];
+  }
+
+  return match[1]
+    .split(",")
+    .map((item) => unquoteYamlValue(item))
+    .filter(Boolean);
+}
+
+function getBlockScalarStyle(value: string): ">" | "|" | null {
+  const match = value.match(
+    /^([>|])(?:([1-9])([+-])?|([+-])([1-9])?)?(?:\s+#.*)?$/,
+  );
+  if (!match) {
+    return null;
+  }
+
+  return match[1] as ">" | "|";
+}
+
+function parseTopLevelFrontmatter(frontmatter: string): Map<string, string> {
+  const values = new Map<string, string>();
+  const lines = frontmatter.split("\n");
+
+  for (let index = 0; index < lines.length; index += 1) {
+    const line = lines[index];
+    const keyMatch = line.match(/^([A-Za-z0-9_-]+):\s*(.*)$/);
+    if (!keyMatch) {
+      continue;
+    }
+
+    const [, key, rawValue] = keyMatch;
+    const trimmedValue = rawValue.trim();
+
+    const blockScalarStyle = getBlockScalarStyle(trimmedValue);
+    if (blockScalarStyle) {
+      const blockLines: string[] = [];
+      let blockIndent: number | null = null;
+
+      while (index + 1 < lines.length) {
+        const nextLine = lines[index + 1];
+        if (!nextLine.trim()) {
+          blockLines.push("");
+          index += 1;
+          continue;
+        }
+
+        const indentMatch = nextLine.match(/^(\s+)/);
+        if (!indentMatch) {
+          break;
+        }
+
+        const indentLength = indentMatch[1].length;
+        if (blockIndent === null) {
+          blockIndent = indentLength;
+        }
+        if (indentLength < blockIndent) {
+          break;
+        }
+
+        blockLines.push(nextLine.slice(blockIndent));
+        index += 1;
+      }
+
+      values.set(
+        key,
+        (blockScalarStyle === ">"
+          ? blockLines.join(" ")
+          : blockLines.join("\n")
+        ).trim(),
+      );
+      continue;
+    }
+
+    values.set(key, unquoteYamlValue(stripYamlInlineComment(trimmedValue)));
+  }
+
+  return values;
 }
 
 /**
@@ -290,7 +437,6 @@ async function processTreeResponse(
     // 正確に skill.md で終わるもののみ（blockskill.md 等を除外）
     return lowerPath === "skill.md" || lowerPath.endsWith("/skill.md");
   });
-
   // PRPs-agentic-eng リポジトリの特別処理: .claude/commands/**/*.md をスキャン
   const isPRPsRepo = repoName.toLowerCase().includes("prps-agentic");
   if (isPRPsRepo) {
@@ -824,73 +970,48 @@ function parseSkillFrontmatter(
   author?: string;
   version?: string;
 } | null {
+  const normalizedContent = content.replace(/\r\n/g, "\n");
   // frontmatter を抽出
-  const frontmatterMatch = content.match(/^---\n([\s\S]*?)\n---/);
+  const frontmatterMatch = normalizedContent.match(/^---\n([\s\S]*?)\n---/);
 
   if (frontmatterMatch) {
-    const frontmatter = frontmatterMatch[1];
-    const nameMatch = frontmatter.match(/^name:\s*["']?([^"'\n]+)["']?/m);
-    const descMatch = frontmatter.match(
-      /^description:\s*["']?([^"'\n]+)["']?/m,
-    );
-    const categoriesMatch = frontmatter.match(/^categories:\s*\[([^\]]+)\]/m);
-
-    // Bundle/Framework 対応: standalone, requires, bundle
-    const standaloneMatch = frontmatter.match(/^standalone:\s*(true|false)/m);
-    const requiresMatch = frontmatter.match(/^requires:\s*\[([^\]]+)\]/m);
-    const bundleMatch = frontmatter.match(/^bundle:\s*["']?([^"'\n]+)["']?/m);
-
-    // メタデータ: license, author, version
-    const licenseMatch = frontmatter.match(/^license:\s*["']?([^"'\n]+)["']?/m);
-    const authorMatch = frontmatter.match(/^author:\s*["']?([^"'\n]+)["']?/m);
-    // metadata.author も対応
-    const metadataAuthorMatch = frontmatter.match(
+    const frontmatter = parseTopLevelFrontmatter(frontmatterMatch[1]);
+    const metadataMatch = frontmatterMatch[1].match(
       /metadata:[\s\S]*?author:\s*["']?([^"'\n]+)["']?/m,
     );
-    const versionMatch = frontmatter.match(/^version:\s*["']?([^"'\n]+)["']?/m);
 
-    const name = nameMatch?.[1]?.trim();
+    let name = frontmatter.get("name")?.trim();
     if (!name) {
-      // frontmatter に name がない場合はディレクトリ名を使用
       const pathParts = filePath.split("/");
-      const dirName = pathParts[pathParts.length - 2];
-      return {
-        name: dirName,
-        description: descMatch?.[1]?.trim() || "",
-        categories: [],
-      };
+      name = pathParts[pathParts.length - 2];
     }
 
-    let categories: string[] = [];
-    if (categoriesMatch) {
-      categories = categoriesMatch[1]
-        .split(",")
-        .map((c) => c.trim().replace(/["']/g, ""));
-    }
-
-    let requires: string[] | undefined;
-    if (requiresMatch) {
-      requires = requiresMatch[1]
-        .split(",")
-        .map((r) => r.trim().replace(/["']/g, ""));
-    }
+    const categories = parseInlineYamlArray(
+      frontmatter.get("categories") || "[]",
+    );
+    const requires = parseInlineYamlArray(frontmatter.get("requires") || "[]");
 
     // description が空の場合は When to Use セクションからフォールバック
-    let description = descMatch?.[1]?.trim() || "";
+    let description = frontmatter.get("description")?.trim() || "";
     if (!description) {
-      description = extractWhenToUseFromContent(content);
+      description = extractWhenToUseFromContent(normalizedContent);
     }
 
     return {
       name,
       description,
       categories,
-      standalone: standaloneMatch ? standaloneMatch[1] === "true" : undefined,
-      requires,
-      bundle: bundleMatch?.[1]?.trim(),
-      license: licenseMatch?.[1]?.trim(),
-      author: authorMatch?.[1]?.trim() || metadataAuthorMatch?.[1]?.trim(),
-      version: versionMatch?.[1]?.trim(),
+      standalone:
+        frontmatter.get("standalone") === "true"
+          ? true
+          : frontmatter.get("standalone") === "false"
+            ? false
+            : undefined,
+      requires: requires.length > 0 ? requires : undefined,
+      bundle: frontmatter.get("bundle")?.trim(),
+      license: frontmatter.get("license")?.trim(),
+      author: frontmatter.get("author")?.trim() || metadataMatch?.[1]?.trim(),
+      version: frontmatter.get("version")?.trim(),
     };
   }
 
@@ -898,7 +1019,7 @@ function parseSkillFrontmatter(
   // description は When to Use セクションからフォールバック
   const pathParts = filePath.split("/");
   const dirName = pathParts[pathParts.length - 2];
-  const description = extractWhenToUseFromContent(content);
+  const description = extractWhenToUseFromContent(normalizedContent);
   return {
     name: dirName,
     description,

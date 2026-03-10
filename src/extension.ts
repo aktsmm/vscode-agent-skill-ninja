@@ -60,6 +60,10 @@ export function activate(context: vscode.ExtensionContext) {
 
   // 最近インストールしたスキル（🆕 表示用）
   const recentlyInstalled = new Set<string>();
+  const recentInstallTimeouts = new Map<
+    string,
+    ReturnType<typeof setTimeout>
+  >();
 
   // ステータスバーアイテム
   const statusBarItem = vscode.window.createStatusBarItem(
@@ -67,6 +71,15 @@ export function activate(context: vscode.ExtensionContext) {
     100,
   );
   context.subscriptions.push(statusBarItem);
+  context.subscriptions.push(
+    new vscode.Disposable(() => {
+      for (const timeout of recentInstallTimeouts.values()) {
+        clearTimeout(timeout);
+      }
+      recentInstallTimeouts.clear();
+      recentlyInstalled.clear();
+    }),
+  );
 
   // バージョンアップ時のメタデータ再抽出
   const workspaceFolder = vscode.workspace.workspaceFolders?.[0];
@@ -127,6 +140,24 @@ export function activate(context: vscode.ExtensionContext) {
     recentlyInstalled,
   );
   const browseProvider = new BrowseSkillsProvider(context);
+
+  function markRecentlyInstalled(skill: Skill): void {
+    const existingTimeout = recentInstallTimeouts.get(skill.name);
+    if (existingTimeout) {
+      clearTimeout(existingTimeout);
+    }
+
+    recentlyInstalled.add(skill.name);
+
+    const timeout = setTimeout(() => {
+      recentInstallTimeouts.delete(skill.name);
+      if (recentlyInstalled.delete(skill.name)) {
+        workspaceProvider.refresh();
+      }
+    }, 15000);
+
+    recentInstallTimeouts.set(skill.name, timeout);
+  }
 
   // 後方互換のためのエイリアス
   const installedProvider = workspaceProvider;
@@ -599,8 +630,8 @@ export function activate(context: vscode.ExtensionContext) {
           },
         );
 
-        // 🆕 バッジ用に追加
-        recentlyInstalled.add(skill.name);
+        // 🆕 バッジを一時表示
+        markRecentlyInstalled(skill);
 
         // ステータスバーに表示
         statusBarItem.text = `$(check) ${skill.name} ${
@@ -947,8 +978,8 @@ export function activate(context: vscode.ExtensionContext) {
           },
         );
 
-        // 🆕 バッジ用に追加
-        recentlyInstalled.add(skill.name);
+        // 🆕 バッジを一時表示
+        markRecentlyInstalled(skill);
 
         // ステータスバーに表示
         statusBarItem.text = `$(sync) ${skill.name} ${
@@ -1117,7 +1148,7 @@ export function activate(context: vscode.ExtensionContext) {
             if (skill) {
               try {
                 await installSkill(skill, wsFolder.uri, context);
-                recentlyInstalled.add(skill.name);
+                markRecentlyInstalled(skill);
               } catch (error) {
                 console.error(`Failed to install ${skillName}:`, error);
                 failed++;
@@ -1312,7 +1343,7 @@ export function activate(context: vscode.ExtensionContext) {
               try {
                 await uninstallSkill(item.meta.name, wsFolder.uri);
                 await installSkill(skill, wsFolder.uri, context);
-                recentlyInstalled.add(item.meta.name);
+                markRecentlyInstalled(skill);
               } catch (error) {
                 console.error(`Failed to reinstall ${item.meta.name}:`, error);
               }

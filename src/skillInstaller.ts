@@ -5,6 +5,11 @@ import * as vscode from "vscode";
 import { Skill, loadSkillIndex, Source, getSourceBranch } from "./skillIndex";
 import { isJapanese } from "./i18n";
 import { getGitHubToken } from "./githubAuth";
+import {
+  GitHubDirectoryEntry,
+  partitionGitHubDirectoryEntries,
+  resolveSymlinkTargetPath,
+} from "./githubDirectoryTraversal";
 
 function normalizeNewlines(text: string): string {
   return text.replace(/\r\n/g, "\n");
@@ -13,21 +18,45 @@ function normalizeNewlines(text: string): string {
 /**
  * GitHub API でフォルダ内のファイル一覧を取得
  */
-async function listGitHubDirectory(
+async function listGitHubDirectoryInternal(
   owner: string,
   repo: string,
   path: string,
   branch: string = "main",
   token?: string,
-): Promise<{ name: string; type: string; download_url: string | null }[]> {
-  const url = `https://api.github.com/repos/${owner}/${repo}/contents/${path}?ref=${branch}`;
+  visitedPaths: Set<string> = new Set(),
+): Promise<GitHubDirectoryEntry[]> {
+  const normalizedPath = path.replace(/^\/+|\/+$/g, "");
+  if (visitedPaths.has(normalizedPath)) {
+    throw new Error(`Symlink loop detected: ${normalizedPath}`);
+  }
+  visitedPaths.add(normalizedPath);
+
+  const encodedPath = normalizedPath
+    .split("/")
+    .map((segment) => encodeURIComponent(segment))
+    .join("/");
+  const url = `https://api.github.com/repos/${owner}/${repo}/contents/${encodedPath}?ref=${branch}`;
   const headers: Record<string, string> = {
     Accept: "application/vnd.github.v3+json",
   };
   if (token) {
     headers["Authorization"] = `token ${token}`;
   }
-  const response = await fetch(url, { headers });
+  let response = await fetch(url, { headers });
+  if (response.status === 403 && headers.Authorization) {
+    const bodyText = await response.clone().text();
+    if (
+      bodyText.includes("forbids access via a personal access tokens (classic)")
+    ) {
+      console.warn(
+        `[Skill Ninja] Retrying without token because ${owner}/${repo} rejects this classic PAT policy`,
+      );
+      response = await fetch(url, {
+        headers: { Accept: "application/vnd.github.v3+json" },
+      });
+    }
+  }
   if (!response.ok) {
     if (response.status === 403) {
       throw new Error(
@@ -36,11 +65,48 @@ async function listGitHubDirectory(
     }
     throw new Error(`Failed to list directory: ${response.status}`);
   }
-  return (await response.json()) as {
-    name: string;
-    type: string;
-    download_url: string | null;
-  }[];
+  const data = (await response.json()) as
+    | GitHubDirectoryEntry[]
+    | GitHubDirectoryEntry;
+
+  if (Array.isArray(data)) {
+    return data;
+  }
+
+  if (data.type === "symlink" && data.target) {
+    const resolvedTarget = resolveSymlinkTargetPath(
+      normalizedPath,
+      data.target,
+    );
+    return listGitHubDirectory(
+      owner,
+      repo,
+      resolvedTarget,
+      branch,
+      token,
+      visitedPaths,
+    );
+  }
+
+  throw new Error(`Path is not a directory: ${normalizedPath}`);
+}
+
+async function listGitHubDirectory(
+  owner: string,
+  repo: string,
+  path: string,
+  branch: string = "main",
+  token?: string,
+  visitedPaths: Set<string> = new Set(),
+): Promise<GitHubDirectoryEntry[]> {
+  return await listGitHubDirectoryInternal(
+    owner,
+    repo,
+    path,
+    branch,
+    token,
+    visitedPaths,
+  );
 }
 
 /**
@@ -68,6 +134,22 @@ async function downloadDirectory(
 ): Promise<{ errors: string[] }> {
   const errors: string[] = [];
 
+  const downloadFileEntry = async (
+    entry: GitHubDirectoryEntry,
+  ): Promise<void> => {
+    if (!entry.download_url) {
+      return;
+    }
+
+    const localFilePath = vscode.Uri.joinPath(localPath, entry.name);
+    console.log(`[Skill Ninja] Downloading file: ${entry.name}`);
+    const content = await fetchFileContent(entry.download_url, token);
+    await vscode.workspace.fs.writeFile(
+      localFilePath,
+      Buffer.from(content, "utf-8"),
+    );
+  };
+
   console.log(
     `[Skill Ninja] Downloading directory: ${owner}/${repo}/${remotePath} (branch: ${branch}, depth: ${depth})`,
   );
@@ -83,19 +165,13 @@ async function downloadDirectory(
 
   // ファイルとディレクトリを分離し、ファイルを先にダウンロード
   // （SKILL.md などの重要ファイルを確実に取得するため）
-  const files = entries.filter((e) => e.type === "file" && e.download_url);
-  const dirs = entries.filter((e) => e.type === "dir");
+  const { files, directoriesToTraverse } =
+    partitionGitHubDirectoryEntries(entries);
 
   // 1. ファイルを先にダウンロード
   for (const entry of files) {
-    const localFilePath = vscode.Uri.joinPath(localPath, entry.name);
     try {
-      console.log(`[Skill Ninja] Downloading file: ${entry.name}`);
-      const content = await fetchFileContent(entry.download_url!, token);
-      await vscode.workspace.fs.writeFile(
-        localFilePath,
-        Buffer.from(content, "utf-8"),
-      );
+      await downloadFileEntry(entry);
     } catch (error) {
       const msg = `Failed to download file ${entry.name}: ${error instanceof Error ? error.message : String(error)}`;
       console.error(`[Skill Ninja] ${msg}`);
@@ -104,16 +180,19 @@ async function downloadDirectory(
   }
 
   // 2. サブディレクトリを再帰的にダウンロード（数の制限あり）
-  if (dirs.length > MAX_SUBDIRECTORY_DOWNLOADS) {
+  if (directoriesToTraverse.length > MAX_SUBDIRECTORY_DOWNLOADS) {
     console.warn(
-      `[Skill Ninja] Too many subdirectories (${dirs.length}), limiting to ${MAX_SUBDIRECTORY_DOWNLOADS}`,
+      `[Skill Ninja] Too many subdirectories (${directoriesToTraverse.length}), limiting to ${MAX_SUBDIRECTORY_DOWNLOADS}`,
     );
     errors.push(
-      `Skipped ${dirs.length - MAX_SUBDIRECTORY_DOWNLOADS} of ${dirs.length} subdirectories (limit: ${MAX_SUBDIRECTORY_DOWNLOADS})`,
+      `Skipped ${directoriesToTraverse.length - MAX_SUBDIRECTORY_DOWNLOADS} of ${directoriesToTraverse.length} subdirectories (limit: ${MAX_SUBDIRECTORY_DOWNLOADS})`,
     );
   }
 
-  const dirsToDownload = dirs.slice(0, MAX_SUBDIRECTORY_DOWNLOADS);
+  const dirsToDownload = directoriesToTraverse.slice(
+    0,
+    MAX_SUBDIRECTORY_DOWNLOADS,
+  );
 
   for (const entry of dirsToDownload) {
     const localFilePath = vscode.Uri.joinPath(localPath, entry.name);

@@ -93,7 +93,7 @@
 
 ### 🔍 スキル検索・発見
 
-- **100+ スキル** をキーワード検索（ローカル＆GitHub）
+- スキルをキーワード検索（ローカル＆GitHub）
 - **複数キーワード検索** - 名前・パス・説明の関連度でスコアリング
 - **並列フェッチ** - 50 件同時取得で高速化
 - **フォールバック検索** - 結果 0 件時にキーワードを減らして自動リトライ
@@ -166,11 +166,14 @@ ext install yamapan.agent-skill-ninja
 
 ## 📚 Included Skill Sources
 
+プリセットインデックスには、公式・キュレーション・コミュニティの各ソースが初期状態で含まれます。
+
 | Source                                                                                                                        | Type      | 説明                               |
 | ----------------------------------------------------------------------------------------------------------------------------- | --------- | ---------------------------------- |
 | [anthropics/skills](https://github.com/anthropics/skills)                                                                     | Official  | Anthropic 公式 Claude Skills       |
 | [openai/skills](https://github.com/openai/skills)                                                                             | Official  | OpenAI 公式 Codex Skills (1.7k+)   |
 | [github/awesome-copilot](https://github.com/github/awesome-copilot)                                                           | Official  | GitHub 公式 Copilot リソース       |
+| [MicrosoftDocs/Agent-Skills](https://github.com/MicrosoftDocs/Agent-Skills)                                                   | Official  | Microsoft 公式 Azure Agent Skills  |
 | [ComposioHQ/awesome-claude-skills](https://github.com/ComposioHQ/awesome-claude-skills)                                       | Curated   | Claude Skills キュレーションリスト |
 | [obra/superpowers](https://github.com/obra/superpowers)                                                                       | Community | 高品質スキル・エージェント集       |
 | [muratcankoylan/Agent-Skills-for-Context-Engineering](https://github.com/muratcankoylan/Agent-Skills-for-Context-Engineering) | Community | Context Engineering スキル (5k+)   |
@@ -179,7 +182,7 @@ ext install yamapan.agent-skill-ninja
 | [Wirasm/PRPs-agentic-eng](https://github.com/Wirasm/PRPs-agentic-eng)                                                         | Community | PRP (Prompt Recipe Patterns)       |
 | [qdhenry/Claude-Command-Suite](https://github.com/qdhenry/Claude-Command-Suite)                                               | Community | Claude コマンド・スキル集          |
 
-> `Update Index` コマンドで最新のスキルを取得できます
+> `Update Index` コマンドで、これらのソースから最新のスキルとメタデータを再取得できます
 
 ## 🥷 Usage
 
@@ -201,15 +204,15 @@ ext install yamapan.agent-skill-ninja
 
 ### アイコン凡例
 
-| アイコン       | 意味                                      |
-| -------------- | ----------------------------------------- |
-| check (緑)     | インストール済みスキル                    |
-| circle (黄)    | ローカルスキル（instruction file 未登録） |
-| NEW badge      | 最近インストール（一時的なバッジ）        |
-| star-full (黄) | お気に入りセクション                      |
-| verified (青)  | 公式ソース（Anthropic, GitHub）           |
-| star (黄)      | キュレーション awesome-list               |
-| repo           | コミュニティリポジトリ                    |
+| アイコン       | 意味                                               |
+| -------------- | -------------------------------------------------- |
+| check (緑)     | インストール済みスキル                             |
+| circle (黄)    | ローカルスキル（instruction file 未登録）          |
+| NEW badge      | 最近インストール（一時的なバッジ）                 |
+| star-full (黄) | お気に入りセクション                               |
+| verified (青)  | 公式ソース（Anthropic, OpenAI, GitHub, Microsoft） |
+| star (黄)      | キュレーション awesome-list                        |
+| repo           | コミュニティリポジトリ                             |
 
 ### コマンドパレット
 
@@ -460,6 +463,8 @@ npm run lint
 
 - [anthropics/skills](https://github.com/anthropics/skills) - Official Claude Skills
 - [github/awesome-copilot](https://github.com/github/awesome-copilot) - Official Copilot Resources
+- [microsoft/skills](https://github.com/microsoft/skills) - 参考: Official Microsoft Skills（プリセット未同梱）
+- [MicrosoftDocs/Agent-Skills](https://github.com/MicrosoftDocs/Agent-Skills) - Official Azure Agent Skills（プリセット同梱）
 - [ComposioHQ/awesome-claude-skills](https://github.com/ComposioHQ/awesome-claude-skills) - Curated Skills List
 
 ## 👤 Author
