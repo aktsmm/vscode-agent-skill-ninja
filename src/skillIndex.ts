@@ -2,6 +2,10 @@
 // プリインストールされたインデックスと更新可能なローカルインデックスを管理
 
 import * as vscode from "vscode";
+import {
+  createGitHubHeaders,
+  fetchGitHubWithOptionalAuthRetry,
+} from "./githubFetch";
 
 // スキル情報の型定義
 export interface Skill {
@@ -472,12 +476,8 @@ const branchCache = new Map<string, string>();
  * URL が存在するか HEAD リクエストで確認
  */
 async function checkUrlExists(url: string, token?: string): Promise<boolean> {
-  const headers: Record<string, string> = {
-    "User-Agent": "VSCode-SkillNinja",
-  };
-  if (token) {
-    headers["Authorization"] = `token ${token}`;
-  }
+  const headers = createGitHubHeaders(url, "*/*", token);
+  delete headers.Accept;
 
   try {
     const response = await fetch(url, { method: "HEAD", headers });
@@ -526,17 +526,11 @@ export async function getDefaultBranch(
 
   // HEAD リクエストで判定できない場合は GitHub API で取得
   const apiUrl = `https://api.github.com/repos/${owner}/${repo}`;
-  const headers: Record<string, string> = {
-    Accept: "application/vnd.github.v3+json",
-    "User-Agent": "VSCode-SkillNinja",
-  };
-
-  if (token) {
-    headers["Authorization"] = `token ${token}`;
-  }
-
   try {
-    const response = await fetch(apiUrl, { headers });
+    const response = await fetchGitHubWithOptionalAuthRetry(apiUrl, {
+      accept: "application/vnd.github.v3+json",
+      token,
+    });
     if (response.ok) {
       const data = (await response.json()) as { default_branch?: string };
       const branch = data.default_branch || "main";

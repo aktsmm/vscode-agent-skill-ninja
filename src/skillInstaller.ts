@@ -6,6 +6,10 @@ import { Skill, loadSkillIndex, Source, getSourceBranch } from "./skillIndex";
 import { isJapanese } from "./i18n";
 import { getGitHubToken } from "./githubAuth";
 import {
+  createGitHubHeaders,
+  fetchGitHubWithOptionalAuthRetry,
+} from "./githubFetch";
+import {
   GitHubDirectoryEntry,
   partitionGitHubDirectoryEntries,
   resolveSymlinkTargetPath,
@@ -37,26 +41,10 @@ async function listGitHubDirectoryInternal(
     .map((segment) => encodeURIComponent(segment))
     .join("/");
   const url = `https://api.github.com/repos/${owner}/${repo}/contents/${encodedPath}?ref=${branch}`;
-  const headers: Record<string, string> = {
-    Accept: "application/vnd.github.v3+json",
-  };
-  if (token) {
-    headers["Authorization"] = `token ${token}`;
-  }
-  let response = await fetch(url, { headers });
-  if (response.status === 403 && headers.Authorization) {
-    const bodyText = await response.clone().text();
-    if (
-      bodyText.includes("forbids access via a personal access tokens (classic)")
-    ) {
-      console.warn(
-        `[Skill Ninja] Retrying without token because ${owner}/${repo} rejects this classic PAT policy`,
-      );
-      response = await fetch(url, {
-        headers: { Accept: "application/vnd.github.v3+json" },
-      });
-    }
-  }
+  const response = await fetchGitHubWithOptionalAuthRetry(url, {
+    accept: "application/vnd.github.v3+json",
+    token,
+  });
   if (!response.ok) {
     if (response.status === 403) {
       throw new Error(
@@ -91,7 +79,7 @@ async function listGitHubDirectoryInternal(
   throw new Error(`Path is not a directory: ${normalizedPath}`);
 }
 
-async function listGitHubDirectory(
+export async function listGitHubDirectory(
   owner: string,
   repo: string,
   path: string,
@@ -1460,13 +1448,7 @@ async function openBugReport(
  * URL からファイル内容を取得
  */
 async function fetchFileContent(url: string, token?: string): Promise<string> {
-  // VS Code の fetch API を使用（Node.js 18+ の fetch）
-  const headers: Record<string, string> = {};
-  // raw.githubusercontent.com は Token 不要（公開リポジトリ）
-  // Token を付けると逆にエラーになることがある
-  if (token && !url.includes("raw.githubusercontent.com")) {
-    headers["Authorization"] = `token ${token}`;
-  }
+  const headers = createGitHubHeaders(url, "text/plain", token);
   const response = await fetch(url, { headers });
   if (!response.ok) {
     throw new Error(

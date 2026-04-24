@@ -55,7 +55,7 @@
   "config.outputFormat.compact": "📦 Compact - IMPORTANT + Compressed index (100 chars)",
   "config.outputFormat.legacy": "🕰️ Legacy - Simple table only (OLD)",
   "config.singleClickInstall.description": "Install skills with single click (default: double click)",
-  "config.versionInfo.markdownDescription": "---\n\n### ℹ️ Version Info\n\n| Item | Value |\n|------|-------|\n| Extension | **0.8.20** |\n| Skill Index | **v1.18.0** |\n| Last Updated | 2026-03-10 |\n| Skills | 1426 |\n| Sources | 11 |\n\n[📋 Changelog](https://github.com/aktsmm/vscode-agent-skill-ninja/blob/master/CHANGELOG.md) · [🐛 Report Bug](https://github.com/aktsmm/vscode-agent-skill-ninja/issues)",
+  "config.versionInfo.markdownDescription": "---\n\n### ℹ️ Version Info\n\n| Item | Value |\n|------|-------|\n| Extension | **0.8.21** |\n| Skill Index | **v1.18.0** |\n| Last Updated | 2026-04-24 |\n| Skills | 1426 |\n| Sources | 11 |\n\n[📋 Changelog](https://github.com/aktsmm/vscode-agent-skill-ninja/blob/master/CHANGELOG.md) · [🐛 Report Bug](https://github.com/aktsmm/vscode-agent-skill-ninja/issues)",
   "view.workspace": "Workspace Skills",
   "view.browse": "Remote Skills",
   "command.registerLocalSkill": "Register in AGENTS.md",

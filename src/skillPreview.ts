@@ -11,6 +11,7 @@ import {
 } from "./skillIndex";
 import messages, { isJapanese } from "./i18n";
 import { getGitHubToken } from "./githubAuth";
+import { fetchGitHubWithOptionalAuthRetry } from "./githubFetch";
 
 let previewPanel: vscode.WebviewPanel | undefined;
 let previewMessageListener: vscode.Disposable | undefined;
@@ -243,16 +244,10 @@ async function fetchSkillContent(
     }
   }
 
-  const headers: Record<string, string> = {
-    Accept: "text/plain",
-    "User-Agent": "VSCode-SkillNinja",
-  };
-
-  if (token) {
-    headers["Authorization"] = `token ${token}`;
-  }
-
-  const response = await fetch(rawUrl, { headers });
+  const response = await fetchGitHubWithOptionalAuthRetry(rawUrl, {
+    accept: "text/plain",
+    token,
+  });
 
   if (!response.ok) {
     throw new Error(`Failed to fetch: ${response.status}`);
