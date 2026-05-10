@@ -5,7 +5,6 @@ dist/
 output_blog_tips/
 output_retro/
 compile-output.txt
-scripts/test-*.js
 scripts/debug-*.js
 .github/skills/
 .github/prompts/
