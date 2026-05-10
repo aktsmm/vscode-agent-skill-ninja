@@ -10,13 +10,14 @@ tsconfig.json
 node_modules/**
 AGENTS.md
 AGENTS.md.backup
+*.vsix
+tmp-*
 compile-output.txt
 DASHBOARD.md
 robots.txt
 output_retro/**
 output_sessions/**
 scripts/**
-resources/icon.svg
 
 # Exclude .github folder from package
 .github/
