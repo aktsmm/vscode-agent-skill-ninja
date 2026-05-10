@@ -49,8 +49,10 @@ npm test
 変更をコミット済みの場合、以下のコマンドで一括リリース：
 
 ```bash
-npx vsce package && npx vsce publish && gh release create vX.X.X agent-skill-ninja-X.X.X.vsix --title "vX.X.X - タイトル" --notes "リリースノート"
+npx vsce package && npx vsce ls && npx vsce publish && gh release create vX.X.X agent-skill-ninja-X.X.X.vsix --title "vX.X.X - タイトル" --notes "リリースノート"
 ```
+
+軽微な変更でも、`npx vsce ls` による VSIX 収録物確認は省略しないこと。
 
 ## フルリリース手順
 
@@ -100,15 +102,38 @@ git commit -m "[Release] vX.X.X - 変更内容の要約"
 git push origin master  # ⚠️ main ではなく master
 ```
 
-### 5. パッケージ作成 & Marketplace 公開
+### 5. パッケージ作成 & VSIX 収録物確認
 
 ```bash
 npm run compile          # ビルド確認
 npx vsce package         # VSIX パッケージ作成
+npx vsce ls              # VSIX 収録物確認
+```
+
+`npx vsce ls` の出力に、runtime と Marketplace 表示に必要なファイル以外が入っていないことを確認する。
+
+特に以下が含まれていたら、`.vscodeignore` を修正してから `npx vsce package` と `npx vsce ls` をやり直すこと：
+
+- `.github/**`
+- `.vscode/**`
+- `.vscode-test/**`
+- `scripts/**`
+- `src/**`
+- `node_modules/**`
+- `output_*`
+- `AGENTS.md.backup`
+- `compile-output.txt`
+- `DASHBOARD.md`
+- `robots.txt`
+- その他 runtime に不要なローカル作業成果物、ログ、バックアップ
+
+### 6. Marketplace 公開
+
+```bash
 npx vsce publish         # Marketplace に公開
 ```
 
-### 6. GitHub Release 作成
+### 7. GitHub Release 作成
 
 ```bash
 gh release create vX.X.X agent-skill-ninja-X.X.X.vsix --title "vX.X.X - タイトル" --notes "リリースノート"
@@ -117,8 +142,10 @@ gh release create vX.X.X agent-skill-ninja-X.X.X.vsix --title "vX.X.X - タイ�
 ## ワンライナー（コミット済み & テスト済みの場合）
 
 ```bash
-npx vsce package && npx vsce publish && gh release create vX.X.X agent-skill-ninja-X.X.X.vsix --title "vX.X.X - Title" --notes "Notes"
+npx vsce package && npx vsce ls && npx vsce publish && gh release create vX.X.X agent-skill-ninja-X.X.X.vsix --title "vX.X.X - Title" --notes "Notes"
 ```
+
+`npx vsce ls` の内容を確認してから publish に進むこと。不要物が見つかった場合は、ワンライナーを中断して `.vscodeignore` を修正する。
 
 ## テストファイル一覧
 
@@ -136,6 +163,7 @@ npx vsce package && npx vsce publish && gh release create vX.X.X agent-skill-nin
 - ✅ **コード変更時は必ずテストを実行**
 - ✅ リリース前に `git status` で未コミットファイルがないことを確認
 - ✅ `npm run compile` が成功することを確認してから公開
+- ✅ `npx vsce ls` で不要な開発用ファイルが VSIX に入っていないことを確認してから公開
 
 ## 公開後の確認
 
