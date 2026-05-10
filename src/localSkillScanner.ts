@@ -4,6 +4,11 @@
 import * as vscode from "vscode";
 import { Skill } from "./skillIndex";
 import { updateInstructionFile } from "./instructionManager";
+import {
+  getSkillsDirectorySearchPattern,
+  isPathInSkillsDirectory,
+  normalizeWorkspacePath,
+} from "./skillScanPaths";
 
 /**
  * ローカルスキル情報（拡張版）
@@ -157,9 +162,9 @@ function parseTopLevelFrontmatter(frontmatter: string): Map<string, string> {
 }
 
 /**
- * ワークスペース内の SKILL.md をスキャン
+ * configured skills directory 内の SKILL.md をスキャン
  * @param workspaceUri ワークスペースの URI
- * @param includeInstalled true の場合、.github/skills 配下も含める
+ * @param includeInstalled true の場合、skills directory 配下のスキルを含める
  */
 export async function scanLocalSkills(
   workspaceUri: vscode.Uri,
@@ -171,18 +176,30 @@ export async function scanLocalSkills(
   const config = vscode.workspace.getConfiguration("skillNinja");
   const skillsDir = config.get<string>("skillsDirectory") || ".github/skills";
 
-  // SKILL.md ファイルを検索（node_modules は除外）
-  const pattern = new vscode.RelativePattern(workspaceUri, "**/SKILL.md");
-  const excludePattern = "**/node_modules/**";
+  const normalizedSkillsDir = normalizeWorkspacePath(skillsDir);
+
+  // 管理対象の skills directory 配下だけを検索する
+  const pattern = new vscode.RelativePattern(
+    workspaceUri,
+    getSkillsDirectorySearchPattern(skillsDir),
+  );
+  const excludePattern = "{**/node_modules/**,**/.git/**,**/.vscode-test/**}";
 
   const files = await vscode.workspace.findFiles(pattern, excludePattern, 100);
 
   for (const file of files) {
     try {
       const relativePath = vscode.workspace.asRelativePath(file, false);
+      const normalizedRelativePath = normalizeWorkspacePath(relativePath);
 
-      // インストール済みスキル（.github/skills 配下）を除外するか
-      if (!includeInstalled && relativePath.startsWith(skillsDir)) {
+      if (
+        !isPathInSkillsDirectory(normalizedRelativePath, normalizedSkillsDir)
+      ) {
+        continue;
+      }
+
+      // skills directory 配下のスキルを除外するか
+      if (!includeInstalled) {
         continue;
       }
 
@@ -305,12 +322,9 @@ async function checkRegistrationStatus(
 
     // スキル参照を検出（マーカー内のみ）
     for (const skill of skills) {
-      // .github/skills/xxx または skills/xxx などのパターンをチェック
-      const patterns = [
-        skill.relativePath,
-        `./${skill.relativePath}`,
-        skill.name,
-      ];
+      // skills directory 配下のパス一致のみで登録状態を判定する
+      const normalizedRelativePath = normalizeWorkspacePath(skill.relativePath);
+      const patterns = [normalizedRelativePath, `./${normalizedRelativePath}`];
 
       for (const pattern of patterns) {
         if (markerContent.includes(pattern)) {

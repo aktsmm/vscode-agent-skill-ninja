@@ -14,25 +14,23 @@ applyTo: "**/package.json,**/CHANGELOG.md,**/*.vsix"
 # 1. TypeScript コンパイル & Lint（型エラー・構文エラーの検出）
 npm run compile
 
-# 2. 単体テスト（When to Use 抽出ロジック）
-node scripts/test-whenToUse.js
-
-# 3. 検索ロジックテスト
-node scripts/test-search-logic.js
+# 2. 回帰テスト一式
+npm test
 ```
 
 ### テストが必要なケース
 
-| 変更内容                 | 必須テスト                                              |
-| ------------------------ | ------------------------------------------------------- |
-| `instructionManager.ts`  | `npm run compile` + 手動で Update Instruction File 確認 |
-| `skillInstaller.ts`      | `npm run compile` + 手動でスキルインストール確認        |
-| `skillIndex.ts`          | `npm run compile` + インデックス読み込み確認            |
-| `indexUpdater.ts`        | `npm run compile` + ソース更新・追加確認                |
-| `treeProvider.ts`        | `npm run compile` + TreeView 表示確認                   |
-| `i18n.ts`                | `npm run compile` + 日英両方で UI 確認                  |
-| `skillSearch.ts`         | `npm run compile` + `node scripts/test-search-logic.js` |
-| When to Use 抽出ロジック | `node scripts/test-whenToUse.js`                        |
+| 変更内容                 | 必須テスト                                                  |
+| ------------------------ | ----------------------------------------------------------- |
+| `instructionManager.ts`  | `npm run compile` + 手動で Update Instruction File 確認     |
+| `skillInstaller.ts`      | `npm run compile` + 手動でスキルインストール確認            |
+| `skillIndex.ts`          | `npm run compile` + インデックス読み込み確認                |
+| `indexUpdater.ts`        | `npm run compile` + ソース更新・追加確認                    |
+| `treeProvider.ts`        | `npm run compile` + TreeView 表示確認                       |
+| `i18n.ts`                | `npm run compile` + 日英両方で UI 確認                      |
+| `skillSearch.ts`         | `npm run compile` + `node scripts/test-search-logic.js`     |
+| スキルスキャン範囲       | `npm run compile` + `node scripts/test-skill-scan-paths.js` |
+| When to Use 抽出ロジック | `node scripts/test-whenToUse.js`                            |
 
 ### 結合テスト（手動）
 
@@ -61,11 +59,11 @@ npx vsce package && npx vsce publish && gh release create vX.X.X agent-skill-nin
 コード変更がある場合は、必ずテストを実行すること：
 
 ```bash
-# When to Use 抽出ロジックのテスト
-node scripts/test-whenToUse.js
-
 # TypeScript コンパイル & Lint
 npm run compile
+
+# 回帰テスト一式
+npm test
 ```
 
 **テストが全て PASS していることを確認してからリリースに進む。**
@@ -124,10 +122,12 @@ npx vsce package && npx vsce publish && gh release create vX.X.X agent-skill-nin
 
 ## テストファイル一覧
 
-| ファイル                       | 内容                                 |
-| ------------------------------ | ------------------------------------ |
-| `scripts/test-whenToUse.js`    | When to Use 抽出ロジックのテスト     |
-| `scripts/test-search-logic.js` | 検索ロジックのテスト（存在する場合） |
+| ファイル                           | 内容                                                        |
+| ---------------------------------- | ----------------------------------------------------------- |
+| `scripts/test-whenToUse.js`        | When to Use 抽出ロジックのテスト                            |
+| `scripts/test-search-logic.js`     | 検索ロジックのテスト（存在する場合）                        |
+| `scripts/test-skill-scan-paths.js` | skillsDirectory 配下だけをスキャンする境界テスト            |
+| `scripts/test-package-manifest.js` | Settings 表示順・Command Palette・README 導線の整合性テスト |
 
 ## 注意事項
 

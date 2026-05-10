@@ -2,7 +2,7 @@
   "name": "agent-skill-ninja",
   "displayName": "%displayName%",
   "description": "%description%",
-  "version": "0.8.21",
+  "version": "0.8.22",
   "publisher": "yamapan",
   "license": "CC-BY-NC-SA-4.0",
   "icon": "resources/icon.png",
@@ -720,6 +720,16 @@
           "when": "view == skillNinja.installedView && (viewItem == installedSkill || viewItem == localSkill)",
           "group": "navigation@2"
         }
+      ],
+      "commandPalette": [
+        {
+          "command": "skillNinja.registerLocalSkill",
+          "when": "false"
+        },
+        {
+          "command": "skillNinja.unregisterLocalSkill",
+          "when": "false"
+        }
       ]
     },
     "configuration": {
@@ -734,7 +744,7 @@
         "skillNinja.autoUpdateSkillsOnUpgrade": {
           "type": "string",
           "default": "prompt",
-          "order": 2,
+          "order": 7,
           "enum": [
             "always",
             "prompt",
@@ -750,7 +760,7 @@
         "skillNinja.instructionFile": {
           "type": "string",
           "default": "AGENTS.md",
-          "order": 3,
+          "order": 2,
           "enum": [
             "AGENTS.md",
             ".github/copilot-instructions.md",
@@ -782,25 +792,25 @@
         "skillNinja.includeLocalSkills": {
           "type": "boolean",
           "default": true,
-          "order": 4,
+          "order": 90,
           "markdownDescription": "%config.includeLocalSkills.markdownDescription%"
         },
         "skillNinja.skillsDirectory": {
           "type": "string",
           "default": ".github/skills",
-          "order": 5,
+          "order": 4,
           "description": "%config.skillsDirectory.description%"
         },
         "skillNinja.githubToken": {
           "type": "string",
           "default": "",
-          "order": 6,
+          "order": 8,
           "markdownDescription": "%config.githubToken.markdownDescription%"
         },
         "skillNinja.language": {
           "type": "string",
           "default": "auto",
-          "order": 7,
+          "order": 6,
           "enum": [
             "auto",
             "en",
@@ -816,7 +826,7 @@
         "skillNinja.outputFormat": {
           "type": "string",
           "default": "full",
-          "order": 0,
+          "order": 5,
           "enum": [
             "full",
             "compact",
@@ -852,7 +862,7 @@
     "package": "npm run check-types && npm run lint && node esbuild.js --production",
     "check-types": "tsc --noEmit",
     "lint": "eslint src",
-    "test": "vscode-test"
+    "test": "node scripts/test-whenToUse.js && node scripts/test-search-logic.js && node scripts/test-skill-scan-paths.js && node scripts/test-package-manifest.js"
   },
   "devDependencies": {
     "@types/mocha": "^10.0.10",

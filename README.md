@@ -88,11 +88,11 @@ Settings → **Output Format** → Select `full`, `compact`, or `legacy`
 
 ## 🥷 Features
 
-### 📁 Local Skill Management
+### 📁 Workspace Skill Management
 
-- Auto-detect **SKILL.md** files anywhere in workspace
-- Automatically sync to instruction file (with `includeLocalSkills` setting)
-- Manual register / unregister commands
+- Manage **SKILL.md** files under the configured `skillNinja.skillsDirectory`
+- Automatically sync installed workspace skills to the instruction file
+- `SKILL.md` files outside the skills directory are not auto-detected
 - Create new skill from template
 
 ### 🔍 Skill Search & Discovery
@@ -193,9 +193,9 @@ Preset index includes skills from official, curated, and community sources out o
 ### Sidebar Operations
 
 1. Click the **spiral shuriken icon** in the Activity Bar
-2. **Workspace Skills** - Installed & local skills list
-   - Installed skills (green icon) with source name
-   - Local skills (unregistered, yellow icon)
+2. **Workspace Skills** - Skills managed in the configured skills directory
+   - Installed workspace skills (green icon) with source name
+   - Uses `skillNinja.skillsDirectory` (default: `.github/skills`)
    - Newly installed skills (temporary badge)
    - Toolbar: Instruction File / Create / Refresh / Settings
    - Menu: Reinstall All / Uninstall All / Multiple selection
@@ -211,7 +211,6 @@ Preset index includes skills from official, curated, and community sources out o
 | Icon               | Meaning                                                |
 | ------------------ | ------------------------------------------------------ |
 | check (green)      | Installed skill                                        |
-| circle (yellow)    | Local skill (not registered in instruction file)       |
 | NEW badge          | Recently installed (temporary badge)                   |
 | star-full (yellow) | Favorites section                                      |
 | verified (blue)    | Official source (Anthropic, OpenAI, GitHub, Microsoft) |
@@ -229,9 +228,7 @@ Preset index includes skills from official, curated, and community sources out o
 | `Agent Skills Ninja: Remove Source Repository` | Remove source repository                 |
 | `Agent Skills Ninja: Uninstall Skill`          | Uninstall a skill                        |
 | `Agent Skills Ninja: Show Installed Skills`    | Show installed skills                    |
-| `Agent Skills Ninja: Create New Skill`         | Create new local skill                   |
-| `Agent Skills Ninja: Register Local Skill`     | Register local skill to instruction file |
-| `Agent Skills Ninja: Unregister Local Skill`   | Unregister from instruction file         |
+| `Agent Skills Ninja: Create New Skill`         | Create new workspace skill               |
 | `Agent Skills Ninja: Reinstall All`            | Reinstall all skills from latest source  |
 | `Agent Skills Ninja: Uninstall All`            | Uninstall all skills (with confirmation) |
 | `Agent Skills Ninja: Uninstall Multiple`       | Select multiple skills to uninstall      |
@@ -321,7 +318,7 @@ In GitHub Copilot's **Agent Mode**, tools are automatically available.
 - **Trust Badges**: Shows Official / Curated / Community
 - **Recommended Skills**: Suggests best skills from search results
 - **Index Update Info**: Shows last update date with warnings if outdated
-- **Settings Integration**: Respects `autoUpdateInstruction` / `includeLocalSkills`
+- **Settings Integration**: Respects `autoUpdateInstruction` / `skillsDirectory`
 - **Token Efficiency**: Save conversation context by using MCP tools
 
 ### Disable MCP Tools
@@ -333,19 +330,21 @@ If you don't need MCP tools, you can disable them from GitHub Copilot Chat:
 
 ## ⚙️ Settings
 
-| Order | Setting                            | Default          | Description                                      |
-| :---: | ---------------------------------- | ---------------- | ------------------------------------------------ |
-|   1   | `skillNinja.autoUpdateInstruction` | `true`           | **Auto-update instruction file on install**      |
-|   2   | `skillNinja.instructionFile`       | `AGENTS.md`      | Instruction file format _(requires Auto Update)_ |
-|   3   | `skillNinja.customInstructionPath` | `""`             | Custom path _(only when 'custom' selected)_      |
-|   4   | `skillNinja.includeLocalSkills`    | `true`           | Include local skills in instruction file         |
-|   5   | `skillNinja.skillsDirectory`       | `.github/skills` | Directory to install skills                      |
-|   6   | `skillNinja.githubToken`           | `""`             | GitHub Token (for API rate limit)                |
-|   7   | `skillNinja.language`              | `auto`           | UI language (auto / en / ja)                     |
-|   8   | `skillNinja.outputFormat`          | `full`           | Output format (full / compact / legacy)          |
-|   9   | `skillNinja.enableToolDetection`   | `true`           | Auto-detect AI tools in workspace                |
+| Order | Setting                                | Default          | Description                                      |
+| :---: | -------------------------------------- | ---------------- | ------------------------------------------------ |
+|   1   | `skillNinja.autoUpdateInstruction`     | `true`           | **Auto-update instruction file on install**      |
+|   2   | `skillNinja.instructionFile`           | `AGENTS.md`      | Instruction file format _(requires Auto Update)_ |
+|   3   | `skillNinja.customInstructionPath`     | `""`             | Custom path _(only when 'custom' selected)_      |
+|   4   | `skillNinja.skillsDirectory`           | `.github/skills` | Directory to install and manage workspace skills |
+|   5   | `skillNinja.outputFormat`              | `full`           | Output format (full / compact / legacy)          |
+|   6   | `skillNinja.language`                  | `auto`           | UI language (auto / en / ja)                     |
+|   7   | `skillNinja.autoUpdateSkillsOnUpgrade` | `prompt`         | Update installed skills after extension upgrade  |
+|   8   | `skillNinja.githubToken`               | `""`             | GitHub Token (for API rate limit)                |
+|   9   | `skillNinja.singleClickInstall`        | `false`          | Install remote skills with single click          |
 
 > Settings are displayed in the order above
+
+Legacy compatibility setting: `skillNinja.includeLocalSkills` is deprecated. Workspace skills are now scoped to `skillNinja.skillsDirectory`; SKILL.md files outside that directory are not auto-detected.
 
 ### Output Format Details
 
@@ -360,8 +359,8 @@ If you don't need MCP tools, you can disable them from GitHub Copilot Chat:
 When `autoUpdateInstruction` is enabled:
 
 1. **Install/Uninstall skill** → Instruction file is automatically updated
-2. **Local SKILL.md detected** → Added to instruction file (if `includeLocalSkills` is true)
-3. **Register/Unregister command** → Manual control for local skills
+2. **Workspace SKILL.md detected in `skillsDirectory`** → Included in the managed section
+3. **Manual Update Instruction File** → Regenerates the managed section from `skillsDirectory`
 
 The instruction file contains a managed section with **IMPORTANT prompt** and **Description column**:
 

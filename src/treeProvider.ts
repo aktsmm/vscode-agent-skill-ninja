@@ -15,6 +15,7 @@ import { getInstalledSkillsWithMeta } from "./skillInstaller";
 import { LocalSkill, scanLocalSkills } from "./localSkillScanner";
 import { isJapanese } from "./i18n";
 import { getSkillId } from "./skillPreview";
+import { isPathInSkillsDirectory } from "./skillScanPaths";
 
 /**
  * ワークスペーススキル情報（統合型）
@@ -36,10 +37,8 @@ export interface WorkspaceSkill {
 }
 
 /**
- * ワークスペーススキル統合ビュー
- * - インストール済みスキル (.github/skills 配下)
- * - ローカルスキル (それ以外の SKILL.md)
- * を統合表示
+ * ワークスペーススキルビュー
+ * - configured skills directory 配下のスキルを表示
  */
 export class WorkspaceSkillsProvider implements vscode.TreeDataProvider<SkillTreeItem> {
   private _onDidChangeTreeData = new vscode.EventEmitter<
@@ -206,7 +205,7 @@ export class WorkspaceSkillsProvider implements vscode.TreeDataProvider<SkillTre
     const config = vscode.workspace.getConfiguration("skillNinja");
     const skillsDir = config.get<string>("skillsDirectory") || ".github/skills";
 
-    // 1. 全 SKILL.md をスキャン（.github/skills 含む）
+    // 1. configured skills directory 配下の SKILL.md をスキャン
     const allLocalSkills = await scanLocalSkills(this.workspaceUri, true); // includeInstalled=true
 
     // 2. インストール済みスキル（メタデータ付き）
@@ -217,7 +216,10 @@ export class WorkspaceSkillsProvider implements vscode.TreeDataProvider<SkillTre
 
     // まず全てのスキャン結果を追加
     for (const local of allLocalSkills) {
-      const isInstalled = local.relativePath.startsWith(skillsDir);
+      const isInstalled = isPathInSkillsDirectory(
+        local.relativePath,
+        skillsDir,
+      );
       skillMap.set(local.name, {
         name: local.name,
         description: local.description || "",

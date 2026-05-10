@@ -3,7 +3,7 @@
 
 import * as vscode from "vscode";
 import { getInstalledSkillsWithMeta, SkillMeta } from "./skillInstaller";
-import { scanLocalSkills, LocalSkill } from "./localSkillScanner";
+import type { LocalSkill } from "./localSkillScanner";
 import { OutputFormat, resolveOutputFormat } from "./toolDetector";
 import * as path from "path";
 import { SKILL_DESCRIPTION_LIMITS } from "./constants";
@@ -106,7 +106,6 @@ export async function updateInstructionFile(
 
   const config = vscode.workspace.getConfiguration("skillNinja");
   const skillsDir = config.get<string>("skillsDirectory") || ".github/skills";
-  const includeLocalSkills = config.get<boolean>("includeLocalSkills") ?? true;
   const instructionUri = vscode.Uri.joinPath(workspaceUri, instructionFile);
 
   console.log(`[Skill Ninja] Updating instruction file: ${instructionFile}`);
@@ -118,16 +117,8 @@ export async function updateInstructionFile(
     installedSkills.map((s) => s.name),
   );
 
-  // ローカルスキルを取得（設定で有効な場合のみ）
-  let localSkills: LocalSkill[] = [];
-  if (includeLocalSkills) {
-    const allLocalSkills = await scanLocalSkills(workspaceUri);
-    // インストール済みスキル（.github/skills 配下）は除外
-    localSkills = allLocalSkills.filter(
-      (ls) => !ls.relativePath.startsWith(skillsDir),
-    );
-    console.log(`[Skill Ninja] Found ${localSkills.length} local skills`);
-  }
+  // AGENTS.md 同期は configured skills directory 配下のみを対象にする
+  const localSkills: LocalSkill[] = [];
 
   // instructionFile からの相対パスを計算
   const relativeSkillsDir = calculateRelativePath(instructionFile, skillsDir);

@@ -84,11 +84,11 @@
 
 ## 🥷 Features
 
-### 📁 ローカルスキル管理
+### 📁 ワークスペーススキル管理
 
-- ワークスペース内の **SKILL.md** を自動検出
-- instruction file へ自動同期（`includeLocalSkills` 設定で制御）
-- 手動での登録/解除コマンド
+- 設定された `skillNinja.skillsDirectory` 配下の **SKILL.md** を管理
+- インストール済みワークスペーススキルを instruction file へ自動同期
+- skills ディレクトリ外の **SKILL.md** は自動検出しません
 - テンプレートから新規スキル作成
 
 ### 🔍 スキル検索・発見
@@ -189,9 +189,9 @@ ext install yamapan.agent-skill-ninja
 ### サイドバーから操作
 
 1. アクティビティバーの **螺旋手裏剣アイコン** をクリック
-2. **Workspace Skills** - インストール済み＆ローカルスキル一覧
-   - インストール済みスキル（緑アイコン）とソース名を表示
-   - ローカルスキル（未登録、黄アイコン）
+2. **Workspace Skills** - 設定された skills ディレクトリ内のスキル一覧
+   - インストール済みワークスペーススキル（緑アイコン）とソース名を表示
+   - `skillNinja.skillsDirectory`（既定: `.github/skills`）を使用
    - 新しくインストールしたスキル（一時的なバッジ）
    - ツールバー: Instruction / 新規作成 / 更新 / 設定
    - メニュー: 全て再インストール / 全削除 / 複数選択
@@ -207,7 +207,6 @@ ext install yamapan.agent-skill-ninja
 | アイコン       | 意味                                               |
 | -------------- | -------------------------------------------------- |
 | check (緑)     | インストール済みスキル                             |
-| circle (黄)    | ローカルスキル（instruction file 未登録）          |
 | NEW badge      | 最近インストール（一時的なバッジ）                 |
 | star-full (黄) | お気に入りセクション                               |
 | verified (青)  | 公式ソース（Anthropic, OpenAI, GitHub, Microsoft） |
@@ -216,24 +215,22 @@ ext install yamapan.agent-skill-ninja
 
 ### コマンドパレット
 
-| コマンド                                       | 説明                                     |
-| ---------------------------------------------- | ---------------------------------------- |
-| `Agent Skills Ninja: Search Skills`            | スキルを検索してインストール             |
-| `Agent Skills Ninja: Update Index`             | 全ソースからインデックスを更新           |
-| `Agent Skills Ninja: Search on GitHub`         | GitHub でスキルを検索                    |
-| `Agent Skills Ninja: Add Source Repository`    | 新しいソースリポジトリを追加             |
-| `Agent Skills Ninja: Remove Source Repository` | ソースリポジトリを削除                   |
-| `Agent Skills Ninja: Uninstall Skill`          | スキルをアンインストール                 |
-| `Agent Skills Ninja: Show Installed Skills`    | インストール済みスキルを表示             |
-| `Agent Skills Ninja: Create New Skill`         | 新規ローカルスキルを作成                 |
-| `Agent Skills Ninja: Register Local Skill`     | ローカルスキルを instruction file に登録 |
-| `Agent Skills Ninja: Unregister Local Skill`   | instruction file から登録解除            |
-| `Agent Skills Ninja: Reinstall All`            | 全スキルを最新ソースから再インストール   |
-| `Agent Skills Ninja: Uninstall All`            | 全スキルを削除（確認ダイアログあり）     |
-| `Agent Skills Ninja: Uninstall Multiple`       | 複数スキルを選択して削除                 |
-| `Agent Skills Ninja: Reinstall Multiple`       | 複数スキルを選択して再インストール       |
-| `Agent Skills Ninja: Update Instruction`       | instruction file を手動更新              |
-| `Agent Skills Ninja: Open Skill Folder`        | インストール済みスキルのフォルダを開く   |
+| コマンド                                       | 説明                                   |
+| ---------------------------------------------- | -------------------------------------- |
+| `Agent Skills Ninja: Search Skills`            | スキルを検索してインストール           |
+| `Agent Skills Ninja: Update Index`             | 全ソースからインデックスを更新         |
+| `Agent Skills Ninja: Search on GitHub`         | GitHub でスキルを検索                  |
+| `Agent Skills Ninja: Add Source Repository`    | 新しいソースリポジトリを追加           |
+| `Agent Skills Ninja: Remove Source Repository` | ソースリポジトリを削除                 |
+| `Agent Skills Ninja: Uninstall Skill`          | スキルをアンインストール               |
+| `Agent Skills Ninja: Show Installed Skills`    | インストール済みスキルを表示           |
+| `Agent Skills Ninja: Create New Skill`         | 新規ワークスペーススキルを作成         |
+| `Agent Skills Ninja: Reinstall All`            | 全スキルを最新ソースから再インストール |
+| `Agent Skills Ninja: Uninstall All`            | 全スキルを削除（確認ダイアログあり）   |
+| `Agent Skills Ninja: Uninstall Multiple`       | 複数スキルを選択して削除               |
+| `Agent Skills Ninja: Reinstall Multiple`       | 複数スキルを選択して再インストール     |
+| `Agent Skills Ninja: Update Instruction`       | instruction file を手動更新            |
+| `Agent Skills Ninja: Open Skill Folder`        | インストール済みスキルのフォルダを開く |
 
 ### クイックスタート
 
@@ -317,7 +314,7 @@ GitHub Copilot の **Agent Mode** では、自動的に MCP ツールとして�
 - **信頼度バッジ**: Official / Curated / Community を表示
 - **おすすめスキル**: 検索結果から最適なスキルを推奨
 - **インデックス更新情報**: 最終更新日と古い場合の警告
-- **設定連動**: `autoUpdateInstruction` / `includeLocalSkills` を尊重
+- **設定連動**: `autoUpdateInstruction` / `skillsDirectory` を尊重
 - **トークン効率**: MCP ツール経由で操作することで、会話コンテキストを節約
 
 ### MCP ツールを無効化
@@ -329,19 +326,21 @@ MCP ツールが不要な場合は、GitHub Copilot Chat のツール一覧か�
 
 ## ⚙️ Settings
 
-| 順序 | Setting                            | Default          | Description                                           |
-| :--: | ---------------------------------- | ---------------- | ----------------------------------------------------- |
-|  1   | `skillNinja.autoUpdateInstruction` | `true`           | **インストール時に instruction file を自動更新**      |
-|  2   | `skillNinja.instructionFile`       | `AGENTS.md`      | スキルを登録するファイル形式 _(要: Auto Update)_      |
-|  3   | `skillNinja.customInstructionPath` | `""`             | カスタムパス _(instructionFile が 'custom' の時のみ)_ |
-|  4   | `skillNinja.includeLocalSkills`    | `true`           | ローカルスキルも instruction file に含める            |
-|  5   | `skillNinja.skillsDirectory`       | `.github/skills` | スキルをインストールするディレクトリ                  |
-|  6   | `skillNinja.githubToken`           | `""`             | GitHub Token（API 制限緩和用）                        |
-|  7   | `skillNinja.language`              | `auto`           | UI 言語（auto / en / ja）                             |
-|  8   | `skillNinja.outputFormat`          | `full`           | 出力形式（full / compact / legacy）                   |
-|  9   | `skillNinja.enableToolDetection`   | `true`           | AI ツール自動検出を有効化                             |
+| 順序 | Setting                                | Default          | Description                                              |
+| :--: | -------------------------------------- | ---------------- | -------------------------------------------------------- |
+|  1   | `skillNinja.autoUpdateInstruction`     | `true`           | **インストール時に instruction file を自動更新**         |
+|  2   | `skillNinja.instructionFile`           | `AGENTS.md`      | スキルを登録するファイル形式 _(要: Auto Update)_         |
+|  3   | `skillNinja.customInstructionPath`     | `""`             | カスタムパス _(instructionFile が 'custom' の時のみ)_    |
+|  4   | `skillNinja.skillsDirectory`           | `.github/skills` | ワークスペーススキルをインストール・管理するディレクトリ |
+|  5   | `skillNinja.outputFormat`              | `full`           | 出力形式（full / compact / legacy）                      |
+|  6   | `skillNinja.language`                  | `auto`           | UI 言語（auto / en / ja）                                |
+|  7   | `skillNinja.autoUpdateSkillsOnUpgrade` | `prompt`         | 拡張機能アップグレード後のスキル更新                     |
+|  8   | `skillNinja.githubToken`               | `""`             | GitHub Token（API 制限緩和用）                           |
+|  9   | `skillNinja.singleClickInstall`        | `false`          | リモートスキルをシングルクリックでインストール           |
 
 > 設定画面では上記の順序で表示されます
+
+互換用設定: `skillNinja.includeLocalSkills` は非推奨です。ワークスペーススキルは `skillNinja.skillsDirectory` 配下だけを管理対象にし、その外側の SKILL.md は自動検出しません。
 
 ### 出力フォーマット詳細
 
@@ -356,8 +355,8 @@ MCP ツールが不要な場合は、GitHub Copilot Chat のツール一覧か�
 `autoUpdateInstruction` が有効な場合：
 
 1. **スキルのインストール/アンインストール** → instruction file が自動更新
-2. **ローカル SKILL.md 検出** → instruction file に追加（`includeLocalSkills` が true の場合）
-3. **登録/解除コマンド** → ローカルスキルの手動制御
+2. **`skillsDirectory` 内の SKILL.md 検出** → 管理セクションへ追加
+3. **Update Instruction File の手動実行** → `skillsDirectory` から管理セクションを再生成
 
 instruction file には **IMPORTANT プロンプト** と **Description 列** を含む管理セクションが追加されます：
 
