@@ -168,6 +168,11 @@ Or search for **"Agent Skills Ninja"** in VS Code Extensions (`Ctrl+Shift+X`)
 2. In VS Code: `Ctrl+Shift+P` → `Extensions: Install from VSIX...`
 3. Select the downloaded `.vsix` file
 
+## 🧩 Companion Extension
+
+- [Agent Resources Ninja](https://marketplace.visualstudio.com/items?itemName=yamapan.agent-resources-ninja) - Resource-oriented companion extension for managing skills plus agents, prompts, instructions, hooks, MCP config resources, and related AI coding resources.
+- GitHub: https://github.com/aktsmm/vscode-agent-resources-ninja
+
 ## 📚 Included Skill Sources
 
 Preset index includes skills from official, curated, and community sources out of the box.

@@ -2,7 +2,7 @@
   "name": "agent-skill-ninja",
   "displayName": "%displayName%",
   "description": "%description%",
-  "version": "0.8.24",
+  "version": "0.8.25",
   "publisher": "yamapan",
   "license": "CC-BY-NC-SA-4.0",
   "icon": "resources/icon.png",
@@ -849,6 +849,11 @@
           "type": "null",
           "order": 100,
           "markdownDescription": "%config.versionInfo.markdownDescription%"
+        },
+        "skillNinja.companionExtension": {
+          "type": "null",
+          "order": 101,
+          "markdownDescription": "%config.companionExtension.markdownDescription%"
         }
       }
     }

@@ -164,6 +164,11 @@ ext install yamapan.agent-skill-ninja
 2. VS Code で `Ctrl+Shift+P` → `Extensions: Install from VSIX...`
 3. ダウンロードした `.vsix` を選択
 
+## 🧩 Companion Extension
+
+- [Agent Resources Ninja](https://marketplace.visualstudio.com/items?itemName=yamapan.agent-resources-ninja) - スキルに加えて agent、prompt、instruction、hook、MCP config resource などもまとめて管理できる companion 拡張です。
+- GitHub: https://github.com/aktsmm/vscode-agent-resources-ninja
+
 ## 📚 Included Skill Sources
 
 プリセットインデックスには、公式・キュレーション・コミュニティの各ソースが初期状態で含まれます。

@@ -179,6 +179,21 @@ test("README files describe the directory-scoped workspace model", () => {
   );
 });
 
+test("README files and settings surface the companion extension", () => {
+  const companionUrl =
+    "https://marketplace.visualstudio.com/items?itemName=yamapan.agent-resources-ninja";
+
+  assert.ok(readme.includes("Agent Resources Ninja"));
+  assert.ok(readme.includes(companionUrl));
+  assert.ok(readmeJa.includes("Agent Resources Ninja"));
+  assert.ok(readmeJa.includes(companionUrl));
+  assert.strictEqual(
+    pkg.contributes.configuration.properties["skillNinja.companionExtension"]
+      ?.order,
+    101,
+  );
+});
+
 test("release instructions include the maintained npm test path", () => {
   assert.ok(releaseInstructions.includes("npm test"));
   assert.ok(releaseInstructions.includes("scripts/test-skill-scan-paths.js"));
