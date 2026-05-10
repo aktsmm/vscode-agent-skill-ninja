@@ -3,10 +3,20 @@
 src/**
 .gitignore
 esbuild.js
+eslint.config.mjs
 tsconfig.json
 **/*.ts
 **/*.map
 node_modules/**
+AGENTS.md
+AGENTS.md.backup
+compile-output.txt
+DASHBOARD.md
+robots.txt
+output_retro/**
+output_sessions/**
+scripts/**
+resources/icon.svg
 
 # Exclude .github folder from package
 .github/
