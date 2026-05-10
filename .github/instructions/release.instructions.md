@@ -49,10 +49,12 @@ npm test
 変更をコミット済みの場合、以下のコマンドで一括リリース：
 
 ```bash
-npx vsce package && npx vsce ls && npx vsce publish && gh release create vX.X.X agent-skill-ninja-X.X.X.vsix --title "vX.X.X - タイトル" --notes "リリースノート"
+New-Item -ItemType Directory -Force artifacts/vsix | Out-Null
+npx vsce package --out artifacts/vsix/agent-skill-ninja-X.X.X.vsix && npx vsce ls && npx vsce publish --packagePath artifacts/vsix/agent-skill-ninja-X.X.X.vsix && gh release create vX.X.X artifacts/vsix/agent-skill-ninja-X.X.X.vsix --title "vX.X.X - タイトル" --notes "リリースノート"
 ```
 
 軽微な変更でも、`npx vsce ls` による VSIX 収録物確認は省略しないこと。
+リリース後は `artifacts/vsix/` 配下の VSIX を **最新 10 件だけ残す**。
 
 ## フルリリース手順
 
@@ -106,7 +108,8 @@ git push origin master  # ⚠️ main ではなく master
 
 ```bash
 npm run compile          # ビルド確認
-npx vsce package         # VSIX パッケージ作成
+New-Item -ItemType Directory -Force artifacts/vsix | Out-Null
+npx vsce package --out artifacts/vsix/agent-skill-ninja-X.X.X.vsix  # VSIX パッケージ作成
 npx vsce ls              # VSIX 収録物確認
 ```
 
@@ -130,19 +133,31 @@ npx vsce ls              # VSIX 収録物確認
 ### 6. Marketplace 公開
 
 ```bash
-npx vsce publish         # Marketplace に公開
+npx vsce publish --packagePath artifacts/vsix/agent-skill-ninja-X.X.X.vsix  # Marketplace に公開
 ```
 
 ### 7. GitHub Release 作成
 
 ```bash
-gh release create vX.X.X agent-skill-ninja-X.X.X.vsix --title "vX.X.X - タイトル" --notes "リリースノート"
+gh release create vX.X.X artifacts/vsix/agent-skill-ninja-X.X.X.vsix --title "vX.X.X - タイトル" --notes "リリースノート"
 ```
+
+### 8. ローカル VSIX の整理
+
+```bash
+$vsixDir = "artifacts/vsix"
+Get-ChildItem $vsixDir -Filter "agent-skill-ninja-*.vsix" |
+	Sort-Object { [version]($_.BaseName -replace '^agent-skill-ninja-', '') } -Descending |
+	Select-Object -Skip 10 |
+	Remove-Item -Force
+```
+
+ルート直下には `.vsix` を置かず、`artifacts/vsix/` に集約すること。
 
 ## ワンライナー（コミット済み & テスト済みの場合）
 
 ```bash
-npx vsce package && npx vsce ls && npx vsce publish && gh release create vX.X.X agent-skill-ninja-X.X.X.vsix --title "vX.X.X - Title" --notes "Notes"
+New-Item -ItemType Directory -Force artifacts/vsix | Out-Null; npx vsce package --out artifacts/vsix/agent-skill-ninja-X.X.X.vsix; npx vsce ls; npx vsce publish --packagePath artifacts/vsix/agent-skill-ninja-X.X.X.vsix; gh release create vX.X.X artifacts/vsix/agent-skill-ninja-X.X.X.vsix --title "vX.X.X - Title" --notes "Notes"
 ```
 
 `npx vsce ls` の内容を確認してから publish に進むこと。不要物が見つかった場合は、ワンライナーを中断して `.vscodeignore` を修正する。

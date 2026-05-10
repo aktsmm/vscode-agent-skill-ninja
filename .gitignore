@@ -1,6 +1,7 @@
 node_modules/
 dist/
 *.vsix
+/artifacts/
 .vscode-test/
 output_blog_tips/
 output_retro/
