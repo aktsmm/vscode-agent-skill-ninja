@@ -198,6 +198,17 @@ test("README files describe workspace, user/global, and built-in skill scopes", 
   assert.ok(readmeJa.includes("Built-in Skills"));
 });
 
+test("manifest exposes installed, user/global, and remote views", () => {
+  const viewIds = (pkg.contributes.views["skill-ninja"] || []).map(
+    (view) => view.id,
+  );
+  assert.deepStrictEqual(viewIds, [
+    "skillNinja.installedView",
+    "skillNinja.userGlobalView",
+    "skillNinja.browseView",
+  ]);
+});
+
 test("README files and settings surface the companion extension", () => {
   const companionUrl =
     "https://marketplace.visualstudio.com/items?itemName=yamapan.agent-resources-ninja";

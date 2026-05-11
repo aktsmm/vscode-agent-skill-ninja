@@ -105,6 +105,71 @@ export function pathToDisplayPath(
   return normalizedTarget;
 }
 
+function getEnvironmentVariable(variableName: string): string | undefined {
+  const exactMatch = process.env[variableName];
+  if (exactMatch) {
+    return exactMatch;
+  }
+
+  const upperCaseMatch = process.env[variableName.toUpperCase()];
+  if (upperCaseMatch) {
+    return upperCaseMatch;
+  }
+
+  const lowerCaseMatch = process.env[variableName.toLowerCase()];
+  if (lowerCaseMatch) {
+    return lowerCaseMatch;
+  }
+
+  return undefined;
+}
+
+function expandConfiguredPathVariables(
+  configuredPath: string,
+  workspacePath?: string,
+  homeDir: string = os.homedir(),
+): string | undefined {
+  let unresolvedVariable = false;
+
+  const replaceVariable = (match: string, variableName: string): string => {
+    const resolved = getEnvironmentVariable(variableName);
+    if (!resolved) {
+      unresolvedVariable = true;
+      return match;
+    }
+    return resolved;
+  };
+
+  let expanded = configuredPath;
+  if (workspacePath) {
+    expanded = expanded.replace(/\$\{workspaceFolder\}/g, workspacePath);
+  }
+  expanded = expanded.replace(/\$\{userHome\}/g, homeDir);
+  expanded = expanded.replace(
+    /\$\{env:([^}]+)\}/g,
+    (match, variableName: string) => replaceVariable(match, variableName),
+  );
+  expanded = expanded.replace(/%([^%]+)%/g, (match, variableName: string) =>
+    replaceVariable(match, variableName),
+  );
+
+  if (unresolvedVariable) {
+    return undefined;
+  }
+
+  return expanded;
+}
+
+export function getDefaultUserGlobalSkillLocationPaths(
+  homeDir: string = os.homedir(),
+): string[] {
+  return [
+    path.join(homeDir, ".copilot", "skills"),
+    path.join(homeDir, ".claude", "skills"),
+    path.join(homeDir, ".agents", "skills"),
+  ];
+}
+
 export function resolveConfiguredPath(
   configuredPath: string,
   workspacePath?: string,
@@ -123,10 +188,16 @@ export function resolveConfiguredPath(
     }
   }
 
-  let expanded = trimmed;
-  if (workspacePath && expanded.includes("${workspaceFolder}")) {
-    expanded = expanded.replace(/\$\{workspaceFolder\}/g, workspacePath);
+  const expandedPath = expandConfiguredPathVariables(
+    trimmed,
+    workspacePath,
+    homeDir,
+  );
+  if (!expandedPath) {
+    return undefined;
   }
+
+  let expanded = expandedPath;
 
   if (expanded === "~") {
     return path.normalize(homeDir);
@@ -317,6 +388,37 @@ export async function getManagedSkillRoots(
   const seen = new Set<string>();
   const skillNinjaConfig = vscode.workspace.getConfiguration("skillNinja");
 
+  const addManagedRoot = (locationUri: vscode.Uri): void => {
+    const normalizedRootPath = normalizeFileSystemPath(locationUri.fsPath);
+    if (seen.has(normalizedRootPath)) {
+      return;
+    }
+
+    if (workspaceUri && isInsidePath(workspaceUri.fsPath, locationUri.fsPath)) {
+      return;
+    }
+
+    const instructionPath = resolveUserGlobalInstructionPath(locationUri.fsPath);
+    const instructionUri = vscode.Uri.file(instructionPath);
+
+    roots.push({
+      scope: "userGlobal",
+      label: "User / Global Skills",
+      rootUri: locationUri,
+      rootPath: locationUri.fsPath,
+      displayPath: pathToDisplayPath(locationUri.fsPath),
+      isManaged: true,
+      isReadOnly: false,
+      instructionUri,
+      instructionPath,
+      linkPathFromInstruction: computeRelativeDirectoryPath(
+        instructionPath,
+        locationUri.fsPath,
+      ),
+    });
+    seen.add(normalizedRootPath);
+  };
+
   if (workspaceUri) {
     const skillsDirectory =
       skillNinjaConfig.get<string>("skillsDirectory") || ".github/skills";
@@ -353,6 +455,10 @@ export async function getManagedSkillRoots(
     return roots;
   }
 
+  for (const defaultPath of getDefaultUserGlobalSkillLocationPaths()) {
+    addManagedRoot(vscode.Uri.file(defaultPath));
+  }
+
   const rawSettingValue = getRawAgentSkillLocationsSetting();
   const rawLocations = parseAgentSkillLocationConfig(rawSettingValue).filter(
     (entry) => entry.enabled,
@@ -364,36 +470,7 @@ export async function getManagedSkillRoots(
       continue;
     }
 
-    const normalizedRootPath = normalizeFileSystemPath(locationUri.fsPath);
-    if (seen.has(normalizedRootPath)) {
-      continue;
-    }
-
-    if (workspaceUri && isInsidePath(workspaceUri.fsPath, locationUri.fsPath)) {
-      continue;
-    }
-
-    const instructionPath = resolveUserGlobalInstructionPath(
-      locationUri.fsPath,
-    );
-    const instructionUri = vscode.Uri.file(instructionPath);
-
-    roots.push({
-      scope: "userGlobal",
-      label: "User / Global Skills",
-      rootUri: locationUri,
-      rootPath: locationUri.fsPath,
-      displayPath: pathToDisplayPath(locationUri.fsPath),
-      isManaged: true,
-      isReadOnly: false,
-      instructionUri,
-      instructionPath,
-      linkPathFromInstruction: computeRelativeDirectoryPath(
-        instructionPath,
-        locationUri.fsPath,
-      ),
-    });
-    seen.add(normalizedRootPath);
+    addManagedRoot(locationUri);
   }
 
   return roots;

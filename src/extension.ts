@@ -26,6 +26,7 @@ import {
 import {
   BrowseSkillsProvider,
   SkillTreeItem,
+  UserGlobalSkillsProvider,
   WorkspaceSkillsProvider,
 } from "./treeProvider";
 import {
@@ -145,7 +146,21 @@ export function activate(context: vscode.ExtensionContext) {
     workspaceFolder?.uri,
     recentlyInstalled,
   );
+  const userGlobalProvider = new UserGlobalSkillsProvider(
+    workspaceFolder?.uri,
+    recentlyInstalled,
+  );
   const browseProvider = new BrowseSkillsProvider(context);
+
+  function refreshInstalledViews(): void {
+    workspaceProvider.refresh();
+    userGlobalProvider.refresh();
+  }
+
+  function refreshAllViews(): void {
+    refreshInstalledViews();
+    browseProvider.refresh();
+  }
 
   function markRecentlyInstalled(skill: Skill): void {
     const existingTimeout = recentInstallTimeouts.get(skill.name);
@@ -158,7 +173,7 @@ export function activate(context: vscode.ExtensionContext) {
     const timeout = setTimeout(() => {
       recentInstallTimeouts.delete(skill.name);
       if (recentlyInstalled.delete(skill.name)) {
-        workspaceProvider.refresh();
+        refreshInstalledViews();
       }
     }, 15000);
 
@@ -271,14 +286,19 @@ export function activate(context: vscode.ExtensionContext) {
     return item.skillRoot;
   }
 
-  // 後方互換のためのエイリアス
-  const installedProvider = workspaceProvider;
-
   const installedTreeView = vscode.window.createTreeView(
     "skillNinja.installedView",
     {
       treeDataProvider: workspaceProvider,
       showCollapseAll: false,
+    },
+  );
+
+  const userGlobalTreeView = vscode.window.createTreeView(
+    "skillNinja.userGlobalView",
+    {
+      treeDataProvider: userGlobalProvider,
+      showCollapseAll: true,
     },
   );
 
@@ -321,8 +341,7 @@ export function activate(context: vscode.ExtensionContext) {
       // 言語設定が変わったらインデックスを再読み込みしてツリービューをリフレッシュ
       // バンドル版の description_ja を反映させるため
       skillIndex = await loadSkillIndex(context);
-      workspaceProvider.refresh();
-      browseProvider.refresh();
+      refreshAllViews();
     }
 
     if (
@@ -330,8 +349,7 @@ export function activate(context: vscode.ExtensionContext) {
       e.affectsConfiguration("skillNinja.useVsCodeAgentSkillLocations") ||
       e.affectsConfiguration("skillNinja.showBuiltInSkills")
     ) {
-      workspaceProvider.refresh();
-      browseProvider.refresh();
+      refreshAllViews();
     }
 
     // インストラクションファイルまたは出力フォーマットが変更されたら自動更新
@@ -403,8 +421,7 @@ export function activate(context: vscode.ExtensionContext) {
   const refreshCmd = vscode.commands.registerCommand(
     "skillNinja.refresh",
     () => {
-      installedProvider.refresh();
-      browseProvider.refresh();
+      refreshAllViews();
     },
   );
 
@@ -412,7 +429,7 @@ export function activate(context: vscode.ExtensionContext) {
   const refreshLocalCmd = vscode.commands.registerCommand(
     "skillNinja.refreshLocal",
     () => {
-      workspaceProvider.refresh();
+      refreshInstalledViews();
     },
   );
 
@@ -640,7 +657,7 @@ export function activate(context: vscode.ExtensionContext) {
           : `Updated description for ${skill.name}`,
       );
 
-      workspaceProvider.refresh();
+      refreshInstalledViews();
     },
   );
 
@@ -775,13 +792,20 @@ export function activate(context: vscode.ExtensionContext) {
         vscode.window.showInformationMessage(
           messages.installSuccess(skill.name),
         );
-        workspaceProvider.refresh();
-        browseProvider.refresh();
+        refreshAllViews();
 
         // ツリービューでスキルを選択状態にする
-        const groups = await workspaceProvider.getChildren();
+        const targetProvider =
+          targetRoot.scope === "workspace"
+            ? workspaceProvider
+            : userGlobalProvider;
+        const targetTreeView =
+          targetRoot.scope === "workspace"
+            ? installedTreeView
+            : userGlobalTreeView;
+        const groups = await targetProvider.getChildren();
         for (const group of groups) {
-          const items = await workspaceProvider.getChildren(group);
+          const items = await targetProvider.getChildren(group);
           const installedItem = items.find((treeItem) => {
             const root = getSkillRootFromItem(treeItem);
             return (
@@ -790,7 +814,7 @@ export function activate(context: vscode.ExtensionContext) {
             );
           });
           if (installedItem) {
-            await installedTreeView.reveal(installedItem, {
+            await targetTreeView.reveal(installedItem, {
               select: true,
               focus: true,
             });
@@ -900,8 +924,7 @@ export function activate(context: vscode.ExtensionContext) {
           vscode.window.showInformationMessage(
             messages.uninstallSuccess(skillName),
           );
-          workspaceProvider.refresh();
-          browseProvider.refresh();
+          refreshAllViews();
         } catch (error) {
           vscode.window.showErrorMessage(
             messages.uninstallFailed(String(error)),
@@ -1034,8 +1057,7 @@ export function activate(context: vscode.ExtensionContext) {
         installedEntries.map((entry) => entry.root),
       );
 
-      installedProvider.refresh();
-      browseProvider.refresh();
+      refreshAllViews();
       vscode.window.showInformationMessage(
         isJapanese()
           ? `${installedEntries.length} 個のスキルを再インストールしました`
@@ -1177,8 +1199,7 @@ export function activate(context: vscode.ExtensionContext) {
             ? `${skill.name} を再インストールしました`
             : `Reinstalled ${skill.name}`,
         );
-        workspaceProvider.refresh();
-        browseProvider.refresh();
+        refreshAllViews();
       } catch (error) {
         vscode.window.showErrorMessage(
           isJapanese()
@@ -1263,8 +1284,7 @@ export function activate(context: vscode.ExtensionContext) {
         installedEntries.map((entry) => entry.root),
       );
 
-      workspaceProvider.refresh();
-      browseProvider.refresh();
+      refreshAllViews();
       vscode.window.showInformationMessage(
         isJapanese()
           ? `${installedEntries.length} 個のスキルを削除しました`
@@ -1375,8 +1395,7 @@ export function activate(context: vscode.ExtensionContext) {
 
       await updateInstructionFilesForRoots([targetRoot]);
 
-      workspaceProvider.refresh();
-      browseProvider.refresh();
+      refreshAllViews();
     },
   );
 
@@ -1459,8 +1478,7 @@ export function activate(context: vscode.ExtensionContext) {
         selected.map((item) => item.entry.root),
       );
 
-      workspaceProvider.refresh();
-      browseProvider.refresh();
+      refreshAllViews();
       vscode.window.showInformationMessage(
         isJapanese()
           ? `${selected.length} 個のスキルを削除しました`
@@ -1565,8 +1583,7 @@ export function activate(context: vscode.ExtensionContext) {
         selected.map((item) => item.entry.root),
       );
 
-      workspaceProvider.refresh();
-      browseProvider.refresh();
+      refreshAllViews();
       vscode.window.showInformationMessage(
         isJapanese()
           ? `${selected.length} 個のスキルを再インストールしました`
@@ -2352,7 +2369,7 @@ export function activate(context: vscode.ExtensionContext) {
         vscode.window.showInformationMessage(
           messages.localSkillRegistered(localSkill.name),
         );
-        workspaceProvider.refresh();
+        refreshInstalledViews();
       }
     },
   );
@@ -2381,7 +2398,7 @@ export function activate(context: vscode.ExtensionContext) {
         vscode.window.showInformationMessage(
           messages.localSkillUnregistered(localSkill.name),
         );
-        workspaceProvider.refresh();
+        refreshInstalledViews();
       }
     },
   );
@@ -2461,7 +2478,7 @@ Add examples here
       await updateInstructionFilesForRoots([targetRoot]);
 
       vscode.window.showInformationMessage(messages.skillCreated(skillName));
-      workspaceProvider.refresh();
+      refreshInstalledViews();
 
       // Open the new file
       const doc = await vscode.workspace.openTextDocument(skillPath);
@@ -2763,12 +2780,12 @@ Add examples here
     doubleClickCmd,
     configWatcher,
     installedTreeView,
+    userGlobalTreeView,
     browseTreeView,
   );
 
   const refreshViews = () => {
-    workspaceProvider.refresh();
-    browseProvider.refresh();
+    refreshAllViews();
   };
 
   context.subscriptions.push(
@@ -2813,8 +2830,7 @@ Add examples here
         const updated = await refreshSingleSkillMetadata(uri);
         if (updated) {
           // ビューを更新
-          workspaceProvider.refresh();
-          browseProvider.refresh();
+          refreshAllViews();
 
           // 自動更新が有効な場合は instruction file も更新
           const autoUpdate = vscode.workspace

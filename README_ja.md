@@ -195,17 +195,21 @@ ext install yamapan.agent-skill-ninja
 ### サイドバーから操作
 
 1. アクティビティバーの **螺旋手裏剣アイコン** をクリック
-2. **インストール済みスキル** - scope ごとにグループ表示
+2. **インストール済みスキル** - workspace managed skills を skill root ごとに表示
 
 - **Workspace Skills**: `skillNinja.skillsDirectory`（既定: `.github/skills`）配下の managed skills
-- **User / Global Skills**: VS Code の Agent Skill Locations から見つかった managed skills
-- **Built-in Skills**: Copilot / VS Code 同梱 skills を読み取り専用で表示する任意グループ
 - 新しくインストールしたスキル（一時的なバッジ）
-- ツールバー: Instruction / 新規作成 / 更新 / 設定
-- メニュー: 全て再インストール / 全削除 / 複数選択
-- どの scope でもスキルフォルダ / ファイルを開けます
+- ツールバー: Instruction / インストラクション更新 / 新規作成 / 更新 / 設定
+- workspace scope のスキルフォルダ / ファイルを開けます
 
-3. **Remote Skills** - ソース別にスキルを閲覧
+3. **ユーザー / グローバル スキル** - personal / built-in skills を skill root ごとに表示
+
+- **User / Global Skills**: 標準の personal roots（`~/.copilot/skills`, `~/.claude/skills`, `~/.agents/skills`）と VS Code の Agent Skill Locations から見つかった managed skills
+- **Built-in Skills**: Copilot / VS Code 同梱 skills を読み取り専用で表示する任意グループ
+- ツールバー: Instruction / インストラクション更新 / 新規作成 / 更新 / 設定
+- どの user/global scope でもスキルフォルダ / ファイルを開けます
+
+4. **Remote Skills** - ソース別にスキルを閲覧
    - **お気に入り** セクションが最上部に表示
    - ソース順: Official → Curated → Community
    - インストール済みは緑アイコンで表示
@@ -341,7 +345,7 @@ MCP ツールが不要な場合は、GitHub Copilot Chat のツール一覧か�
 |  2   | `skillNinja.instructionFile`              | `AGENTS.md`      | スキルを登録するファイル形式 _(要: Auto Update)_         |
 |  3   | `skillNinja.customInstructionPath`        | `""`             | カスタムパス _(instructionFile が 'custom' の時のみ)_    |
 |  4   | `skillNinja.skillsDirectory`              | `.github/skills` | ワークスペーススキルをインストール・管理するディレクトリ |
-|  5   | `skillNinja.useVsCodeAgentSkillLocations` | `true`           | user/global の skill root を検出して管理する             |
+|  5   | `skillNinja.useVsCodeAgentSkillLocations` | `true`           | 標準 personal root と追加の user/global skill root を検出して管理する |
 |  6   | `skillNinja.showBuiltInSkills`            | `false`          | 読み取り専用の built-in skills を表示する                |
 |  7   | `skillNinja.outputFormat`                 | `full`           | 出力形式（full / compact / legacy）                      |
 |  8   | `skillNinja.language`                     | `auto`           | UI 言語（auto / en / ja）                                |
@@ -351,7 +355,7 @@ MCP ツールが不要な場合は、GitHub Copilot Chat のツール一覧か�
 
 > 設定画面では上記の順序で表示されます
 
-互換用設定: `skillNinja.includeLocalSkills` は非推奨です。ワークスペーススキルは `skillNinja.skillsDirectory` 配下を管理対象にし、追加の user/global root は `skillNinja.useVsCodeAgentSkillLocations` から検出します。built-in skills は `skillNinja.showBuiltInSkills` を有効にしたときだけ表示します。
+互換用設定: `skillNinja.includeLocalSkills` は非推奨です。ワークスペーススキルは `skillNinja.skillsDirectory` 配下を管理対象にし、personal root と追加の user/global root は `skillNinja.useVsCodeAgentSkillLocations` から検出します。設定された location では `${workspaceFolder}`, `${userHome}`, `${env:APPDATA}`, `%APPDATA%` を使えます。built-in skills は `skillNinja.showBuiltInSkills` を有効にしたときだけ表示します。
 
 ### 出力フォーマット詳細
 

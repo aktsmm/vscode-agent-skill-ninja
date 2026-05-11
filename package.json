@@ -2,7 +2,7 @@
   "name": "agent-skill-ninja",
   "displayName": "%displayName%",
   "description": "%description%",
-  "version": "0.8.26",
+  "version": "0.8.27",
   "publisher": "yamapan",
   "license": "CC-BY-NC-SA-4.0",
   "icon": "resources/icon.png",
@@ -332,6 +332,11 @@
           "icon": "resources/icon.svg"
         },
         {
+          "id": "skillNinja.userGlobalView",
+          "name": "%view.userGlobal%",
+          "icon": "resources/icon.svg"
+        },
+        {
           "id": "skillNinja.browseView",
           "name": "%view.browse%",
           "icon": "resources/icon.svg"
@@ -569,37 +574,22 @@
           "group": "navigation@1"
         },
         {
-          "command": "skillNinja.createSkill",
+          "command": "skillNinja.updateInstruction",
           "when": "view == skillNinja.installedView",
           "group": "navigation@2"
         },
         {
-          "command": "skillNinja.reinstallAll",
+          "command": "skillNinja.createSkill",
           "when": "view == skillNinja.installedView",
           "group": "navigation@3"
         },
         {
-          "command": "skillNinja.openSettings",
+          "command": "skillNinja.refresh",
           "when": "view == skillNinja.installedView",
           "group": "navigation@4"
         },
         {
-          "command": "skillNinja.uninstallAll",
-          "when": "view == skillNinja.installedView",
-          "group": "actions@1"
-        },
-        {
-          "command": "skillNinja.uninstallMultiple",
-          "when": "view == skillNinja.installedView",
-          "group": "actions@2"
-        },
-        {
-          "command": "skillNinja.reinstallMultiple",
-          "when": "view == skillNinja.installedView",
-          "group": "actions@3"
-        },
-        {
-          "command": "skillNinja.refresh",
+          "command": "skillNinja.openSettings",
           "when": "view == skillNinja.installedView",
           "group": "z_refresh@1"
         },
@@ -611,6 +601,41 @@
         {
           "command": "skillNinja.reportBug",
           "when": "view == skillNinja.installedView",
+          "group": "z_reset@2"
+        },
+        {
+          "command": "skillNinja.openInstructionFile",
+          "when": "view == skillNinja.userGlobalView",
+          "group": "navigation@1"
+        },
+        {
+          "command": "skillNinja.updateInstruction",
+          "when": "view == skillNinja.userGlobalView",
+          "group": "navigation@2"
+        },
+        {
+          "command": "skillNinja.createSkill",
+          "when": "view == skillNinja.userGlobalView",
+          "group": "navigation@3"
+        },
+        {
+          "command": "skillNinja.refresh",
+          "when": "view == skillNinja.userGlobalView",
+          "group": "navigation@4"
+        },
+        {
+          "command": "skillNinja.openSettings",
+          "when": "view == skillNinja.userGlobalView",
+          "group": "z_refresh@1"
+        },
+        {
+          "command": "skillNinja.resetSettings",
+          "when": "view == skillNinja.userGlobalView",
+          "group": "z_reset@1"
+        },
+        {
+          "command": "skillNinja.reportBug",
+          "when": "view == skillNinja.userGlobalView",
           "group": "z_reset@2"
         },
         {
@@ -661,8 +686,18 @@
           "group": "inline"
         },
         {
+          "command": "skillNinja.uninstall",
+          "when": "view == skillNinja.userGlobalView && (viewItem == managedSkill || viewItem == managedUnregisteredSkill)",
+          "group": "inline"
+        },
+        {
           "command": "skillNinja.reinstall",
           "when": "view == skillNinja.installedView && viewItem == managedSkill",
+          "group": "inline"
+        },
+        {
+          "command": "skillNinja.reinstall",
+          "when": "view == skillNinja.userGlobalView && viewItem == managedSkill",
           "group": "inline"
         },
         {
@@ -671,13 +706,28 @@
           "group": "navigation"
         },
         {
+          "command": "skillNinja.editWhenToUse",
+          "when": "view == skillNinja.userGlobalView && (viewItem == managedSkill || viewItem == managedUnregisteredSkill)",
+          "group": "navigation"
+        },
+        {
           "command": "skillNinja.openSkillFolder",
           "when": "view == skillNinja.installedView && (viewItem == managedSkill || viewItem == managedUnregisteredSkill || viewItem == builtInSkill)",
           "group": "inline"
         },
         {
+          "command": "skillNinja.openSkillFolder",
+          "when": "view == skillNinja.userGlobalView && (viewItem == managedSkill || viewItem == managedUnregisteredSkill || viewItem == builtInSkill)",
+          "group": "inline"
+        },
+        {
           "command": "skillNinja.openSkillFile",
           "when": "view == skillNinja.installedView && (viewItem == managedSkill || viewItem == managedUnregisteredSkill || viewItem == builtInSkill)",
+          "group": "inline"
+        },
+        {
+          "command": "skillNinja.openSkillFile",
+          "when": "view == skillNinja.userGlobalView && (viewItem == managedSkill || viewItem == managedUnregisteredSkill || viewItem == builtInSkill)",
           "group": "inline"
         },
         {
@@ -696,8 +746,18 @@
           "group": "inline"
         },
         {
+          "command": "skillNinja.registerLocalSkill",
+          "when": "view == skillNinja.userGlobalView && viewItem == managedUnregisteredSkill",
+          "group": "inline"
+        },
+        {
           "command": "skillNinja.unregisterLocalSkill",
           "when": "view == skillNinja.installedView && viewItem == managedSkill",
+          "group": "navigation"
+        },
+        {
+          "command": "skillNinja.unregisterLocalSkill",
+          "when": "view == skillNinja.userGlobalView && viewItem == managedSkill",
           "group": "navigation"
         },
         {
@@ -716,8 +776,18 @@
           "group": "navigation@1"
         },
         {
+          "command": "skillNinja.copyPath",
+          "when": "view == skillNinja.userGlobalView && (viewItem == managedSkill || viewItem == managedUnregisteredSkill || viewItem == builtInSkill)",
+          "group": "navigation@1"
+        },
+        {
           "command": "skillNinja.openInTerminal",
           "when": "view == skillNinja.installedView && (viewItem == managedSkill || viewItem == managedUnregisteredSkill || viewItem == builtInSkill)",
+          "group": "navigation@2"
+        },
+        {
+          "command": "skillNinja.openInTerminal",
+          "when": "view == skillNinja.userGlobalView && (viewItem == managedSkill || viewItem == managedUnregisteredSkill || viewItem == builtInSkill)",
           "group": "navigation@2"
         }
       ],
@@ -881,7 +951,7 @@
     "package": "npm run check-types && npm run lint && node esbuild.js --production",
     "check-types": "tsc --noEmit",
     "lint": "eslint src",
-    "test": "node scripts/test-whenToUse.js && node scripts/test-search-logic.js && node scripts/test-skill-scan-paths.js && node scripts/test-skill-locations.js && node scripts/test-package-manifest.js"
+    "test": "node scripts/test-whenToUse.js && node scripts/test-search-logic.js && node scripts/test-skill-scan-paths.js && node scripts/test-skill-locations.js && node scripts/test-workspace-skill-groups.js && node scripts/test-package-manifest.js"
   },
   "devDependencies": {
     "@types/node": "20.x",

@@ -92,6 +92,7 @@ vm.runInNewContext(transpiled.outputText, sandbox, {
 
 const {
   computeRelativeDirectoryPath,
+  getDefaultUserGlobalSkillLocationPaths,
   parseAgentSkillLocationConfig,
   pathToDisplayPath,
   resolveConfiguredPath,
@@ -164,6 +165,75 @@ test("resolves home-relative and workspace-relative skill locations", () => {
   );
 });
 
+test("resolves user-home and environment-variable skill locations", () => {
+  const workspacePath = path.resolve(path.sep, "workspace", "project");
+  const originalAppData = process.env.APPDATA;
+  process.env.APPDATA = path.join(
+    path.sep,
+    "Users",
+    "tester",
+    "AppData",
+    "Roaming",
+  );
+
+  try {
+    assert.strictEqual(
+      resolveConfiguredPath(
+        "${userHome}/.copilot/skills",
+        workspacePath,
+        path.join(path.sep, "Users", "tester"),
+      ),
+      path.normalize(
+        path.join(path.sep, "Users", "tester", ".copilot", "skills"),
+      ),
+    );
+
+    assert.strictEqual(
+      resolveConfiguredPath(
+        "%APPDATA%/Code/User/prompts/skills",
+        workspacePath,
+        path.join(path.sep, "Users", "tester"),
+      ),
+      path.normalize(
+        path.join(
+          path.sep,
+          "Users",
+          "tester",
+          "AppData",
+          "Roaming",
+          "Code",
+          "User",
+          "prompts",
+          "skills",
+        ),
+      ),
+    );
+
+    assert.strictEqual(
+      resolveConfiguredPath(
+        "${env:APPDATA}/Code/User/prompts/skills",
+        workspacePath,
+        path.join(path.sep, "Users", "tester"),
+      ),
+      path.normalize(
+        path.join(
+          path.sep,
+          "Users",
+          "tester",
+          "AppData",
+          "Roaming",
+          "Code",
+          "User",
+          "prompts",
+          "skills",
+        ),
+      ),
+    );
+  } finally {
+    process.env.APPDATA = originalAppData;
+  }
+});
+
 test("computes instruction-relative links to skill roots", () => {
   assert.strictEqual(
     computeRelativeDirectoryPath(
@@ -207,6 +277,22 @@ test("renders home-relative display paths with a tilde prefix", () => {
     pathToDisplayPath("/home/tester/.copilot/skills", "/home/tester"),
     "~/.copilot/skills",
   );
+});
+
+test("returns default personal skill roots", () => {
+  const paths = JSON.parse(
+    JSON.stringify(
+      getDefaultUserGlobalSkillLocationPaths(
+        path.join(path.sep, "home", "tester"),
+      ),
+    ),
+  );
+
+  assert.deepStrictEqual(paths, [
+    path.join(path.sep, "home", "tester", ".copilot", "skills"),
+    path.join(path.sep, "home", "tester", ".claude", "skills"),
+    path.join(path.sep, "home", "tester", ".agents", "skills"),
+  ]);
 });
 
 console.log("\nSkill location tests passed.");

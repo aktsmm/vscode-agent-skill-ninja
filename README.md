@@ -199,17 +199,21 @@ Preset index includes skills from official, curated, and community sources out o
 ### Sidebar Operations
 
 1. Click the **spiral shuriken icon** in the Activity Bar
-2. **Installed Skills** - Grouped by scope
+2. **Installed Skills** - Workspace managed skills grouped by skill root
 
 - **Workspace Skills**: managed under `skillNinja.skillsDirectory` (default: `.github/skills`)
-- **User / Global Skills**: discovered from VS Code Agent Skill Locations and managed in place
-- **Built-in Skills**: optional read-only group for Copilot / VS Code packaged skills
 - Newly installed skills (temporary badge)
-- Toolbar: Instruction File / Create / Refresh / Settings
-- Menu: Reinstall All / Uninstall All / Multiple selection
-- Open skill folder or file from any visible scope
+- Toolbar: Instruction File / Update Instruction / Create / Refresh / Settings
+- Open skill folder or file from the workspace scope
 
-3. **Remote Skills** - Browse skills by source
+3. **User / Global Skills** - Personal and built-in skills grouped by skill root
+
+- **User / Global Skills**: discovered from standard personal roots (`~/.copilot/skills`, `~/.claude/skills`, `~/.agents/skills`) plus VS Code Agent Skill Locations
+- **Built-in Skills**: optional read-only group for Copilot / VS Code packaged skills
+- Toolbar: Instruction File / Update Instruction / Create / Refresh / Settings
+- Open skill folder or file from any visible user/global scope
+
+4. **Remote Skills** - Browse skills by source
    - **Favorites** section at top
    - Sources sorted: Official → Curated → Community
    - Shows installed status with green icons
@@ -345,7 +349,7 @@ If you don't need MCP tools, you can disable them from GitHub Copilot Chat:
 |   2   | `skillNinja.instructionFile`              | `AGENTS.md`      | Instruction file format _(requires Auto Update)_ |
 |   3   | `skillNinja.customInstructionPath`        | `""`             | Custom path _(only when 'custom' selected)_      |
 |   4   | `skillNinja.skillsDirectory`              | `.github/skills` | Directory to install and manage workspace skills |
-|   5   | `skillNinja.useVsCodeAgentSkillLocations` | `true`           | Discover and manage user/global skill roots      |
+|   5   | `skillNinja.useVsCodeAgentSkillLocations` | `true`           | Discover standard personal roots and extra user/global skill roots |
 |   6   | `skillNinja.showBuiltInSkills`            | `false`          | Show read-only built-in skills                   |
 |   7   | `skillNinja.outputFormat`                 | `full`           | Output format (full / compact / legacy)          |
 |   8   | `skillNinja.language`                     | `auto`           | UI language (auto / en / ja)                     |
@@ -355,7 +359,7 @@ If you don't need MCP tools, you can disable them from GitHub Copilot Chat:
 
 > Settings are displayed in the order above
 
-Legacy compatibility setting: `skillNinja.includeLocalSkills` is deprecated. Workspace skills stay scoped to `skillNinja.skillsDirectory`, while additional user/global roots are discovered from `skillNinja.useVsCodeAgentSkillLocations`. Built-in read-only skills are hidden unless `skillNinja.showBuiltInSkills` is enabled.
+Legacy compatibility setting: `skillNinja.includeLocalSkills` is deprecated. Workspace skills stay scoped to `skillNinja.skillsDirectory`, while personal roots and additional user/global roots are discovered from `skillNinja.useVsCodeAgentSkillLocations`. Configured locations support `${workspaceFolder}`, `${userHome}`, `${env:APPDATA}`, and `%APPDATA%`. Built-in read-only skills are hidden unless `skillNinja.showBuiltInSkills` is enabled.
 
 ### Output Format Details
 
