@@ -132,7 +132,23 @@ npx vsce ls              # VSIX 収録物確認
 - `compile-output.txt`
 - `DASHBOARD.md`
 - `robots.txt`
+- README で参照している画像 / GIF / 動画（`docs/**` 等） — Marketplace は `repository.url` を base にして `raw.githubusercontent.com` から自動解決するため VSIX 同梱不要（2026-05-12 / GitHub Copilot）
 - その他 runtime に不要なローカル作業成果物、ログ、バックアップ
+
+`vsce package` の完了出力が見えないケース（terminal 出力タイミングのバグ）でも、`Get-ChildItem artifacts/vsix/<file>.vsix` で生成サイズを見て完了を判定する。期待サイズより著しく小さければビルド中断、著しく大きければ不要ファイル混入の準拠とする（2026-05-12 / GitHub Copilot）。
+
+### 5.1 VSIX install 検証（publish 前に必須）
+
+`vsce ls` だけでは VSIX 作成中の zip 破損（`End of central directory record` エラー等）を検出できない。生成後は必ずローカル VS Code へ install テストを走らせてセルフチェックする（2026-05-12 / GitHub Copilot）。
+
+```pwsh
+$cli = "C:\Users\$env:USERNAME\AppData\Local\Programs\Microsoft VS Code\bin\code.cmd"
+& $cli --install-extension artifacts\vsix\agent-skill-ninja-X.X.X.vsix --force
+# Error: End of central directory record signature not found ... が出たら
+# VSIX が truncate しているので再生成する
+```
+
+`vsce ls` が prepublish ログだけを返す・出力不安定な場合は、生成済み `.vsix` を zip として直接列挙して収録物を確認する（例：PowerShell で `tar -xf <vsix> -C <tmpdir>` または `System.IO.Compression.ZipFile`）。この場合も、上記の不要物チェックは省略しない（2026-05-11 / GitHub Copilot）。
 
 ### 6. Marketplace 公開
 
@@ -188,6 +204,7 @@ New-Item -ItemType Directory -Force artifacts/vsix | Out-Null; npx vsce package 
 - ✅ リリース前に `git status` で未コミットファイルがないことを確認
 - ✅ `npm run compile` が成功することを確認してから公開
 - ✅ `npx vsce ls` で不要な開発用ファイルが VSIX に入っていないことを確認してから公開
+- ✅ **`code --install-extension <vsix>` でローカル install が通ることを確認してから publish**（VSIX truncate / zip 破損は `vsce ls` で見逃しやすい，2026-05-12 / GitHub Copilot）
 - ✅ 一時的な VS Code task を使った場合は、公開完了前に `.vscode/tasks.json` から release / verify 用 task を削除し、watch task だけの状態に戻す
 - ✅ `git status --short` と `git rev-parse HEAD` / `git rev-parse origin/master` で、作業ツリーと push 状態を最後に確認
 

@@ -12,14 +12,97 @@ import {
   getManagedSkillRoots,
   SkillRoot,
 } from "./skillLocations";
+import { getCoexistenceMode, getEffectiveOwnership } from "./coexistence";
 
-// セクションマーカー
-const MARKER_START = "<!-- skill-ninja-START -->";
-const MARKER_END = "<!-- skill-ninja-END -->";
+// セクションマーカー（共通マーカー / coexistence v3 で導入）。
+// 同居拡張 (Resource NINJA) と Skill NINJA はこの共通マーカーへ書く。
+// 後方互換のため、現状の generator は内部的にこのマーカー名を使う。
+export const SHARED_MARKER_START = "<!-- agent-ninja-START -->";
+export const SHARED_MARKER_END = "<!-- agent-ninja-END -->";
 
-// 旧マーカー（互換性のため検出・削除用）
-const LEGACY_MARKER_START = "<!-- SKILL-FINDER-START -->";
-const LEGACY_MARKER_END = "<!-- SKILL-FINDER-END -->";
+// `independent` モードは旧マーカー名のままブロックを書く（後方互換）。
+const LEGACY_SKILL_MARKER_START = "<!-- skill-ninja-START -->";
+const LEGACY_SKILL_MARKER_END = "<!-- skill-ninja-END -->";
+
+// 互換性のため検出・削除する旧マーカー集合
+const LEGACY_FINDER_MARKER_START = "<!-- SKILL-FINDER-START -->";
+const LEGACY_FINDER_MARKER_END = "<!-- SKILL-FINDER-END -->";
+const LEGACY_RESOURCE_MARKER_START = "<!-- resource-ninja-START -->";
+const LEGACY_RESOURCE_MARKER_END = "<!-- resource-ninja-END -->";
+
+// generator は内部的にこのマーカーを使う（generator から見た既定）。
+// 書き出し直前に必要に応じて `independent` モード用の旧マーカーへ swap する。
+const MARKER_START = SHARED_MARKER_START;
+const MARKER_END = SHARED_MARKER_END;
+
+interface MarkerPair {
+  start: string;
+  end: string;
+}
+
+const SHARED_MARKERS: MarkerPair = {
+  start: SHARED_MARKER_START,
+  end: SHARED_MARKER_END,
+};
+const LEGACY_SKILL_MARKERS: MarkerPair = {
+  start: LEGACY_SKILL_MARKER_START,
+  end: LEGACY_SKILL_MARKER_END,
+};
+const LEGACY_FINDER_MARKERS: MarkerPair = {
+  start: LEGACY_FINDER_MARKER_START,
+  end: LEGACY_FINDER_MARKER_END,
+};
+const LEGACY_RESOURCE_MARKERS: MarkerPair = {
+  start: LEGACY_RESOURCE_MARKER_START,
+  end: LEGACY_RESOURCE_MARKER_END,
+};
+
+// generator が出力する SHARED マーカーを別のマーカーへ差し替える。
+function swapMarkers(
+  section: string,
+  from: MarkerPair,
+  to: MarkerPair,
+): string {
+  if (from.start === to.start && from.end === to.end) {
+    return section;
+  }
+  return section.split(from.start).join(to.start).split(from.end).join(to.end);
+}
+
+// content から marker pair で囲まれたブロックを 1 度だけ削除する。
+function stripMarkerBlock(content: string, markers: MarkerPair): string {
+  const startIndex = content.indexOf(markers.start);
+  if (startIndex === -1) {
+    return content;
+  }
+  const endIndex = content.indexOf(markers.end, startIndex);
+  if (endIndex === -1) {
+    return content;
+  }
+  const before = content.substring(0, startIndex);
+  const after = content.substring(endIndex + markers.end.length);
+  return before + after;
+}
+
+// 既知のレガシーマーカー（SKILL-FINDER / skill-ninja / resource-ninja）を全て除去する。
+// `keepShared` が true のときは共通マーカーは温存（owner が後で書き直す）。
+function stripAllManagedBlocks(
+  content: string,
+  options: { keepShared: boolean; keepLegacySkill?: boolean },
+): string {
+  let result = content;
+  // 既知の旧マーカーを全て除去
+  result = stripMarkerBlock(result, LEGACY_FINDER_MARKERS);
+  result = stripMarkerBlock(result, LEGACY_RESOURCE_MARKERS);
+  if (!options.keepLegacySkill) {
+    result = stripMarkerBlock(result, LEGACY_SKILL_MARKERS);
+  }
+  if (!options.keepShared) {
+    result = stripMarkerBlock(result, SHARED_MARKERS);
+  }
+  // 連続改行を 2 行までに整形
+  return result.replace(/\n{3,}/g, "\n\n");
+}
 
 /**
  * Description + When to Use を連結する関数（合計最大200文字）
@@ -124,9 +207,23 @@ export async function updateInstructionFile(
 
 export async function updateInstructionFileForRoot(
   root: SkillRoot,
-  _context: vscode.ExtensionContext,
+  context: vscode.ExtensionContext,
 ): Promise<void> {
   if (!root.instructionUri || !root.instructionPath) {
+    return;
+  }
+
+  const mode = getCoexistenceMode();
+  const ownership = await getEffectiveOwnership(context);
+
+  // owner==sibling のときは何も書かない（Single Block + Owner Handoff）。
+  // independent モードでは owner 判定を無視して従来どおり書く。
+  if (mode === "auto" && ownership.owner === "sibling") {
+    console.log(
+      `[Skill Ninja] Deferring instruction file write to sibling extension ` +
+        `(${ownership.siblingBeacon?.extensionId ?? "yamapan.agent-resources-ninja"}). ` +
+        `Reason: ${ownership.reason}.`,
+    );
     return;
   }
 
@@ -136,7 +233,8 @@ export async function updateInstructionFileForRoot(
     computeRelativeDirectoryPath(root.instructionPath, root.rootPath);
 
   console.log(
-    `[Skill Ninja] Updating instruction file: ${root.instructionPath}`,
+    `[Skill Ninja] Updating instruction file: ${root.instructionPath} ` +
+      `(mode=${mode}, owner=${ownership.owner}, reason=${ownership.reason})`,
   );
 
   const installedSkills = (
@@ -144,12 +242,17 @@ export async function updateInstructionFileForRoot(
   ).filter((skill) => !skill.registrationDisabled);
   const localSkills: LocalSkill[] = [];
 
-  const skillSection = generateSkillSectionForFormat(
+  // generator は SHARED_MARKERS で出力する。independent モードでは旧 skill-ninja マーカーへ swap。
+  const targetMarkers: MarkerPair =
+    mode === "independent" ? LEGACY_SKILL_MARKERS : SHARED_MARKERS;
+
+  let skillSection = generateSkillSectionForFormat(
     installedSkills,
     localSkills,
     relativeSkillsDir,
     format,
   );
+  skillSection = swapMarkers(skillSection, SHARED_MARKERS, targetMarkers);
 
   let existingContent = "";
   try {
@@ -159,7 +262,16 @@ export async function updateInstructionFileForRoot(
     existingContent = "";
   }
 
-  const newContent = updateSection(existingContent, skillSection, format);
+  const newContent = updateSection(
+    existingContent,
+    skillSection,
+    format,
+    targetMarkers,
+  );
+
+  if (newContent === existingContent) {
+    return;
+  }
 
   const dir = vscode.Uri.joinPath(root.instructionUri, "..");
   await vscode.workspace.fs.createDirectory(dir);
@@ -267,48 +379,74 @@ ${MARKER_END}`;
 }
 
 /**
- * 既存コンテンツのマーカー部分を更新
+ * 既存コンテンツのマーカー部分を更新する。
+ *
+ * coexistence v3 動作:
+ *   - owner として書くときは、既知の旧マーカー（skill-ninja / resource-ninja /
+ *     SKILL-FINDER）を全て除去し、ターゲットマーカー（共通 or 旧 skill-ninja）
+ *     のブロックを 1 つだけ残す。
+ *   - 旧マーカー区間が複数あっても 1 ブロックに統合する（migration 冪等）。
+ *   - ターゲットマーカーの既存位置を維持し、なければ末尾に追加する。
  */
-function updateSection(
+export function updateSection(
   existingContent: string,
   newSection: string,
   _format: OutputFormat = "full",
+  targetMarkers: MarkerPair = SHARED_MARKERS,
 ): string {
-  // 旧マーカーが存在する場合は先に削除
-  let content = removeLegacySection(existingContent);
+  // 1) ターゲットマーカーの既存位置を記録（あれば置換、なければ末尾追加）
+  const targetStartIdx = existingContent.indexOf(targetMarkers.start);
 
-  // 新マーカーが存在する場合は置換
-  const startIndex = content.indexOf(MARKER_START);
-  const endIndex = content.indexOf(MARKER_END);
+  // 2) 既存ターゲットブロックがあれば、そこに anchor を作るためのプレースホルダ
+  //    を置いてから他のマーカー除去をする（位置を維持するため）。
+  const ANCHOR = "\u0000__AGENT_NINJA_BLOCK_ANCHOR__\u0000";
+  let working = existingContent;
+  if (targetStartIdx !== -1) {
+    const targetEndIdx = working.indexOf(targetMarkers.end, targetStartIdx);
+    if (targetEndIdx !== -1) {
+      const before = working.substring(0, targetStartIdx);
+      const after = working.substring(targetEndIdx + targetMarkers.end.length);
+      working = before + ANCHOR + after;
+    }
+  }
 
-  if (startIndex !== -1 && endIndex !== -1) {
-    const before = content.substring(0, startIndex);
-    const after = content.substring(endIndex + MARKER_END.length);
+  // 3) ターゲット以外の既知マーカー（旧含む）を全て除去。
+  //    targetMarkers が SHARED 以外（= LEGACY_SKILL）なら、SHARED ブロックも除去。
+  //    targetMarkers が SHARED なら、LEGACY_SKILL も除去（すべて統合）。
+  const targetIsLegacySkill = targetMarkers.start === LEGACY_SKILL_MARKER_START;
+  working = stripAllManagedBlocks(working, {
+    keepShared: targetIsLegacySkill ? false : false, // 常に除去（後で 1 つだけ書く）
+    keepLegacySkill: targetIsLegacySkill ? false : false,
+  });
+  // 念押し: 連続削除で残った同種マーカー（複数あった場合）を全て除去
+  while (
+    working.indexOf(LEGACY_FINDER_MARKERS.start) !== -1 ||
+    working.indexOf(LEGACY_RESOURCE_MARKERS.start) !== -1 ||
+    working.indexOf(LEGACY_SKILL_MARKERS.start) !== -1 ||
+    working.indexOf(SHARED_MARKERS.start) !== -1
+  ) {
+    const beforeLen = working.length;
+    working = stripAllManagedBlocks(working, {
+      keepShared: false,
+      keepLegacySkill: false,
+    });
+    if (working.length === beforeLen) {
+      break;
+    }
+  }
+
+  // 4) anchor 位置に新ブロックを差し込む。anchor が無ければ末尾追加。
+  const anchorIdx = working.indexOf(ANCHOR);
+  if (anchorIdx !== -1) {
+    const before = working.substring(0, anchorIdx);
+    const after = working.substring(anchorIdx + ANCHOR.length);
     return before + newSection + after;
   }
 
-  // マーカーが存在しない場合は末尾に追加
-  if (content.trim()) {
-    return content.trimEnd() + "\n\n" + newSection + "\n";
+  if (working.trim()) {
+    return working.trimEnd() + "\n\n" + newSection + "\n";
   }
-
   return newSection + "\n";
-}
-
-/**
- * 旧マーカー（SKILL-FINDER）のセクションを削除
- */
-function removeLegacySection(content: string): string {
-  const startIndex = content.indexOf(LEGACY_MARKER_START);
-  const endIndex = content.indexOf(LEGACY_MARKER_END);
-
-  if (startIndex !== -1 && endIndex !== -1) {
-    const before = content.substring(0, startIndex);
-    const after = content.substring(endIndex + LEGACY_MARKER_END.length);
-    return (before + after).replace(/\n{3,}/g, "\n\n");
-  }
-
-  return content;
 }
 
 /**
@@ -322,14 +460,13 @@ export async function removeSkillSectionFromFile(
     const content = await vscode.workspace.fs.readFile(fileUri);
     let existingContent = Buffer.from(content).toString("utf-8");
 
-    // マーカーで囲まれた部分を削除
-    const startIndex = existingContent.indexOf(MARKER_START);
-    const endIndex = existingContent.indexOf(MARKER_END);
+    const stripped = stripAllManagedBlocks(existingContent, {
+      keepShared: false,
+      keepLegacySkill: false,
+    }).trim();
 
-    if (startIndex !== -1 && endIndex !== -1) {
-      const before = existingContent.substring(0, startIndex);
-      const after = existingContent.substring(endIndex + MARKER_END.length);
-      existingContent = (before + after).replace(/\n{3,}/g, "\n\n").trim();
+    if (stripped !== existingContent.trim()) {
+      existingContent = stripped;
       await vscode.workspace.fs.writeFile(
         fileUri,
         Buffer.from(existingContent, "utf-8"),
@@ -356,27 +493,7 @@ export async function removeSkillSection(
   }
 
   const instructionUri = vscode.Uri.joinPath(workspaceUri, instructionPath);
-
-  try {
-    const content = await vscode.workspace.fs.readFile(instructionUri);
-    let existingContent = Buffer.from(content).toString("utf-8");
-
-    // マーカーで囲まれた部分を削除
-    const startIndex = existingContent.indexOf(MARKER_START);
-    const endIndex = existingContent.indexOf(MARKER_END);
-
-    if (startIndex !== -1 && endIndex !== -1) {
-      const before = existingContent.substring(0, startIndex);
-      const after = existingContent.substring(endIndex + MARKER_END.length);
-      existingContent = (before + after).replace(/\n{3,}/g, "\n\n").trim();
-      await vscode.workspace.fs.writeFile(
-        instructionUri,
-        Buffer.from(existingContent, "utf-8"),
-      );
-    }
-  } catch {
-    // ファイルが存在しない場合は何もしない
-  }
+  await removeSkillSectionFromFile(instructionUri);
 }
 
 /**

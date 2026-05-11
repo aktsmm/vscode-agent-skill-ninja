@@ -133,6 +133,8 @@ test("settings order matches the documented primary flow", () => {
       "skillNinja.autoUpdateSkillsOnUpgrade",
       "skillNinja.githubToken",
       "skillNinja.singleClickInstall",
+      "skillNinja.coexistenceMode",
+      "skillNinja.useSharedSourcesManifest",
       "skillNinja.includeLocalSkills",
     ].map((key) => [key, getSettingOrder(key)]),
     [
@@ -147,6 +149,8 @@ test("settings order matches the documented primary flow", () => {
       ["skillNinja.autoUpdateSkillsOnUpgrade", 9],
       ["skillNinja.githubToken", 10],
       ["skillNinja.singleClickInstall", 11],
+      ["skillNinja.coexistenceMode", 12],
+      ["skillNinja.useSharedSourcesManifest", 13],
       ["skillNinja.includeLocalSkills", 90],
     ],
   );
@@ -264,6 +268,18 @@ test("README files and settings surface the companion extension", () => {
   );
 });
 
+test("README files document coexistence behavior and standalone exclusions", () => {
+  assert.ok(readme.includes("### Coexistence with Agent Resources Ninja"));
+  assert.ok(readme.includes("skillNinja.coexistenceMode"));
+  assert.ok(readme.includes("resourceNinja.kindsExcluded"));
+  assert.ok(readme.includes("Show Coexistence Status"));
+
+  assert.ok(readmeJa.includes("### Agent Resources Ninja との共存"));
+  assert.ok(readmeJa.includes("skillNinja.coexistenceMode"));
+  assert.ok(readmeJa.includes("resourceNinja.kindsExcluded"));
+  assert.ok(readmeJa.includes("Show Coexistence Status"));
+});
+
 test("tool model descriptions do not hardcode workspace-only skill paths", () => {
   const modelDescriptions = pkg.contributes.languageModelTools
     .filter((tool) =>
@@ -322,6 +338,15 @@ test("MCP tool responses do not contain corrupted markdown fragments", () => {
 test("release instructions include the maintained npm test path", () => {
   assert.ok(releaseInstructions.includes("npm test"));
   assert.ok(releaseInstructions.includes("scripts/test-skill-scan-paths.js"));
+  assert.ok(releaseInstructions.includes("code --install-extension"));
+  assert.ok(releaseInstructions.includes("docs/**"));
+});
+
+test("VSIX ignore rules keep demo docs out of the package", () => {
+  const ignoreEntries = new Set(getVscodeIgnoreEntries().map(normalizePath));
+
+  assert.ok(ignoreEntries.has("docs/**"));
+  assert.ok(readme.includes("docs/screenshots/demo.gif"));
 });
 
 test("npm test regression scripts are not excluded by .gitignore", () => {

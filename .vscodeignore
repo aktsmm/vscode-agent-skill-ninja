@@ -26,5 +26,11 @@ output_retro/**
 output_sessions/**
 scripts/**
 
+# Marketplace renders relative-path images by resolving them against
+# `repository.url` (raw.githubusercontent.com). Keep docs/ out of the VSIX
+# to drop ~14 MB of demo media; README still works in marketplace and
+# in-VS Code extension details.
+docs/**
+
 # Exclude .github folder from package
 .github/

@@ -357,10 +357,31 @@ MCP ツールが不要な場合は、GitHub Copilot Chat のツール一覧か�
 |  9   | `skillNinja.autoUpdateSkillsOnUpgrade`    | `prompt`         | 拡張機能アップグレード後のスキル更新                                  |
 |  10  | `skillNinja.githubToken`                  | `""`             | GitHub Token（API 制限緩和用）                                        |
 |  11  | `skillNinja.singleClickInstall`           | `false`          | リモートスキルをシングルクリックでインストール                        |
+|  12  | `skillNinja.coexistenceMode`              | `auto`           | Agent Resources Ninja との共存モード（`auto` / `independent`）        |
+|  13  | `skillNinja.useSharedSourcesManifest`     | `false`          | （実験的）`~/.agent-ninja/` 経由でリモートソース一覧を共有            |
 
 > 設定画面では上記の順序で表示されます
 
 互換用設定: `skillNinja.includeLocalSkills` は非推奨です。ワークスペーススキルは `skillNinja.skillsDirectory` 配下を管理対象にし、personal root と追加の user/global root は `skillNinja.useVsCodeAgentSkillLocations` から検出します。設定された location では `${workspaceFolder}`, `${userHome}`, `${env:APPDATA}`, `%APPDATA%` を使えます。built-in skills は `skillNinja.showBuiltInSkills` を有効にしたときだけ表示します。
+
+### Agent Resources Ninja との共存
+
+姉妹拡張 [Agent Resources Ninja](https://marketplace.visualstudio.com/items?itemName=yamapan.agent-resources-ninja) を同時にインストールしている場合、両拡張は協調して AGENTS.md / CLAUDE.md などに **共通ブロック 1 つ**（`<!-- agent-ninja-START -->` / `<!-- agent-ninja-END -->`）だけを保つようにします。両方が active のときは Resources Ninja が owner となり、Skill Ninja は黙って書き込みを譲ります。既存の `<!-- skill-ninja-* -->` ブロックは初回起動時に共通マーカーへ自動で migration されます。
+
+姉妹拡張がアンインストールされた場合、`vscode.extensions.onDidChange` を契機に Skill Ninja が同じ共通ブロックの owner に昇格 — 並列ブロックも孤児マーカーも残らず、通常は手動掃除不要です。
+
+#### 注: Skill Ninja アンインストール後の `resourceNinja.kindsExcluded` の挙動
+
+Resources Ninja を使っていて `resourceNinja.kindsExcluded` に `"skill"` を含めている状態（standalone デフォルト）で **Skill Ninja をアンインストール** すると、Resources Ninja は standalone 動作に戻り、その除外を再適用します。つまり共通ブロックから **skill 行が消える** ことになります。戻すには：
+
+1. 設定の `resourceNinja.kindsExcluded` から `"skill"` を削除する、または
+2. 設定編集後に `Agent Resources Ninja: Recompute Coexistence Ownership` を実行する。
+
+Skill Ninja が active な間は、Resources Ninja は runtime で `kindsExcluded` を無視して全 kind（skill 含む）を共通ブロックに書きます。この挙動はアンインストール後の状態にだけ影響します。
+
+`skillNinja.coexistenceMode` を `independent` にすると協調を opt-out し、Resources Ninja の有無に関わらず legacy `<!-- skill-ninja-* -->` ブロックを書き続けます（上級者向け、並列ブロック許容）。詳細は [`.github/instructions/SkillList.instructions.md`](.github/instructions/SkillList.instructions.md) を参照。
+
+診断コマンド: `Agent Skills Ninja: Show Coexistence Status` / `Recompute Coexistence Ownership` / `Clean Up Orphan Instruction Block`。
 
 ### 出力フォーマット詳細
 

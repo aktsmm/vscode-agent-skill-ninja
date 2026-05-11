@@ -43,11 +43,17 @@ const CHAT_CONFIGURATION_KEYS = [
 
 const BUILT_IN_RELATIVE_ROOTS = [
   ["node_modules", "@github", "copilot", "builtin-skills"],
+  ["extensions", "copilot", "skills"],
+  ["extensions", "copilot", "dist", "skills"],
+  ["extensions", "copilot", "assets", "skills"],
+  ["extensions", "copilot", "assets", "prompts", "skills"],
+  ["extensions", "copilot", "dist", "prompts", "skills"],
   ["extensions", "github.copilot-chat", "dist", "skills"],
   ["extensions", "github.copilot-chat", "skills"],
   ["extensions", "github.copilot-chat", "assets", "skills"],
   ["extensions", "github.copilot-chat", "assets", "prompts", "skills"],
   ["extensions", "github.copilot-chat", "dist", "prompts", "skills"],
+  ["out", "vs", "sessions", "skills"],
 ];
 
 const COPILOT_EXTENSION_IDS = [
@@ -168,6 +174,88 @@ export function getDefaultUserGlobalSkillLocationPaths(
     path.join(homeDir, ".claude", "skills"),
     path.join(homeDir, ".agents", "skills"),
   ];
+}
+
+export function getBuiltInCandidatePaths(
+  appRoot: string,
+  extensionPaths: string[] = [],
+): string[] {
+  const candidates: string[] = [];
+  const seen = new Set<string>();
+
+  const addCandidate = (candidatePath: string): void => {
+    const normalizedCandidatePath = normalizeFileSystemPath(candidatePath);
+    if (seen.has(normalizedCandidatePath)) {
+      return;
+    }
+
+    seen.add(normalizedCandidatePath);
+    candidates.push(path.normalize(candidatePath));
+  };
+
+  for (const parts of BUILT_IN_RELATIVE_ROOTS) {
+    addCandidate(path.join(appRoot, ...parts));
+  }
+
+  for (const extensionPath of extensionPaths) {
+    for (const parts of EXTENSION_SKILL_SUBDIRS) {
+      addCandidate(path.join(extensionPath, ...parts));
+    }
+  }
+
+  return candidates;
+}
+
+export async function getPackagedBuiltInSkillLocationPaths(
+  homeDir: string = os.homedir(),
+): Promise<string[]> {
+  const packageRootUri = vscode.Uri.file(path.join(homeDir, ".copilot", "pkg"));
+  const candidates: string[] = [];
+  const seen = new Set<string>();
+
+  const addCandidate = (candidatePath: string): void => {
+    const normalizedCandidatePath = normalizeFileSystemPath(candidatePath);
+    if (seen.has(normalizedCandidatePath)) {
+      return;
+    }
+
+    seen.add(normalizedCandidatePath);
+    candidates.push(path.normalize(candidatePath));
+  };
+
+  const packageChannels = await readDirectoryIfExists(packageRootUri);
+  for (const [channelName, channelType] of packageChannels) {
+    if (!isDirectoryEntry(channelType)) {
+      continue;
+    }
+
+    const channelUri = vscode.Uri.joinPath(packageRootUri, channelName);
+    const channelEntries = await readDirectoryIfExists(channelUri);
+
+    for (const [entryName, entryType] of channelEntries) {
+      if (!isDirectoryEntry(entryType)) {
+        continue;
+      }
+
+      if (entryName === "builtin-skills") {
+        addCandidate(vscode.Uri.joinPath(channelUri, entryName).fsPath);
+        continue;
+      }
+
+      const versionUri = vscode.Uri.joinPath(channelUri, entryName);
+      const versionEntries = await readDirectoryIfExists(versionUri);
+      for (const [versionEntryName, versionEntryType] of versionEntries) {
+        if (
+          versionEntryName === "builtin-skills" &&
+          isDirectoryEntry(versionEntryType)
+        ) {
+          addCandidate(vscode.Uri.joinPath(versionUri, versionEntryName).fsPath);
+        }
+      }
+    }
+  }
+
+  return candidates;
 }
 
 export function resolveConfiguredPath(
@@ -337,6 +425,20 @@ async function pathExists(targetUri: vscode.Uri): Promise<boolean> {
   }
 }
 
+async function readDirectoryIfExists(
+  targetUri: vscode.Uri,
+): Promise<Array<[string, vscode.FileType]>> {
+  try {
+    return await vscode.workspace.fs.readDirectory(targetUri);
+  } catch {
+    return [];
+  }
+}
+
+function isDirectoryEntry(fileType: vscode.FileType): boolean {
+  return fileType === vscode.FileType.Directory;
+}
+
 function getRawAgentSkillLocationsSetting(): unknown {
   const rootConfig = vscode.workspace.getConfiguration();
   for (const key of CHAT_AGENT_SKILL_LOCATION_KEYS) {
@@ -381,6 +483,44 @@ export function resolveUserGlobalInstructionPath(
   }
 }
 
+export const DEFAULT_WORKSPACE_SKILLS_DIRECTORY = ".github/skills";
+
+/**
+ * Resolve the workspace skills directory for the workspace scope. Honors the
+ * Skill NINJA setting first; if Skill NINJA is left at its default value but
+ * the sister extension Resource NINJA has a non-default `resourcesDirectory`
+ * configured, mirror that value to keep both extensions pointing at the same
+ * folder (Workspace Path Drift prevention, see plan v3 §6).
+ *
+ * Pure helper; no I/O. Reads VS Code workspace configuration only.
+ */
+export function resolveWorkspaceSkillsDirectory(
+  skillNinjaConfig: vscode.WorkspaceConfiguration,
+  resourceNinjaConfig: vscode.WorkspaceConfiguration = vscode.workspace.getConfiguration(
+    "resourceNinja",
+  ),
+): string {
+  const own = skillNinjaConfig.get<string>("skillsDirectory");
+  const ownTrimmed = (own || "").trim();
+  const isOwnDefault =
+    !ownTrimmed || ownTrimmed === DEFAULT_WORKSPACE_SKILLS_DIRECTORY;
+
+  if (!isOwnDefault) {
+    return ownTrimmed;
+  }
+
+  // resourceNinja.resourcesDirectory が明示的に設定されていれば尊重する。
+  // resourceNinja 側のデフォルトも `.github/skills` のため、デフォルト値の
+  // ときは敢えて空にしてくれる前提（または同値で安全）。
+  const sibling = resourceNinjaConfig.get<string>("resourcesDirectory");
+  const siblingTrimmed = (sibling || "").trim();
+  if (siblingTrimmed) {
+    return siblingTrimmed;
+  }
+
+  return DEFAULT_WORKSPACE_SKILLS_DIRECTORY;
+}
+
 export async function getManagedSkillRoots(
   workspaceUri?: vscode.Uri,
 ): Promise<SkillRoot[]> {
@@ -398,7 +538,9 @@ export async function getManagedSkillRoots(
       return;
     }
 
-    const instructionPath = resolveUserGlobalInstructionPath(locationUri.fsPath);
+    const instructionPath = resolveUserGlobalInstructionPath(
+      locationUri.fsPath,
+    );
     const instructionUri = vscode.Uri.file(instructionPath);
 
     roots.push({
@@ -420,8 +562,7 @@ export async function getManagedSkillRoots(
   };
 
   if (workspaceUri) {
-    const skillsDirectory =
-      skillNinjaConfig.get<string>("skillsDirectory") || ".github/skills";
+    const skillsDirectory = resolveWorkspaceSkillsDirectory(skillNinjaConfig);
     const workspaceRootUri = vscode.Uri.joinPath(workspaceUri, skillsDirectory);
     const { instructionFile } = await resolveOutputFormat(workspaceUri);
     const instructionUri =
@@ -483,21 +624,25 @@ export async function getBuiltInSkillRoots(): Promise<SkillRoot[]> {
   }
 
   const candidates = new Set<string>();
-  const appRootUri = vscode.Uri.file(vscode.env.appRoot);
-  for (const parts of BUILT_IN_RELATIVE_ROOTS) {
-    candidates.add(vscode.Uri.joinPath(appRootUri, ...parts).fsPath);
-  }
+  const extensionPaths: string[] = [];
 
   for (const extensionId of COPILOT_EXTENSION_IDS) {
     const extension = vscode.extensions.getExtension(extensionId);
     if (!extension) {
       continue;
     }
-    for (const parts of EXTENSION_SKILL_SUBDIRS) {
-      candidates.add(
-        vscode.Uri.joinPath(extension.extensionUri, ...parts).fsPath,
-      );
-    }
+    extensionPaths.push(extension.extensionUri.fsPath);
+  }
+
+  for (const candidatePath of getBuiltInCandidatePaths(
+    vscode.env.appRoot,
+    extensionPaths,
+  )) {
+    candidates.add(candidatePath);
+  }
+
+  for (const candidatePath of await getPackagedBuiltInSkillLocationPaths()) {
+    candidates.add(candidatePath);
   }
 
   const roots: SkillRoot[] = [];

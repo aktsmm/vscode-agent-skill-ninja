@@ -2,7 +2,7 @@
   "name": "agent-skill-ninja",
   "displayName": "%displayName%",
   "description": "%description%",
-  "version": "0.8.28",
+  "version": "0.9.0",
   "publisher": "yamapan",
   "license": "CC-BY-NC-SA-4.0",
   "icon": "resources/icon.png",
@@ -556,6 +556,24 @@
         "icon": "$(clear-all)"
       },
       {
+        "command": "skillNinja.showCoexistenceStatus",
+        "title": "%command.showCoexistenceStatus%",
+        "category": "Agent Skills Ninja",
+        "icon": "$(info)"
+      },
+      {
+        "command": "skillNinja.recomputeOwnership",
+        "title": "%command.recomputeOwnership%",
+        "category": "Agent Skills Ninja",
+        "icon": "$(sync)"
+      },
+      {
+        "command": "skillNinja.cleanupOrphanBlock",
+        "title": "%command.cleanupOrphanBlock%",
+        "category": "Agent Skills Ninja",
+        "icon": "$(trash)"
+      },
+      {
         "command": "skillNinja.installBundle",
         "title": "Install Bundle",
         "category": "Agent Skills Ninja",
@@ -964,6 +982,26 @@
           "order": 11,
           "description": "%config.singleClickInstall.description%"
         },
+        "skillNinja.coexistenceMode": {
+          "type": "string",
+          "default": "auto",
+          "order": 12,
+          "enum": [
+            "auto",
+            "independent"
+          ],
+          "enumDescriptions": [
+            "%config.coexistenceMode.auto%",
+            "%config.coexistenceMode.independent%"
+          ],
+          "markdownDescription": "%config.coexistenceMode.markdownDescription%"
+        },
+        "skillNinja.useSharedSourcesManifest": {
+          "type": "boolean",
+          "default": false,
+          "order": 13,
+          "markdownDescription": "%config.useSharedSourcesManifest.markdownDescription%"
+        },
         "skillNinja.versionInfo": {
           "type": "null",
           "order": 100,
@@ -986,7 +1024,7 @@
     "package": "npm run check-types && npm run lint && node esbuild.js --production",
     "check-types": "tsc --noEmit",
     "lint": "eslint src",
-    "test": "node scripts/test-whenToUse.js && node scripts/test-search-logic.js && node scripts/test-skill-scan-paths.js && node scripts/test-skill-locations.js && node scripts/test-workspace-skill-groups.js && node scripts/test-view-welcome-ux.js && node scripts/test-package-manifest.js"
+    "test": "node scripts/test-whenToUse.js && node scripts/test-search-logic.js && node scripts/test-skill-scan-paths.js && node scripts/test-skill-locations.js && node scripts/test-workspace-skill-groups.js && node scripts/test-view-welcome-ux.js && node scripts/test-package-manifest.js && node scripts/test-coexistence.js && node scripts/test-marker-migration.js && node scripts/test-integration-coexistence.js"
   },
   "devDependencies": {
     "@types/node": "20.x",

@@ -20,6 +20,7 @@
 | [Docx](.github/skills/docx/SKILL.md) | Create, edit, and analyze Word documents — tracked changes, tables, images, complex formatting, and format conversion. USE WHEN docx, Word document, create document, tracked changes, redlining. |
 | [Pdf](.github/skills/pdf/SKILL.md) | Create, merge, split, extract text/tables from PDFs, fill forms, add watermarks, and convert to/from other formats. USE WHEN pdf, PDF file, merge PDF, extract tables, fill form, split PDF. |
 | [Pptx](.github/skills/pptx/SKILL.md) | Create, edit, and analyze PowerPoint presentations — slide layouts, speaker notes, design elements, and format conversion. |
+| [vscode-extension-guide](.github/skills/vscode-extension-guide/SKILL.md) | Guide for creating VS Code extensions from scratch to Marketplace publication. Use when: (1) Crea... \| VS Code extension, extension development, vscode plugin; Creating a new VS Code extension from sc... |
 | [Xlsx](.github/skills/xlsx/SKILL.md) | Create, read, analyze Excel workbooks — formulas, financial models, data analysis, recalculation, and CSV/TSV conversion. USE WHEN xlsx, Excel, spreadsheet, formulas, financial model, data analysis. |
 
 <!-- skill-ninja-END -->

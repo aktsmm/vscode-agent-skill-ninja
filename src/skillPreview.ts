@@ -3,8 +3,10 @@
 
 import * as vscode from "vscode";
 import {
+  buildGitHubContentUrl,
   loadSkillIndex,
   getSkillGitHubUrl,
+  getSkillGitHubUrlAsync,
   getSourceBranch,
   Skill,
   Source,
@@ -725,30 +727,29 @@ export async function showSkillPreview(
             break;
           }
           case "openGitHub": {
-            let url = getSkillGitHubUrl(skill, sources);
-            // フォールバック: skill.url または source/path から直接構築
+            const token = await getGitHubToken();
+            let url = await getSkillGitHubUrlAsync(skill, sources, token);
             if (!url) {
-              if (skill.url) {
-                // blob URL を tree URL に変換
-                url = skill.url.replace("/blob/", "/tree/");
-              } else if (skill.source && skill.path) {
-                // source が owner/repo 形式か source ID 形式かを判定
-                // ソース情報からブランチを取得（なければ main にフォールバック）
+              url = getSkillGitHubUrl(skill, sources);
+            }
+
+            if (!url) {
+              if (skill.source && skill.path) {
                 const sourceInfo = sources.find((s) => s.id === skill.source);
-                const branch = sourceInfo?.branch || "main";
-                if (skill.source.includes("/")) {
-                  // owner/repo 形式（検索結果から）
-                  url = `https://github.com/${skill.source}/tree/${branch}/${skill.path}`;
-                } else {
-                  // source ID 形式（インデックスから）→ ソース情報からURLを取得
-                  if (sourceInfo) {
-                    const match = sourceInfo.url.match(
-                      /github\.com\/([^/]+\/[^/]+)/,
-                    );
-                    if (match) {
-                      url = `https://github.com/${match[1]}/tree/${branch}/${skill.path}`;
-                    }
-                  }
+                if (sourceInfo?.branch) {
+                  url = buildGitHubContentUrl(
+                    sourceInfo.url,
+                    sourceInfo.branch,
+                    skill.path,
+                    skill.url,
+                  );
+                } else if (skill.source.includes("/")) {
+                  url = buildGitHubContentUrl(
+                    `https://github.com/${skill.source}`,
+                    "main",
+                    skill.path,
+                    skill.url,
+                  );
                 }
               }
             }

@@ -5,8 +5,10 @@ import {
   SkillIndex,
   Skill,
   Source,
+  buildGitHubContentUrl,
   loadSkillIndex,
   getSkillGitHubUrl,
+  getSkillGitHubUrlAsync,
 } from "./skillIndex";
 import { searchSkills, SkillQuickPickItem } from "./skillSearch";
 import {
@@ -51,14 +53,67 @@ import {
 } from "./skillLocations";
 import { createChatParticipant } from "./chatParticipant";
 import { registerMcpTools } from "./mcpTools";
+import { getGitHubToken } from "./githubAuth";
+import {
+  publishBeacon,
+  clearBeacon,
+  buildExtensionApi,
+  getPublishedSelfBeacon,
+  getEffectiveOwnership,
+  subscribeOwnershipChanges,
+  SELF_EXTENSION_ID,
+  SIBLING_EXTENSION_ID,
+  MIGRATION_GUARD_DELAY_MS,
+  AgentNinjaExtensionApi,
+} from "./coexistence";
 
 // 現在の拡張機能バージョン
 const EXTENSION_VERSION =
   vscode.extensions.getExtension("yamapan.agent-skill-ninja")?.packageJSON
     ?.version || "0.0.0";
 
-export function activate(context: vscode.ExtensionContext) {
+// activation 時に保存し、deactivate で beacon をクリアするために使用。
+let activeContext: vscode.ExtensionContext | undefined;
+
+async function resolveSkillGitHubUrl(
+  skill: Skill,
+  sources: Source[],
+): Promise<string | undefined> {
+  const token = await getGitHubToken();
+  return (
+    (await getSkillGitHubUrlAsync(skill, sources, token)) ||
+    getSkillGitHubUrl(skill, sources)
+  );
+}
+
+function getSearchResultGitHubUrl(result: {
+  repoUrl: string;
+  path: string;
+  defaultBranch?: string;
+}): string {
+  return buildGitHubContentUrl(
+    result.repoUrl,
+    result.defaultBranch || "main",
+    result.path,
+  );
+}
+
+export function activate(
+  context: vscode.ExtensionContext,
+): AgentNinjaExtensionApi {
   console.log("Agent Skills Ninja is now active!");
+  activeContext = context;
+
+  // Coexistence beacon を publish。Resource NINJA とのオーナー判定で使われる。
+  publishBeacon(context).catch((err) => {
+    console.error("[Skill Ninja] publishBeacon failed:", err);
+  });
+
+  // Output channel for coexistence diagnostics
+  const coexistenceChannel = vscode.window.createOutputChannel(
+    "Agent Skills Ninja: Coexistence",
+  );
+  context.subscriptions.push(coexistenceChannel);
 
   // 設定値のマイグレーション（旧フォーマット名 → 新フォーマット名）
   const formatMigrated = migrateOutputFormatSetting();
@@ -720,7 +775,7 @@ export function activate(context: vscode.ExtensionContext) {
               selected.skill,
             );
           } else if (action?.value === "github") {
-            const url = getSkillGitHubUrl(
+            const url = await resolveSkillGitHubUrl(
               selected.skill,
               skillIndex?.sources || [],
             );
@@ -1967,11 +2022,7 @@ export function activate(context: vscode.ExtensionContext) {
               });
               quickPick.onDidTriggerItemButton(async (e) => {
                 const item = e.item;
-                const branch = item.result.defaultBranch || "main";
-                const skillPath = item.result.path
-                  ? `/tree/${branch}/${item.result.path}`
-                  : "";
-                const url = `${item.result.repoUrl}${skillPath}`;
+                const url = getSearchResultGitHubUrl(item.result);
 
                 if (e.button === openGitHubButton) {
                   // GitHub を開く（QuickPick は閉じない）
@@ -2065,20 +2116,12 @@ export function activate(context: vscode.ExtensionContext) {
               selectMore = false;
               continueSearch = false;
             } else if (action.value === "open") {
-              const branch = selected.result.defaultBranch || "main";
-              const skillPath = selected.result.path
-                ? `/tree/${branch}/${selected.result.path}`
-                : "";
-              const url = `${selected.result.repoUrl}${skillPath}`;
+              const url = getSearchResultGitHubUrl(selected.result);
               await vscode.env.openExternal(vscode.Uri.parse(url));
               // 結果一覧に戻る
               continue;
             } else if (action.value === "copy-url") {
-              const branch = selected.result.defaultBranch || "main";
-              const skillPath = selected.result.path
-                ? `/tree/${branch}/${selected.result.path}`
-                : "";
-              const url = `${selected.result.repoUrl}${skillPath}`;
+              const url = getSearchResultGitHubUrl(selected.result);
               await vscode.env.clipboard.writeText(url);
               vscode.window.showInformationMessage(
                 isJapanese()
@@ -2320,16 +2363,17 @@ export function activate(context: vscode.ExtensionContext) {
     "skillNinja.openOnGitHub",
     async (skillOrItem?: SkillTreeItem | Skill) => {
       let url: string | undefined;
+      const currentSources = skillIndex?.sources || [];
 
       if (skillOrItem instanceof SkillTreeItem) {
         if (skillOrItem.skill) {
-          url = getSkillGitHubUrl(skillOrItem.skill, skillIndex?.sources || []);
+          url = await resolveSkillGitHubUrl(skillOrItem.skill, currentSources);
         } else if (skillOrItem.source) {
           url = skillOrItem.source.url;
         }
       } else if (skillOrItem && "name" in skillOrItem) {
         const skill = skillOrItem as Skill;
-        url = getSkillGitHubUrl(skill, skillIndex?.sources || []);
+        url = await resolveSkillGitHubUrl(skill, currentSources);
       }
 
       if (url) {
@@ -2671,14 +2715,9 @@ Add examples here
         return;
       }
 
-      // スキルのGitHub URLを構築
       const currentIndex = await loadSkillIndex(context);
-      const source = currentIndex.sources.find(
-        (s) => s.id === item.skill!.source,
-      );
-      if (source) {
-        const branch = source.branch || "main";
-        const url = `${source.url}/tree/${branch}/${item.skill.path}`;
+      const url = await resolveSkillGitHubUrl(item.skill, currentIndex.sources);
+      if (url) {
         await vscode.env.clipboard.writeText(url);
         vscode.window.showInformationMessage(
           messages.copiedToClipboardWithValue(url),
@@ -2768,6 +2807,165 @@ Add examples here
     },
   );
 
+  // Coexistence: status / recompute / orphan cleanup
+  const showCoexistenceStatusCmd = vscode.commands.registerCommand(
+    "skillNinja.showCoexistenceStatus",
+    async () => {
+      const decision = await getEffectiveOwnership(context);
+      const sibling = decision.siblingBeacon;
+      const selfPublished = getPublishedSelfBeacon(context);
+      const siblingExt = vscode.extensions.getExtension(SIBLING_EXTENSION_ID);
+      const lines: string[] = [];
+      lines.push("=== Agent Skills Ninja: Coexistence Status ===");
+      lines.push(`Self extensionId : ${SELF_EXTENSION_ID}`);
+      lines.push(`Sibling expected : ${SIBLING_EXTENSION_ID}`);
+      lines.push(
+        `Sibling installed: ${siblingExt ? "yes" : "no"}` +
+          (siblingExt ? ` (active=${siblingExt.isActive})` : ""),
+      );
+      lines.push(
+        `Sibling beacon   : ${sibling ? "present (via exports API)" : "absent / not exposed"}`,
+      );
+      if (sibling) {
+        lines.push(`  - version      : ${sibling.version}`);
+        lines.push(`  - kinds        : ${sibling.kinds.join(", ")}`);
+        lines.push(`  - updatedAt    : ${sibling.updatedAt}`);
+        lines.push(
+          `  - capabilities : ${(sibling.capabilities || []).join(", ") || "(none)"}`,
+        );
+        lines.push(`  - protocol     : v${sibling.protocolVersion ?? "?"}`);
+      }
+      lines.push("");
+      if (selfPublished) {
+        lines.push(`Self beacon snapshot (diagnostic, in own globalState):`);
+        lines.push(`  - version      : ${selfPublished.version}`);
+        lines.push(`  - kinds        : ${selfPublished.kinds.join(", ")}`);
+        lines.push(`  - updatedAt    : ${selfPublished.updatedAt}`);
+      }
+      lines.push("");
+      lines.push(`Owner            : ${decision.owner}`);
+      lines.push(`Reason           : ${decision.reason}`);
+      lines.push(`Self kinds       : ${decision.selfKinds.join(", ")}`);
+      if (decision.siblingKinds) {
+        lines.push(`Sibling kinds    : ${decision.siblingKinds.join(", ")}`);
+      }
+      lines.push("");
+      lines.push(
+        `Coexistence mode : ${vscode.workspace.getConfiguration("skillNinja").get<string>("coexistenceMode") ?? "auto"}`,
+      );
+      lines.push(
+        decision.owner === "self"
+          ? "Action           : Skill Ninja will write the shared `<!-- agent-ninja-* -->` block."
+          : "Action           : Skill Ninja defers; sibling extension owns the shared block.",
+      );
+      // Hint: while sibling owns the block, Resources Ninja's
+      // `kindsExcluded` is ignored at runtime so skill rows stay visible.
+      // Once Resources Ninja becomes standalone, that exclusion re-applies.
+      const resourceNinjaConfig =
+        vscode.workspace.getConfiguration("resourceNinja");
+      const siblingExcluded =
+        resourceNinjaConfig.get<string[]>("kindsExcluded") ?? [];
+      if (decision.owner === "sibling" && siblingExcluded.includes("skill")) {
+        lines.push("");
+        lines.push(
+          "Hint             : `resourceNinja.kindsExcluded` includes 'skill'.",
+        );
+        lines.push(
+          "                   While Skill Ninja is active, Resources Ninja",
+        );
+        lines.push(
+          "                   ignores this and writes skill rows. If you",
+        );
+        lines.push("                   uninstall Skill Ninja, those rows will");
+        lines.push(
+          "                   disappear unless you remove 'skill' from",
+        );
+        lines.push("                   resourceNinja.kindsExcluded.");
+      }
+      coexistenceChannel.clear();
+      coexistenceChannel.appendLine(lines.join("\n"));
+      coexistenceChannel.show(true);
+    },
+  );
+
+  const recomputeOwnershipCmd = vscode.commands.registerCommand(
+    "skillNinja.recomputeOwnership",
+    async () => {
+      // 自分の beacon を再 publish して updatedAt を更新し、その後 instruction
+      // ファイルを更新（owner==self の場合は実書き込み、sibling ならスキップ）。
+      await publishBeacon(context);
+      const wsFolder = vscode.workspace.workspaceFolders?.[0];
+      if (wsFolder) {
+        await updateAllInstructionFiles(wsFolder.uri, context);
+        refreshAllViews();
+      }
+      const decision = await getEffectiveOwnership(context);
+      const message = isJapanese()
+        ? `共存オーナーを再評価しました: ${decision.owner} (${decision.reason})`
+        : `Coexistence ownership recomputed: ${decision.owner} (${decision.reason})`;
+      const showStatus = isJapanese() ? "詳細を表示" : "Show Status";
+      vscode.window.showInformationMessage(message, showStatus).then((sel) => {
+        if (sel === showStatus) {
+          void vscode.commands.executeCommand(
+            "skillNinja.showCoexistenceStatus",
+          );
+        }
+      });
+    },
+  );
+
+  const cleanupOrphanBlockCmd = vscode.commands.registerCommand(
+    "skillNinja.cleanupOrphanBlock",
+    async () => {
+      const wsFolder = vscode.workspace.workspaceFolders?.[0];
+      if (!wsFolder) {
+        vscode.window.showWarningMessage(
+          isJapanese()
+            ? "ワークスペースが開かれていません"
+            : "No workspace folder is open.",
+        );
+        return;
+      }
+      const confirm = await vscode.window.showWarningMessage(
+        isJapanese()
+          ? "AGENTS.md などから skill-ninja / resource-ninja / agent-ninja のマーカーブロックを削除します。よろしいですか？"
+          : "This removes skill-ninja / resource-ninja / agent-ninja marker blocks from AGENTS.md and similar files. Continue?",
+        { modal: true },
+        isJapanese() ? "削除" : "Remove",
+      );
+      if (!confirm) {
+        return;
+      }
+      const roots = await getManagedSkillRoots(wsFolder.uri);
+      for (const root of roots) {
+        if (root.instructionUri) {
+          await removeSkillSectionFromFile(root.instructionUri);
+        }
+      }
+      vscode.window.showInformationMessage(
+        isJapanese()
+          ? "孤児ブロックの掃除が完了しました"
+          : "Orphan block cleanup complete.",
+      );
+    },
+  );
+
+  // Owner ownership change subscription: re-run instruction sync if our role changes.
+  const ownershipDisposable = subscribeOwnershipChanges(async () => {
+    const wsFolder = vscode.workspace.workspaceFolders?.[0];
+    if (!wsFolder) {
+      return;
+    }
+    // Sibling install/uninstall race: small delay so the sibling can publish
+    // its beacon (or fully unregister) before we make a decision.
+    await new Promise((resolve) =>
+      setTimeout(resolve, MIGRATION_GUARD_DELAY_MS),
+    );
+    await updateAllInstructionFiles(wsFolder.uri, context);
+    refreshAllViews();
+  });
+  context.subscriptions.push(ownershipDisposable);
+
   context.subscriptions.push(
     searchCmd,
     installCmd,
@@ -2806,6 +3004,9 @@ Add examples here
     openSkillFolderCmd,
     editWhenToUseCmd,
     doubleClickCmd,
+    showCoexistenceStatusCmd,
+    recomputeOwnershipCmd,
+    cleanupOrphanBlockCmd,
     configWatcher,
     installedTreeView,
     userGlobalTreeView,
@@ -2881,6 +3082,12 @@ Add examples here
     },
   );
   context.subscriptions.push(skillMdWatcher, skillMdSaveWatcher);
+
+  // Expose the coexistence beacon to the sibling extension via
+  // `vscode.extensions.getExtension(...).activate()`. globalState is
+  // per-extension and not shared, so this exports API is the only reliable
+  // cross-extension read path.
+  return buildExtensionApi();
 }
 
 /**
@@ -3043,4 +3250,12 @@ function migrateOutputFormatSetting(): boolean {
   return false;
 }
 
-export function deactivate() {}
+export function deactivate(): Thenable<void> | void {
+  const ctx = activeContext;
+  activeContext = undefined;
+  if (ctx) {
+    return clearBeacon(ctx).catch((err) => {
+      console.error("[Skill Ninja] clearBeacon failed:", err);
+    });
+  }
+}

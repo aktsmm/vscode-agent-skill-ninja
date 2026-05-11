@@ -472,6 +472,76 @@ export async function saveSkillIndex(
 // デフォルトブランチのキャッシュ（リポジトリURL → ブランチ名）
 const branchCache = new Map<string, string>();
 
+export function clearResolvedBranchCache(): void {
+  branchCache.clear();
+}
+
+export function cacheResolvedBranch(repoUrl: string, branch: string): void {
+  branchCache.set(repoUrl, branch);
+}
+
+function normalizeGitHubRepoUrl(repoUrl: string): string {
+  return repoUrl.replace(/\.git$/, "").replace(/\/$/, "");
+}
+
+function getGitHubRepoParts(
+  repoUrl: string,
+): { owner: string; repo: string } | undefined {
+  const match = normalizeGitHubRepoUrl(repoUrl).match(
+    /github\.com\/([^/]+)\/([^/]+)/,
+  );
+  if (!match) {
+    return undefined;
+  }
+
+  return {
+    owner: match[1],
+    repo: match[2],
+  };
+}
+
+export function buildGitHubContentUrl(
+  repoUrl: string,
+  branch: string,
+  skillPath?: string,
+  explicitUrl?: string,
+): string {
+  if (explicitUrl?.trim()) {
+    return explicitUrl.trim();
+  }
+
+  const normalizedRepoUrl = normalizeGitHubRepoUrl(repoUrl);
+  const normalizedSkillPath = (skillPath || "").replace(/^\/+/, "");
+  if (!normalizedSkillPath) {
+    return normalizedRepoUrl;
+  }
+
+  const urlType = normalizedSkillPath.endsWith(".md") ? "blob" : "tree";
+  return `${normalizedRepoUrl}/${urlType}/${branch}/${normalizedSkillPath}`;
+}
+
+export function buildGitHubRawUrl(
+  repoUrl: string,
+  branch: string,
+  skillPath: string,
+  fileName: string = "SKILL.md",
+): string | undefined {
+  const repoParts = getGitHubRepoParts(repoUrl);
+  if (!repoParts) {
+    return undefined;
+  }
+
+  const normalizedSkillPath = skillPath.replace(/^\/+/, "");
+  const rawPath = normalizedSkillPath.endsWith(".md")
+    ? normalizedSkillPath
+    : `${normalizedSkillPath}/${fileName}`;
+  return `https://raw.githubusercontent.com/${repoParts.owner}/${repoParts.repo}/${branch}/${rawPath}`;
+}
+
+export function getCachedSourceBranch(source: Source): string | undefined {
+  return branchCache.get(source.url) || source.branch;
+}
+
 /**
  * URL が存在するか HEAD リクエストで確認
  */
@@ -504,7 +574,9 @@ export async function getDefaultBranch(
     return branchCache.get(repoUrl)!;
   }
 
-  const match = repoUrl.match(/github\.com\/([^/]+)\/([^/]+)/);
+  const match = normalizeGitHubRepoUrl(repoUrl).match(
+    /github\.com\/([^/]+)\/([^/]+)/,
+  );
   if (!match) {
     return "main"; // フォールバック
   }
@@ -519,7 +591,7 @@ export async function getDefaultBranch(
     const rawUrl = `https://raw.githubusercontent.com/${owner}/${repo}/${branch}/${testFile}`;
 
     if (await checkUrlExists(rawUrl, token)) {
-      branchCache.set(repoUrl, branch);
+      cacheResolvedBranch(repoUrl, branch);
       return branch;
     }
   }
@@ -534,7 +606,7 @@ export async function getDefaultBranch(
     if (response.ok) {
       const data = (await response.json()) as { default_branch?: string };
       const branch = data.default_branch || "main";
-      branchCache.set(repoUrl, branch);
+      cacheResolvedBranch(repoUrl, branch);
       return branch;
     }
   } catch {
@@ -542,7 +614,7 @@ export async function getDefaultBranch(
   }
 
   // フォールバック
-  branchCache.set(repoUrl, "main");
+  cacheResolvedBranch(repoUrl, "main");
   return "main";
 }
 
@@ -575,14 +647,24 @@ export async function getSkillGitHubUrlAsync(
   sources: Source[],
   token?: string,
 ): Promise<string | undefined> {
+  if (skill.url?.trim()) {
+    return skill.url.trim();
+  }
+
   const source = sources.find((s) => s.id === skill.source);
   if (!source) {
+    if (skill.source.includes("/")) {
+      return buildGitHubContentUrl(
+        `https://github.com/${skill.source}`,
+        "main",
+        skill.path,
+      );
+    }
     return undefined;
   }
 
-  const branch = await getSourceBranch(source, token);
-  const baseUrl = source.url.replace(/\/$/, "");
-  return `${baseUrl}/tree/${branch}/${skill.path}`;
+  const branch = await getSourceBranch(source, token, skill.path);
+  return buildGitHubContentUrl(source.url, branch, skill.path, skill.url);
 }
 
 /**
@@ -592,16 +674,24 @@ export function getSkillGitHubUrl(
   skill: Skill,
   sources: Source[],
 ): string | undefined {
+  if (skill.url?.trim()) {
+    return skill.url.trim();
+  }
+
   const source = sources.find((s) => s.id === skill.source);
   if (!source) {
+    if (skill.source.includes("/")) {
+      return buildGitHubContentUrl(
+        `https://github.com/${skill.source}`,
+        "main",
+        skill.path,
+      );
+    }
     return undefined;
   }
 
-  // キャッシュがあればそれを使用、なければ設定値か main
-  const cachedBranch = branchCache.get(source.url);
-  const branch = cachedBranch || source.branch || "main";
-  const baseUrl = source.url.replace(/\/$/, "");
-  return `${baseUrl}/tree/${branch}/${skill.path}`;
+  const branch = getCachedSourceBranch(source) || "main";
+  return buildGitHubContentUrl(source.url, branch, skill.path, skill.url);
 }
 
 /**
@@ -613,23 +703,17 @@ export async function getSkillRawUrlAsync(
   fileName: string = "SKILL.md",
   token?: string,
 ): Promise<string | undefined> {
+  if (skill.rawUrl?.trim() && fileName === "SKILL.md") {
+    return skill.rawUrl.trim();
+  }
+
   const source = sources.find((s) => s.id === skill.source);
   if (!source) {
     return undefined;
   }
 
-  const match = source.url.match(/github\.com\/([^/]+)\/([^/]+)/);
-  if (!match) {
-    return undefined;
-  }
-
-  const [, owner, repo] = match;
-  const branch = await getSourceBranch(source, token);
-  // パスが .md で終わる場合はそのまま使用
-  if (skill.path.endsWith(".md")) {
-    return `https://raw.githubusercontent.com/${owner}/${repo}/${branch}/${skill.path}`;
-  }
-  return `https://raw.githubusercontent.com/${owner}/${repo}/${branch}/${skill.path}/${fileName}`;
+  const branch = await getSourceBranch(source, token, skill.path);
+  return buildGitHubRawUrl(source.url, branch, skill.path, fileName);
 }
 
 /**
@@ -640,24 +724,15 @@ export function getSkillRawUrl(
   sources: Source[],
   fileName: string = "SKILL.md",
 ): string | undefined {
+  if (skill.rawUrl?.trim() && fileName === "SKILL.md") {
+    return skill.rawUrl.trim();
+  }
+
   const source = sources.find((s) => s.id === skill.source);
   if (!source) {
     return undefined;
   }
 
-  // GitHub raw URL を構築
-  // https://github.com/owner/repo → https://raw.githubusercontent.com/owner/repo/main/path/file
-  const match = source.url.match(/github\.com\/([^/]+)\/([^/]+)/);
-  if (!match) {
-    return undefined;
-  }
-
-  const [, owner, repo] = match;
-  const cachedBranch = branchCache.get(source.url);
-  const branch = cachedBranch || source.branch || "main";
-  // パスが .md で終わる場合はそのまま使用
-  if (skill.path.endsWith(".md")) {
-    return `https://raw.githubusercontent.com/${owner}/${repo}/${branch}/${skill.path}`;
-  }
-  return `https://raw.githubusercontent.com/${owner}/${repo}/${branch}/${skill.path}/${fileName}`;
+  const branch = getCachedSourceBranch(source) || "main";
+  return buildGitHubRawUrl(source.url, branch, skill.path, fileName);
 }

@@ -361,10 +361,31 @@ If you don't need MCP tools, you can disable them from GitHub Copilot Chat:
 |   9   | `skillNinja.autoUpdateSkillsOnUpgrade`    | `prompt`         | Update installed skills after extension upgrade                    |
 |  10   | `skillNinja.githubToken`                  | `""`             | GitHub Token (for API rate limit)                                  |
 |  11   | `skillNinja.singleClickInstall`           | `false`          | Install remote skills with single click                            |
+|  12   | `skillNinja.coexistenceMode`              | `auto`           | Coexistence with Agent Resources Ninja (`auto` / `independent`)    |
+|  13   | `skillNinja.useSharedSourcesManifest`     | `false`          | (Experimental) Share remote source list via `~/.agent-ninja/`      |
 
 > Settings are displayed in the order above
 
 Legacy compatibility setting: `skillNinja.includeLocalSkills` is deprecated. Workspace skills stay scoped to `skillNinja.skillsDirectory`, while personal roots and additional user/global roots are discovered from `skillNinja.useVsCodeAgentSkillLocations`. Configured locations support `${workspaceFolder}`, `${userHome}`, `${env:APPDATA}`, and `%APPDATA%`. Built-in read-only skills are hidden unless `skillNinja.showBuiltInSkills` is enabled.
+
+### Coexistence with Agent Resources Ninja
+
+When the companion extension [Agent Resources Ninja](https://marketplace.visualstudio.com/items?itemName=yamapan.agent-resources-ninja) is also installed, both extensions cooperate so that AGENTS.md / CLAUDE.md / etc. always contains exactly **one shared block** (`<!-- agent-ninja-START -->` / `<!-- agent-ninja-END -->`). Resources Ninja is the owner whenever both are active; Skill Ninja silently defers and migrates any pre-existing `<!-- skill-ninja-* -->` block into the shared marker.
+
+If the sibling extension is uninstalled, Skill Ninja takes over the same shared block on the next `vscode.extensions.onDidChange` event — no parallel blocks, no orphan markers, no manual cleanup needed in the normal case.
+
+#### Note: `resourceNinja.kindsExcluded` after uninstalling Skill Ninja
+
+If you have used Resources Ninja with `resourceNinja.kindsExcluded` containing `"skill"` (the standalone default) and then **uninstall Skill Ninja**, Resources Ninja will fall back to its standalone behavior and re-apply that exclusion — i.e. the **skill rows will disappear** from the shared block. To bring them back:
+
+1. Remove `"skill"` from `resourceNinja.kindsExcluded` in your settings, **or**
+2. Run `Agent Resources Ninja: Recompute Coexistence Ownership` after editing the setting.
+
+While Skill Ninja is active, Resources Ninja ignores `kindsExcluded` at runtime and writes all kinds (including skill) into the shared block, so this only affects the post-uninstall state.
+
+Set `skillNinja.coexistenceMode` to `independent` to opt out and keep the legacy `<!-- skill-ninja-* -->` block regardless of Resources Ninja (advanced, allows parallel blocks). See [`.github/instructions/SkillList.instructions.md`](.github/instructions/SkillList.instructions.md) for the full contract.
+
+Diagnostics: `Agent Skills Ninja: Show Coexistence Status` / `Recompute Coexistence Ownership` / `Clean Up Orphan Instruction Block`.
 
 ### Output Format Details
 
