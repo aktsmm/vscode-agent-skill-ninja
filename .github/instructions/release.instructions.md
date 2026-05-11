@@ -72,6 +72,8 @@ npm test
 
 **テストが全て PASS していることを確認してからリリースに進む。**
 
+新しい回帰テスト script を追加した場合は、存在確認だけで満足せず、同じ変更で `package.json` の `npm test` に組み込むこと（2026-05-11 / GitHub Copilot）。
+
 ### 2. バージョン更新（必須）
 
 リリース時は以下の **4 ファイルを同時に** 更新すること：
@@ -115,6 +117,8 @@ npx vsce ls              # VSIX 収録物確認
 
 `npx vsce ls` の出力に、runtime と Marketplace 表示に必要なファイル以外が入っていないことを確認する。
 
+`npx vsce ls` が prepublish ログだけを返す、または出力確認が不安定な場合は、生成済み `.vsix` を zip として直接列挙して収録物を確認すること（例: PowerShell で `System.IO.Compression.ZipFile` を使う）。この場合も、以下の不要物チェックは省略しない（2026-05-11 / GitHub Copilot）。
+
 特に以下が含まれていたら、`.vscodeignore` を修正してから `npx vsce package` と `npx vsce ls` をやり直すこと：
 
 - `.github/**`
@@ -135,6 +139,8 @@ npx vsce ls              # VSIX 収録物確認
 ```bash
 npx vsce publish --packagePath artifacts/vsix/agent-skill-ninja-X.X.X.vsix  # Marketplace に公開
 ```
+
+対象バージョンの publish が `already exists` を返した場合、そのバージョンは Marketplace 側で公開済みと扱ってよい。ただし Marketplace metadata は反映遅延することがあるため、GitHub Release、VSIX asset、必要なら後続の `vsce show` で別経路確認を続ける（2026-05-11 / GitHub Copilot）。
 
 ### 7. GitHub Release 作成
 
@@ -164,12 +170,15 @@ New-Item -ItemType Directory -Force artifacts/vsix | Out-Null; npx vsce package 
 
 ## テストファイル一覧
 
-| ファイル                           | 内容                                                        |
-| ---------------------------------- | ----------------------------------------------------------- |
-| `scripts/test-whenToUse.js`        | When to Use 抽出ロジックのテスト                            |
-| `scripts/test-search-logic.js`     | 検索ロジックのテスト（存在する場合）                        |
-| `scripts/test-skill-scan-paths.js` | skillsDirectory 配下だけをスキャンする境界テスト            |
-| `scripts/test-package-manifest.js` | Settings 表示順・Command Palette・README 導線の整合性テスト |
+| ファイル                                 | 内容                                                        |
+| ---------------------------------------- | ----------------------------------------------------------- |
+| `scripts/test-whenToUse.js`              | When to Use 抽出ロジックのテスト                            |
+| `scripts/test-search-logic.js`           | 検索ロジックのテスト（存在する場合）                        |
+| `scripts/test-skill-scan-paths.js`       | skillsDirectory 配下だけをスキャンする境界テスト            |
+| `scripts/test-skill-locations.js`        | workspace / user/global skill root 解決の境界テスト         |
+| `scripts/test-workspace-skill-groups.js` | TreeView の root grouping 回帰テスト                        |
+| `scripts/test-view-welcome-ux.js`        | viewsWelcome の empty-state 導線と文量制約の回帰テスト      |
+| `scripts/test-package-manifest.js`       | Settings 表示順・Command Palette・README 導線の整合性テスト |
 
 ## 注意事項
 
@@ -179,6 +188,8 @@ New-Item -ItemType Directory -Force artifacts/vsix | Out-Null; npx vsce package 
 - ✅ リリース前に `git status` で未コミットファイルがないことを確認
 - ✅ `npm run compile` が成功することを確認してから公開
 - ✅ `npx vsce ls` で不要な開発用ファイルが VSIX に入っていないことを確認してから公開
+- ✅ 一時的な VS Code task を使った場合は、公開完了前に `.vscode/tasks.json` から release / verify 用 task を削除し、watch task だけの状態に戻す
+- ✅ `git status --short` と `git rev-parse HEAD` / `git rev-parse origin/master` で、作業ツリーと push 状態を最後に確認
 
 ## 公開後の確認
 

@@ -2,7 +2,7 @@
   "name": "agent-skill-ninja",
   "displayName": "%displayName%",
   "description": "%description%",
-  "version": "0.8.27",
+  "version": "0.8.28",
   "publisher": "yamapan",
   "license": "CC-BY-NC-SA-4.0",
   "icon": "resources/icon.png",
@@ -343,6 +343,20 @@
         }
       ]
     },
+    "viewsWelcome": [
+      {
+        "view": "skillNinja.installedView",
+        "contents": "%viewsWelcome.workspace%"
+      },
+      {
+        "view": "skillNinja.userGlobalView",
+        "contents": "%viewsWelcome.userGlobal%"
+      },
+      {
+        "view": "skillNinja.browseView",
+        "contents": "%viewsWelcome.remote%"
+      }
+    ],
     "commands": [
       {
         "command": "skillNinja.search",
@@ -530,6 +544,12 @@
         "icon": "$(gear)"
       },
       {
+        "command": "skillNinja.showBuiltInSkills",
+        "title": "%command.showBuiltInSkills%",
+        "category": "Agent Skills Ninja",
+        "icon": "$(eye)"
+      },
+      {
         "command": "skillNinja.resetSettings",
         "title": "%command.resetSettings%",
         "category": "Agent Skills Ninja",
@@ -624,6 +644,11 @@
           "group": "navigation@4"
         },
         {
+          "command": "skillNinja.showBuiltInSkills",
+          "when": "view == skillNinja.userGlobalView && config.skillNinja.showBuiltInSkills == false",
+          "group": "navigation@5"
+        },
+        {
           "command": "skillNinja.openSettings",
           "when": "view == skillNinja.userGlobalView",
           "group": "z_refresh@1"
@@ -657,6 +682,16 @@
           "command": "skillNinja.addSource",
           "when": "view == skillNinja.browseView",
           "group": "navigation@4"
+        },
+        {
+          "command": "skillNinja.createSkill",
+          "when": "view == skillNinja.browseView",
+          "group": "navigation@5"
+        },
+        {
+          "command": "skillNinja.openSettings",
+          "when": "view == skillNinja.browseView",
+          "group": "z_refresh@1"
         }
       ],
       "view/item/context": [
@@ -951,7 +986,7 @@
     "package": "npm run check-types && npm run lint && node esbuild.js --production",
     "check-types": "tsc --noEmit",
     "lint": "eslint src",
-    "test": "node scripts/test-whenToUse.js && node scripts/test-search-logic.js && node scripts/test-skill-scan-paths.js && node scripts/test-skill-locations.js && node scripts/test-workspace-skill-groups.js && node scripts/test-package-manifest.js"
+    "test": "node scripts/test-whenToUse.js && node scripts/test-search-logic.js && node scripts/test-skill-scan-paths.js && node scripts/test-skill-locations.js && node scripts/test-workspace-skill-groups.js && node scripts/test-view-welcome-ux.js && node scripts/test-package-manifest.js"
   },
   "devDependencies": {
     "@types/node": "20.x",

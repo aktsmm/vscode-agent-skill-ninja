@@ -2571,6 +2571,33 @@ Add examples here
     },
   );
 
+  const showBuiltInSkillsCmd = vscode.commands.registerCommand(
+    "skillNinja.showBuiltInSkills",
+    async () => {
+      const skillNinjaConfig = vscode.workspace.getConfiguration("skillNinja");
+      const alreadyEnabled = skillNinjaConfig.get<boolean>(
+        "showBuiltInSkills",
+        false,
+      );
+
+      if (!alreadyEnabled) {
+        await skillNinjaConfig.update(
+          "showBuiltInSkills",
+          true,
+          vscode.ConfigurationTarget.Global,
+        );
+      }
+
+      refreshInstalledViews();
+
+      vscode.window.showInformationMessage(
+        isJapanese()
+          ? "組み込みスキルを表示しました"
+          : "Built-in skills are now visible",
+      );
+    },
+  );
+
   // Command: Reset settings
   const resetSettingsCmd = vscode.commands.registerCommand(
     "skillNinja.resetSettings",
@@ -2770,6 +2797,7 @@ Add examples here
     updateInstructionCmd,
     openInstructionFileCmd,
     openSettingsCmd,
+    showBuiltInSkillsCmd,
     resetSettingsCmd,
     copyUrlCmd,
     copyPathCmd,

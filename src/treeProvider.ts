@@ -51,6 +51,111 @@ interface WorkspaceSkillRootGroup {
   skills: WorkspaceSkill[];
 }
 
+function localizeRootLabel(english: string, japanese: string): string {
+  return isJapanese() ? japanese : english;
+}
+
+function humanizeRootSegment(segment: string): string {
+  return segment
+    .replace(/^\.+/, "")
+    .replace(/[._-]+/g, " ")
+    .replace(/\b\w/g, (char) => char.toUpperCase());
+}
+
+function getRootLabelFromPath(root: SkillRoot): string | undefined {
+  const normalizedRootPath = normalizeFileSystemPath(root.rootPath);
+
+  if (normalizedRootPath.endsWith("/.copilot/skills")) {
+    return localizeRootLabel("GitHub Copilot Home", "GitHub Copilot ホーム");
+  }
+  if (normalizedRootPath.endsWith("/.claude/skills")) {
+    return localizeRootLabel("Claude Home", "Claude ホーム");
+  }
+  if (normalizedRootPath.endsWith("/.agents/skills")) {
+    return localizeRootLabel("Global Agent Home", "グローバル Agent ホーム");
+  }
+  if (normalizedRootPath.includes("/appdata/roaming/code/user/")) {
+    return localizeRootLabel(
+      "VS Code User Customizations",
+      "VS Code ユーザーカスタマイズ",
+    );
+  }
+  if (normalizedRootPath.includes("/extensions/github.copilot-chat")) {
+    return localizeRootLabel("GitHub Copilot Chat", "GitHub Copilot Chat");
+  }
+  if (normalizedRootPath.includes("/extensions/github.copilot")) {
+    return localizeRootLabel("GitHub Copilot", "GitHub Copilot");
+  }
+  if (normalizedRootPath.includes("/@github/copilot/builtin-skills")) {
+    return localizeRootLabel(
+      "GitHub Copilot Built-ins",
+      "GitHub Copilot 組み込み",
+    );
+  }
+
+  const segments = normalizedRootPath.split("/").filter(Boolean);
+  const parentSegment =
+    segments.length >= 2 ? segments[segments.length - 2] : "";
+  if (!parentSegment) {
+    return undefined;
+  }
+
+  const parentLabel = humanizeRootSegment(parentSegment);
+  if (!parentLabel) {
+    return undefined;
+  }
+
+  return root.scope === "builtIn"
+    ? localizeRootLabel(`${parentLabel} Built-ins`, `${parentLabel} 組み込み`)
+    : parentLabel;
+}
+
+export function getSkillRootGroupLabel(root: SkillRoot): string {
+  if (root.scope === "workspace") {
+    return localizeRootLabel("Workspace Skills", "ワークスペース スキル");
+  }
+
+  return getRootLabelFromPath(root) || root.label || root.displayPath;
+}
+
+export function getSkillRootGroupDescription(
+  root: SkillRoot,
+  skillCount: number,
+): string {
+  const countText = isJapanese()
+    ? `${skillCount} 件のスキル`
+    : `${skillCount} skills`;
+  return `${countText} • ${root.displayPath}`;
+}
+
+function getSkillRootGroupCollapsibleState(
+  root: SkillRoot,
+): vscode.TreeItemCollapsibleState {
+  return root.scope === "workspace"
+    ? vscode.TreeItemCollapsibleState.Expanded
+    : vscode.TreeItemCollapsibleState.Collapsed;
+}
+
+export function getManagedSkillTreeItemLabel(
+  skill: WorkspaceSkill,
+  recentlyInstalled?: Set<string>,
+): string {
+  const isRecent = recentlyInstalled?.has(skill.name) ?? false;
+  return `${isRecent ? "🆕 " : ""}${skill.name}`;
+}
+
+export function getManagedSkillTreeItemDescription(
+  skill: WorkspaceSkill,
+): string {
+  if (skill.isReadOnly || skill.isRegistered) {
+    return skill.relativePath;
+  }
+
+  return isJapanese()
+    ? `${skill.relativePath} • 未登録`
+    : `${skill.relativePath} • Not registered`;
+}
+
 function compareWorkspaceSkills(
   left: WorkspaceSkill,
   right: WorkspaceSkill,
@@ -120,9 +225,9 @@ function createSkillRootGroupItem(
   contextValue: string = "skillRootGroup",
 ): SkillTreeItem {
   const item = new SkillTreeItem(
-    root.displayPath,
-    isJapanese() ? `${skillCount} 件のスキル` : `${skillCount} skills`,
-    vscode.TreeItemCollapsibleState.Expanded,
+    getSkillRootGroupLabel(root),
+    getSkillRootGroupDescription(root, skillCount),
+    getSkillRootGroupCollapsibleState(root),
     contextValue,
     undefined,
     undefined,
@@ -136,13 +241,11 @@ function createSkillRootGroupItem(
     root.isReadOnly ? "folder-library" : "folder-opened",
   );
 
-  const tooltipLines = [root.displayPath];
+  const tooltipLines = [getSkillRootGroupLabel(root), root.displayPath];
   if (root.instructionPath) {
     tooltipLines.push(`Instruction: ${root.instructionPath}`);
   }
-  tooltipLines.push(
-    isJapanese() ? `${skillCount} 件のスキル` : `${skillCount} skills`,
-  );
+  tooltipLines.push(getSkillRootGroupDescription(root, skillCount));
   item.tooltip = tooltipLines.join("\n");
 
   return item;
@@ -152,13 +255,6 @@ function createManagedSkillTreeItem(
   skill: WorkspaceSkill,
   recentlyInstalled?: Set<string>,
 ): SkillTreeItem {
-  const isRecent = recentlyInstalled?.has(skill.name) ?? false;
-  const newBadge = isRecent ? "🆕 " : "";
-  const statusPrefix = skill.isReadOnly
-    ? ""
-    : skill.isRegistered
-      ? "✓ "
-      : "○ ";
   const contextValue = skill.isReadOnly
     ? "builtInSkill"
     : skill.isRegistered
@@ -170,8 +266,8 @@ function createManagedSkillTreeItem(
     : skill.description;
 
   const item = new SkillTreeItem(
-    `${newBadge}${statusPrefix}${skill.name}`,
-    skill.relativePath,
+    getManagedSkillTreeItemLabel(skill, recentlyInstalled),
+    getManagedSkillTreeItemDescription(skill),
     vscode.TreeItemCollapsibleState.None,
     contextValue,
     {
@@ -465,10 +561,7 @@ export class UserGlobalSkillsProvider implements vscode.TreeDataProvider<SkillTr
       return this.buildBuiltInRootItems();
     }
 
-    if (
-      element.contextValue === "builtInSkillRootGroup" &&
-      element.skillRoot
-    ) {
+    if (element.contextValue === "builtInSkillRootGroup" && element.skillRoot) {
       return this.getSkillsForRoot(element.skillRoot.rootPath).map((skill) =>
         this.toSkillItem(skill),
       );
@@ -541,7 +634,9 @@ export class UserGlobalSkillsProvider implements vscode.TreeDataProvider<SkillTr
 
     const visibleSkills = await scanVisibleSkills(this.workspaceUri);
     this.userGlobalSkills = visibleSkills
-      .filter((skill) => skill.scope === "userGlobal" || skill.scope === "builtIn")
+      .filter(
+        (skill) => skill.scope === "userGlobal" || skill.scope === "builtIn",
+      )
       .map(toWorkspaceSkill);
   }
 }

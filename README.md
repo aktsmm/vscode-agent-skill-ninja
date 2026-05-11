@@ -204,13 +204,16 @@ Preset index includes skills from official, curated, and community sources out o
 - **Workspace Skills**: managed under `skillNinja.skillsDirectory` (default: `.github/skills`)
 - Newly installed skills (temporary badge)
 - Toolbar: Instruction File / Update Instruction / Create / Refresh / Settings
+- Empty state: Search / Create / Open Instruction File quick links
 - Open skill folder or file from the workspace scope
 
 3. **User / Global Skills** - Personal and built-in skills grouped by skill root
 
 - **User / Global Skills**: discovered from standard personal roots (`~/.copilot/skills`, `~/.claude/skills`, `~/.agents/skills`) plus VS Code Agent Skill Locations
 - **Built-in Skills**: optional read-only group for Copilot / VS Code packaged skills
+- Root nodes use concise home/product labels, while counts and full paths stay in the secondary description / tooltip
 - Toolbar: Instruction File / Update Instruction / Create / Refresh / Settings
+- Empty state: Create / Show Built-in Skills / Open Settings quick links
 - Open skill folder or file from any visible user/global scope
 
 4. **Remote Skills** - Browse skills by source
@@ -218,6 +221,8 @@ Preset index includes skills from official, curated, and community sources out o
    - Sources sorted: Official → Curated → Community
    - Shows installed status with green icons
    - One-click install from list
+
+- Toolbar: Search / Web Search / Update Index / Add Source / Create / Settings
 
 ### Icon Legend
 
@@ -343,19 +348,19 @@ If you don't need MCP tools, you can disable them from GitHub Copilot Chat:
 
 ## ⚙️ Settings
 
-| Order | Setting                                   | Default          | Description                                      |
-| :---: | ----------------------------------------- | ---------------- | ------------------------------------------------ |
-|   1   | `skillNinja.autoUpdateInstruction`        | `true`           | **Auto-update instruction file on install**      |
-|   2   | `skillNinja.instructionFile`              | `AGENTS.md`      | Instruction file format _(requires Auto Update)_ |
-|   3   | `skillNinja.customInstructionPath`        | `""`             | Custom path _(only when 'custom' selected)_      |
-|   4   | `skillNinja.skillsDirectory`              | `.github/skills` | Directory to install and manage workspace skills |
+| Order | Setting                                   | Default          | Description                                                        |
+| :---: | ----------------------------------------- | ---------------- | ------------------------------------------------------------------ |
+|   1   | `skillNinja.autoUpdateInstruction`        | `true`           | **Auto-update instruction file on install**                        |
+|   2   | `skillNinja.instructionFile`              | `AGENTS.md`      | Instruction file format _(requires Auto Update)_                   |
+|   3   | `skillNinja.customInstructionPath`        | `""`             | Custom path _(only when 'custom' selected)_                        |
+|   4   | `skillNinja.skillsDirectory`              | `.github/skills` | Directory to install and manage workspace skills                   |
 |   5   | `skillNinja.useVsCodeAgentSkillLocations` | `true`           | Discover standard personal roots and extra user/global skill roots |
-|   6   | `skillNinja.showBuiltInSkills`            | `false`          | Show read-only built-in skills                   |
-|   7   | `skillNinja.outputFormat`                 | `full`           | Output format (full / compact / legacy)          |
-|   8   | `skillNinja.language`                     | `auto`           | UI language (auto / en / ja)                     |
-|   9   | `skillNinja.autoUpdateSkillsOnUpgrade`    | `prompt`         | Update installed skills after extension upgrade  |
-|  10   | `skillNinja.githubToken`                  | `""`             | GitHub Token (for API rate limit)                |
-|  11   | `skillNinja.singleClickInstall`           | `false`          | Install remote skills with single click          |
+|   6   | `skillNinja.showBuiltInSkills`            | `false`          | Show read-only built-in skills                                     |
+|   7   | `skillNinja.outputFormat`                 | `full`           | Output format (full / compact / legacy)                            |
+|   8   | `skillNinja.language`                     | `auto`           | UI language (auto / en / ja)                                       |
+|   9   | `skillNinja.autoUpdateSkillsOnUpgrade`    | `prompt`         | Update installed skills after extension upgrade                    |
+|  10   | `skillNinja.githubToken`                  | `""`             | GitHub Token (for API rate limit)                                  |
+|  11   | `skillNinja.singleClickInstall`           | `false`          | Install remote skills with single click                            |
 
 > Settings are displayed in the order above
 

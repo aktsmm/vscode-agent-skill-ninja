@@ -113,6 +113,12 @@ function collectManifestAssetPaths() {
   return [...paths];
 }
 
+function titleMenuCommandsFor(viewId) {
+  return (pkg.contributes?.menus?.["view/title"] || [])
+    .filter((item) => item.when === `view == ${viewId}`)
+    .map((item) => item.command);
+}
+
 test("settings order matches the documented primary flow", () => {
   assert.deepStrictEqual(
     [
@@ -194,8 +200,8 @@ test("README files describe workspace, user/global, and built-in skill scopes", 
   assert.ok(readmeJa.includes("インストール済みスキル"));
   assert.ok(readmeJa.includes("skillNinja.useVsCodeAgentSkillLocations"));
   assert.ok(readmeJa.includes("skillNinja.showBuiltInSkills"));
-  assert.ok(readmeJa.includes("User / Global Skills"));
-  assert.ok(readmeJa.includes("Built-in Skills"));
+  assert.ok(readmeJa.includes("ユーザー / グローバル スキル"));
+  assert.ok(readmeJa.includes("組み込みスキル"));
 });
 
 test("manifest exposes installed, user/global, and remote views", () => {
@@ -207,6 +213,40 @@ test("manifest exposes installed, user/global, and remote views", () => {
     "skillNinja.userGlobalView",
     "skillNinja.browseView",
   ]);
+});
+
+test("all views expose create skill and settings in the title bar", () => {
+  for (const viewId of [
+    "skillNinja.installedView",
+    "skillNinja.userGlobalView",
+    "skillNinja.browseView",
+  ]) {
+    const commands = titleMenuCommandsFor(viewId);
+    assert.ok(
+      commands.includes("skillNinja.createSkill"),
+      `${viewId} should expose create skill`,
+    );
+    assert.ok(
+      commands.includes("skillNinja.openSettings"),
+      `${viewId} should expose settings`,
+    );
+  }
+});
+
+test("user/global title bar exposes built-in skills toggle", () => {
+  const userGlobalTitleMenu = (
+    pkg.contributes?.menus?.["view/title"] || []
+  ).find(
+    (item) =>
+      item.command === "skillNinja.showBuiltInSkills" &&
+      item.when.includes("view == skillNinja.userGlobalView"),
+  );
+
+  assert.ok(userGlobalTitleMenu);
+  assert.strictEqual(
+    userGlobalTitleMenu.when,
+    "view == skillNinja.userGlobalView && config.skillNinja.showBuiltInSkills == false",
+  );
 });
 
 test("README files and settings surface the companion extension", () => {
@@ -317,6 +357,7 @@ test("temporary capture logs are excluded from the VSIX", () => {
     "vsce-package-capture.txt",
     "vsix-contents-capture.txt",
     "npm-audit-capture.json",
+    "marketplace-check.json",
   ]) {
     assert.ok(
       ignoreMatchers.some((matcher) => matcher.test(filePath)),

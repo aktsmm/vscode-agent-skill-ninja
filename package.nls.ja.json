@@ -59,7 +59,7 @@
   "config.outputFormat.compact": "📦 Compact (コンパクト) - IMPORTANT + 圧縮インデックス (100文字)",
   "config.outputFormat.legacy": "🕰️ Legacy (レガシー) - シンプルテーブルのみ（OLD）",
   "config.singleClickInstall.description": "シングルクリックでインストール（デフォルト: ダブルクリック）",
-  "config.versionInfo.markdownDescription": "---\n\n### ℹ️ バージョン情報 (Version Info)\n\n| Item | Value |\n|------|------|\n| Extension | **0.8.27** |\n| Skill Index | **v1.18.0** |\n| Last Updated | 2026-05-11 |\n| Skills | 1426 |\n| Sources | 11 |\n\n[📋 Changelog](https://github.com/aktsmm/vscode-agent-skill-ninja/blob/master/CHANGELOG.md) · [🐛 Report Bug](https://github.com/aktsmm/vscode-agent-skill-ninja/issues)",
+  "config.versionInfo.markdownDescription": "---\n\n### ℹ️ バージョン情報 (Version Info)\n\n| Item | Value |\n|------|------|\n| Extension | **0.8.28** |\n| Skill Index | **v1.18.0** |\n| Last Updated | 2026-05-11 |\n| Skills | 1426 |\n| Sources | 11 |\n\n[📋 Changelog](https://github.com/aktsmm/vscode-agent-skill-ninja/blob/master/CHANGELOG.md) · [🐛 Report Bug](https://github.com/aktsmm/vscode-agent-skill-ninja/issues)",
   "config.companionExtension.markdownDescription": "### 🧩 Companion Extension\n\n[Agent Resources Ninja](https://marketplace.visualstudio.com/items?itemName=yamapan.agent-resources-ninja) - スキルに加えて agent、prompt、instruction、hook、MCP config resource などをまとめて管理できる companion 拡張です。[GitHub](https://github.com/aktsmm/vscode-agent-resources-ninja)",
   "view.workspace": "インストール済みスキル",
   "view.userGlobal": "ユーザー / グローバル スキル",
@@ -72,9 +72,13 @@
   "command.updateInstruction": "インストラクションファイルを更新",
   "command.openInstructionFile": "インストラクションファイルを開く",
   "command.openSettings": "設定を開く",
+  "command.showBuiltInSkills": "組み込みスキルを表示",
   "command.resetSettings": "初期化",
   "command.copyUrl": "URLをコピー",
   "command.copyPath": "パスをコピー",
   "command.openInTerminal": "ターミナルで開く",
-  "command.reportBug": "バグを報告"
+  "command.reportBug": "バグを報告",
+  "viewsWelcome.workspace": "インストール済み、またはローカルスキャンされた workspace skills がここに表示されます。\n\n[リモートスキルを検索](command:skillNinja.search)\n[新規スキル作成](command:skillNinja.createSkill)\n[インストラクションファイルを開く](command:skillNinja.openInstructionFile)",
+  "viewsWelcome.userGlobal": "ユーザー / グローバルスキルがここに表示されます。組み込みスキルは有効化するまで非表示です。\n\n[新規スキル作成](command:skillNinja.createSkill)\n[組み込みスキルを表示](command:skillNinja.showBuiltInSkills)\n[設定を開く](command:skillNinja.openSettings)",
+  "viewsWelcome.remote": "同梱 source と GitHub 上の skill source をここから参照できます。\n\n[スキルを検索](command:skillNinja.search)\n[インデックスを更新](command:skillNinja.updateIndex)\n[ソースリポジトリを追加](command:skillNinja.addSource)"
 }

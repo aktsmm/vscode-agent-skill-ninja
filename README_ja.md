@@ -197,16 +197,19 @@ ext install yamapan.agent-skill-ninja
 1. アクティビティバーの **螺旋手裏剣アイコン** をクリック
 2. **インストール済みスキル** - workspace managed skills を skill root ごとに表示
 
-- **Workspace Skills**: `skillNinja.skillsDirectory`（既定: `.github/skills`）配下の managed skills
+- **ワークスペース スキル**: `skillNinja.skillsDirectory`（既定: `.github/skills`）配下の managed skills
 - 新しくインストールしたスキル（一時的なバッジ）
 - ツールバー: Instruction / インストラクション更新 / 新規作成 / 更新 / 設定
+- 空状態: 検索 / 新規作成 / インストラクションファイルを開く
 - workspace scope のスキルフォルダ / ファイルを開けます
 
 3. **ユーザー / グローバル スキル** - personal / built-in skills を skill root ごとに表示
 
-- **User / Global Skills**: 標準の personal roots（`~/.copilot/skills`, `~/.claude/skills`, `~/.agents/skills`）と VS Code の Agent Skill Locations から見つかった managed skills
-- **Built-in Skills**: Copilot / VS Code 同梱 skills を読み取り専用で表示する任意グループ
+- **ユーザー / グローバル スキル**: 標準の personal roots（`~/.copilot/skills`, `~/.claude/skills`, `~/.agents/skills`）と VS Code の Agent Skill Locations から見つかった managed skills
+- **組み込みスキル**: Copilot / VS Code 同梱 skills を読み取り専用で表示する任意グループ
+- ルートノードは短い home / product 名で表示し、件数とフルパスは description / tooltip 側に寄せます
 - ツールバー: Instruction / インストラクション更新 / 新規作成 / 更新 / 設定
+- 空状態: 新規作成 / 組み込みスキル表示 / 設定を開く
 - どの user/global scope でもスキルフォルダ / ファイルを開けます
 
 4. **Remote Skills** - ソース別にスキルを閲覧
@@ -214,6 +217,8 @@ ext install yamapan.agent-skill-ninja
    - ソース順: Official → Curated → Community
    - インストール済みは緑アイコンで表示
    - リストからワンクリックでインストール
+
+- ツールバー: 検索 / Web Search / インデックス更新 / ソース追加 / 新規作成 / 設定
 
 ### アイコン凡例
 
@@ -339,19 +344,19 @@ MCP ツールが不要な場合は、GitHub Copilot Chat のツール一覧か�
 
 ## ⚙️ Settings
 
-| 順序 | Setting                                   | Default          | Description                                              |
-| :--: | ----------------------------------------- | ---------------- | -------------------------------------------------------- |
-|  1   | `skillNinja.autoUpdateInstruction`        | `true`           | **インストール時に instruction file を自動更新**         |
-|  2   | `skillNinja.instructionFile`              | `AGENTS.md`      | スキルを登録するファイル形式 _(要: Auto Update)_         |
-|  3   | `skillNinja.customInstructionPath`        | `""`             | カスタムパス _(instructionFile が 'custom' の時のみ)_    |
-|  4   | `skillNinja.skillsDirectory`              | `.github/skills` | ワークスペーススキルをインストール・管理するディレクトリ |
+| 順序 | Setting                                   | Default          | Description                                                           |
+| :--: | ----------------------------------------- | ---------------- | --------------------------------------------------------------------- |
+|  1   | `skillNinja.autoUpdateInstruction`        | `true`           | **インストール時に instruction file を自動更新**                      |
+|  2   | `skillNinja.instructionFile`              | `AGENTS.md`      | スキルを登録するファイル形式 _(要: Auto Update)_                      |
+|  3   | `skillNinja.customInstructionPath`        | `""`             | カスタムパス _(instructionFile が 'custom' の時のみ)_                 |
+|  4   | `skillNinja.skillsDirectory`              | `.github/skills` | ワークスペーススキルをインストール・管理するディレクトリ              |
 |  5   | `skillNinja.useVsCodeAgentSkillLocations` | `true`           | 標準 personal root と追加の user/global skill root を検出して管理する |
-|  6   | `skillNinja.showBuiltInSkills`            | `false`          | 読み取り専用の built-in skills を表示する                |
-|  7   | `skillNinja.outputFormat`                 | `full`           | 出力形式（full / compact / legacy）                      |
-|  8   | `skillNinja.language`                     | `auto`           | UI 言語（auto / en / ja）                                |
-|  9   | `skillNinja.autoUpdateSkillsOnUpgrade`    | `prompt`         | 拡張機能アップグレード後のスキル更新                     |
-|  10  | `skillNinja.githubToken`                  | `""`             | GitHub Token（API 制限緩和用）                           |
-|  11  | `skillNinja.singleClickInstall`           | `false`          | リモートスキルをシングルクリックでインストール           |
+|  6   | `skillNinja.showBuiltInSkills`            | `false`          | 読み取り専用の built-in skills を表示する                             |
+|  7   | `skillNinja.outputFormat`                 | `full`           | 出力形式（full / compact / legacy）                                   |
+|  8   | `skillNinja.language`                     | `auto`           | UI 言語（auto / en / ja）                                             |
+|  9   | `skillNinja.autoUpdateSkillsOnUpgrade`    | `prompt`         | 拡張機能アップグレード後のスキル更新                                  |
+|  10  | `skillNinja.githubToken`                  | `""`             | GitHub Token（API 制限緩和用）                                        |
+|  11  | `skillNinja.singleClickInstall`           | `false`          | リモートスキルをシングルクリックでインストール                        |
 
 > 設定画面では上記の順序で表示されます
 
