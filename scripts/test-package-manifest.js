@@ -9,12 +9,17 @@ const path = require("path");
 
 const root = path.join(__dirname, "..");
 const pkg = require(path.join(root, "package.json"));
+const packageLock = require(path.join(root, "package-lock.json"));
 const readme = fs.readFileSync(path.join(root, "README.md"), "utf8");
 const readmeJa = fs.readFileSync(path.join(root, "README_ja.md"), "utf8");
 const vscodeIgnore = fs.readFileSync(path.join(root, ".vscodeignore"), "utf8");
 const gitIgnore = fs.readFileSync(path.join(root, ".gitignore"), "utf8");
 const releaseInstructions = fs.readFileSync(
   path.join(root, ".github", "instructions", "release.instructions.md"),
+  "utf8",
+);
+const mcpToolsSource = fs.readFileSync(
+  path.join(root, "src", "mcpTools.ts"),
   "utf8",
 );
 
@@ -55,7 +60,7 @@ function getGitIgnoreEntries() {
 }
 
 function globToRegExp(pattern) {
-  const normalized = normalizePath(pattern).replace(/^\.\//, "");
+  const normalized = normalizePath(pattern).replace(/^\.?\//, "");
   let regex = "^";
 
   for (let index = 0; index < normalized.length; index += 1) {
@@ -115,6 +120,8 @@ test("settings order matches the documented primary flow", () => {
       "skillNinja.instructionFile",
       "skillNinja.customInstructionPath",
       "skillNinja.skillsDirectory",
+      "skillNinja.useVsCodeAgentSkillLocations",
+      "skillNinja.showBuiltInSkills",
       "skillNinja.outputFormat",
       "skillNinja.language",
       "skillNinja.autoUpdateSkillsOnUpgrade",
@@ -127,14 +134,24 @@ test("settings order matches the documented primary flow", () => {
       ["skillNinja.instructionFile", 2],
       ["skillNinja.customInstructionPath", 3],
       ["skillNinja.skillsDirectory", 4],
-      ["skillNinja.outputFormat", 5],
-      ["skillNinja.language", 6],
-      ["skillNinja.autoUpdateSkillsOnUpgrade", 7],
-      ["skillNinja.githubToken", 8],
-      ["skillNinja.singleClickInstall", 9],
+      ["skillNinja.useVsCodeAgentSkillLocations", 5],
+      ["skillNinja.showBuiltInSkills", 6],
+      ["skillNinja.outputFormat", 7],
+      ["skillNinja.language", 8],
+      ["skillNinja.autoUpdateSkillsOnUpgrade", 9],
+      ["skillNinja.githubToken", 10],
+      ["skillNinja.singleClickInstall", 11],
       ["skillNinja.includeLocalSkills", 90],
     ],
   );
+});
+
+test("package lock metadata stays in sync with package manifest", () => {
+  assert.strictEqual(packageLock.name, pkg.name);
+  assert.strictEqual(packageLock.version, pkg.version);
+  assert.strictEqual(packageLock.packages[""].name, pkg.name);
+  assert.strictEqual(packageLock.packages[""].version, pkg.version);
+  assert.strictEqual(packageLock.packages[""].license, pkg.license);
 });
 
 test("legacy local skill commands are hidden from command palette", () => {
@@ -166,17 +183,19 @@ test("README files do not document removed or misleading settings", () => {
   }
 });
 
-test("README files describe the directory-scoped workspace model", () => {
+test("README files describe workspace, user/global, and built-in skill scopes", () => {
   assert.ok(readme.includes("skillNinja.skillsDirectory"));
-  assert.ok(
-    readme.includes("outside the skills directory are not auto-detected"),
-  );
+  assert.ok(readme.includes("Installed Skills"));
+  assert.ok(readme.includes("skillNinja.useVsCodeAgentSkillLocations"));
+  assert.ok(readme.includes("skillNinja.showBuiltInSkills"));
+  assert.ok(readme.includes("User / Global Skills"));
+  assert.ok(readme.includes("Built-in Skills"));
   assert.ok(readmeJa.includes("skillNinja.skillsDirectory"));
-  assert.ok(
-    readmeJa.includes(
-      "skills ディレクトリ外の **SKILL.md** は自動検出しません",
-    ),
-  );
+  assert.ok(readmeJa.includes("インストール済みスキル"));
+  assert.ok(readmeJa.includes("skillNinja.useVsCodeAgentSkillLocations"));
+  assert.ok(readmeJa.includes("skillNinja.showBuiltInSkills"));
+  assert.ok(readmeJa.includes("User / Global Skills"));
+  assert.ok(readmeJa.includes("Built-in Skills"));
 });
 
 test("README files and settings surface the companion extension", () => {
@@ -194,6 +213,61 @@ test("README files and settings surface the companion extension", () => {
   );
 });
 
+test("tool model descriptions do not hardcode workspace-only skill paths", () => {
+  const modelDescriptions = pkg.contributes.languageModelTools
+    .filter((tool) =>
+      ["installSkill", "listSkills", "uninstallSkill"].includes(
+        tool.toolReferenceName,
+      ),
+    )
+    .map((tool) => tool.modelDescription || "");
+
+  for (const description of modelDescriptions) {
+    assert.strictEqual(description.includes(".github/skills/"), false);
+    assert.strictEqual(description.includes("AGENTS.md"), false);
+  }
+
+  assert.ok(
+    modelDescriptions.some((description) =>
+      description.includes("managed skill root"),
+    ),
+  );
+  assert.ok(
+    modelDescriptions.some((description) =>
+      description.includes("managed skill roots"),
+    ),
+  );
+  assert.ok(
+    modelDescriptions.some((description) =>
+      description.includes("configured instruction file"),
+    ),
+  );
+});
+
+test("MCP tool responses do not contain corrupted markdown fragments", () => {
+  const forbiddenSnippets = [
+    "|| アクション | 説明 |",
+    "|-----------|------||| アクション | 説明 |",
+    "|-----------|------|||| アクション | 説明 |",
+    "|-----------|------|| アクション | 説明 |",
+    "|-----------|------|-|| アクション | 説明 |",
+    "|-----------|------|-| アクション | 説明 |",
+    "|---|| アクション | 説明 |",
+    "**� スキルを見つけるには？**",
+    "2. � ",
+  ];
+
+  for (const snippet of forbiddenSnippets) {
+    assert.strictEqual(
+      mcpToolsSource.includes(snippet),
+      false,
+      `${snippet} should not remain in src/mcpTools.ts`,
+    );
+  }
+
+  assert.strictEqual(mcpToolsSource.includes("\uFFFD"), false);
+});
+
 test("release instructions include the maintained npm test path", () => {
   assert.ok(releaseInstructions.includes("npm test"));
   assert.ok(releaseInstructions.includes("scripts/test-skill-scan-paths.js"));
@@ -202,9 +276,14 @@ test("release instructions include the maintained npm test path", () => {
 test("npm test regression scripts are not excluded by .gitignore", () => {
   const ignoreMatchers = getGitIgnoreEntries().map(globToRegExp);
   const npmTestCommand = pkg.scripts.test || "";
-  const regressionScripts = [...new Set(npmTestCommand.match(/scripts\/[A-Za-z0-9._-]+\.js/g) || [])];
+  const regressionScripts = [
+    ...new Set(npmTestCommand.match(/scripts\/[A-Za-z0-9._-]+\.js/g) || []),
+  ];
 
-  assert.ok(regressionScripts.length > 0, "npm test should reference regression scripts");
+  assert.ok(
+    regressionScripts.length > 0,
+    "npm test should reference regression scripts",
+  );
 
   for (const scriptPath of regressionScripts) {
     assert.strictEqual(
@@ -215,6 +294,22 @@ test("npm test regression scripts are not excluded by .gitignore", () => {
     assert.ok(
       fs.existsSync(path.join(root, scriptPath)),
       `${scriptPath} should exist on disk`,
+    );
+  }
+});
+
+test("temporary capture logs are excluded from the VSIX", () => {
+  const ignoreMatchers = getVscodeIgnoreEntries().map(globToRegExp);
+  for (const filePath of [
+    "compile-capture.txt",
+    "test-capture.txt",
+    "vsce-package-capture.txt",
+    "vsix-contents-capture.txt",
+    "npm-audit-capture.json",
+  ]) {
+    assert.ok(
+      ignoreMatchers.some((matcher) => matcher.test(filePath)),
+      `${filePath} should be excluded from the VSIX`,
     );
   }
 });

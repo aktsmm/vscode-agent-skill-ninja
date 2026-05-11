@@ -7,6 +7,11 @@ import type { LocalSkill } from "./localSkillScanner";
 import { OutputFormat, resolveOutputFormat } from "./toolDetector";
 import * as path from "path";
 import { SKILL_DESCRIPTION_LIMITS } from "./constants";
+import {
+  computeRelativeDirectoryPath,
+  getManagedSkillRoots,
+  SkillRoot,
+} from "./skillLocations";
 
 // セクションマーカー
 const MARKER_START = "<!-- skill-ninja-START -->";
@@ -69,29 +74,36 @@ function buildDescription(description?: string, whenToUse?: string): string {
   return `${shortDesc} | ${shortWhen}`;
 }
 
-/**
- * instructionFile から skillsDir への相対パスを計算
- * 例: instructionFile = ".github/instructions/SkillList.instructions.md"
- *     skillsDir = ".github/skills"
- *     → 結果: "../skills"
- */
-function calculateRelativePath(
-  instructionFile: string,
-  skillsDir: string,
-): string {
-  // instructionFile のディレクトリを取得
-  const instructionDir = path.dirname(instructionFile);
-
-  // ルート（ワークスペース直下）の場合はそのまま
-  if (instructionDir === "." || instructionDir === "") {
-    return skillsDir;
+async function resolveInstructionFormatForRoot(
+  root: SkillRoot,
+): Promise<OutputFormat> {
+  if (root.scope === "workspace") {
+    const workspaceFolder = vscode.workspace.workspaceFolders?.find((folder) =>
+      normalizeFsPath(root.rootPath).startsWith(
+        normalizeFsPath(folder.uri.fsPath),
+      ),
+    );
+    if (
+      workspaceFolder &&
+      normalizeFsPath(root.rootPath).startsWith(
+        normalizeFsPath(workspaceFolder.uri.fsPath),
+      )
+    ) {
+      const { format } = await resolveOutputFormat(workspaceFolder.uri);
+      return format;
+    }
   }
 
-  // 相対パスを計算
-  const relativePath = path.relative(instructionDir, skillsDir);
+  const config = vscode.workspace.getConfiguration("skillNinja");
+  return (config.get<string>("outputFormat") || "full") as OutputFormat;
+}
 
-  // Windows パス区切りを / に変換
-  return relativePath.replace(/\\/g, "/");
+function normalizeFsPath(targetPath: string): string {
+  const normalized = path.normalize(targetPath).replace(/\\/g, "/");
+  if (process.platform === "win32") {
+    return normalized.toLowerCase();
+  }
+  return normalized;
 }
 
 /**
@@ -99,31 +111,39 @@ function calculateRelativePath(
  */
 export async function updateInstructionFile(
   workspaceUri: vscode.Uri,
+  context: vscode.ExtensionContext,
+): Promise<void> {
+  const roots = await getManagedSkillRoots(workspaceUri);
+  const workspaceRoot = roots.find((root) => root.scope === "workspace");
+  if (!workspaceRoot) {
+    return;
+  }
+
+  await updateInstructionFileForRoot(workspaceRoot, context);
+}
+
+export async function updateInstructionFileForRoot(
+  root: SkillRoot,
   _context: vscode.ExtensionContext,
 ): Promise<void> {
-  // 出力フォーマットとインストラクションファイルを解決
-  const { format, instructionFile } = await resolveOutputFormat(workspaceUri);
+  if (!root.instructionUri || !root.instructionPath) {
+    return;
+  }
 
-  const config = vscode.workspace.getConfiguration("skillNinja");
-  const skillsDir = config.get<string>("skillsDirectory") || ".github/skills";
-  const instructionUri = vscode.Uri.joinPath(workspaceUri, instructionFile);
+  const format = await resolveInstructionFormatForRoot(root);
+  const relativeSkillsDir =
+    root.linkPathFromInstruction ||
+    computeRelativeDirectoryPath(root.instructionPath, root.rootPath);
 
-  console.log(`[Skill Ninja] Updating instruction file: ${instructionFile}`);
-
-  // インストール済みスキルをメタデータ付きで取得
-  const installedSkills = await getInstalledSkillsWithMeta(workspaceUri);
   console.log(
-    `[Skill Ninja] Found ${installedSkills.length} installed skills:`,
-    installedSkills.map((s) => s.name),
+    `[Skill Ninja] Updating instruction file: ${root.instructionPath}`,
   );
 
-  // AGENTS.md 同期は configured skills directory 配下のみを対象にする
+  const installedSkills = (
+    await getInstalledSkillsWithMeta(root.rootUri, root.rootUri)
+  ).filter((skill) => !skill.registrationDisabled);
   const localSkills: LocalSkill[] = [];
 
-  // instructionFile からの相対パスを計算
-  const relativeSkillsDir = calculateRelativePath(instructionFile, skillsDir);
-
-  // フォーマットに応じてスキルセクションを生成
   const skillSection = generateSkillSectionForFormat(
     installedSkills,
     localSkills,
@@ -131,26 +151,32 @@ export async function updateInstructionFile(
     format,
   );
 
-  // 既存のファイルを読み込む
   let existingContent = "";
   try {
-    const content = await vscode.workspace.fs.readFile(instructionUri);
+    const content = await vscode.workspace.fs.readFile(root.instructionUri);
     existingContent = Buffer.from(content).toString("utf-8");
   } catch {
-    // ファイルが存在しない場合は新規作成
     existingContent = "";
   }
 
-  // マーカーで囲まれた部分を更新
   const newContent = updateSection(existingContent, skillSection, format);
 
-  // ディレクトリを作成してファイルを書き込む
-  const dir = vscode.Uri.joinPath(instructionUri, "..");
+  const dir = vscode.Uri.joinPath(root.instructionUri, "..");
   await vscode.workspace.fs.createDirectory(dir);
   await vscode.workspace.fs.writeFile(
-    instructionUri,
+    root.instructionUri,
     Buffer.from(newContent, "utf-8"),
   );
+}
+
+export async function updateAllInstructionFiles(
+  workspaceUri: vscode.Uri,
+  context: vscode.ExtensionContext,
+): Promise<void> {
+  const roots = await getManagedSkillRoots(workspaceUri);
+  for (const root of roots) {
+    await updateInstructionFileForRoot(root, context);
+  }
 }
 
 /**

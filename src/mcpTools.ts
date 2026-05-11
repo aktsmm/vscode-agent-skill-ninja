@@ -14,13 +14,14 @@ import {
 } from "./skillIndex";
 import {
   installSkill,
-  getInstalledSkills,
-  uninstallSkill,
+  getManagedInstalledSkillsWithMeta,
+  uninstallSkillByPath,
 } from "./skillInstaller";
-import { updateInstructionFile } from "./instructionManager";
+import { updateInstructionFileForRoot } from "./instructionManager";
 import { searchGitHub, addSource } from "./indexUpdater";
 import { isJapanese } from "./i18n";
 import { getGitHubToken } from "./githubAuth";
+import { getManagedSkillRoots, type SkillRoot } from "./skillLocations";
 
 /** スキルインデックスをキャッシュ */
 let cachedIndex: SkillIndex | undefined;
@@ -94,6 +95,29 @@ function getSourceStats(index: SkillIndex): string {
   const sourceCount = index.sources?.length || 0;
   const skillCount = index.skills?.length || 0;
   return `${sourceCount} リポジトリ、${skillCount} スキル`;
+}
+
+async function getDefaultManagedRoot(
+  workspaceUri: vscode.Uri,
+): Promise<SkillRoot | undefined> {
+  const roots = await getManagedSkillRoots(workspaceUri);
+  return roots.find((root) => root.scope === "workspace") || roots[0];
+}
+
+function escapeMarkdownCell(value: string): string {
+  return value.replace(/\|/g, "\\|").replace(/\r?\n/g, "<br>");
+}
+
+function renderMarkdownTable(headers: string[], rows: string[][]): string {
+  const normalizedRows = rows.map((row) =>
+    headers.map((_, index) => escapeMarkdownCell(row[index] || "")),
+  );
+
+  return [
+    `| ${headers.map(escapeMarkdownCell).join(" | ")} |`,
+    `| ${headers.map(() => "---").join(" | ")} |`,
+    ...normalizedRows.map((row) => `| ${row.join(" | ")} |`),
+  ].join("\n");
 }
 
 /**
@@ -229,6 +253,22 @@ class SkillSearchTool implements vscode.LanguageModelTool<{ query: string }> {
       .slice(0, 10);
 
     if (results.length === 0) {
+      const guidanceTable = renderMarkdownTable(
+        ["アクション", "説明"],
+        [
+          ["🔑 **キーワード変更**", "別のキーワードで再検索"],
+          [
+            "🌐 **GitHub で検索**",
+            "インデックスにないスキルを GitHub から直接検索",
+          ],
+          ["➕ **ソースを追加**", "新しいリポジトリをインデックスに追加"],
+          [
+            "🔄 **インデックス更新**",
+            `登録済みソースから最新情報を取得${updateInfo.isOutdated ? " ⚠️ 推奨!" : ""}`,
+          ],
+        ],
+      );
+
       return new vscode.LanguageModelToolResult([
         new vscode.LanguageModelTextPart(`🔎 ${sourceStats}から検索しました（最終更新: ${
           updateInfo.lastUpdated
@@ -240,17 +280,7 @@ ${updateInfo.warning}
 ---
 **💡 スキルを見つけるには？**
 
-| アクション | 説明 |
-|-----------|------||| アクション | 説明 |
-|-----------|------|||| アクション | 説明 |
-|-----------|------||| アクション | 説明 |
-|-----------|------||
-| 🔑 **キーワード変更** | 別のキーワードで再検索 |
-| 🌐 **GitHub で検索** | インデックスにないスキルを GitHub から直接検索 |
-| ➕ **ソースを追加** | 新しいリポジトリをインデックスに追加 |
-| 🔄 **インデックス更新** | 登録済みソースから最新情報を取得${
-          updateInfo.isOutdated ? " ⚠️ 推奨!" : ""
-        } |
+${guidanceTable}
 
 > 現在のインデックス: ${sourceStats}（最終更新: ${updateInfo.lastUpdated}）`),
       ]);
@@ -258,17 +288,36 @@ ${updateInfo.warning}
 
     // 結果をフォーマット（信頼度バッジ付き）
     const isJa = isJapanese();
-    const formatted = results
-      .map((skill: Skill) => {
+    const resultsTable = renderMarkdownTable(
+      ["Skill", "Description", "Categories", "Trust"],
+      results.map((skill: Skill) => {
         const stars = skill.stars ? ` ⭐${skill.stars}` : "";
         const categories = skill.categories?.join(", ") || "";
         const trust = getTrustBadge(skill.source || "");
         const desc = getLocalizedDescription(skill, isJa);
-        return `| ${skill.name} | ${
-          desc || (isJa ? "説明なし" : "No description")
-        } | ${categories} | ${trust} |${stars}`;
-      })
-      .join("\n");
+        return [
+          skill.name,
+          desc || (isJa ? "説明なし" : "No description"),
+          categories,
+          `${trust}${stars}`,
+        ];
+      }),
+    );
+
+    const discoveryTable = renderMarkdownTable(
+      ["アクション", "説明"],
+      [
+        [
+          "🌐 **GitHub で検索**",
+          "インデックスにないスキルを GitHub から直接検索できます",
+        ],
+        ["➕ **ソースを追加**", "新しいリポジトリをインデックスに追加できます"],
+        [
+          "🔄 **インデックス更新**",
+          `登録済みソースから最新情報を取得できます${updateInfo.isOutdated ? " ⚠️ 推奨!" : ""}`,
+        ],
+      ],
+    );
 
     // 🌟 おすすめを選定（Official優先、stars順）
     const recommended = results.sort((a: Skill, b: Skill) => {
@@ -297,15 +346,7 @@ ${updateInfo.warning}
 
 "${query}" の検索結果: ${results.length} 件
 
-| Skill | Description | Categories | Trust |
-|| アクション | 説明 |
-|-----------|------|-|| アクション | 説明 |
-|-----------|------|| アクション | 説明 |
-|-----------|------|-|| アクション | 説明 |
-|-----------|------|| アクション | 説明 |
-|-----------|------||| アクション | 説明 |
-|-----------|------|-|
-${formatted}
+${resultsTable}
 ${recommendSection}
 ---
 **Agent Instructions (MUST FOLLOW):**
@@ -326,15 +367,7 @@ ${
 ---
 **💡 もっとスキルを探すには？（ユーザーに提案のみ）**
 
-| アクション | 説明 |
-|-----------|------||| アクション | 説明 |
-|-----------|------|||| アクション | 説明 |
-|-----------|------||
-| 🌐 **GitHub で検索** | インデックスにないスキルを GitHub から直接検索できます |
-| ➕ **ソースを追加** | 新しいリポジトリをインデックスに追加できます |
-| 🔄 **インデックス更新** | 登録済みソースから最新情報を取得できます${
-          updateInfo.isOutdated ? " ⚠️ 推奨!" : ""
-        } |
+${discoveryTable}
 
 > 現在のインデックス: ${sourceStats}（最終更新: ${updateInfo.lastUpdated}）`,
       ),
@@ -385,15 +418,23 @@ class SkillInstallTool implements vscode.LanguageModelTool<{
     }
 
     const context = requireExtContext();
+    const targetRoot = await getDefaultManagedRoot(workspaceFolder.uri);
+    if (!targetRoot) {
+      return new vscode.LanguageModelToolResult([
+        new vscode.LanguageModelTextPart(
+          `❌ No managed skill root is available for this workspace.`,
+        ),
+      ]);
+    }
 
     // インストール実行
     try {
-      await installSkill(skill, workspaceFolder.uri, context);
+      await installSkill(skill, workspaceFolder.uri, context, targetRoot);
 
       // インストラクションファイル (AGENTS.md) を更新（設定で有効な場合のみ）
       const config = vscode.workspace.getConfiguration("skillNinja");
       if (config.get<boolean>("autoUpdateInstruction")) {
-        await updateInstructionFile(workspaceFolder.uri, context);
+        await updateInstructionFileForRoot(targetRoot, context);
       }
 
       // ツリービューをリフレッシュ
@@ -408,13 +449,11 @@ class SkillInstallTool implements vscode.LanguageModelTool<{
           `✅ **${skill.name}** をインストールしました！
 
 | 項目 | 内容 |
-|| アクション | 説明 |
-|-----------|------||| アクション | 説明 |
-|-----------|------||
+|-----------|------|
 | スキル名 | ${skill.name} |
 | 説明 | ${desc || (isJa ? "説明なし" : "No description")} |
 | 信頼度 | ${trust} |
-| インストール先 | .github/skills/${skill.name}/ |
+| インストール先 | ${targetRoot.displayPath}/${skill.name}/ |
 
 ---
 **Agent Instructions:**
@@ -423,16 +462,13 @@ class SkillInstallTool implements vscode.LanguageModelTool<{
 
 **📋 Next Actions (show to user):**
 1. 📄 View SKILL.md content?
-2. � List all installed skills?
+2. 📋 List all installed skills?
 
 ---
 **💡 もっとスキルを探すには？**
 
 | アクション | 説明 |
-|-----------|------||| アクション | 説明 |
-|-----------|------|||| アクション | 説明 |
-|-----------|------||| アクション | 説明 |
-|-----------|------||
+|-----------|------|
 | 🔍 **ローカル検索** | インデックスからスキルを検索 |
 | 🌐 **GitHub で検索** | インデックスにないスキルを GitHub から直接検索 |
 | ➕ **ソースを追加** | 新しいリポジトリをインデックスに追加 |`,
@@ -463,21 +499,20 @@ class SkillListTool implements vscode.LanguageModelTool<Record<string, never>> {
       ]);
     }
 
-    const installed = await getInstalledSkills(workspaceFolder.uri);
+    const installedEntries = await getManagedInstalledSkillsWithMeta(
+      workspaceFolder.uri,
+    );
 
-    if (installed.length === 0) {
+    if (installedEntries.length === 0) {
       return new vscode.LanguageModelToolResult([
         new vscode.LanguageModelTextPart(
           `📭 まだスキルがインストールされていません。
 
 ---
-**� スキルを見つけるには？**
+**💡 スキルを見つけるには？**
 
 | アクション | 説明 |
-|-----------|------||| アクション | 説明 |
-|-----------|------|||| アクション | 説明 |
-|-----------|------||| アクション | 説明 |
-|-----------|------||
+|-----------|------|
 | 🔍 **ローカル検索** | インデックスからスキルを検索 |
 | 💡 **おすすめ** | プロジェクトに合ったスキルを推奨 |
 | 🌐 **GitHub で検索** | インデックスにないスキルを GitHub から直接検索 |
@@ -487,19 +522,19 @@ class SkillListTool implements vscode.LanguageModelTool<Record<string, never>> {
       ]);
     }
 
-    const list = installed
-      .map((name, i) => `| ${i + 1} | ${name} | .github/skills/${name}/ |`)
+    const list = installedEntries
+      .map(
+        ({ root, meta }, index) =>
+          `| ${index + 1} | ${meta.name} | ${root.displayPath}/${meta.relativePath || meta.name}/ |`,
+      )
       .join("\n");
 
     return new vscode.LanguageModelToolResult([
       new vscode.LanguageModelTextPart(
-        `📦 インストール済みスキル: ${installed.length} 件
+        `📦 インストール済みスキル: ${installedEntries.length} 件
 
 | # | Skill Name | Location |
-|---|| アクション | 説明 |
-|-----------|------|| アクション | 説明 |
-|-----------|------||| アクション | 説明 |
-|-----------|------|----|
+|---|------------|----------|
 ${list}
 
 ---
@@ -515,10 +550,7 @@ ${list}
 **💡 もっとスキルを探すには？**
 
 | アクション | 説明 |
-|-----------|------||| アクション | 説明 |
-|-----------|------|||| アクション | 説明 |
-|-----------|------||| アクション | 説明 |
-|-----------|------||
+|-----------|------|
 | 🔍 **ローカル検索** | インデックスからスキルを検索 |
 | 🌐 **GitHub で検索** | インデックスにないスキルを GitHub から直接検索 |
 | ➕ **ソースを追加** | 新しいリポジトリをインデックスに追加 |
@@ -550,12 +582,9 @@ class SkillRecommendTool implements vscode.LanguageModelTool<
     const index = await getSkillIndex();
     const skills = index.skills;
     const recommendations: { skill: Skill; reason: string }[] = [];
-
-    // インデックス更新情報を取得
     const updateInfo = getIndexUpdateInfo(index);
     const sourceStats = getSourceStats(index);
 
-    // ファイルパターンに基づく推奨
     const patterns: { glob: string; category: string; reason: string }[] = [
       { glob: "**/*.ts", category: "typescript", reason: "TypeScript project" },
       { glob: "**/package.json", category: "npm", reason: "Node.js project" },
@@ -577,39 +606,59 @@ class SkillRecommendTool implements vscode.LanguageModelTool<
         "**/node_modules/**",
         1,
       );
-      if (files.length > 0) {
-        const matchingSkills = skills.filter(
-          (s: Skill) =>
-            s.categories?.some((c: string) =>
-              c.toLowerCase().includes(pattern.category),
-            ) ||
-            s.name.toLowerCase().includes(pattern.category) ||
-            s.description?.toLowerCase().includes(pattern.category),
-        );
+      if (files.length === 0) {
+        continue;
+      }
 
-        for (const skill of matchingSkills.slice(0, 2)) {
-          if (!recommendations.find((r) => r.skill.name === skill.name)) {
-            recommendations.push({ skill, reason: pattern.reason });
-          }
+      const matchingSkills = skills.filter(
+        (skill: Skill) =>
+          skill.categories?.some((category: string) =>
+            category.toLowerCase().includes(pattern.category),
+          ) ||
+          skill.name.toLowerCase().includes(pattern.category) ||
+          skill.description?.toLowerCase().includes(pattern.category),
+      );
+
+      for (const skill of matchingSkills.slice(0, 2)) {
+        if (!recommendations.find((entry) => entry.skill.name === skill.name)) {
+          recommendations.push({ skill, reason: pattern.reason });
         }
       }
     }
 
-    if (recommendations.length === 0) {
-      // 人気スキルを返す
-      const popular = skills
-        .filter((s: Skill) => s.stars && s.stars > 0)
-        .sort((a: Skill, b: Skill) => (b.stars || 0) - (a.stars || 0))
-        .slice(0, 5);
+    const discoveryTable = renderMarkdownTable(
+      ["アクション", "説明"],
+      [
+        ["🔍 **キーワード検索**", "インデックスからスキルを検索"],
+        [
+          "🌐 **GitHub で検索**",
+          "インデックスにないスキルを GitHub から直接検索",
+        ],
+        ["➕ **ソースを追加**", "新しいリポジトリをインデックスに追加"],
+        [
+          "🔄 **インデックス更新**",
+          `登録済みソースから最新情報を取得${updateInfo.isOutdated ? " ⚠️ 推奨!" : ""}`,
+        ],
+      ],
+    );
 
-      const list = popular
-        .map(
-          (s: Skill) =>
-            `| ${s.name} | ${s.description || ""} | ${getTrustBadge(
-              s.source || "",
-            )} | ⭐${s.stars} |`,
-        )
-        .join("\n");
+    if (recommendations.length === 0) {
+      const popularTable = renderMarkdownTable(
+        ["Skill", "Description", "Trust", "Stars"],
+        skills
+          .filter((skill: Skill) => skill.stars && skill.stars > 0)
+          .sort(
+            (left: Skill, right: Skill) =>
+              (right.stars || 0) - (left.stars || 0),
+          )
+          .slice(0, 5)
+          .map((skill: Skill) => [
+            skill.name,
+            skill.description || "",
+            getTrustBadge(skill.source || ""),
+            `⭐${skill.stars || 0}`,
+          ]),
+      );
 
       return new vscode.LanguageModelToolResult([
         new vscode.LanguageModelTextPart(
@@ -620,14 +669,7 @@ ${updateInfo.warning}
 
 🤔 プロジェクト固有の推奨が見つかりませんでした。人気スキルはこちら:
 
-| Skill | Description | Trust | Stars |
-|| アクション | 説明 |
-|-----------|------|-|| アクション | 説明 |
-|-----------|------|| アクション | 説明 |
-|-----------|------|-|| アクション | 説明 |
-|-----------|------|-|| アクション | 説明 |
-|-----------|------|-|
-${list}
+${popularTable}
 
 ---
 **📋 Next Actions (show to user):**
@@ -636,42 +678,37 @@ ${list}
 ---
 **💡 もっとスキルを探すには？**
 
-| アクション | 説明 |
-|-----------|------||| アクション | 説明 |
-|-----------|------|||| アクション | 説明 |
-|-----------|------||| アクション | 説明 |
-|-----------|------||
-| 🔍 **キーワード検索** | インデックスからスキルを検索 |
-| 🌐 **GitHub で検索** | インデックスにないスキルを GitHub から直接検索 |
-| ➕ **ソースを追加** | 新しいリポジトリをインデックスに追加 |
-| 🔄 **インデックス更新** | 登録済みソースから最新情報を取得${
-            updateInfo.isOutdated ? " ⚠️ 推奨!" : ""
-          } |`,
+${discoveryTable}`,
         ),
       ]);
     }
 
-    // 推奨をOfficial優先でソート
-    recommendations.sort((a, b) => {
-      const aOfficial = getTrustBadge(a.skill.source || "").includes("Official")
+    recommendations.sort((left, right) => {
+      const leftOfficial = getTrustBadge(left.skill.source || "").includes(
+        "Official",
+      )
         ? 1
         : 0;
-      const bOfficial = getTrustBadge(b.skill.source || "").includes("Official")
+      const rightOfficial = getTrustBadge(right.skill.source || "").includes(
+        "Official",
+      )
         ? 1
         : 0;
-      return bOfficial - aOfficial;
+      return rightOfficial - leftOfficial;
     });
 
     const isJa = isJapanese();
-    const list = recommendations
-      .slice(0, 5)
-      .map(
-        (r) =>
-          `| ${r.skill.name} | ${
-            getLocalizedDescription(r.skill, isJa) || ""
-          } | ${r.reason} | ${getTrustBadge(r.skill.source || "")} |`,
-      )
-      .join("\n");
+    const recommendationsTable = renderMarkdownTable(
+      ["Skill", "Description", "Reason", "Trust"],
+      recommendations
+        .slice(0, 5)
+        .map((recommendation) => [
+          recommendation.skill.name,
+          getLocalizedDescription(recommendation.skill, isJa) || "",
+          recommendation.reason,
+          getTrustBadge(recommendation.skill.source || ""),
+        ]),
+    );
 
     const topRecommend = recommendations[0];
 
@@ -684,17 +721,10 @@ ${updateInfo.warning}
 
 💡 プロジェクト分析に基づく推奨スキル:
 
-| Skill | Description | Reason | Trust |
-|| アクション | 説明 |
-|-----------|------|-|| アクション | 説明 |
-|-----------|------|-| アクション | 説明 |
-|-----------|------||| アクション | 説明 |
-|-----------|------||| アクション | 説明 |
-|-----------|------|-|
-${list}
+${recommendationsTable}
 
 ### 🌟 イチオシ: ${topRecommend.skill.name}
-${getLocalizedDescription(topRecommend.skill, isJa) || ""} 
+${getLocalizedDescription(topRecommend.skill, isJa) || ""}
 理由: ${topRecommend.reason} | ${getTrustBadge(topRecommend.skill.source || "")}
 
 ---
@@ -706,22 +736,12 @@ ${updateInfo.isOutdated ? "- ⚠️ Index is outdated! Suggest updating." : ""}
 
 **📋 Next Actions (show to user):**
 1. 📦 Install? → Ask which skill, then use #installSkill
-2. � List currently installed skills?
+2. 📋 List currently installed skills?
 
 ---
 **💡 もっとスキルを探すには？**
 
-| アクション | 説明 |
-|-----------|------||| アクション | 説明 |
-|-----------|------|||| アクション | 説明 |
-|-----------|------||| アクション | 説明 |
-|-----------|------||
-| 🔍 **キーワード検索** | インデックスからスキルを検索 |
-| 🌐 **GitHub で検索** | インデックスにないスキルを GitHub から直接検索 |
-| ➕ **ソースを追加** | 新しいリポジトリをインデックスに追加 |
-| 🔄 **インデックス更新** | 登録済みソースから最新情報を取得${
-          updateInfo.isOutdated ? " ⚠️ 推奨!" : ""
-        } |`,
+${discoveryTable}`,
       ),
     ]);
   }
@@ -749,12 +769,14 @@ class SkillUninstallTool implements vscode.LanguageModelTool<{
     }
 
     // インストール済みスキルを確認
-    const installed = await getInstalledSkills(workspaceFolder.uri);
+    const installedEntries = await getManagedInstalledSkillsWithMeta(
+      workspaceFolder.uri,
+    );
     const lowerName = skillName.toLowerCase();
-    const matchedSkill = installed.find(
-      (name) =>
-        name.toLowerCase() === lowerName ||
-        name.toLowerCase().includes(lowerName),
+    const matchedSkill = installedEntries.find(
+      ({ meta }) =>
+        meta.name.toLowerCase() === lowerName ||
+        meta.name.toLowerCase().includes(lowerName),
     );
 
     if (!matchedSkill) {
@@ -762,7 +784,11 @@ class SkillUninstallTool implements vscode.LanguageModelTool<{
         new vscode.LanguageModelTextPart(
           `❌ Skill "${skillName}" is not installed.
 
-インストール済みスキル: ${installed.length > 0 ? installed.join(", ") : "なし"}
+インストール済みスキル: ${
+            installedEntries.length > 0
+              ? installedEntries.map(({ meta }) => meta.name).join(", ")
+              : "なし"
+          }
 
 ---
 **📋 Next Actions:**
@@ -772,10 +798,7 @@ class SkillUninstallTool implements vscode.LanguageModelTool<{
 **💡 スキルを探すには？**
 
 | アクション | 説明 |
-|-----------|------||| アクション | 説明 |
-|-----------|------|||| アクション | 説明 |
-|-----------|------||| アクション | 説明 |
-|-----------|------||
+|-----------|------|
 | 🔍 **ローカル検索** | インデックスからスキルを検索 |
 | 🌐 **GitHub で検索** | GitHub から直接検索 |`,
         ),
@@ -784,12 +807,19 @@ class SkillUninstallTool implements vscode.LanguageModelTool<{
 
     // アンインストール実行
     try {
-      await uninstallSkill(matchedSkill, workspaceFolder.uri);
+      await uninstallSkillByPath(
+        matchedSkill.meta.relativePath || matchedSkill.meta.name,
+        workspaceFolder.uri,
+        matchedSkill.root.rootUri,
+      );
 
       // インストラクションファイルを更新（設定で有効な場合のみ）
       const config = vscode.workspace.getConfiguration("skillNinja");
       if (config.get<boolean>("autoUpdateInstruction")) {
-        await updateInstructionFile(workspaceFolder.uri, requireExtContext());
+        await updateInstructionFileForRoot(
+          matchedSkill.root,
+          requireExtContext(),
+        );
       }
 
       // ツリービューをリフレッシュ
@@ -797,15 +827,13 @@ class SkillUninstallTool implements vscode.LanguageModelTool<{
 
       return new vscode.LanguageModelToolResult([
         new vscode.LanguageModelTextPart(
-          `✅ **${matchedSkill}** をアンインストールしました！
+          `✅ **${matchedSkill.meta.name}** をアンインストールしました！
 
 | 項目 | 内容 |
-|| アクション | 説明 |
-|-----------|------||| アクション | 説明 |
-|-----------|------||
-| スキル名 | ${matchedSkill} |
+|-----------|------|
+| スキル名 | ${matchedSkill.meta.name} |
 | ステータス | 削除完了 |
-| AGENTS.md | 更新済み |
+| Instruction | 更新済み |
 
 ---
 **Agent Instructions:**
@@ -813,16 +841,13 @@ class SkillUninstallTool implements vscode.LanguageModelTool<{
 - Remind user that the skill files have been removed
 
 **📋 Next Actions:**
-1. � List remaining skills? → use #listSkills
+1. 📋 List remaining skills? → use #listSkills
 
 ---
 **💡 代替スキルを探すには？**
 
 | アクション | 説明 |
-|-----------|------||| アクション | 説明 |
-|-----------|------|||| アクション | 説明 |
-|-----------|------||| アクション | 説明 |
-|-----------|------||
+|-----------|------|
 | 🔍 **ローカル検索** | インデックスからスキルを検索 |
 | 🌐 **GitHub で検索** | インデックスにないスキルを GitHub から直接検索 |
 | ➕ **ソースを追加** | 新しいリポジトリをインデックスに追加 |`,
@@ -831,7 +856,7 @@ class SkillUninstallTool implements vscode.LanguageModelTool<{
     } catch (error) {
       return new vscode.LanguageModelToolResult([
         new vscode.LanguageModelTextPart(
-          `❌ Failed to uninstall "${matchedSkill}": ${error}`,
+          `❌ Failed to uninstall "${matchedSkill.meta.name}": ${error}`,
         ),
       ]);
     }
@@ -876,19 +901,31 @@ class UpdateIndexTool implements vscode.LanguageModelTool<
 
       // ソース統計
       const sourceStats = getSourceStats(newIndex);
+      const summaryTable = renderMarkdownTable(
+        ["項目", "Before", "After"],
+        [
+          ["スキル数", String(oldCount), `${newCount} (${diffText})`],
+          ["最終更新", oldUpdated, newUpdated],
+          ["ソース", "-", sourceStats],
+        ],
+      );
+
+      const discoveryTable = renderMarkdownTable(
+        ["アクション", "説明"],
+        [
+          [
+            "🌐 **GitHub で検索**",
+            "インデックスにないスキルを GitHub から直接検索",
+          ],
+          ["➕ **ソースを追加**", "新しいリポジトリをインデックスに追加"],
+        ],
+      );
 
       return new vscode.LanguageModelToolResult([
         new vscode.LanguageModelTextPart(
           `✅ スキルインデックスを更新しました！
 
-| 項目 | Before | After |
-|| アクション | 説明 |
-|-----------|------||| アクション | 説明 |
-|-----------|------||| アクション | 説明 |
-|-----------|------|-|
-| スキル数 | ${oldCount} | ${newCount} (${diffText}) |
-| 最終更新 | ${oldUpdated} | ${newUpdated} |
-| ソース | - | ${sourceStats} |
+${summaryTable}
 
 ---
 **Agent Instructions:**
@@ -903,13 +940,7 @@ class UpdateIndexTool implements vscode.LanguageModelTool<
 ---
 **💡 さらにスキルを増やすには？**
 
-| アクション | 説明 |
-|-----------|------||| アクション | 説明 |
-|-----------|------|||| アクション | 説明 |
-|-----------|------||| アクション | 説明 |
-|-----------|------||
-| 🌐 **GitHub で検索** | インデックスにないスキルを GitHub から直接検索 |
-| ➕ **ソースを追加** | 新しいリポジトリをインデックスに追加 |`,
+${discoveryTable}`,
         ),
       ]);
     } catch (error) {
@@ -946,47 +977,54 @@ class WebSearchTool implements vscode.LanguageModelTool<{ query: string }> {
       const results = await searchGitHub(query, token);
 
       if (results.length === 0) {
+        const guidanceTable = renderMarkdownTable(
+          ["アクション", "説明"],
+          [
+            ["🔑 **キーワード変更**", "別のキーワードで再検索"],
+            ["🔍 **ローカル検索**", "インデックスからスキルを検索"],
+            ["➕ **ソースを追加**", "既知のリポジトリをインデックスに追加"],
+            ["🔄 **インデックス更新**", "登録済みソースから最新情報を取得"],
+          ],
+        );
+
         return new vscode.LanguageModelToolResult([
           new vscode.LanguageModelTextPart(
             `🔍 GitHub で "${query}" を検索しましたが、SKILL.md は見つかりませんでした。
 
 ---
-**� スキルを見つけるには？**
+**💡 スキルを見つけるには？**
 
-| アクション | 説明 |
-|-----------|------||| アクション | 説明 |
-|-----------|------|||| アクション | 説明 |
-|-----------|------||| アクション | 説明 |
-|-----------|------||
-| 🔑 **キーワード変更** | 別のキーワードで再検索 |
-| 🔍 **ローカル検索** | インデックスからスキルを検索 |
-| ➕ **ソースを追加** | 既知のリポジトリをインデックスに追加 |
-| 🔄 **インデックス更新** | 登録済みソースから最新情報を取得 |`,
+${guidanceTable}`,
           ),
         ]);
       }
 
-      // 結果をフォーマット
-      const formatted = results
-        .slice(0, 10)
-        .map((r, i) => {
-          return `| ${i + 1} | [${r.repo}](${r.repoUrl}) | ${r.path} | ⭐${
-            r.stars || 0
-          } |`;
-        })
-        .join("\n");
+      const resultsTable = renderMarkdownTable(
+        ["#", "Repository", "Path", "Stars"],
+        results
+          .slice(0, 10)
+          .map((r, i) => [
+            String(i + 1),
+            `[${r.repo}](${r.repoUrl})`,
+            r.path,
+            `⭐${r.stars || 0}`,
+          ]),
+      );
+
+      const installFlowTable = renderMarkdownTable(
+        ["アクション", "説明"],
+        [
+          ["➕ **ソースを追加**", "上記リポジトリをインデックスに追加"],
+          ["🔄 **インデックス更新**", "追加後にインデックスを更新"],
+          ["🔍 **ローカル検索**", "追加後にスキルを検索してインストール"],
+        ],
+      );
 
       return new vscode.LanguageModelToolResult([
         new vscode.LanguageModelTextPart(
           `🌐 GitHub で "${query}" を検索しました（${results.length} 件）
 
-| # | Repository | Path | Stars |
-|---|| アクション | 説明 |
-|-----------|------|| アクション | 説明 |
-|-----------|------||| アクション | 説明 |
-|-----------|------||| アクション | 説明 |
-|-----------|------|-|
-${formatted}
+${resultsTable}
 
 ---
 **Agent Instructions:**
@@ -999,14 +1037,7 @@ ${formatted}
 ---
 **💡 スキルをインストールするには？**
 
-| アクション | 説明 |
-|-----------|------||| アクション | 説明 |
-|-----------|------|||| アクション | 説明 |
-|-----------|------||| アクション | 説明 |
-|-----------|------||
-| ➕ **ソースを追加** | 上記リポジトリをインデックスに追加 |
-| 🔄 **インデックス更新** | 追加後にインデックスを更新 |
-| 🔍 **ローカル検索** | 追加後にスキルを検索してインストール |`,
+${installFlowTable}`,
         ),
       ]);
     } catch (error) {
@@ -1058,17 +1089,30 @@ class AddSourceTool implements vscode.LanguageModelTool<{ repoUrl: string }> {
       // キャッシュを更新
       cachedIndex = result.index;
 
+      const summaryTable = renderMarkdownTable(
+        ["項目", "内容"],
+        [
+          ["リポジトリ", normalizedUrl],
+          ["追加スキル数", String(result.addedSkills)],
+          ["ステータス", "追加完了"],
+        ],
+      );
+
+      const nextStepTable = renderMarkdownTable(
+        ["アクション", "説明"],
+        [
+          ["🔍 **スキル検索**", "追加されたスキルを検索"],
+          ["💡 **おすすめ**", "プロジェクトに合ったスキルを推奨"],
+          ["🌐 **GitHub で検索**", "さらにスキルを探す"],
+          ["➕ **ソースを追加**", "他のリポジトリも追加"],
+        ],
+      );
+
       return new vscode.LanguageModelToolResult([
         new vscode.LanguageModelTextPart(
           `✅ リポジトリをソースに追加しました！
 
-| 項目 | 内容 |
-|| アクション | 説明 |
-|-----------|------||| アクション | 説明 |
-|-----------|------||
-| リポジトリ | ${normalizedUrl} |
-| 追加スキル数 | ${result.addedSkills} |
-| ステータス | 追加完了 |
+${summaryTable}
 
 ---
 **Agent Instructions:**
@@ -1077,20 +1121,12 @@ class AddSourceTool implements vscode.LanguageModelTool<{ repoUrl: string }> {
 
 **📋 Next Actions:**
 1. 🔍 Search for new skills? → use #searchSkills
-2. � Install a skill? → use #install
+2. 📦 Install a skill? → use #install
 
 ---
 **💡 次のステップ**
 
-| アクション | 説明 |
-|-----------|------||| アクション | 説明 |
-|-----------|------|||| アクション | 説明 |
-|-----------|------||| アクション | 説明 |
-|-----------|------||
-| 🔍 **スキル検索** | 追加されたスキルを検索 |
-| 💡 **おすすめ** | プロジェクトに合ったスキルを推奨 |
-| 🌐 **GitHub で検索** | さらにスキルを探す |
-| ➕ **ソースを追加** | 他のリポジトリも追加 |`,
+${nextStepTable}`,
         ),
       ]);
     } catch (error) {
@@ -1178,17 +1214,20 @@ Try searching for the skill first with skillNinja_search.`,
         cachedIndex = index;
       }
 
+      const summaryTable = renderMarkdownTable(
+        ["Field", "Value"],
+        [
+          ["Skill", skillName],
+          ["English", skill.description || "(not set)"],
+          ["Japanese", skill.description_ja || "(not set)"],
+        ],
+      );
+
       return new vscode.LanguageModelToolResult([
         new vscode.LanguageModelTextPart(
           `✅ Skill "${skillName}" localized successfully!
 
-| Field | Value |
-|| アクション | 説明 |
-|-----------|------|-|| アクション | 説明 |
-|-----------|------|-|
-| Skill | ${skillName} |
-| English | ${skill.description || "(not set)"} |
-| Japanese | ${skill.description_ja || "(not set)"} |
+${summaryTable}
 
 ---
 **Agent Instructions:**

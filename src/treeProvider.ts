@@ -12,10 +12,10 @@ import {
   getLocalizedDescription,
 } from "./skillIndex";
 import { getInstalledSkillsWithMeta } from "./skillInstaller";
-import { LocalSkill, scanLocalSkills } from "./localSkillScanner";
+import { LocalSkill, scanVisibleSkills } from "./localSkillScanner";
 import { isJapanese } from "./i18n";
 import { getSkillId } from "./skillPreview";
-import { isPathInSkillsDirectory } from "./skillScanPaths";
+import { getManagedSkillRoots, SkillRoot, SkillScope } from "./skillLocations";
 
 /**
  * ワークスペーススキル情報（統合型）
@@ -25,9 +25,14 @@ export interface WorkspaceSkill {
   description: string;
   description_ja?: string;
   relativePath: string;
+  displayPath: string;
   fullPath: string;
-  isInstalled: boolean; // .github/skills 配下か
-  isRegistered: boolean; // AGENTS.md に登録済みか
+  isInstalled: boolean;
+  isRegistered: boolean;
+  isManaged: boolean;
+  isReadOnly: boolean;
+  scope: SkillScope;
+  root: SkillRoot;
   source?: string; // インストール元ソース
   categories?: string[];
   // 公式仕様に基づくメタデータ
@@ -62,8 +67,18 @@ export class WorkspaceSkillsProvider implements vscode.TreeDataProvider<SkillTre
   }
 
   // reveal() を使うために必要
-  getParent(): SkillTreeItem | undefined {
-    // フラットなリストなので親はなし
+  getParent(element: SkillTreeItem): SkillTreeItem | undefined {
+    if (
+      element.scope &&
+      element.contextValue !== "skillScopeGroup" &&
+      element.contextValue !== "placeholder"
+    ) {
+      const group = this.buildScopeGroupItems().find(
+        (item) => item.scope === element.scope,
+      );
+      return group;
+    }
+
     return undefined;
   }
 
@@ -73,7 +88,6 @@ export class WorkspaceSkillsProvider implements vscode.TreeDataProvider<SkillTre
     }
 
     if (!element) {
-      // ワークスペーススキルを取得
       if (this.workspaceSkills.length === 0) {
         await this.loadWorkspaceSkills();
       }
@@ -91,107 +105,176 @@ export class WorkspaceSkillsProvider implements vscode.TreeDataProvider<SkillTre
         ];
       }
 
-      return this.workspaceSkills.map((skill) => {
-        // アイコンと状態表示
-        let statusIcon: string;
-        let iconId: string;
-        let iconColor: vscode.ThemeColor;
+      return this.buildScopeGroupItems();
+    }
 
-        // 🆕 バッジ（最近インストールされたスキル）
-        const isRecent = this.recentlyInstalled?.has(skill.name) ?? false;
-        const newBadge = isRecent ? "🆕 " : "";
-
-        if (skill.isInstalled) {
-          // インストール済み（.github/skills 配下）
-          statusIcon = "✓";
-          iconId = "package";
-          iconColor = new vscode.ThemeColor("charts.green");
-        } else if (skill.isRegistered) {
-          // ローカル & 登録済み
-          statusIcon = "✓";
-          iconId = "file-code";
-          iconColor = new vscode.ThemeColor("charts.green");
-        } else {
-          // ローカル & 未登録
-          statusIcon = "○";
-          iconId = "file-code";
-          iconColor = new vscode.ThemeColor("charts.yellow");
-        }
-
-        const item = new SkillTreeItem(
-          `${newBadge}${statusIcon} ${skill.name}`,
-          skill.isInstalled
-            ? `installed from ${skill.source || "unknown"}`
-            : skill.relativePath,
-          vscode.TreeItemCollapsibleState.None,
-          skill.isInstalled ? "installedSkill" : "localSkill",
-          {
-            name: skill.name,
-            description: isJapanese()
-              ? skill.description_ja || skill.description
-              : skill.description,
-            source: skill.source || "local",
-            path: skill.relativePath,
-            categories: skill.categories || [],
-            // LocalSkill 互換プロパティ
-            isLocal: !skill.isInstalled,
-            fullPath: skill.fullPath,
-            relativePath: skill.relativePath,
-            isRegistered: skill.isRegistered,
-          } as Skill & Partial<LocalSkill>,
-        );
-
-        item.iconPath = new vscode.ThemeIcon(iconId, iconColor);
-
-        // resourceUri を設定（パスコピー用）
-        item.resourceUri = vscode.Uri.file(skill.fullPath);
-
-        // ツールチップ
-        const statusText = skill.isInstalled
-          ? isJapanese()
-            ? "インストール済み"
-            : "Installed"
-          : skill.isRegistered
-            ? isJapanese()
-              ? "ローカル（登録済み）"
-              : "Local (Registered)"
-            : isJapanese()
-              ? "ローカル（未登録）"
-              : "Local (Not registered)";
-        const noDesc = isJapanese() ? "説明なし" : "No description";
-        const pathLabel = isJapanese() ? "パス" : "Path";
-        const statusLabel = isJapanese() ? "状態" : "Status";
-        // 日本語設定ならdescription_jaを優先
-        const descText = isJapanese()
-          ? skill.description_ja || skill.description || noDesc
-          : skill.description || noDesc;
-
-        // メタデータ情報を構築
-        let metaInfo = "";
-        if (skill.author) {
-          metaInfo += `\n${isJapanese() ? "作成者" : "Author"}: ${skill.author}`;
-        }
-        if (skill.license) {
-          metaInfo += `\n${isJapanese() ? "ライセンス" : "License"}: ${skill.license}`;
-        }
-        if (skill.version) {
-          metaInfo += `\nVersion: ${skill.version}`;
-        }
-
-        item.tooltip = `${skill.name}\n${descText}\n${pathLabel}: ${skill.relativePath}\n${statusLabel}: ${statusText}${metaInfo}`;
-
-        // クリックで SKILL.md を開く
-        item.command = {
-          command: "vscode.open",
-          title: isJapanese() ? "SKILL.md を開く" : "Open SKILL.md",
-          arguments: [vscode.Uri.file(skill.fullPath)],
-        };
-
-        return item;
-      });
+    if (element.contextValue === "skillScopeGroup" && element.scope) {
+      return this.workspaceSkills
+        .filter((skill) => skill.scope === element.scope)
+        .map((skill) => this.toSkillItem(skill));
     }
 
     return [];
+  }
+
+  private buildScopeGroupItems(): SkillTreeItem[] {
+    const items: SkillTreeItem[] = [];
+    const scopeOrder: SkillScope[] = ["workspace", "userGlobal", "builtIn"];
+
+    for (const scope of scopeOrder) {
+      const skillsInScope = this.workspaceSkills.filter(
+        (skill) => skill.scope === scope,
+      );
+      if (skillsInScope.length === 0) {
+        continue;
+      }
+
+      const item = new SkillTreeItem(
+        this.getScopeLabel(scope),
+        isJapanese()
+          ? `${skillsInScope.length} 件のスキル`
+          : `${skillsInScope.length} skills`,
+        vscode.TreeItemCollapsibleState.Expanded,
+        "skillScopeGroup",
+        undefined,
+        undefined,
+        undefined,
+        undefined,
+        undefined,
+        scope,
+      );
+      item.iconPath = new vscode.ThemeIcon(this.getScopeIcon(scope));
+      items.push(item);
+    }
+
+    return items;
+  }
+
+  private getScopeLabel(scope: SkillScope): string {
+    switch (scope) {
+      case "workspace":
+        return isJapanese() ? "ワークスペース スキル" : "Workspace Skills";
+      case "userGlobal":
+        return isJapanese()
+          ? "ユーザー / グローバル スキル"
+          : "User / Global Skills";
+      case "builtIn":
+        return isJapanese() ? "組み込みスキル" : "Built-in Skills";
+      default:
+        return "Skills";
+    }
+  }
+
+  private getScopeIcon(scope: SkillScope): string {
+    switch (scope) {
+      case "workspace":
+        return "repo";
+      case "userGlobal":
+        return "globe";
+      case "builtIn":
+        return "library";
+      default:
+        return "package";
+    }
+  }
+
+  private toSkillItem(skill: WorkspaceSkill): SkillTreeItem {
+    const isRecent = this.recentlyInstalled?.has(skill.name) ?? false;
+    const newBadge = isRecent ? "🆕 " : "";
+    const statusPrefix = skill.isReadOnly
+      ? ""
+      : skill.isRegistered
+        ? "✓ "
+        : "○ ";
+    const contextValue = skill.isReadOnly
+      ? "builtInSkill"
+      : skill.isRegistered
+        ? "managedSkill"
+        : "managedUnregisteredSkill";
+
+    const localizedDescription = isJapanese()
+      ? skill.description_ja || skill.description
+      : skill.description;
+
+    const item = new SkillTreeItem(
+      `${newBadge}${statusPrefix}${skill.name}`,
+      skill.displayPath,
+      vscode.TreeItemCollapsibleState.None,
+      contextValue,
+      {
+        name: skill.name,
+        description: localizedDescription,
+        description_ja: skill.description_ja,
+        source: skill.source || "local",
+        path: skill.relativePath,
+        categories: skill.categories || [],
+        isLocal: true,
+        fullPath: skill.fullPath,
+        relativePath: skill.relativePath,
+        displayPath: skill.displayPath,
+        isRegistered: skill.isRegistered,
+        scope: skill.scope,
+        root: skill.root,
+        skillDirUri: vscode.Uri.file(
+          skill.fullPath.replace(/[/\\]SKILL\.md$/i, ""),
+        ),
+        isManaged: skill.isManaged,
+        isReadOnly: skill.isReadOnly,
+      } as Skill & Partial<LocalSkill>,
+      undefined,
+      undefined,
+      undefined,
+      skill.root,
+      skill.scope,
+    );
+
+    item.iconPath = new vscode.ThemeIcon(
+      skill.isReadOnly ? "library" : "package",
+      skill.isReadOnly
+        ? new vscode.ThemeColor("disabledForeground")
+        : skill.isRegistered
+          ? new vscode.ThemeColor("charts.green")
+          : new vscode.ThemeColor("charts.yellow"),
+    );
+    item.resourceUri = vscode.Uri.file(skill.fullPath);
+
+    const noDescription = isJapanese() ? "説明なし" : "No description";
+    const statusText = skill.isReadOnly
+      ? isJapanese()
+        ? "Built-in（読み取り専用）"
+        : "Built-in (read-only)"
+      : skill.isRegistered
+        ? isJapanese()
+          ? "Managed（登録済み）"
+          : "Managed (registered)"
+        : isJapanese()
+          ? "Managed（未登録）"
+          : "Managed (not registered)";
+    const metaLines = [
+      `${isJapanese() ? "パス" : "Path"}: ${skill.displayPath}`,
+      `${isJapanese() ? "状態" : "Status"}: ${statusText}`,
+    ];
+
+    if (skill.author) {
+      metaLines.push(`${isJapanese() ? "Author" : "Author"}: ${skill.author}`);
+    }
+    if (skill.license) {
+      metaLines.push(
+        `${isJapanese() ? "License" : "License"}: ${skill.license}`,
+      );
+    }
+    if (skill.version) {
+      metaLines.push(`Version: ${skill.version}`);
+    }
+
+    item.tooltip = `${skill.name}\n${localizedDescription || noDescription}\n${metaLines.join("\n")}`;
+    item.command = {
+      command: "vscode.open",
+      title: isJapanese() ? "SKILL.md を開く" : "Open SKILL.md",
+      arguments: [vscode.Uri.file(skill.fullPath)],
+    };
+
+    return item;
   }
 
   /**
@@ -202,63 +285,26 @@ export class WorkspaceSkillsProvider implements vscode.TreeDataProvider<SkillTre
       return;
     }
 
-    const config = vscode.workspace.getConfiguration("skillNinja");
-    const skillsDir = config.get<string>("skillsDirectory") || ".github/skills";
-
-    // 1. configured skills directory 配下の SKILL.md をスキャン
-    const allLocalSkills = await scanLocalSkills(this.workspaceUri, true); // includeInstalled=true
-
-    // 2. インストール済みスキル（メタデータ付き）
-    const installedMeta = await getInstalledSkillsWithMeta(this.workspaceUri);
-
-    // 3. 統合
-    const skillMap = new Map<string, WorkspaceSkill>();
-
-    // まず全てのスキャン結果を追加
-    for (const local of allLocalSkills) {
-      const isInstalled = isPathInSkillsDirectory(
-        local.relativePath,
-        skillsDir,
-      );
-      skillMap.set(local.name, {
-        name: local.name,
-        description: local.description || "",
-        relativePath: local.relativePath,
-        fullPath: local.fullPath, // スキャン結果の実際のパスを使用
-        isInstalled,
-        isRegistered: local.isRegistered,
-        source: isInstalled ? undefined : "local", // メタデータで上書きされる
-        categories: local.categories,
-      });
-    }
-
-    // インストール済みスキルのメタデータで補完
-    for (const meta of installedMeta) {
-      const existing = skillMap.get(meta.name);
-      if (existing) {
-        // メタデータがあれば補完
-        existing.description = meta.description || existing.description;
-        existing.description_ja = meta.description_ja;
-        existing.source = meta.source || existing.source;
-        existing.categories = meta.categories?.length
-          ? meta.categories
-          : existing.categories;
-        existing.isInstalled = true;
-        existing.isRegistered = true; // インストール済みは常に登録済み扱い
-        // メタデータ情報を追加
-        existing.license = meta.license;
-        existing.author = meta.author;
-        existing.version = meta.version;
-      }
-    }
-
-    // ソート: インストール済み → ローカル登録済み → ローカル未登録
-    this.workspaceSkills = Array.from(skillMap.values()).sort((a, b) => {
-      const orderA = a.isInstalled ? 0 : a.isRegistered ? 1 : 2;
-      const orderB = b.isInstalled ? 0 : b.isRegistered ? 1 : 2;
-      if (orderA !== orderB) return orderA - orderB;
-      return a.name.localeCompare(b.name);
-    });
+    const visibleSkills = await scanVisibleSkills(this.workspaceUri);
+    this.workspaceSkills = visibleSkills.map((skill) => ({
+      name: skill.name,
+      description: skill.description || "",
+      description_ja: skill.description_ja,
+      relativePath: skill.relativePath,
+      displayPath: skill.displayPath,
+      fullPath: skill.fullPath,
+      isInstalled: skill.isManaged,
+      isRegistered: skill.isReadOnly ? false : skill.isRegistered,
+      isManaged: skill.isManaged,
+      isReadOnly: skill.isReadOnly,
+      scope: skill.scope,
+      root: skill.root,
+      source: skill.source,
+      categories: skill.categories,
+      license: skill.license,
+      author: skill.author,
+      version: skill.version,
+    }));
   }
 
   /**
@@ -322,10 +368,16 @@ export class BrowseSkillsProvider implements vscode.TreeDataProvider<SkillTreeIt
     if (this.installedSkillNames.size === 0) {
       const wsFolder = vscode.workspace.workspaceFolders?.[0];
       if (wsFolder) {
-        const installedMeta = await getInstalledSkillsWithMeta(wsFolder.uri);
-        installedMeta.forEach((meta) =>
-          this.installedSkillNames.add(meta.name.toLowerCase()),
-        );
+        const managedRoots = await getManagedSkillRoots(wsFolder.uri);
+        for (const root of managedRoots) {
+          const installedMeta = await getInstalledSkillsWithMeta(
+            wsFolder.uri,
+            root.rootUri,
+          );
+          installedMeta.forEach((meta) =>
+            this.installedSkillNames.add(meta.name.toLowerCase()),
+          );
+        }
       }
     }
 
@@ -651,6 +703,8 @@ export class SkillTreeItem extends vscode.TreeItem {
     public readonly source?: Source,
     public readonly bundle?: Bundle,
     public readonly categories?: Category[],
+    public readonly skillRoot?: SkillRoot,
+    public readonly scope?: SkillScope,
   ) {
     super(label, collapsibleState);
     this.description = description;
@@ -700,6 +754,8 @@ export class SkillTreeItem extends vscode.TreeItem {
           ? bundle.description_ja
           : bundle.description
       }\n${skillsLabel}: ${bundle.skills.join(", ")}`;
+    } else if (contextValue === "skillScopeGroup" && scope) {
+      this.tooltip = this.label;
     }
   }
 }

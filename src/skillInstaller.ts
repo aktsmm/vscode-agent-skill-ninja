@@ -5,6 +5,7 @@ import * as vscode from "vscode";
 import { Skill, loadSkillIndex, Source, getSourceBranch } from "./skillIndex";
 import { isJapanese } from "./i18n";
 import { getGitHubToken } from "./githubAuth";
+import { getManagedSkillRoots, type SkillRoot } from "./skillLocations";
 import {
   createGitHubHeaders,
   fetchGitHubWithOptionalAuthRetry,
@@ -17,6 +18,19 @@ import {
 
 function normalizeNewlines(text: string): string {
   return text.replace(/\r\n/g, "\n");
+}
+
+function resolveSkillsRootUri(
+  workspaceUri: vscode.Uri,
+  explicitRootUri?: vscode.Uri,
+): vscode.Uri {
+  if (explicitRootUri) {
+    return explicitRootUri;
+  }
+
+  const config = vscode.workspace.getConfiguration("skillNinja");
+  const skillsDir = config.get<string>("skillsDirectory") || ".github/skills";
+  return vscode.Uri.joinPath(workspaceUri, skillsDir);
 }
 
 /**
@@ -228,13 +242,19 @@ export async function installSkill(
   skill: Skill,
   workspaceUri: vscode.Uri,
   context: vscode.ExtensionContext,
+  targetRoot?: SkillRoot,
 ): Promise<void> {
-  const config = vscode.workspace.getConfiguration("skillNinja");
-  const skillsDir = config.get<string>("skillsDirectory") || ".github/skills";
+  if (targetRoot && (!targetRoot.isManaged || targetRoot.isReadOnly)) {
+    throw new Error(
+      `Cannot install into read-only skill root: ${targetRoot.rootPath}`,
+    );
+  }
+
+  const skillsRootUri = resolveSkillsRootUri(workspaceUri, targetRoot?.rootUri);
 
   // スキル名をサニタイズしてフォルダ名として使用
   const safeName = sanitizeSkillName(skill.name);
-  const skillPath = vscode.Uri.joinPath(workspaceUri, skillsDir, safeName);
+  const skillPath = vscode.Uri.joinPath(skillsRootUri, safeName);
   await vscode.workspace.fs.createDirectory(skillPath);
 
   // インデックスからソース情報を取得
@@ -453,12 +473,14 @@ export async function installSkill(
   // 既存のメタデータからカスタム値を保持
   const metaPath = vscode.Uri.joinPath(skillPath, ".skill-meta.json");
   let existingCustomWhenToUse: string | undefined;
+  let existingRegistrationDisabled: boolean | undefined;
   try {
     const existingContent = await vscode.workspace.fs.readFile(metaPath);
     const existingMeta = JSON.parse(
       Buffer.from(existingContent).toString("utf-8"),
     );
     existingCustomWhenToUse = existingMeta.customWhenToUse;
+    existingRegistrationDisabled = existingMeta.registrationDisabled;
   } catch {
     // 既存のメタデータがない場合は無視
   }
@@ -472,6 +494,8 @@ export async function installSkill(
     customWhenToUse: existingCustomWhenToUse, // ユーザーのカスタム値を保持
     categories: skill.categories,
     installedAt: new Date().toISOString(),
+    relativePath: safeName,
+    registrationDisabled: existingRegistrationDisabled,
   };
   await vscode.workspace.fs.writeFile(
     metaPath,
@@ -575,19 +599,19 @@ async function validateInstalledSkill(
 export async function uninstallSkill(
   skillName: string,
   workspaceUri: vscode.Uri,
+  skillsRootUri?: vscode.Uri,
 ): Promise<void> {
-  const config = vscode.workspace.getConfiguration("skillNinja");
-  const skillsDir = config.get<string>("skillsDirectory") || ".github/skills";
+  const skillsPath = resolveSkillsRootUri(workspaceUri, skillsRootUri);
 
   // まずそのままの名前で試す（既存の互換性）
-  let skillPath = vscode.Uri.joinPath(workspaceUri, skillsDir, skillName);
+  let skillPath = vscode.Uri.joinPath(skillsPath, skillName);
 
   try {
     await vscode.workspace.fs.stat(skillPath);
   } catch {
     // 存在しない場合はサニタイズした名前で試す
     const safeName = sanitizeSkillName(skillName);
-    skillPath = vscode.Uri.joinPath(workspaceUri, skillsDir, safeName);
+    skillPath = vscode.Uri.joinPath(skillsPath, safeName);
   }
 
   try {
@@ -604,11 +628,13 @@ export async function uninstallSkill(
 export async function uninstallSkillByPath(
   relativePath: string,
   workspaceUri: vscode.Uri,
+  skillsRootUri?: vscode.Uri,
 ): Promise<void> {
   // relativePath は "folder/SKILL.md" 形式
   // 親フォルダを取得
   const folderPath = relativePath.replace(/\/SKILL\.md$/i, "");
-  const skillPath = vscode.Uri.joinPath(workspaceUri, folderPath);
+  const basePath = resolveSkillsRootUri(workspaceUri, skillsRootUri);
+  const skillPath = vscode.Uri.joinPath(basePath, folderPath);
 
   try {
     await vscode.workspace.fs.delete(skillPath, { recursive: true });
@@ -622,11 +648,9 @@ export async function uninstallSkillByPath(
  */
 export async function getInstalledSkills(
   workspaceUri: vscode.Uri,
+  skillsRootUri?: vscode.Uri,
 ): Promise<string[]> {
-  const config = vscode.workspace.getConfiguration("skillNinja");
-  const skillsDir = config.get<string>("skillsDirectory") || ".github/skills";
-
-  const skillsPath = vscode.Uri.joinPath(workspaceUri, skillsDir);
+  const skillsPath = resolveSkillsRootUri(workspaceUri, skillsRootUri);
 
   try {
     try {
@@ -659,10 +683,65 @@ export interface SkillMeta {
   categories: string[];
   installedAt: string;
   relativePath?: string; // ネストされたスキルのパス（例: "document-skills/docx"）
+  registrationDisabled?: boolean;
   // 公式仕様に基づくメタデータ
   license?: string; // ライセンス（例: MIT, Apache-2.0）
   author?: string; // 作成者
   version?: string; // バージョン
+}
+
+export interface ManagedInstalledSkill {
+  root: SkillRoot;
+  meta: SkillMeta;
+}
+
+export async function getManagedInstalledSkillsWithMeta(
+  workspaceUri: vscode.Uri,
+): Promise<ManagedInstalledSkill[]> {
+  const roots = await getManagedSkillRoots(workspaceUri);
+  const groupedSkills = await Promise.all(
+    roots.map(async (root) => {
+      const metas = await getInstalledSkillsWithMeta(
+        workspaceUri,
+        root.rootUri,
+      );
+      return metas.map((meta) => ({ root, meta }));
+    }),
+  );
+
+  return groupedSkills.flat().sort((left, right) => {
+    if (left.root.scope !== right.root.scope) {
+      const scopeOrder = ["workspace", "userGlobal", "builtIn"] as const;
+      return (
+        scopeOrder.indexOf(left.root.scope) -
+        scopeOrder.indexOf(right.root.scope)
+      );
+    }
+
+    const rootPathCompare = left.root.rootPath.localeCompare(
+      right.root.rootPath,
+    );
+    if (rootPathCompare !== 0) {
+      return rootPathCompare;
+    }
+
+    const leftPath = left.meta.relativePath || left.meta.name;
+    const rightPath = right.meta.relativePath || right.meta.name;
+    return leftPath.localeCompare(rightPath);
+  });
+}
+
+export async function refreshManagedSkillMetadata(
+  workspaceUri: vscode.Uri,
+): Promise<number> {
+  const roots = await getManagedSkillRoots(workspaceUri);
+  let updatedCount = 0;
+
+  for (const root of roots) {
+    updatedCount += await refreshSkillMetadata(workspaceUri, root.rootUri);
+  }
+
+  return updatedCount;
 }
 
 /**
@@ -747,10 +826,9 @@ async function scanSkillsRecursively(
  */
 export async function refreshSkillMetadata(
   workspaceUri: vscode.Uri,
+  skillsRootUri?: vscode.Uri,
 ): Promise<number> {
-  const config = vscode.workspace.getConfiguration("skillNinja");
-  const skillsDir = config.get<string>("skillsDirectory") || ".github/skills";
-  const skillsPath = vscode.Uri.joinPath(workspaceUri, skillsDir);
+  const skillsPath = resolveSkillsRootUri(workspaceUri, skillsRootUri);
 
   let updatedCount = 0;
 
@@ -825,6 +903,7 @@ export async function refreshSkillMetadata(
             whenToUse: whenToUse || undefined,
             categories: [],
             installedAt: new Date().toISOString(),
+            relativePath: folderName,
           };
 
           await vscode.workspace.fs.writeFile(
@@ -906,10 +985,9 @@ export async function refreshSingleSkillMetadata(
  */
 export async function getInstalledSkillsWithMeta(
   workspaceUri: vscode.Uri,
+  skillsRootUri?: vscode.Uri,
 ): Promise<SkillMeta[]> {
-  const config = vscode.workspace.getConfiguration("skillNinja");
-  const skillsDir = config.get<string>("skillsDirectory") || ".github/skills";
-  const skillsPath = vscode.Uri.joinPath(workspaceUri, skillsDir);
+  const skillsPath = resolveSkillsRootUri(workspaceUri, skillsRootUri);
 
   try {
     try {

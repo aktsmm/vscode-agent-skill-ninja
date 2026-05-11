@@ -1,14 +1,18 @@
 // ローカルスキルのスキャンと AGENTS.md 同期
 // ワークスペース内の SKILL.md を検出し、AGENTS.md と同期
 
+import * as path from "path";
 import * as vscode from "vscode";
 import { Skill } from "./skillIndex";
-import { updateInstructionFile } from "./instructionManager";
+import { updateInstructionFileForRoot } from "./instructionManager";
+import type { SkillMeta } from "./skillInstaller";
 import {
-  getSkillsDirectorySearchPattern,
-  isPathInSkillsDirectory,
-  normalizeWorkspacePath,
-} from "./skillScanPaths";
+  getBuiltInSkillRoots,
+  getManagedSkillRoots,
+  SkillRoot,
+  SkillScope,
+  normalizeFileSystemPath,
+} from "./skillLocations";
 
 /**
  * ローカルスキル情報（拡張版）
@@ -16,9 +20,15 @@ import {
 export interface LocalSkill extends Skill {
   isLocal: true;
   fullPath: string; // フルパス
-  relativePath: string; // ワークスペース相対パス
+  relativePath: string; // スキルルート相対パス
+  displayPath: string; // UI 表示用パス
   isRegistered: boolean; // AGENTS.md に登録済みか
   registrationFile?: string; // 登録されているファイル (AGENTS.md など)
+  scope: SkillScope;
+  root: SkillRoot;
+  skillDirUri: vscode.Uri;
+  isManaged: boolean;
+  isReadOnly: boolean;
 }
 
 /**
@@ -161,61 +171,76 @@ function parseTopLevelFrontmatter(frontmatter: string): Map<string, string> {
   return values;
 }
 
-/**
- * configured skills directory 内の SKILL.md をスキャン
- * @param workspaceUri ワークスペースの URI
- * @param includeInstalled true の場合、skills directory 配下のスキルを含める
- */
-export async function scanLocalSkills(
-  workspaceUri: vscode.Uri,
-  includeInstalled: boolean = false,
-): Promise<LocalSkill[]> {
-  const skills: LocalSkill[] = [];
-
-  // 設定からスキルディレクトリを取得
-  const config = vscode.workspace.getConfiguration("skillNinja");
-  const skillsDir = config.get<string>("skillsDirectory") || ".github/skills";
-
-  const normalizedSkillsDir = normalizeWorkspacePath(skillsDir);
-
-  // 管理対象の skills directory 配下だけを検索する
-  const pattern = new vscode.RelativePattern(
-    workspaceUri,
-    getSkillsDirectorySearchPattern(skillsDir),
-  );
-  const excludePattern = "{**/node_modules/**,**/.git/**,**/.vscode-test/**}";
-
-  const files = await vscode.workspace.findFiles(pattern, excludePattern, 100);
-
-  for (const file of files) {
-    try {
-      const relativePath = vscode.workspace.asRelativePath(file, false);
-      const normalizedRelativePath = normalizeWorkspacePath(relativePath);
-
-      if (
-        !isPathInSkillsDirectory(normalizedRelativePath, normalizedSkillsDir)
-      ) {
-        continue;
-      }
-
-      // skills directory 配下のスキルを除外するか
-      if (!includeInstalled) {
-        continue;
-      }
-
-      const skill = await parseLocalSkillFile(file, workspaceUri);
-      if (skill) {
-        skills.push(skill);
-      }
-    } catch (error) {
-      console.warn(`Failed to parse ${file.fsPath}:`, error);
-    }
+async function scanSkillRootEntries(
+  currentDir: vscode.Uri,
+  relativeDir: string,
+  results: Array<{ skillMdUri: vscode.Uri; relativePath: string }>,
+  depth: number = 0,
+): Promise<void> {
+  if (depth > 6 || results.length >= 500) {
+    return;
   }
 
-  // AGENTS.md の登録状態をチェック
-  await checkRegistrationStatus(skills, workspaceUri);
+  let entries: [string, vscode.FileType][];
+  try {
+    entries = await vscode.workspace.fs.readDirectory(currentDir);
+  } catch {
+    return;
+  }
 
-  return skills;
+  const hasSkillMd = entries.some(
+    ([name, fileType]) =>
+      name === "SKILL.md" && fileType === vscode.FileType.File,
+  );
+
+  if (hasSkillMd) {
+    results.push({
+      skillMdUri: vscode.Uri.joinPath(currentDir, "SKILL.md"),
+      relativePath: relativeDir,
+    });
+  }
+
+  for (const [name, fileType] of entries) {
+    if (fileType !== vscode.FileType.Directory) {
+      continue;
+    }
+    if (name.startsWith(".")) {
+      continue;
+    }
+
+    const childRelativePath = relativeDir ? `${relativeDir}/${name}` : name;
+    await scanSkillRootEntries(
+      vscode.Uri.joinPath(currentDir, name),
+      childRelativePath,
+      results,
+      depth + 1,
+    );
+  }
+}
+
+function buildDefaultMeta(skill: LocalSkill): SkillMeta {
+  return {
+    name: skill.name,
+    source: skill.source || "unknown",
+    description: skill.description || "",
+    description_ja: skill.description_ja || undefined,
+    categories: skill.categories || [],
+    installedAt: new Date().toISOString(),
+    relativePath: skill.relativePath,
+  };
+}
+
+async function readSkillMetaFile(
+  skillDirUri: vscode.Uri,
+): Promise<SkillMeta | undefined> {
+  try {
+    const metaContent = await vscode.workspace.fs.readFile(
+      vscode.Uri.joinPath(skillDirUri, ".skill-meta.json"),
+    );
+    return JSON.parse(Buffer.from(metaContent).toString("utf-8")) as SkillMeta;
+  } catch {
+    return undefined;
+  }
 }
 
 /**
@@ -223,7 +248,8 @@ export async function scanLocalSkills(
  */
 async function parseLocalSkillFile(
   fileUri: vscode.Uri,
-  _workspaceUri: vscode.Uri,
+  root: SkillRoot,
+  relativePath: string,
 ): Promise<LocalSkill | null> {
   const content = await vscode.workspace.fs.readFile(fileUri);
   const text = Buffer.from(content).toString("utf8");
@@ -259,21 +285,45 @@ async function parseLocalSkillFile(
     name = pathParts[pathParts.length - 2] || "Unknown";
   }
 
-  // 相対パスを計算
-  const relativePath = vscode.workspace.asRelativePath(fileUri, false);
-  const skillDir = relativePath.replace(/[/\\]SKILL\.md$/, "");
+  const skillDirUri = vscode.Uri.file(path.dirname(fileUri.fsPath));
+  const meta = await readSkillMetaFile(skillDirUri);
+
+  if (meta?.description) {
+    description = meta.description;
+  }
+  if (meta?.description_ja) {
+    description_ja = meta.description_ja;
+  }
+  if (meta?.categories?.length) {
+    categories = meta.categories;
+  }
+
+  const source = meta?.source || "local";
+  const displayPath =
+    root.scope === "workspace"
+      ? `${root.displayPath}/${relativePath}`
+      : `${root.displayPath}/${relativePath}`;
 
   return {
     name,
     description,
     description_ja,
     categories,
-    source: "local",
-    path: skillDir,
+    source,
+    path: relativePath,
+    license: meta?.license,
+    author: meta?.author,
+    version: meta?.version,
     isLocal: true,
     fullPath: fileUri.fsPath,
-    relativePath: skillDir,
+    relativePath,
+    displayPath,
     isRegistered: false,
+    scope: root.scope,
+    root,
+    skillDirUri,
+    isManaged: root.isManaged,
+    isReadOnly: root.isReadOnly,
   };
 }
 
@@ -281,29 +331,20 @@ async function parseLocalSkillFile(
  * AGENTS.md などの instruction file を読み取り、登録状態をチェック
  * ※ skill-ninja マーカー内のみをチェック（手動記載との重複を避けるため）
  */
-async function checkRegistrationStatus(
+async function checkRegistrationStatusForRoot(
   skills: LocalSkill[],
-  workspaceUri: vscode.Uri,
+  root: SkillRoot,
 ): Promise<void> {
-  const config = vscode.workspace.getConfiguration("skillNinja");
-  const instructionFile = config.get<string>("instructionFile", "AGENTS.md");
-
-  // instruction file のパスを解決
-  let instructionPath: string;
-  if (instructionFile === "custom") {
-    instructionPath = config.get<string>("customInstructionPath", "AGENTS.md");
-  } else {
-    instructionPath = instructionFile;
+  if (!root.instructionUri || !root.instructionPath) {
+    return;
   }
-
-  const instructionUri = vscode.Uri.joinPath(workspaceUri, instructionPath);
 
   // マーカー
   const MARKER_START = "<!-- skill-ninja-START -->";
   const MARKER_END = "<!-- skill-ninja-END -->";
 
   try {
-    const content = await vscode.workspace.fs.readFile(instructionUri);
+    const content = await vscode.workspace.fs.readFile(root.instructionUri);
     const text = Buffer.from(content).toString("utf8");
 
     // マーカー内の部分のみを抽出
@@ -320,16 +361,21 @@ async function checkRegistrationStatus(
       endIndex + MARKER_END.length,
     );
 
+    const relativeSkillsDir =
+      root.linkPathFromInstruction ||
+      computeInstructionPathFromRoot(root.instructionPath, root.rootPath);
+
     // スキル参照を検出（マーカー内のみ）
     for (const skill of skills) {
-      // skills directory 配下のパス一致のみで登録状態を判定する
-      const normalizedRelativePath = normalizeWorkspacePath(skill.relativePath);
-      const patterns = [normalizedRelativePath, `./${normalizedRelativePath}`];
+      const skillLink = `${relativeSkillsDir}/${skill.relativePath}/SKILL.md`
+        .replace(/\\/g, "/")
+        .replace(/^\.\//, "");
+      const patterns = [skillLink, `./${skillLink}`];
 
       for (const pattern of patterns) {
         if (markerContent.includes(pattern)) {
           skill.isRegistered = true;
-          skill.registrationFile = instructionPath;
+          skill.registrationFile = root.instructionPath;
           break;
         }
       }
@@ -337,6 +383,105 @@ async function checkRegistrationStatus(
   } catch {
     // instruction file が存在しない場合は無視
   }
+}
+
+function computeInstructionPathFromRoot(
+  instructionPath: string,
+  rootPath: string,
+): string {
+  const relativeFsPath = path
+    .relative(path.dirname(instructionPath), rootPath)
+    .replace(/\\/g, "/");
+  return relativeFsPath || ".";
+}
+
+async function scanSkillsForRoot(root: SkillRoot): Promise<LocalSkill[]> {
+  if (!(await rootExists(root.rootUri))) {
+    return [];
+  }
+
+  const entries: Array<{ skillMdUri: vscode.Uri; relativePath: string }> = [];
+  await scanSkillRootEntries(root.rootUri, "", entries);
+
+  const skills: LocalSkill[] = [];
+  for (const entry of entries) {
+    try {
+      const skill = await parseLocalSkillFile(
+        entry.skillMdUri,
+        root,
+        entry.relativePath,
+      );
+      if (skill) {
+        skills.push(skill);
+      }
+    } catch (error) {
+      console.warn(`Failed to parse ${entry.skillMdUri.fsPath}:`, error);
+    }
+  }
+
+  if (root.isManaged) {
+    await checkRegistrationStatusForRoot(skills, root);
+  }
+
+  return skills;
+}
+
+async function rootExists(rootUri: vscode.Uri): Promise<boolean> {
+  try {
+    await vscode.workspace.fs.stat(rootUri);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * configured skills directory 内の SKILL.md をスキャン
+ * @param workspaceUri ワークスペースの URI
+ * @param includeInstalled true の場合、skills directory 配下のスキルを含める
+ */
+export async function scanLocalSkills(
+  workspaceUri: vscode.Uri,
+  includeInstalled: boolean = false,
+): Promise<LocalSkill[]> {
+  if (!includeInstalled) {
+    return [];
+  }
+
+  const managedRoots = await getManagedSkillRoots(workspaceUri);
+  const workspaceRoot = managedRoots.find((root) => root.scope === "workspace");
+  if (!workspaceRoot) {
+    return [];
+  }
+
+  return scanSkillsForRoot(workspaceRoot);
+}
+
+export async function scanVisibleSkills(
+  workspaceUri?: vscode.Uri,
+): Promise<LocalSkill[]> {
+  const managedRoots = await getManagedSkillRoots(workspaceUri);
+  const builtInRoots = await getBuiltInSkillRoots();
+  const allRoots = [...managedRoots, ...builtInRoots];
+
+  const skills = await Promise.all(
+    allRoots.map((root) => scanSkillsForRoot(root)),
+  );
+  return skills.flat().sort((left, right) => {
+    if (left.scope !== right.scope) {
+      const scopeOrder: SkillScope[] = ["workspace", "userGlobal", "builtIn"];
+      return scopeOrder.indexOf(left.scope) - scopeOrder.indexOf(right.scope);
+    }
+
+    const rootCompare = normalizeFileSystemPath(
+      left.root.rootPath,
+    ).localeCompare(normalizeFileSystemPath(right.root.rootPath));
+    if (rootCompare !== 0) {
+      return rootCompare;
+    }
+
+    return left.relativePath.localeCompare(right.relativePath);
+  });
 }
 
 /**
@@ -427,14 +572,26 @@ export async function parseInstructionFile(
  * ※ updateInstructionFile を呼び出してマーカー内で統一管理
  */
 export async function registerLocalSkill(
-  _skill: LocalSkill,
-  workspaceUri: vscode.Uri,
+  skill: LocalSkill,
+  _workspaceUri: vscode.Uri,
   context: vscode.ExtensionContext,
 ): Promise<boolean> {
   try {
-    // instructionManager の updateInstructionFile を使用
-    // これにより、全てのスキル（インストール済み＋ローカル）がマーカー内で管理される
-    await updateInstructionFile(workspaceUri, context);
+    if (!skill.isManaged || skill.isReadOnly) {
+      return false;
+    }
+
+    const meta =
+      (await readSkillMetaFile(skill.skillDirUri)) || buildDefaultMeta(skill);
+    delete meta.registrationDisabled;
+    meta.relativePath = skill.relativePath;
+
+    await vscode.workspace.fs.writeFile(
+      vscode.Uri.joinPath(skill.skillDirUri, ".skill-meta.json"),
+      Buffer.from(JSON.stringify(meta, null, 2), "utf-8"),
+    );
+
+    await updateInstructionFileForRoot(skill.root, context);
     return true;
   } catch (error) {
     console.error("Failed to register local skill:", error);
@@ -449,20 +606,26 @@ export async function registerLocalSkill(
  *   現在は updateInstructionFile を再呼び出しして同期
  */
 export async function unregisterLocalSkill(
-  _skill: LocalSkill,
-  workspaceUri: vscode.Uri,
+  skill: LocalSkill,
+  _workspaceUri: vscode.Uri,
   context: vscode.ExtensionContext,
 ): Promise<boolean> {
   try {
-    // 注: 現在の実装では、ローカルスキルは自動的にスキャンされるため、
-    // 「登録解除」は実質的に意味がない（次回 updateInstructionFile で再登録される）
-    // 本当に除外するには、除外リストを設定に持つ必要がある
-    //
-    // 暫定: includeLocalSkills が false の場合のみ解除が有効
-    const config = vscode.workspace.getConfiguration("skillNinja");
-    if (!config.get<boolean>("includeLocalSkills")) {
-      await updateInstructionFile(workspaceUri, context);
+    if (!skill.isManaged || skill.isReadOnly) {
+      return false;
     }
+
+    const meta =
+      (await readSkillMetaFile(skill.skillDirUri)) || buildDefaultMeta(skill);
+    meta.registrationDisabled = true;
+    meta.relativePath = skill.relativePath;
+
+    await vscode.workspace.fs.writeFile(
+      vscode.Uri.joinPath(skill.skillDirUri, ".skill-meta.json"),
+      Buffer.from(JSON.stringify(meta, null, 2), "utf-8"),
+    );
+
+    await updateInstructionFileForRoot(skill.root, context);
     return true;
   } catch (error) {
     console.error("Failed to unregister local skill:", error);

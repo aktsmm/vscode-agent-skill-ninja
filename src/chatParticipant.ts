@@ -5,7 +5,12 @@
  */
 import * as vscode from "vscode";
 import { Skill, loadSkillIndex, SkillIndex } from "./skillIndex";
-import { installSkill, getInstalledSkills } from "./skillInstaller";
+import {
+  getManagedInstalledSkillsWithMeta,
+  installSkill,
+} from "./skillInstaller";
+import { updateInstructionFileForRoot } from "./instructionManager";
+import { getManagedSkillRoots, type SkillRoot } from "./skillLocations";
 
 /** スキルインデックスをキャッシュ */
 let cachedIndex: SkillIndex | undefined;
@@ -25,6 +30,13 @@ async function getSkillIndex(): Promise<SkillIndex> {
     cachedIndex = await loadSkillIndex(context);
   }
   return cachedIndex;
+}
+
+async function getDefaultManagedRoot(
+  workspaceUri: vscode.Uri,
+): Promise<SkillRoot | undefined> {
+  const roots = await getManagedSkillRoots(workspaceUri);
+  return roots.find((root) => root.scope === "workspace") || roots[0];
 }
 
 /** Chat Participant のリクエストハンドラー */
@@ -187,6 +199,14 @@ async function handleInstall(
     return {};
   }
 
+  const targetRoot = await getDefaultManagedRoot(workspaceFolder.uri);
+  if (!targetRoot) {
+    stream.markdown(
+      "❌ No managed skill root is available for this workspace.",
+    );
+    return {};
+  }
+
   stream.markdown(`## 📦 Installing ${skill.name}\n\n`);
   stream.markdown(`- **Source:** ${skill.source}\n`);
   if (skill.url) {
@@ -196,11 +216,24 @@ async function handleInstall(
   stream.progress("Installing...");
 
   // インストール実行
-  await installSkill(skill, workspaceFolder.uri, requireIndexContext());
+  await installSkill(
+    skill,
+    workspaceFolder.uri,
+    requireIndexContext(),
+    targetRoot,
+  );
+
+  if (
+    vscode.workspace
+      .getConfiguration("skillNinja")
+      .get<boolean>("autoUpdateInstruction", true)
+  ) {
+    await updateInstructionFileForRoot(targetRoot, requireIndexContext());
+  }
 
   stream.markdown(`✅ **${skill.name}** has been installed successfully!\n\n`);
   stream.markdown(
-    `📂 Check your \`.github/skills/\` folder for the skill configuration.`,
+    `📂 Check ${targetRoot.displayPath} for the skill configuration.`,
   );
 
   return { metadata: { command: "install", skill: skill.name } };
@@ -216,22 +249,24 @@ async function handleList(
     return {};
   }
 
-  const installed = await getInstalledSkills(workspaceFolder.uri);
+  const installedEntries = await getManagedInstalledSkillsWithMeta(
+    workspaceFolder.uri,
+  );
 
-  if (installed.length === 0) {
+  if (installedEntries.length === 0) {
     stream.markdown(
       "📋 **No skills installed yet**\n\nUse `/search` to find skills or `/recommend` for suggestions.",
     );
     return {};
   }
 
-  stream.markdown(`## 📋 Installed Skills (${installed.length})\n\n`);
+  stream.markdown(`## 📋 Installed Skills (${installedEntries.length})\n\n`);
 
-  for (const skillName of installed) {
-    stream.markdown(`- **${skillName}**\n`);
+  for (const { root, meta } of installedEntries) {
+    stream.markdown(`- **${meta.name}** (${root.displayPath})\n`);
   }
 
-  return { metadata: { command: "list", count: installed.length } };
+  return { metadata: { command: "list", count: installedEntries.length } };
 }
 
 /** /recommend コマンド - プロジェクトに基づくスキル推奨 */

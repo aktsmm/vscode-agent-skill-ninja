@@ -86,9 +86,9 @@
 
 ### 📁 ワークスペーススキル管理
 
-- 設定された `skillNinja.skillsDirectory` 配下の **SKILL.md** を管理
-- インストール済みワークスペーススキルを instruction file へ自動同期
-- skills ディレクトリ外の **SKILL.md** は自動検出しません
+- **SKILL.md** を workspace / user-global / built-in の 3 scope で管理
+- `skillNinja.skillsDirectory` を managed な workspace root として使い、VS Code の Agent Skill Locations から user/global root も自動検出
+- 書き込み可能な各 root ごとに、最寄りの instruction file へ managed skills を自動同期
 - テンプレートから新規スキル作成
 
 ### 🔍 スキル検索・発見
@@ -104,6 +104,7 @@
 ### 📦 インストール・管理
 
 - ワンクリックでインストール（デフォルト: `.github/skills/`、設定で変更可能）
+- managed root が複数ある場合はインストール先（workspace / user-global）を選択可能
 - **instruction file** 自動更新（AGENTS.md / copilot-instructions.md / CLAUDE.md）
 - **テーブル形式** - 「When to Use」列付きの表形式でスキル一覧表示
 - **「When to Use」自動抽出** - SKILL.md の `## When to Use` セクションから自動取得
@@ -194,13 +195,16 @@ ext install yamapan.agent-skill-ninja
 ### サイドバーから操作
 
 1. アクティビティバーの **螺旋手裏剣アイコン** をクリック
-2. **Workspace Skills** - 設定された skills ディレクトリ内のスキル一覧
-   - インストール済みワークスペーススキル（緑アイコン）とソース名を表示
-   - `skillNinja.skillsDirectory`（既定: `.github/skills`）を使用
-   - 新しくインストールしたスキル（一時的なバッジ）
-   - ツールバー: Instruction / 新規作成 / 更新 / 設定
-   - メニュー: 全て再インストール / 全削除 / 複数選択
-   - スキルフォルダを開く（右クリックメニュー）
+2. **インストール済みスキル** - scope ごとにグループ表示
+
+- **Workspace Skills**: `skillNinja.skillsDirectory`（既定: `.github/skills`）配下の managed skills
+- **User / Global Skills**: VS Code の Agent Skill Locations から見つかった managed skills
+- **Built-in Skills**: Copilot / VS Code 同梱 skills を読み取り専用で表示する任意グループ
+- 新しくインストールしたスキル（一時的なバッジ）
+- ツールバー: Instruction / 新規作成 / 更新 / 設定
+- メニュー: 全て再インストール / 全削除 / 複数選択
+- どの scope でもスキルフォルダ / ファイルを開けます
+
 3. **Remote Skills** - ソース別にスキルを閲覧
    - **お気に入り** セクションが最上部に表示
    - ソース順: Official → Curated → Community
@@ -331,21 +335,23 @@ MCP ツールが不要な場合は、GitHub Copilot Chat のツール一覧か�
 
 ## ⚙️ Settings
 
-| 順序 | Setting                                | Default          | Description                                              |
-| :--: | -------------------------------------- | ---------------- | -------------------------------------------------------- |
-|  1   | `skillNinja.autoUpdateInstruction`     | `true`           | **インストール時に instruction file を自動更新**         |
-|  2   | `skillNinja.instructionFile`           | `AGENTS.md`      | スキルを登録するファイル形式 _(要: Auto Update)_         |
-|  3   | `skillNinja.customInstructionPath`     | `""`             | カスタムパス _(instructionFile が 'custom' の時のみ)_    |
-|  4   | `skillNinja.skillsDirectory`           | `.github/skills` | ワークスペーススキルをインストール・管理するディレクトリ |
-|  5   | `skillNinja.outputFormat`              | `full`           | 出力形式（full / compact / legacy）                      |
-|  6   | `skillNinja.language`                  | `auto`           | UI 言語（auto / en / ja）                                |
-|  7   | `skillNinja.autoUpdateSkillsOnUpgrade` | `prompt`         | 拡張機能アップグレード後のスキル更新                     |
-|  8   | `skillNinja.githubToken`               | `""`             | GitHub Token（API 制限緩和用）                           |
-|  9   | `skillNinja.singleClickInstall`        | `false`          | リモートスキルをシングルクリックでインストール           |
+| 順序 | Setting                                   | Default          | Description                                              |
+| :--: | ----------------------------------------- | ---------------- | -------------------------------------------------------- |
+|  1   | `skillNinja.autoUpdateInstruction`        | `true`           | **インストール時に instruction file を自動更新**         |
+|  2   | `skillNinja.instructionFile`              | `AGENTS.md`      | スキルを登録するファイル形式 _(要: Auto Update)_         |
+|  3   | `skillNinja.customInstructionPath`        | `""`             | カスタムパス _(instructionFile が 'custom' の時のみ)_    |
+|  4   | `skillNinja.skillsDirectory`              | `.github/skills` | ワークスペーススキルをインストール・管理するディレクトリ |
+|  5   | `skillNinja.useVsCodeAgentSkillLocations` | `true`           | user/global の skill root を検出して管理する             |
+|  6   | `skillNinja.showBuiltInSkills`            | `false`          | 読み取り専用の built-in skills を表示する                |
+|  7   | `skillNinja.outputFormat`                 | `full`           | 出力形式（full / compact / legacy）                      |
+|  8   | `skillNinja.language`                     | `auto`           | UI 言語（auto / en / ja）                                |
+|  9   | `skillNinja.autoUpdateSkillsOnUpgrade`    | `prompt`         | 拡張機能アップグレード後のスキル更新                     |
+|  10  | `skillNinja.githubToken`                  | `""`             | GitHub Token（API 制限緩和用）                           |
+|  11  | `skillNinja.singleClickInstall`           | `false`          | リモートスキルをシングルクリックでインストール           |
 
 > 設定画面では上記の順序で表示されます
 
-互換用設定: `skillNinja.includeLocalSkills` は非推奨です。ワークスペーススキルは `skillNinja.skillsDirectory` 配下だけを管理対象にし、その外側の SKILL.md は自動検出しません。
+互換用設定: `skillNinja.includeLocalSkills` は非推奨です。ワークスペーススキルは `skillNinja.skillsDirectory` 配下を管理対象にし、追加の user/global root は `skillNinja.useVsCodeAgentSkillLocations` から検出します。built-in skills は `skillNinja.showBuiltInSkills` を有効にしたときだけ表示します。
 
 ### 出力フォーマット詳細
 
@@ -404,11 +410,11 @@ instruction file には **IMPORTANT プロンプト** と **Description 列** �
 
 設定画面から `Agent Skills Ninja: GitHub Token` を探し、トークンを入力：
 
-```json
+````json
 {
   "skillNinja.githubToken": "ghp_xxxxxxxxxxxx"
-}
-```
+2. **各 writable root 配下の managed SKILL.md** → その root の管理セクションに含まれる
+3. **手動で Update Instruction File** → すべての writable root の管理セクションを再生成
 
 👉 [GitHub Token を作成する](https://github.com/settings/tokens/new?description=Agent%20Skill%20Ninja&scopes=repo,read:org)（必要なスコープ: `repo`, `read:org`）
 
@@ -416,7 +422,7 @@ instruction file には **IMPORTANT プロンプト** と **Description 列** �
 
 ```bash
 gh auth login
-```
+````
 
 > GitHub CLI がインストールされていれば自動でトークンを取得します（設定不要）
 

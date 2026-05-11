@@ -90,9 +90,9 @@ Settings → **Output Format** → Select `full`, `compact`, or `legacy`
 
 ### 📁 Workspace Skill Management
 
-- Manage **SKILL.md** files under the configured `skillNinja.skillsDirectory`
-- Automatically sync installed workspace skills to the instruction file
-- `SKILL.md` files outside the skills directory are not auto-detected
+- Manage **SKILL.md** files across three scopes: workspace, user/global, and optional built-in
+- Use `skillNinja.skillsDirectory` as the managed workspace root and auto-discover extra user/global roots from VS Code Agent Skill Locations
+- Automatically sync managed skills to the closest instruction file for each writable root
 - Create new skill from template
 
 ### 🔍 Skill Search & Discovery
@@ -108,6 +108,7 @@ Settings → **Output Format** → Select `full`, `compact`, or `legacy`
 ### 📦 Install & Manage
 
 - One-click installation (default: `.github/skills/`, configurable in settings)
+- Install target picker for multiple managed roots (workspace or user/global)
 - Auto-update **instruction file** (AGENTS.md / copilot-instructions.md / CLAUDE.md)
 - **Table Format** - Skills displayed in table with "When to Use" column
 - **Auto-extract "When to Use"** - Extracted from SKILL.md `## When to Use` section
@@ -198,13 +199,16 @@ Preset index includes skills from official, curated, and community sources out o
 ### Sidebar Operations
 
 1. Click the **spiral shuriken icon** in the Activity Bar
-2. **Workspace Skills** - Skills managed in the configured skills directory
-   - Installed workspace skills (green icon) with source name
-   - Uses `skillNinja.skillsDirectory` (default: `.github/skills`)
-   - Newly installed skills (temporary badge)
-   - Toolbar: Instruction File / Create / Refresh / Settings
-   - Menu: Reinstall All / Uninstall All / Multiple selection
-   - Open skill folder (right-click menu)
+2. **Installed Skills** - Grouped by scope
+
+- **Workspace Skills**: managed under `skillNinja.skillsDirectory` (default: `.github/skills`)
+- **User / Global Skills**: discovered from VS Code Agent Skill Locations and managed in place
+- **Built-in Skills**: optional read-only group for Copilot / VS Code packaged skills
+- Newly installed skills (temporary badge)
+- Toolbar: Instruction File / Create / Refresh / Settings
+- Menu: Reinstall All / Uninstall All / Multiple selection
+- Open skill folder or file from any visible scope
+
 3. **Remote Skills** - Browse skills by source
    - **Favorites** section at top
    - Sources sorted: Official → Curated → Community
@@ -335,21 +339,23 @@ If you don't need MCP tools, you can disable them from GitHub Copilot Chat:
 
 ## ⚙️ Settings
 
-| Order | Setting                                | Default          | Description                                      |
-| :---: | -------------------------------------- | ---------------- | ------------------------------------------------ |
-|   1   | `skillNinja.autoUpdateInstruction`     | `true`           | **Auto-update instruction file on install**      |
-|   2   | `skillNinja.instructionFile`           | `AGENTS.md`      | Instruction file format _(requires Auto Update)_ |
-|   3   | `skillNinja.customInstructionPath`     | `""`             | Custom path _(only when 'custom' selected)_      |
-|   4   | `skillNinja.skillsDirectory`           | `.github/skills` | Directory to install and manage workspace skills |
-|   5   | `skillNinja.outputFormat`              | `full`           | Output format (full / compact / legacy)          |
-|   6   | `skillNinja.language`                  | `auto`           | UI language (auto / en / ja)                     |
-|   7   | `skillNinja.autoUpdateSkillsOnUpgrade` | `prompt`         | Update installed skills after extension upgrade  |
-|   8   | `skillNinja.githubToken`               | `""`             | GitHub Token (for API rate limit)                |
-|   9   | `skillNinja.singleClickInstall`        | `false`          | Install remote skills with single click          |
+| Order | Setting                                   | Default          | Description                                      |
+| :---: | ----------------------------------------- | ---------------- | ------------------------------------------------ |
+|   1   | `skillNinja.autoUpdateInstruction`        | `true`           | **Auto-update instruction file on install**      |
+|   2   | `skillNinja.instructionFile`              | `AGENTS.md`      | Instruction file format _(requires Auto Update)_ |
+|   3   | `skillNinja.customInstructionPath`        | `""`             | Custom path _(only when 'custom' selected)_      |
+|   4   | `skillNinja.skillsDirectory`              | `.github/skills` | Directory to install and manage workspace skills |
+|   5   | `skillNinja.useVsCodeAgentSkillLocations` | `true`           | Discover and manage user/global skill roots      |
+|   6   | `skillNinja.showBuiltInSkills`            | `false`          | Show read-only built-in skills                   |
+|   7   | `skillNinja.outputFormat`                 | `full`           | Output format (full / compact / legacy)          |
+|   8   | `skillNinja.language`                     | `auto`           | UI language (auto / en / ja)                     |
+|   9   | `skillNinja.autoUpdateSkillsOnUpgrade`    | `prompt`         | Update installed skills after extension upgrade  |
+|  10   | `skillNinja.githubToken`                  | `""`             | GitHub Token (for API rate limit)                |
+|  11   | `skillNinja.singleClickInstall`           | `false`          | Install remote skills with single click          |
 
 > Settings are displayed in the order above
 
-Legacy compatibility setting: `skillNinja.includeLocalSkills` is deprecated. Workspace skills are now scoped to `skillNinja.skillsDirectory`; SKILL.md files outside that directory are not auto-detected.
+Legacy compatibility setting: `skillNinja.includeLocalSkills` is deprecated. Workspace skills stay scoped to `skillNinja.skillsDirectory`, while additional user/global roots are discovered from `skillNinja.useVsCodeAgentSkillLocations`. Built-in read-only skills are hidden unless `skillNinja.showBuiltInSkills` is enabled.
 
 ### Output Format Details
 
@@ -364,8 +370,8 @@ Legacy compatibility setting: `skillNinja.includeLocalSkills` is deprecated. Wor
 When `autoUpdateInstruction` is enabled:
 
 1. **Install/Uninstall skill** → Instruction file is automatically updated
-2. **Workspace SKILL.md detected in `skillsDirectory`** → Included in the managed section
-3. **Manual Update Instruction File** → Regenerates the managed section from `skillsDirectory`
+2. **Managed SKILL.md detected under each writable root** → Included in that root's managed section
+3. **Manual Update Instruction File** → Regenerates the managed section for every writable root
 
 The instruction file contains a managed section with **IMPORTANT prompt** and **Description column**:
 
@@ -449,7 +455,7 @@ npm run lint
 2. Test the extension in a new VS Code window
 3. Run `Agent Skills Ninja` commands from Command Palette (`Ctrl+Shift+P`)
 
-## � Contributing
+## Contributing
 
 1. Fork this repository
 2. Create a feature branch (`git checkout -b feature/amazing-feature`)

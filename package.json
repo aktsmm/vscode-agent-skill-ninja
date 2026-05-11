@@ -2,7 +2,7 @@
   "name": "agent-skill-ninja",
   "displayName": "%displayName%",
   "description": "%description%",
-  "version": "0.8.25",
+  "version": "0.8.26",
   "publisher": "yamapan",
   "license": "CC-BY-NC-SA-4.0",
   "icon": "resources/icon.png",
@@ -107,7 +107,7 @@
         "toolReferenceName": "installSkill",
         "displayName": "Install Agent Skill",
         "icon": "$(cloud-download)",
-        "modelDescription": "Install an Agent Skill / エージェントスキルをインストール / スキル忍者 / NINJA. Download to .github/skills/ and register in AGENTS.md.",
+        "modelDescription": "Install an Agent Skill / エージェントスキルをインストール / スキル忍者 / NINJA. Installs into a managed skill root and updates the configured instruction file.",
         "canBeReferencedInPrompt": true,
         "inputSchema": {
           "type": "object",
@@ -136,7 +136,7 @@
         "toolReferenceName": "listSkills",
         "displayName": "List Installed Skills",
         "icon": "$(list-tree)",
-        "modelDescription": "List all installed Agent Skills / インストール済みエージェントスキル一覧 / スキル忍者 / NINJA. Shows skills in .github/skills/ directory.",
+        "modelDescription": "List all installed Agent Skills / インストール済みエージェントスキル一覧 / スキル忍者 / NINJA. Shows skills across all managed skill roots.",
         "canBeReferencedInPrompt": true,
         "inputSchema": {
           "type": "object",
@@ -179,7 +179,7 @@
         "toolReferenceName": "uninstallSkill",
         "displayName": "Uninstall Skill",
         "icon": "$(trash)",
-        "modelDescription": "Uninstall an Agent Skill / エージェントスキルをアンインストール / 削除 / NINJA. Removes skill from .github/skills/ and updates AGENTS.md.",
+        "modelDescription": "Uninstall an Agent Skill / エージェントスキルをアンインストール / 削除 / NINJA. Removes a skill from its managed root and updates the configured instruction file.",
         "canBeReferencedInPrompt": true,
         "inputSchema": {
           "type": "object",
@@ -657,27 +657,27 @@
         },
         {
           "command": "skillNinja.uninstall",
-          "when": "view == skillNinja.installedView && viewItem == installedSkill",
+          "when": "view == skillNinja.installedView && (viewItem == managedSkill || viewItem == managedUnregisteredSkill)",
           "group": "inline"
         },
         {
           "command": "skillNinja.reinstall",
-          "when": "view == skillNinja.installedView && viewItem == installedSkill",
+          "when": "view == skillNinja.installedView && viewItem == managedSkill",
           "group": "inline"
         },
         {
           "command": "skillNinja.editWhenToUse",
-          "when": "view == skillNinja.installedView && viewItem == installedSkill",
+          "when": "view == skillNinja.installedView && (viewItem == managedSkill || viewItem == managedUnregisteredSkill)",
           "group": "navigation"
         },
         {
           "command": "skillNinja.openSkillFolder",
-          "when": "view == skillNinja.installedView && (viewItem == installedSkill || viewItem == localSkill)",
+          "when": "view == skillNinja.installedView && (viewItem == managedSkill || viewItem == managedUnregisteredSkill || viewItem == builtInSkill)",
           "group": "inline"
         },
         {
           "command": "skillNinja.openSkillFile",
-          "when": "view == skillNinja.installedView && (viewItem == installedSkill || viewItem == localSkill)",
+          "when": "view == skillNinja.installedView && (viewItem == managedSkill || viewItem == managedUnregisteredSkill || viewItem == builtInSkill)",
           "group": "inline"
         },
         {
@@ -692,12 +692,12 @@
         },
         {
           "command": "skillNinja.registerLocalSkill",
-          "when": "view == skillNinja.installedView && viewItem == localSkill",
+          "when": "view == skillNinja.installedView && viewItem == managedUnregisteredSkill",
           "group": "inline"
         },
         {
           "command": "skillNinja.unregisterLocalSkill",
-          "when": "view == skillNinja.installedView && viewItem == localSkill",
+          "when": "view == skillNinja.installedView && viewItem == managedSkill",
           "group": "navigation"
         },
         {
@@ -712,12 +712,12 @@
         },
         {
           "command": "skillNinja.copyPath",
-          "when": "view == skillNinja.installedView && (viewItem == installedSkill || viewItem == localSkill)",
+          "when": "view == skillNinja.installedView && (viewItem == managedSkill || viewItem == managedUnregisteredSkill || viewItem == builtInSkill)",
           "group": "navigation@1"
         },
         {
           "command": "skillNinja.openInTerminal",
-          "when": "view == skillNinja.installedView && (viewItem == installedSkill || viewItem == localSkill)",
+          "when": "view == skillNinja.installedView && (viewItem == managedSkill || viewItem == managedUnregisteredSkill || viewItem == builtInSkill)",
           "group": "navigation@2"
         }
       ],
@@ -744,7 +744,7 @@
         "skillNinja.autoUpdateSkillsOnUpgrade": {
           "type": "string",
           "default": "prompt",
-          "order": 7,
+          "order": 9,
           "enum": [
             "always",
             "prompt",
@@ -801,16 +801,30 @@
           "order": 4,
           "description": "%config.skillsDirectory.description%"
         },
+        "skillNinja.useVsCodeAgentSkillLocations": {
+          "type": "boolean",
+          "default": true,
+          "order": 5,
+          "description": "%config.useVsCodeAgentSkillLocations.description%",
+          "markdownDescription": "%config.useVsCodeAgentSkillLocations.markdownDescription%"
+        },
+        "skillNinja.showBuiltInSkills": {
+          "type": "boolean",
+          "default": false,
+          "order": 6,
+          "description": "%config.showBuiltInSkills.description%",
+          "markdownDescription": "%config.showBuiltInSkills.markdownDescription%"
+        },
         "skillNinja.githubToken": {
           "type": "string",
           "default": "",
-          "order": 8,
+          "order": 10,
           "markdownDescription": "%config.githubToken.markdownDescription%"
         },
         "skillNinja.language": {
           "type": "string",
           "default": "auto",
-          "order": 6,
+          "order": 8,
           "enum": [
             "auto",
             "en",
@@ -826,7 +840,7 @@
         "skillNinja.outputFormat": {
           "type": "string",
           "default": "full",
-          "order": 5,
+          "order": 7,
           "enum": [
             "full",
             "compact",
@@ -842,7 +856,7 @@
         "skillNinja.singleClickInstall": {
           "type": "boolean",
           "default": false,
-          "order": 9,
+          "order": 11,
           "description": "%config.singleClickInstall.description%"
         },
         "skillNinja.versionInfo": {
@@ -867,17 +881,14 @@
     "package": "npm run check-types && npm run lint && node esbuild.js --production",
     "check-types": "tsc --noEmit",
     "lint": "eslint src",
-    "test": "node scripts/test-whenToUse.js && node scripts/test-search-logic.js && node scripts/test-skill-scan-paths.js && node scripts/test-package-manifest.js"
+    "test": "node scripts/test-whenToUse.js && node scripts/test-search-logic.js && node scripts/test-skill-scan-paths.js && node scripts/test-skill-locations.js && node scripts/test-package-manifest.js"
   },
   "devDependencies": {
-    "@types/mocha": "^10.0.10",
     "@types/node": "20.x",
     "@types/vscode": "^1.85.0",
     "@typescript-eslint/eslint-plugin": "^8.18.0",
     "@typescript-eslint/parser": "^8.18.0",
-    "@vscode/test-cli": "^0.0.10",
-    "@vscode/test-electron": "^2.4.1",
-    "esbuild": "^0.24.2",
+    "esbuild": "^0.28.0",
     "eslint": "^9.17.0",
     "npm-run-all": "^4.1.5",
     "typescript": "^5.7.2"

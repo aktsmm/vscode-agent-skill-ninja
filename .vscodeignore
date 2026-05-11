@@ -13,6 +13,10 @@ AGENTS.md.backup
 *.vsix
 artifacts/**
 tmp-*
+/*-capture.txt
+/*-capture.json
+**/*-capture.txt
+**/*-capture.json
 compile-output.txt
 DASHBOARD.md
 robots.txt
