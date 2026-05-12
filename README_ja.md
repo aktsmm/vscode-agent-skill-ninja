@@ -103,8 +103,9 @@
 
 ### 📦 インストール・管理
 
-- ワンクリックでインストール（デフォルト: `.github/skills/`、設定で変更可能）
-- managed root が複数ある場合はインストール先（workspace / user-global）を選択可能
+- Remote Skills の行をダブルクリックすると、既定で workspace skill root（`skillNinja.skillsDirectory`、既定: `.github/skills`）へインストール
+- Browse ビューでは `skillNinja.singleClickInstall` でシングルクリックインストールに切り替え可能
+- ツールバー / 検索 / プレビュー経由などでは、managed root が複数ある場合にインストール先（workspace / user-global）を選択可能
 - **instruction file** 自動更新（AGENTS.md / copilot-instructions.md / CLAUDE.md）
 - **テーブル形式** - 「When to Use」列付きの表形式でスキル一覧表示
 - **「When to Use」自動抽出** - SKILL.md の `## When to Use` セクションから自動取得
@@ -216,7 +217,7 @@ ext install yamapan.agent-skill-ninja
    - **お気に入り** セクションが最上部に表示
    - ソース順: Official → Curated → Community
    - インストール済みは緑アイコンで表示
-   - リストからワンクリックでインストール
+  - 行のダブルクリックで既定の workspace root にインストール。スコープ選択したい場合は inline の Install を利用
 
 - ツールバー: 検索 / Web Search / インデックス更新 / ソース追加 / 新規作成 / 設定
 

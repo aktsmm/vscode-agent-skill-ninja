@@ -22,6 +22,10 @@ const mcpToolsSource = fs.readFileSync(
   path.join(root, "src", "mcpTools.ts"),
   "utf8",
 );
+const extensionSource = fs.readFileSync(
+  path.join(root, "src", "extension.ts"),
+  "utf8",
+);
 
 function test(name, fn) {
   try {
@@ -237,6 +241,39 @@ test("manifest exposes installed, user/global, and remote views", () => {
   ]);
 });
 
+test("single-click install setting defaults to double-click behavior", () => {
+  const setting =
+    pkg.contributes.configuration.properties["skillNinja.singleClickInstall"];
+  assert.ok(setting);
+  assert.strictEqual(setting.default, false);
+});
+
+test("README files explain double-click workspace install behavior", () => {
+  assert.ok(readme.includes("Double-click a remote skill row"));
+  assert.ok(readme.includes("workspace skill root"));
+  assert.ok(readme.includes("inline Install action"));
+
+  assert.ok(readmeJa.includes("ダブルクリックすると、既定で workspace skill root"));
+  assert.ok(readmeJa.includes("シングルクリックインストールに切り替え可能"));
+  assert.ok(readmeJa.includes("inline の Install"));
+});
+
+test("extension keeps default double-click workspace install contract", () => {
+  assert.ok(extensionSource.includes("resolveDefaultInstallTargetRoot"));
+  assert.ok(extensionSource.includes('root.scope === "workspace"'));
+  assert.ok(extensionSource.includes('"skillNinja.onSkillClick"'));
+  assert.ok(extensionSource.includes("explicitTargetRoot?: SkillRoot"));
+});
+
+test("install bundle command uses localized command titles", () => {
+  const installBundle = (pkg.contributes.commands || []).find(
+    (command) => command.command === "skillNinja.installBundle",
+  );
+
+  assert.ok(installBundle);
+  assert.strictEqual(installBundle.title, "%command.installBundle%");
+});
+
 test("all views expose create skill and settings in the title bar", () => {
   for (const viewId of [
     "skillNinja.installedView",
@@ -401,10 +438,46 @@ test("temporary capture logs are excluded from the VSIX", () => {
     "vsix-contents-capture.txt",
     "npm-audit-capture.json",
     "marketplace-check.json",
+    "compile-exit.txt",
+    "compile-output-latest.txt",
+    "test-exit.txt",
+    "test-output.txt",
+    "audit-release.txt",
+    "audit-release-exit.txt",
+    "vsce-package-release.txt",
+    "vsce-ls-release.txt",
+    "vsce-show-0.9.x.json",
+    "vsce-show-exit.txt",
+    "vsix-contents-0.9.4.txt",
+    "vsix-metadata-0.9.4.txt",
   ]) {
     assert.ok(
       ignoreMatchers.some((matcher) => matcher.test(filePath)),
       `${filePath} should be excluded from the VSIX`,
+    );
+  }
+});
+
+test("local debug logs and backup files are excluded from git", () => {
+  const ignoreMatchers = getGitIgnoreEntries().map(globToRegExp);
+  for (const filePath of [
+    "compile-exit.txt",
+    "compile-output-latest.txt",
+    "test-exit.txt",
+    "test-output.txt",
+    "audit-release.txt",
+    "audit-release-exit.txt",
+    "vsce-package-release.txt",
+    "vsce-ls-release.txt",
+    "vsce-show-0.9.x.json",
+    "vsce-show-exit.txt",
+    "vsix-contents-0.9.4.txt",
+    "vsix-metadata-0.9.4.txt",
+    "AGENTS.md.backup",
+  ]) {
+    assert.ok(
+      ignoreMatchers.some((matcher) => matcher.test(filePath)),
+      `${filePath} must be excluded by .gitignore`,
     );
   }
 });

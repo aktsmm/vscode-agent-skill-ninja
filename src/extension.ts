@@ -327,6 +327,17 @@ export function activate(
     );
   }
 
+  async function resolveDefaultInstallTargetRoot(
+    workspaceUri: vscode.Uri,
+  ): Promise<SkillRoot | undefined> {
+    const roots = await getManagedRootsForWorkspace(workspaceUri);
+    if (roots.length === 0) {
+      return undefined;
+    }
+
+    return roots.find((root) => root.scope === "workspace") || roots[0];
+  }
+
   function getSkillRootFromItem(item?: SkillTreeItem): SkillRoot | undefined {
     if (!item?.skill) {
       return undefined;
@@ -380,7 +391,15 @@ export function activate(
 
       // 同じアイテムを500ms以内にクリック → ダブルクリック
       if (lastClickedItem === itemId && now - lastClickTime < 500) {
-        await vscode.commands.executeCommand("skillNinja.install", skill);
+        const wsFolder = vscode.workspace.workspaceFolders?.[0];
+        const defaultTargetRoot = wsFolder
+          ? await resolveDefaultInstallTargetRoot(wsFolder.uri)
+          : undefined;
+        await vscode.commands.executeCommand(
+          "skillNinja.install",
+          skill,
+          defaultTargetRoot,
+        );
         lastClickTime = 0;
         lastClickedItem = undefined;
       } else {
@@ -794,7 +813,7 @@ export function activate(
   // Command: Install skill
   const installCmd = vscode.commands.registerCommand(
     "skillNinja.install",
-    async (skillOrItem?: any) => {
+    async (skillOrItem?: any, explicitTargetRoot?: SkillRoot) => {
       const wsFolder = vscode.workspace.workspaceFolders?.[0];
       if (!wsFolder) {
         vscode.window.showErrorMessage(messages.noWorkspace());
@@ -813,7 +832,8 @@ export function activate(
         return;
       }
 
-      const targetRoot = await resolveInstallTargetRoot(wsFolder.uri);
+      const targetRoot =
+        explicitTargetRoot || (await resolveInstallTargetRoot(wsFolder.uri));
       if (!targetRoot) {
         return;
       }

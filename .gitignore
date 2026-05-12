@@ -6,6 +6,14 @@ dist/
 output_blog_tips/
 output_retro/
 compile-output.txt
+compile-*.txt
+test-*.txt
+audit-*.txt
+vsce-*.txt
+vsce-*.json
+vsix-contents-*.txt
+vsix-metadata-*.txt
+AGENTS.md.backup
 scripts/debug-*.js
 .github/skills/
 .github/prompts/

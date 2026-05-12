@@ -20,6 +20,13 @@ tmp-*
 **/*-capture.txt
 **/*-capture.json
 compile-output.txt
+compile-*.txt
+test-*.txt
+audit-*.txt
+vsce-*.txt
+vsce-*.json
+vsix-contents-*.txt
+vsix-metadata-*.txt
 DASHBOARD.md
 robots.txt
 output_retro/**

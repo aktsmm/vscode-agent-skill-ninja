@@ -107,8 +107,9 @@ Settings → **Output Format** → Select `full`, `compact`, or `legacy`
 
 ### 📦 Install & Manage
 
-- One-click installation (default: `.github/skills/`, configurable in settings)
-- Install target picker for multiple managed roots (workspace or user/global)
+- Double-click a remote skill row to install it into the workspace skill root by default (`skillNinja.skillsDirectory`, default: `.github/skills`)
+- Optional single-click install toggle for Browse view (`skillNinja.singleClickInstall`)
+- Install target picker for toolbar/search/preview flows and other cases with multiple managed roots (workspace or user/global)
 - Auto-update **instruction file** (AGENTS.md / copilot-instructions.md / CLAUDE.md)
 - **Table Format** - Skills displayed in table with "When to Use" column
 - **Auto-extract "When to Use"** - Extracted from SKILL.md `## When to Use` section
@@ -220,7 +221,7 @@ Preset index includes skills from official, curated, and community sources out o
    - **Favorites** section at top
    - Sources sorted: Official → Curated → Community
    - Shows installed status with green icons
-   - One-click install from list
+  - Double-click a row to install to the workspace root by default, or use the inline Install action when you want the scope picker
 
 - Toolbar: Search / Web Search / Update Index / Add Source / Create / Settings
 
