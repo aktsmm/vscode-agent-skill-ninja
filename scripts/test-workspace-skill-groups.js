@@ -264,6 +264,18 @@ test("uses concise friendly labels for user/global roots", () => {
     ),
     "Package (Universal)",
   );
+
+  assert.strictEqual(
+    getSkillRootGroupLabel(
+      createSkill(
+        "builtin-core",
+        "builtIn",
+        "C:/Users/test/AppData/Local/Programs/Microsoft VS Code/resources/app/node_modules/@github/copilot/builtin-skills",
+        "builtin-core",
+      ).root,
+    ),
+    "Built-in Skills",
+  );
 });
 
 test("groups built-in roots by provider before variant", () => {

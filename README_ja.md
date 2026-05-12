@@ -203,7 +203,7 @@ ext install yamapan.agent-skill-ninja
 - 空状態: 検索 / 新規作成 / インストラクションファイルを開く
 - workspace scope のスキルフォルダ / ファイルを開けます
 
-3. **ユーザー / グローバル スキル** - personal skills は skill root ごと、built-in skills は provider/origin ごとに表示
+3. **ユーザー / グローバル スキル** - personal skills は skill root ごと、Built-in Skills は provider/origin ごとに表示
 
 - **ユーザー / グローバル スキル**: 標準の personal roots（`~/.copilot/skills`, `~/.claude/skills`, `~/.agents/skills`）と VS Code の Agent Skill Locations から見つかった managed skills
 - **Built-in Skills**: Copilot / VS Code 同梱 skills を読み取り専用で表示する任意グループ。GitHub Copilot Chat、GitHub Copilot CLI、VS Code などの provider/origin で先にまとめ、その配下に Prompts、Skills、Package (Universal) などの variant/root を表示します
@@ -351,7 +351,7 @@ MCP ツールが不要な場合は、GitHub Copilot Chat のツール一覧か�
 |  3   | `skillNinja.customInstructionPath`        | `""`             | カスタムパス _(instructionFile が 'custom' の時のみ)_                 |
 |  4   | `skillNinja.skillsDirectory`              | `.github/skills` | ワークスペーススキルをインストール・管理するディレクトリ              |
 |  5   | `skillNinja.useVsCodeAgentSkillLocations` | `true`           | 標準 personal root と追加の user/global skill root を検出して管理する |
-|  6   | `skillNinja.showBuiltInSkills`            | `false`          | 読み取り専用の built-in skills を表示する                             |
+|  6   | `skillNinja.showBuiltInSkills`            | `false`          | 読み取り専用の Built-in Skills を表示する                             |
 |  7   | `skillNinja.outputFormat`                 | `full`           | 出力形式（full / compact / legacy）                                   |
 |  8   | `skillNinja.language`                     | `auto`           | UI 言語（auto / en / ja）                                             |
 |  9   | `skillNinja.autoUpdateSkillsOnUpgrade`    | `prompt`         | 拡張機能アップグレード後のスキル更新                                  |
@@ -362,7 +362,7 @@ MCP ツールが不要な場合は、GitHub Copilot Chat のツール一覧か�
 
 > 設定画面では上記の順序で表示されます
 
-互換用設定: `skillNinja.includeLocalSkills` は非推奨です。ワークスペーススキルは `skillNinja.skillsDirectory` 配下を管理対象にし、personal root と追加の user/global root は `skillNinja.useVsCodeAgentSkillLocations` から検出します。設定された location では `${workspaceFolder}`, `${userHome}`, `${env:APPDATA}`, `%APPDATA%` を使えます。built-in skills は `skillNinja.showBuiltInSkills` を有効にしたときだけ表示します。
+互換用設定: `skillNinja.includeLocalSkills` は非推奨です。ワークスペーススキルは `skillNinja.skillsDirectory` 配下を管理対象にし、personal root と追加の user/global root は `skillNinja.useVsCodeAgentSkillLocations` から検出します。設定された location では `${workspaceFolder}`, `${userHome}`, `${env:APPDATA}`, `%APPDATA%` を使えます。Built-in Skills は `skillNinja.showBuiltInSkills` を有効にしたときだけ表示します。
 
 ### Agent Resources Ninja との共存
 

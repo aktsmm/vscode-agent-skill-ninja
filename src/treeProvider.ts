@@ -170,13 +170,6 @@ function getRootLabelFromPath(root: SkillRoot): string | undefined {
   if (normalizedRootPath.includes("/extensions/github.copilot")) {
     return localizeRootLabel("GitHub Copilot", "GitHub Copilot");
   }
-  if (normalizedRootPath.includes("/@github/copilot/builtin-skills")) {
-    return localizeRootLabel(
-      "GitHub Copilot Built-ins",
-      "GitHub Copilot Built-ins",
-    );
-  }
-
   // Packaged built-in: ~/.copilot/pkg/<channel>/<version>/builtin-skills
   // or ~/.copilot/pkg/<channel>/builtin-skills
   const pkgMatch = normalizedRootPath.match(
@@ -439,8 +432,8 @@ function createManagedSkillTreeItem(
   const noDescription = isJapanese() ? "説明なし" : "No description";
   const statusText = skill.isReadOnly
     ? isJapanese()
-      ? "Built-in（読み取り専用）"
-      : "Built-in (read-only)"
+      ? "Built-in Skills（読み取り専用）"
+      : "Built-in Skills (read-only)"
     : skill.isRegistered
       ? isJapanese()
         ? "Managed（登録済み）"
