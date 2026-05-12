@@ -72,6 +72,9 @@ function humanizeRootSegment(segment: string): string {
 export function getBuiltInProviderKey(root: SkillRoot): string {
   const normalizedRootPath = normalizeFileSystemPath(root.rootPath);
 
+  if (normalizedRootPath.endsWith("/out/vs/sessions/skills")) {
+    return "vscode";
+  }
   if (normalizedRootPath.includes("/.copilot/pkg/")) {
     return "copilot-cli";
   }
@@ -87,9 +90,6 @@ export function getBuiltInProviderKey(root: SkillRoot): string {
   if (normalizedRootPath.includes("/@github/copilot/builtin-skills")) {
     return "vscode";
   }
-  if (normalizedRootPath.endsWith("/out/vs/sessions/skills")) {
-    return "sessions";
-  }
 
   return "built-in";
 }
@@ -104,10 +104,8 @@ export function getBuiltInProviderLabel(root: SkillRoot): string {
       return localizeRootLabel("GitHub Copilot", "GitHub Copilot");
     case "vscode":
       return localizeRootLabel("VS Code", "VS Code");
-    case "sessions":
-      return localizeRootLabel("Sessions", "Sessions");
     default:
-      return localizeRootLabel("Built-in", "組み込み");
+      return localizeRootLabel("Built-in", "Built-in");
   }
 }
 
@@ -138,7 +136,7 @@ export function getBuiltInVariantLabel(root: SkillRoot): string | undefined {
   }
 
   if (normalizedRootPath.includes("/@github/copilot/builtin-skills")) {
-    return localizeRootLabel("Built-in Skills", "組み込みスキル");
+    return localizeRootLabel("Built-in Skills", "Built-in Skills");
   }
 
   if (normalizedRootPath.endsWith("/skills")) {
@@ -175,7 +173,7 @@ function getRootLabelFromPath(root: SkillRoot): string | undefined {
   if (normalizedRootPath.includes("/@github/copilot/builtin-skills")) {
     return localizeRootLabel(
       "GitHub Copilot Built-ins",
-      "GitHub Copilot 組み込み",
+      "GitHub Copilot Built-ins",
     );
   }
 
@@ -722,7 +720,9 @@ export class UserGlobalSkillsProvider implements vscode.TreeDataProvider<SkillTr
   }
 
   private buildBuiltInSectionItem(): SkillTreeItem | undefined {
-    const builtInProviderGroups = buildBuiltInProviderGroups(this.userGlobalSkills);
+    const builtInProviderGroups = buildBuiltInProviderGroups(
+      this.userGlobalSkills,
+    );
     if (builtInProviderGroups.length === 0) {
       return undefined;
     }
@@ -738,7 +738,7 @@ export class UserGlobalSkillsProvider implements vscode.TreeDataProvider<SkillTr
       ? `${totalSkills} 件のスキル • ${sourceLabels}`
       : `${totalSkills} skills • ${sourceLabels}`;
     const item = new SkillTreeItem(
-      isJapanese() ? "組み込みスキル" : "Built-in Skills",
+      "Built-in Skills",
       description,
       vscode.TreeItemCollapsibleState.Collapsed,
       "builtInScopeGroup",
@@ -783,11 +783,11 @@ export class UserGlobalSkillsProvider implements vscode.TreeDataProvider<SkillTr
 
     return matchingGroups.flatMap((providerGroup) =>
       providerGroup.roots.map((group) =>
-      createSkillRootGroupItem(
-        group.root,
-        group.skills.length,
-        "builtInSkillRootGroup",
-      ),
+        createSkillRootGroupItem(
+          group.root,
+          group.skills.length,
+          "builtInSkillRootGroup",
+        ),
       ),
     );
   }

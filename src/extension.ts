@@ -251,7 +251,7 @@ export function activate(
           ? "ユーザー / グローバル スキル"
           : "User / Global Skills";
       case "builtIn":
-        return isJapanese() ? "組み込みスキル" : "Built-in Skills";
+        return "Built-in Skills";
       default:
         return root.label;
     }
@@ -2636,7 +2636,7 @@ Add examples here
 
       vscode.window.showInformationMessage(
         isJapanese()
-          ? "組み込みスキルを表示しました"
+          ? "Built-in Skills を表示しました"
           : "Built-in skills are now visible",
       );
     },

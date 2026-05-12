@@ -468,10 +468,25 @@ function makeConfigStub(values) {
     const tempHome = fs.mkdtempSync(
       path.join(os.tmpdir(), "skill-ninja-consolidate-"),
     );
-    const versions = ["1.0.24", "1.0.26-0", "1.0.40", "1.0.42-0", "1.0.42", "1.0.44-2", "1.0.44"];
+    const versions = [
+      "1.0.24",
+      "1.0.26-0",
+      "1.0.40",
+      "1.0.42-0",
+      "1.0.42",
+      "1.0.44-2",
+      "1.0.44",
+    ];
     for (const v of versions) {
       fs.mkdirSync(
-        path.join(tempHome, ".copilot", "pkg", "universal", v, "builtin-skills"),
+        path.join(
+          tempHome,
+          ".copilot",
+          "pkg",
+          "universal",
+          v,
+          "builtin-skills",
+        ),
         { recursive: true },
       );
     }
@@ -481,7 +496,11 @@ function makeConfigStub(values) {
     );
 
     // Should return only the latest version (1.0.44-2 > 1.0.44 > 1.0.42-0 > ...)
-    assert.strictEqual(roots.length, 1, `Expected 1 root, got ${roots.length}: ${JSON.stringify(roots)}`);
+    assert.strictEqual(
+      roots.length,
+      1,
+      `Expected 1 root, got ${roots.length}: ${JSON.stringify(roots)}`,
+    );
     assert(
       roots[0].includes("1.0.44-2"),
       `Expected latest version 1.0.44-2, got: ${roots[0]}`,
@@ -499,11 +518,25 @@ function makeConfigStub(values) {
     );
     // Versioned
     fs.mkdirSync(
-      path.join(tempHome, ".copilot", "pkg", "universal", "1.0.40", "builtin-skills"),
+      path.join(
+        tempHome,
+        ".copilot",
+        "pkg",
+        "universal",
+        "1.0.40",
+        "builtin-skills",
+      ),
       { recursive: true },
     );
     fs.mkdirSync(
-      path.join(tempHome, ".copilot", "pkg", "universal", "1.0.44", "builtin-skills"),
+      path.join(
+        tempHome,
+        ".copilot",
+        "pkg",
+        "universal",
+        "1.0.44",
+        "builtin-skills",
+      ),
       { recursive: true },
     );
 
@@ -512,7 +545,11 @@ function makeConfigStub(values) {
     );
 
     // Channel-level + latest versioned = 2
-    assert.strictEqual(roots.length, 2, `Expected 2 roots, got ${roots.length}: ${JSON.stringify(roots)}`);
+    assert.strictEqual(
+      roots.length,
+      2,
+      `Expected 2 roots, got ${roots.length}: ${JSON.stringify(roots)}`,
+    );
   });
 
   await test("consolidates independently per channel", async () => {
@@ -520,19 +557,47 @@ function makeConfigStub(values) {
       path.join(os.tmpdir(), "skill-ninja-multi-channel-"),
     );
     fs.mkdirSync(
-      path.join(tempHome, ".copilot", "pkg", "universal", "1.0.24", "builtin-skills"),
+      path.join(
+        tempHome,
+        ".copilot",
+        "pkg",
+        "universal",
+        "1.0.24",
+        "builtin-skills",
+      ),
       { recursive: true },
     );
     fs.mkdirSync(
-      path.join(tempHome, ".copilot", "pkg", "universal", "1.0.44", "builtin-skills"),
+      path.join(
+        tempHome,
+        ".copilot",
+        "pkg",
+        "universal",
+        "1.0.44",
+        "builtin-skills",
+      ),
       { recursive: true },
     );
     fs.mkdirSync(
-      path.join(tempHome, ".copilot", "pkg", "preview", "2.0.1", "builtin-skills"),
+      path.join(
+        tempHome,
+        ".copilot",
+        "pkg",
+        "preview",
+        "2.0.1",
+        "builtin-skills",
+      ),
       { recursive: true },
     );
     fs.mkdirSync(
-      path.join(tempHome, ".copilot", "pkg", "preview", "2.0.5", "builtin-skills"),
+      path.join(
+        tempHome,
+        ".copilot",
+        "pkg",
+        "preview",
+        "2.0.5",
+        "builtin-skills",
+      ),
       { recursive: true },
     );
 
@@ -541,7 +606,11 @@ function makeConfigStub(values) {
     );
 
     // 1 per channel = 2
-    assert.strictEqual(roots.length, 2, `Expected 2 roots, got ${roots.length}: ${JSON.stringify(roots)}`);
+    assert.strictEqual(
+      roots.length,
+      2,
+      `Expected 2 roots, got ${roots.length}: ${JSON.stringify(roots)}`,
+    );
     const hasUniversalLatest = roots.some((r) => r.includes("1.0.44"));
     const hasPreviewLatest = roots.some((r) => r.includes("2.0.5"));
     assert(hasUniversalLatest, "Should include latest universal version");
@@ -551,7 +620,10 @@ function makeConfigStub(values) {
   await test("compareVersionStrings sorts semver-like strings correctly", () => {
     assert(compareVersionStrings("1.0.44-2", "1.0.44") > 0);
     assert(compareVersionStrings("1.0.44", "1.0.42-0") > 0);
-    assert(compareVersionStrings("1.0.42-0", "1.0.42") === 0, "trailing -0 is equal to no suffix");
+    assert(
+      compareVersionStrings("1.0.42-0", "1.0.42") === 0,
+      "trailing -0 is equal to no suffix",
+    );
     assert(compareVersionStrings("1.0.42", "1.0.40") > 0);
     assert(compareVersionStrings("1.0.40", "1.0.26-0") > 0);
     assert(compareVersionStrings("1.0.24", "1.0.24") === 0);

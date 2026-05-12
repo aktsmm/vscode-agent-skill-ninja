@@ -288,6 +288,12 @@ test("groups built-in roots by provider before variant", () => {
           "C:/Users/test/.copilot/pkg/universal/1.0.44-2/builtin-skills",
           "cli-skill",
         ),
+        createSkill(
+          "session-skill",
+          "builtIn",
+          "C:/Users/test/AppData/Local/Programs/Microsoft VS Code/resources/app/out/vs/sessions/skills",
+          "session-skill",
+        ),
       ]),
     ),
   );
@@ -310,6 +316,11 @@ test("groups built-in roots by provider before variant", () => {
         label: "GitHub Copilot CLI",
         skillCount: 1,
         rootLabels: ["Package (Universal)"],
+      },
+      {
+        label: "VS Code",
+        skillCount: 1,
+        rootLabels: ["Session Skills"],
       },
     ],
   );

@@ -147,7 +147,7 @@ test("user/global welcome explains built-in skills are hidden by default", () =>
   );
   assert.match(
     localizedContent(userGlobalView, "ja"),
-    /組み込みスキルは有効化するまで非表示/,
+    /Built-in Skills は有効化するまで非表示/,
   );
 });
 

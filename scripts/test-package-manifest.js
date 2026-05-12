@@ -206,21 +206,16 @@ test("README files describe workspace, user/global, and built-in skill scopes", 
   assert.ok(readmeJa.includes("skillNinja.useVsCodeAgentSkillLocations"));
   assert.ok(readmeJa.includes("skillNinja.showBuiltInSkills"));
   assert.ok(readmeJa.includes("ユーザー / グローバル スキル"));
-  assert.ok(readmeJa.includes("組み込みスキル"));
+  assert.ok(readmeJa.includes("Built-in Skills"));
   assert.ok(readmeJa.includes("provider/origin"));
 });
 
 test("built-in setting descriptions explain provider-based grouping", () => {
   assert.ok(
-    pkg.contributes.configuration.properties[
-      "skillNinja.showBuiltInSkills"
-    ],
+    pkg.contributes.configuration.properties["skillNinja.showBuiltInSkills"],
   );
   const nls = fs.readFileSync(path.join(root, "package.nls.json"), "utf8");
-  const nlsJa = fs.readFileSync(
-    path.join(root, "package.nls.ja.json"),
-    "utf8",
-  );
+  const nlsJa = fs.readFileSync(path.join(root, "package.nls.ja.json"), "utf8");
 
   assert.ok(nls.includes("provider/origin"));
   assert.ok(nls.includes("variant/root"));
