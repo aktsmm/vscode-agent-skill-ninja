@@ -206,6 +206,24 @@ export function getBuiltInCandidatePaths(
   return candidates;
 }
 
+export function compareVersionStrings(a: string, b: string): number {
+  const parse = (s: string): number[] =>
+    s.split(/[.-]/).map((seg) => {
+      const n = parseInt(seg, 10);
+      return Number.isNaN(n) ? 0 : n;
+    });
+  const aParts = parse(a);
+  const bParts = parse(b);
+  const maxLen = Math.max(aParts.length, bParts.length);
+  for (let i = 0; i < maxLen; i++) {
+    const diff = (aParts[i] || 0) - (bParts[i] || 0);
+    if (diff !== 0) {
+      return diff;
+    }
+  }
+  return 0;
+}
+
 export async function getPackagedBuiltInSkillLocationPaths(
   homeDir: string = os.homedir(),
 ): Promise<string[]> {
@@ -222,6 +240,12 @@ export async function getPackagedBuiltInSkillLocationPaths(
     seen.add(normalizedCandidatePath);
     candidates.push(path.normalize(candidatePath));
   };
+
+  // Collect versioned entries per channel for consolidation
+  const channelVersions = new Map<
+    string,
+    Array<{ version: string; path: string }>
+  >();
 
   const packageChannels = await readDirectoryIfExists(packageRootUri);
   for (const [channelName, channelType] of packageChannels) {
@@ -249,10 +273,25 @@ export async function getPackagedBuiltInSkillLocationPaths(
           versionEntryName === "builtin-skills" &&
           isDirectoryEntry(versionEntryType)
         ) {
-          addCandidate(vscode.Uri.joinPath(versionUri, versionEntryName).fsPath);
+          if (!channelVersions.has(channelName)) {
+            channelVersions.set(channelName, []);
+          }
+          channelVersions.get(channelName)!.push({
+            version: entryName,
+            path: vscode.Uri.joinPath(versionUri, versionEntryName).fsPath,
+          });
         }
       }
     }
+  }
+
+  // Keep only the latest version per channel
+  for (const [, versions] of channelVersions) {
+    if (versions.length === 0) {
+      continue;
+    }
+    versions.sort((a, b) => compareVersionStrings(b.version, a.version));
+    addCandidate(versions[0].path);
   }
 
   return candidates;

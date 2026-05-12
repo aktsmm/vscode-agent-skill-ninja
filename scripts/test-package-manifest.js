@@ -200,12 +200,32 @@ test("README files describe workspace, user/global, and built-in skill scopes", 
   assert.ok(readme.includes("skillNinja.showBuiltInSkills"));
   assert.ok(readme.includes("User / Global Skills"));
   assert.ok(readme.includes("Built-in Skills"));
+  assert.ok(readme.includes("provider/origin"));
   assert.ok(readmeJa.includes("skillNinja.skillsDirectory"));
   assert.ok(readmeJa.includes("インストール済みスキル"));
   assert.ok(readmeJa.includes("skillNinja.useVsCodeAgentSkillLocations"));
   assert.ok(readmeJa.includes("skillNinja.showBuiltInSkills"));
   assert.ok(readmeJa.includes("ユーザー / グローバル スキル"));
   assert.ok(readmeJa.includes("組み込みスキル"));
+  assert.ok(readmeJa.includes("provider/origin"));
+});
+
+test("built-in setting descriptions explain provider-based grouping", () => {
+  assert.ok(
+    pkg.contributes.configuration.properties[
+      "skillNinja.showBuiltInSkills"
+    ],
+  );
+  const nls = fs.readFileSync(path.join(root, "package.nls.json"), "utf8");
+  const nlsJa = fs.readFileSync(
+    path.join(root, "package.nls.ja.json"),
+    "utf8",
+  );
+
+  assert.ok(nls.includes("provider/origin"));
+  assert.ok(nls.includes("variant/root"));
+  assert.ok(nlsJa.includes("provider/origin"));
+  assert.ok(nlsJa.includes("variant/root"));
 });
 
 test("manifest exposes installed, user/global, and remote views", () => {

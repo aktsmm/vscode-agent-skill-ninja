@@ -207,10 +207,10 @@ Preset index includes skills from official, curated, and community sources out o
 - Empty state: Search / Create / Open Instruction File quick links
 - Open skill folder or file from the workspace scope
 
-3. **User / Global Skills** - Personal and built-in skills grouped by skill root
+3. **User / Global Skills** - Personal skills grouped by skill root, plus optional built-in skills grouped by provider/origin
 
 - **User / Global Skills**: discovered from standard personal roots (`~/.copilot/skills`, `~/.claude/skills`, `~/.agents/skills`) plus VS Code Agent Skill Locations
-- **Built-in Skills**: optional read-only group for Copilot / VS Code packaged skills
+- **Built-in Skills**: optional read-only group for Copilot / VS Code packaged skills, grouped first by provider/origin (for example GitHub Copilot Chat, GitHub Copilot CLI, VS Code) and then by variant/root (for example Prompts, Skills, Package (Universal))
 - Root nodes use concise home/product labels, while counts and full paths stay in the secondary description / tooltip
 - Toolbar: Instruction File / Update Instruction / Create / Refresh / Settings
 - Empty state: Create / Show Built-in Skills / Open Settings quick links

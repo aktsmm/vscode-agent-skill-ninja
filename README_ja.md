@@ -203,10 +203,10 @@ ext install yamapan.agent-skill-ninja
 - 空状態: 検索 / 新規作成 / インストラクションファイルを開く
 - workspace scope のスキルフォルダ / ファイルを開けます
 
-3. **ユーザー / グローバル スキル** - personal / built-in skills を skill root ごとに表示
+3. **ユーザー / グローバル スキル** - personal skills は skill root ごと、built-in skills は provider/origin ごとに表示
 
 - **ユーザー / グローバル スキル**: 標準の personal roots（`~/.copilot/skills`, `~/.claude/skills`, `~/.agents/skills`）と VS Code の Agent Skill Locations から見つかった managed skills
-- **組み込みスキル**: Copilot / VS Code 同梱 skills を読み取り専用で表示する任意グループ
+- **組み込みスキル**: Copilot / VS Code 同梱 skills を読み取り専用で表示する任意グループ。GitHub Copilot Chat、GitHub Copilot CLI、VS Code などの provider/origin で先にまとめ、その配下に Prompts、Skills、Package (Universal) などの variant/root を表示します
 - ルートノードは短い home / product 名で表示し、件数とフルパスは description / tooltip 側に寄せます
 - ツールバー: Instruction / インストラクション更新 / 新規作成 / 更新 / 設定
 - 空状態: 新規作成 / 組み込みスキル表示 / 設定を開く

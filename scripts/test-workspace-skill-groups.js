@@ -100,7 +100,10 @@ const englishExports = loadTreeProviderExports(false);
 const japaneseExports = loadTreeProviderExports(true);
 
 const {
+  buildBuiltInProviderGroups,
   buildSkillRootGroups,
+  getBuiltInProviderLabel,
+  getBuiltInVariantLabel,
   getSkillRootGroupLabel,
   getSkillRootGroupDescription,
   getManagedSkillTreeItemLabel,
@@ -227,7 +230,7 @@ test("uses concise friendly labels for user/global roots", () => {
   );
 
   assert.strictEqual(
-    getSkillRootGroupLabel(
+    getBuiltInProviderLabel(
       createSkill(
         "epsilon",
         "builtIn",
@@ -236,6 +239,79 @@ test("uses concise friendly labels for user/global roots", () => {
       ).root,
     ),
     "GitHub Copilot Chat",
+  );
+
+  assert.strictEqual(
+    getSkillRootGroupLabel(
+      createSkill(
+        "epsilon",
+        "builtIn",
+        "C:/Users/test/.vscode/extensions/github.copilot-chat-1.0.0/assets/prompts/skills",
+        "epsilon",
+      ).root,
+    ),
+    "Prompts",
+  );
+
+  assert.strictEqual(
+    getSkillRootGroupLabel(
+      createSkill(
+        "zeta",
+        "builtIn",
+        "C:/Users/test/.copilot/pkg/universal/1.0.44-2/builtin-skills",
+        "customize-cloud-agent",
+      ).root,
+    ),
+    "Package (Universal)",
+  );
+});
+
+test("groups built-in roots by provider before variant", () => {
+  const providerGroups = JSON.parse(
+    JSON.stringify(
+      buildBuiltInProviderGroups([
+        createSkill(
+          "chat-prompt-skill",
+          "builtIn",
+          "C:/Users/test/.vscode/extensions/github.copilot-chat-1.0.0/assets/prompts/skills",
+          "chat-prompt-skill",
+        ),
+        createSkill(
+          "chat-core-skill",
+          "builtIn",
+          "C:/Users/test/.vscode/extensions/github.copilot-chat-1.0.0/skills",
+          "chat-core-skill",
+        ),
+        createSkill(
+          "cli-skill",
+          "builtIn",
+          "C:/Users/test/.copilot/pkg/universal/1.0.44-2/builtin-skills",
+          "cli-skill",
+        ),
+      ]),
+    ),
+  );
+
+  assert.deepStrictEqual(
+    providerGroups.map((group) => ({
+      label: group.label,
+      skillCount: group.skillCount,
+      rootLabels: group.roots.map((rootGroup) =>
+        getBuiltInVariantLabel(rootGroup.root),
+      ),
+    })),
+    [
+      {
+        label: "GitHub Copilot Chat",
+        skillCount: 2,
+        rootLabels: ["Prompts", "Skills"],
+      },
+      {
+        label: "GitHub Copilot CLI",
+        skillCount: 1,
+        rootLabels: ["Package (Universal)"],
+      },
+    ],
   );
 });
 

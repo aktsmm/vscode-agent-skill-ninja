@@ -51,6 +51,13 @@ interface WorkspaceSkillRootGroup {
   skills: WorkspaceSkill[];
 }
 
+interface BuiltInProviderGroup {
+  key: string;
+  label: string;
+  roots: WorkspaceSkillRootGroup[];
+  skillCount: number;
+}
+
 function localizeRootLabel(english: string, japanese: string): string {
   return isJapanese() ? japanese : english;
 }
@@ -60,6 +67,85 @@ function humanizeRootSegment(segment: string): string {
     .replace(/^\.+/, "")
     .replace(/[._-]+/g, " ")
     .replace(/\b\w/g, (char) => char.toUpperCase());
+}
+
+export function getBuiltInProviderKey(root: SkillRoot): string {
+  const normalizedRootPath = normalizeFileSystemPath(root.rootPath);
+
+  if (normalizedRootPath.includes("/.copilot/pkg/")) {
+    return "copilot-cli";
+  }
+  if (normalizedRootPath.includes("/extensions/github.copilot-chat")) {
+    return "copilot-chat";
+  }
+  if (normalizedRootPath.includes("/extensions/github.copilot")) {
+    return "copilot";
+  }
+  if (normalizedRootPath.includes("/extensions/copilot/")) {
+    return "copilot";
+  }
+  if (normalizedRootPath.includes("/@github/copilot/builtin-skills")) {
+    return "vscode";
+  }
+  if (normalizedRootPath.endsWith("/out/vs/sessions/skills")) {
+    return "sessions";
+  }
+
+  return "built-in";
+}
+
+export function getBuiltInProviderLabel(root: SkillRoot): string {
+  switch (getBuiltInProviderKey(root)) {
+    case "copilot-cli":
+      return localizeRootLabel("GitHub Copilot CLI", "GitHub Copilot CLI");
+    case "copilot-chat":
+      return localizeRootLabel("GitHub Copilot Chat", "GitHub Copilot Chat");
+    case "copilot":
+      return localizeRootLabel("GitHub Copilot", "GitHub Copilot");
+    case "vscode":
+      return localizeRootLabel("VS Code", "VS Code");
+    case "sessions":
+      return localizeRootLabel("Sessions", "Sessions");
+    default:
+      return localizeRootLabel("Built-in", "組み込み");
+  }
+}
+
+export function getBuiltInVariantLabel(root: SkillRoot): string | undefined {
+  const normalizedRootPath = normalizeFileSystemPath(root.rootPath);
+
+  const pkgMatch = normalizedRootPath.match(
+    /\/\.copilot\/pkg\/([^/]+)(?:\/[^/]+)?\/builtin-skills$/,
+  );
+  if (pkgMatch) {
+    const channel = pkgMatch[1];
+    const channelLabel = channel.charAt(0).toUpperCase() + channel.slice(1);
+    return localizeRootLabel(
+      `Package (${channelLabel})`,
+      `Package (${channelLabel})`,
+    );
+  }
+
+  if (
+    normalizedRootPath.includes("/assets/prompts/skills") ||
+    normalizedRootPath.includes("/dist/prompts/skills")
+  ) {
+    return localizeRootLabel("Prompts", "Prompts");
+  }
+
+  if (normalizedRootPath.endsWith("/out/vs/sessions/skills")) {
+    return localizeRootLabel("Session Skills", "Session Skills");
+  }
+
+  if (normalizedRootPath.includes("/@github/copilot/builtin-skills")) {
+    return localizeRootLabel("Built-in Skills", "組み込みスキル");
+  }
+
+  if (normalizedRootPath.endsWith("/skills")) {
+    return localizeRootLabel("Skills", "スキル");
+  }
+
+  return undefined;
 }
 
 function getRootLabelFromPath(root: SkillRoot): string | undefined {
@@ -93,6 +179,20 @@ function getRootLabelFromPath(root: SkillRoot): string | undefined {
     );
   }
 
+  // Packaged built-in: ~/.copilot/pkg/<channel>/<version>/builtin-skills
+  // or ~/.copilot/pkg/<channel>/builtin-skills
+  const pkgMatch = normalizedRootPath.match(
+    /\/\.copilot\/pkg\/([^/]+)(?:\/[^/]+)?\/builtin-skills$/,
+  );
+  if (pkgMatch) {
+    const channel = pkgMatch[1];
+    const channelLabel = channel.charAt(0).toUpperCase() + channel.slice(1);
+    return localizeRootLabel(
+      `Copilot Package (${channelLabel})`,
+      `Copilot Package (${channelLabel})`,
+    );
+  }
+
   const segments = normalizedRootPath.split("/").filter(Boolean);
   const parentSegment =
     segments.length >= 2 ? segments[segments.length - 2] : "";
@@ -105,14 +205,16 @@ function getRootLabelFromPath(root: SkillRoot): string | undefined {
     return undefined;
   }
 
-  return root.scope === "builtIn"
-    ? localizeRootLabel(`${parentLabel} Built-ins`, `${parentLabel} 組み込み`)
-    : parentLabel;
+  return parentLabel;
 }
 
 export function getSkillRootGroupLabel(root: SkillRoot): string {
   if (root.scope === "workspace") {
     return localizeRootLabel("Workspace Skills", "ワークスペース スキル");
+  }
+
+  if (root.scope === "builtIn") {
+    return getBuiltInVariantLabel(root) || getBuiltInProviderLabel(root);
   }
 
   return getRootLabelFromPath(root) || root.label || root.displayPath;
@@ -216,6 +318,35 @@ export function buildSkillRootGroups(
     normalizeFileSystemPath(left.root.rootPath).localeCompare(
       normalizeFileSystemPath(right.root.rootPath),
     ),
+  );
+}
+
+export function buildBuiltInProviderGroups(
+  workspaceSkills: WorkspaceSkill[],
+): BuiltInProviderGroup[] {
+  const providerGroups = new Map<string, BuiltInProviderGroup>();
+
+  for (const rootGroup of buildSkillRootGroups(
+    workspaceSkills.filter((skill) => skill.scope === "builtIn"),
+  )) {
+    const key = getBuiltInProviderKey(rootGroup.root);
+    const existingGroup = providerGroups.get(key);
+    if (existingGroup) {
+      existingGroup.roots.push(rootGroup);
+      existingGroup.skillCount += rootGroup.skills.length;
+      continue;
+    }
+
+    providerGroups.set(key, {
+      key,
+      label: getBuiltInProviderLabel(rootGroup.root),
+      roots: [rootGroup],
+      skillCount: rootGroup.skills.length,
+    });
+  }
+
+  return Array.from(providerGroups.values()).sort((left, right) =>
+    left.label.localeCompare(right.label),
   );
 }
 
@@ -488,18 +619,28 @@ export class UserGlobalSkillsProvider implements vscode.TreeDataProvider<SkillTr
       return undefined;
     }
 
-    if (element.contextValue === "builtInSkillRootGroup") {
+    if (element.contextValue === "builtInProviderGroup") {
       return this.buildBuiltInSectionItem();
+    }
+
+    if (element.contextValue === "builtInSkillRootGroup" && element.skillRoot) {
+      const providerKey = getBuiltInProviderKey(element.skillRoot);
+      return this.buildBuiltInProviderItems().find(
+        (item) => item.groupKey === providerKey,
+      );
     }
 
     if (
       element.skillRoot &&
       element.contextValue !== "skillRootGroup" &&
+      element.contextValue !== "builtInProviderGroup" &&
       element.contextValue !== "builtInSkillRootGroup" &&
       element.contextValue !== "placeholder"
     ) {
       const rootPath = normalizeFileSystemPath(element.skillRoot.rootPath);
-      const builtInParent = this.buildBuiltInRootItems().find(
+      const builtInParent = this.buildBuiltInRootItems(
+        getBuiltInProviderKey(element.skillRoot),
+      ).find(
         (item) =>
           item.skillRoot &&
           normalizeFileSystemPath(item.skillRoot.rootPath) === rootPath,
@@ -558,7 +699,11 @@ export class UserGlobalSkillsProvider implements vscode.TreeDataProvider<SkillTr
     }
 
     if (element.contextValue === "builtInScopeGroup") {
-      return this.buildBuiltInRootItems();
+      return this.buildBuiltInProviderItems();
+    }
+
+    if (element.contextValue === "builtInProviderGroup") {
+      return this.buildBuiltInRootItems(element.groupKey);
     }
 
     if (element.contextValue === "builtInSkillRootGroup" && element.skillRoot) {
@@ -577,22 +722,24 @@ export class UserGlobalSkillsProvider implements vscode.TreeDataProvider<SkillTr
   }
 
   private buildBuiltInSectionItem(): SkillTreeItem | undefined {
-    const builtInGroups = buildSkillRootGroups(
-      this.userGlobalSkills.filter((skill) => skill.scope === "builtIn"),
-    );
-    if (builtInGroups.length === 0) {
+    const builtInProviderGroups = buildBuiltInProviderGroups(this.userGlobalSkills);
+    if (builtInProviderGroups.length === 0) {
       return undefined;
     }
 
-    const totalSkills = builtInGroups.reduce(
-      (count, group) => count + group.skills.length,
+    const totalSkills = builtInProviderGroups.reduce(
+      (count, group) => count + group.skillCount,
       0,
     );
+    const sourceLabels = builtInProviderGroups
+      .map((group) => group.label)
+      .join(" / ");
+    const description = isJapanese()
+      ? `${totalSkills} 件のスキル • ${sourceLabels}`
+      : `${totalSkills} skills • ${sourceLabels}`;
     const item = new SkillTreeItem(
       isJapanese() ? "組み込みスキル" : "Built-in Skills",
-      isJapanese()
-        ? `${builtInGroups.length} 個のルート • ${totalSkills} 件のスキル`
-        : `${builtInGroups.length} roots • ${totalSkills} skills`,
+      description,
       vscode.TreeItemCollapsibleState.Collapsed,
       "builtInScopeGroup",
     );
@@ -601,14 +748,46 @@ export class UserGlobalSkillsProvider implements vscode.TreeDataProvider<SkillTr
     return item;
   }
 
-  private buildBuiltInRootItems(): SkillTreeItem[] {
-    return buildSkillRootGroups(
-      this.userGlobalSkills.filter((skill) => skill.scope === "builtIn"),
-    ).map((group) =>
+  private buildBuiltInProviderItems(): SkillTreeItem[] {
+    return buildBuiltInProviderGroups(this.userGlobalSkills).map((group) => {
+      const variants = group.roots
+        .map((rootGroup) => getSkillRootGroupLabel(rootGroup.root))
+        .join(" / ");
+      const description = isJapanese()
+        ? `${group.skillCount} 件のスキル • ${variants}`
+        : `${group.skillCount} skills • ${variants}`;
+      const item = new SkillTreeItem(
+        group.label,
+        description,
+        vscode.TreeItemCollapsibleState.Collapsed,
+        "builtInProviderGroup",
+        undefined,
+        undefined,
+        undefined,
+        undefined,
+        undefined,
+        "builtIn",
+        group.key,
+      );
+      item.iconPath = new vscode.ThemeIcon("library");
+      item.tooltip = `${group.label}\n${description}`;
+      return item;
+    });
+  }
+
+  private buildBuiltInRootItems(providerKey?: string): SkillTreeItem[] {
+    const providerGroups = buildBuiltInProviderGroups(this.userGlobalSkills);
+    const matchingGroups = providerKey
+      ? providerGroups.filter((group) => group.key === providerKey)
+      : providerGroups;
+
+    return matchingGroups.flatMap((providerGroup) =>
+      providerGroup.roots.map((group) =>
       createSkillRootGroupItem(
         group.root,
         group.skills.length,
         "builtInSkillRootGroup",
+      ),
       ),
     );
   }
@@ -1027,6 +1206,7 @@ export class SkillTreeItem extends vscode.TreeItem {
     public readonly categories?: Category[],
     public readonly skillRoot?: SkillRoot,
     public readonly scope?: SkillScope,
+    public readonly groupKey?: string,
   ) {
     super(label, collapsibleState);
     this.description = description;
