@@ -221,7 +221,8 @@ Preset index includes skills from official, curated, and community sources out o
    - **Favorites** section at top
    - Sources sorted: Official → Curated → Community
    - Shows installed status with green icons
-  - Double-click a row to install to the workspace root by default, or use the inline Install action when you want the scope picker
+
+- Double-click a row to install to the workspace root by default, or use the inline Install action when you want the scope picker
 
 - Toolbar: Search / Web Search / Update Index / Add Source / Create / Settings
 
@@ -372,6 +373,8 @@ Legacy compatibility setting: `skillNinja.includeLocalSkills` is deprecated. Wor
 ### Coexistence with Agent Resources Ninja
 
 When the companion extension [Agent Resources Ninja](https://marketplace.visualstudio.com/items?itemName=yamapan.agent-resources-ninja) is also installed, both extensions cooperate so that AGENTS.md / CLAUDE.md / etc. always contains exactly **one shared block** (`<!-- agent-ninja-START -->` / `<!-- agent-ninja-END -->`). Resources Ninja is the owner whenever both are active; Skill Ninja silently defers and migrates any pre-existing `<!-- skill-ninja-* -->` block into the shared marker.
+
+Local workspace skills managed by Resources Ninja keep `source: "local"` metadata. Skill Ninja lists them as local skills, but does not treat them as missing from the remote skill index and excludes them from remote-index reinstall commands.
 
 If the sibling extension is uninstalled, Skill Ninja takes over the same shared block on the next `vscode.extensions.onDidChange` event — no parallel blocks, no orphan markers, no manual cleanup needed in the normal case.
 

@@ -217,7 +217,8 @@ ext install yamapan.agent-skill-ninja
    - **お気に入り** セクションが最上部に表示
    - ソース順: Official → Curated → Community
    - インストール済みは緑アイコンで表示
-  - 行のダブルクリックで既定の workspace root にインストール。スコープ選択したい場合は inline の Install を利用
+
+- 行のダブルクリックで既定の workspace root にインストール。スコープ選択したい場合は inline の Install を利用
 
 - ツールバー: 検索 / Web Search / インデックス更新 / ソース追加 / 新規作成 / 設定
 
@@ -369,6 +370,8 @@ MCP ツールが不要な場合は、GitHub Copilot Chat のツール一覧か�
 
 姉妹拡張 [Agent Resources Ninja](https://marketplace.visualstudio.com/items?itemName=yamapan.agent-resources-ninja) を同時にインストールしている場合、両拡張は協調して AGENTS.md / CLAUDE.md などに **共通ブロック 1 つ**（`<!-- agent-ninja-START -->` / `<!-- agent-ninja-END -->`）だけを保つようにします。両方が active のときは Resources Ninja が owner となり、Skill Ninja は黙って書き込みを譲ります。既存の `<!-- skill-ninja-* -->` ブロックは初回起動時に共通マーカーへ自動で migration されます。
 
+Resources Ninja が管理するローカル workspace skill は `source: "local"` のメタデータを保持します。Skill Ninja はこれらをローカルスキルとして表示しますが、リモート skill index の欠落扱いにはせず、リモート index からの再インストール対象からも除外します。
+
 姉妹拡張がアンインストールされた場合、`vscode.extensions.onDidChange` を契機に Skill Ninja が同じ共通ブロックの owner に昇格 — 並列ブロックも孤児マーカーも残らず、通常は手動掃除不要です。
 
 #### 注: Skill Ninja アンインストール後の `resourceNinja.kindsExcluded` の挙動
@@ -441,11 +444,11 @@ instruction file には **IMPORTANT プロンプト** と **Description 列** �
 
 設定画面から `Agent Skills Ninja: GitHub Token` を探し、トークンを入力：
 
-````json
+```json
 {
   "skillNinja.githubToken": "ghp_xxxxxxxxxxxx"
-2. **各 writable root 配下の managed SKILL.md** → その root の管理セクションに含まれる
-3. **手動で Update Instruction File** → すべての writable root の管理セクションを再生成
+}
+```
 
 👉 [GitHub Token を作成する](https://github.com/settings/tokens/new?description=Agent%20Skill%20Ninja&scopes=repo,read:org)（必要なスコープ: `repo`, `read:org`）
 
@@ -453,7 +456,7 @@ instruction file には **IMPORTANT プロンプト** と **Description 列** �
 
 ```bash
 gh auth login
-````
+```
 
 > GitHub CLI がインストールされていれば自動でトークンを取得します（設定不要）
 

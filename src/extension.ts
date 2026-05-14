@@ -40,6 +40,12 @@ import {
   showAuthHelp,
 } from "./indexUpdater";
 import { messages, isJapanese } from "./i18n";
+import {
+  findIndexedSkillForInstalledMeta,
+  isLocalInstalledSkillMeta,
+  shouldAutoUpdateInstalledSkillFromIndex,
+  shouldCheckInstalledSkillAgainstIndex,
+} from "./installedSkillIndex";
 import { showSkillPreview, getSkillId } from "./skillPreview";
 import {
   LocalSkill,
@@ -158,12 +164,10 @@ export function activate(
       );
       const missingSkills: string[] = [];
       for (const { meta } of installedEntries) {
-        let skill = index.skills.find(
-          (s: Skill) => s.name === meta.name && s.source === meta.source,
-        );
-        if (!skill && meta.source === "unknown") {
-          skill = index.skills.find((s: Skill) => s.name === meta.name);
+        if (!shouldCheckInstalledSkillAgainstIndex(meta)) {
+          continue;
         }
+        const skill = findIndexedSkillForInstalledMeta(index.skills, meta);
         if (!skill) {
           missingSkills.push(meta.name);
         }
@@ -1025,10 +1029,33 @@ export function activate(
         return;
       }
 
+      const reinstallableEntries = installedEntries.filter(({ meta }) =>
+        shouldCheckInstalledSkillAgainstIndex(meta),
+      );
+      const skippedLocalCount =
+        installedEntries.length - reinstallableEntries.length;
+
+      if (reinstallableEntries.length === 0) {
+        vscode.window.showInformationMessage(
+          isJapanese()
+            ? "インデックスから再インストールできるリモートスキルはありません。ローカルスキルは対象外です。"
+            : "No remote-index skills can be reinstalled. Local skills are excluded.",
+        );
+        return;
+      }
+
       const confirm = await vscode.window.showWarningMessage(
         isJapanese()
-          ? `${installedEntries.length} 個のスキルを再インストールしますか？`
-          : `Reinstall ${installedEntries.length} skills?`,
+          ? `${reinstallableEntries.length} 個のスキルを再インストールしますか？${
+              skippedLocalCount > 0
+                ? `（ローカルスキル ${skippedLocalCount} 個は対象外）`
+                : ""
+            }`
+          : `Reinstall ${reinstallableEntries.length} skills?${
+              skippedLocalCount > 0
+                ? ` (${skippedLocalCount} local skill(s) excluded)`
+                : ""
+            }`,
         { modal: true },
         isJapanese() ? "再インストール" : "Reinstall",
       );
@@ -1040,13 +1067,8 @@ export function activate(
       let index = await loadSkillIndex(context);
 
       const missingSkills: string[] = [];
-      for (const { meta } of installedEntries) {
-        let skill = index.skills.find(
-          (s: Skill) => s.name === meta.name && s.source === meta.source,
-        );
-        if (!skill && meta.source === "unknown") {
-          skill = index.skills.find((s: Skill) => s.name === meta.name);
-        }
+      for (const { meta } of reinstallableEntries) {
+        const skill = findIndexedSkillForInstalledMeta(index.skills, meta);
         if (!skill) {
           missingSkills.push(meta.name);
         }
@@ -1098,18 +1120,13 @@ export function activate(
         },
         async (progress) => {
           let completed = 0;
-          for (const { root, meta } of installedEntries) {
+          for (const { root, meta } of reinstallableEntries) {
             progress.report({
-              message: `${meta.name} (${completed + 1}/${installedEntries.length})`,
-              increment: 100 / installedEntries.length,
+              message: `${meta.name} (${completed + 1}/${reinstallableEntries.length})`,
+              increment: 100 / reinstallableEntries.length,
             });
 
-            let skill = index.skills.find(
-              (s: Skill) => s.name === meta.name && s.source === meta.source,
-            );
-            if (!skill && meta.source === "unknown") {
-              skill = index.skills.find((s: Skill) => s.name === meta.name);
-            }
+            const skill = findIndexedSkillForInstalledMeta(index.skills, meta);
 
             if (skill) {
               try {
@@ -1129,14 +1146,22 @@ export function activate(
       );
 
       await updateInstructionFilesForRoots(
-        installedEntries.map((entry) => entry.root),
+        reinstallableEntries.map((entry) => entry.root),
       );
 
       refreshAllViews();
       vscode.window.showInformationMessage(
         isJapanese()
-          ? `${installedEntries.length} 個のスキルを再インストールしました`
-          : `Reinstalled ${installedEntries.length} skills`,
+          ? `${reinstallableEntries.length} 個のスキルを再インストールしました${
+              skippedLocalCount > 0
+                ? `（ローカルスキル ${skippedLocalCount} 個は対象外）`
+                : ""
+            }`
+          : `Reinstalled ${reinstallableEntries.length} skills${
+              skippedLocalCount > 0
+                ? ` (${skippedLocalCount} local skill(s) excluded)`
+                : ""
+            }`,
       );
     },
   );
@@ -1185,14 +1210,15 @@ export function activate(
 
       // インデックスからスキル情報を取得
       let index = await loadSkillIndex(context);
-      // source が "unknown" の場合は name だけで検索
-      let fullSkill = index.skills.find(
-        (s: Skill) => s.name === meta.name && s.source === meta.source,
-      );
-      if (!fullSkill && meta.source === "unknown") {
-        // source が unknown の場合は name だけで検索（最初に見つかったもの）
-        fullSkill = index.skills.find((s: Skill) => s.name === meta.name);
+      if (isLocalInstalledSkillMeta(meta)) {
+        vscode.window.showInformationMessage(
+          isJapanese()
+            ? `${skill.name} はローカルスキルのため、インデックスからの再インストール対象外です。`
+            : `${skill.name} is a local skill, so it cannot be reinstalled from the remote index.`,
+        );
+        return;
       }
+      let fullSkill = findIndexedSkillForInstalledMeta(index.skills, meta);
 
       // インデックスに見つからない場合は自動で更新を試みる
       if (!fullSkill) {
@@ -1218,12 +1244,7 @@ export function activate(
           );
 
           // 再検索
-          fullSkill = index.skills.find(
-            (s: Skill) => s.name === meta.name && s.source === meta.source,
-          );
-          if (!fullSkill && meta.source === "unknown") {
-            fullSkill = index.skills.find((s: Skill) => s.name === meta.name);
-          }
+          fullSkill = findIndexedSkillForInstalledMeta(index.skills, meta);
         }
 
         if (!fullSkill) {
@@ -1598,6 +1619,20 @@ export function activate(
         return;
       }
 
+      const reinstallableSelected = selected.filter((item) =>
+        shouldCheckInstalledSkillAgainstIndex(item.entry.meta),
+      );
+      const skippedLocalCount = selected.length - reinstallableSelected.length;
+
+      if (reinstallableSelected.length === 0) {
+        vscode.window.showInformationMessage(
+          isJapanese()
+            ? "選択したスキルはローカルスキルのみのため、インデックスからの再インストール対象外です。"
+            : "The selected skills are local only, so they cannot be reinstalled from the remote index.",
+        );
+        return;
+      }
+
       const index = await loadSkillIndex(context);
 
       await vscode.window.withProgress(
@@ -1610,23 +1645,16 @@ export function activate(
         },
         async (progress) => {
           let completed = 0;
-          for (const item of selected) {
+          for (const item of reinstallableSelected) {
             progress.report({
-              message: `${item.label} (${completed + 1}/${selected.length})`,
-              increment: 100 / selected.length,
+              message: `${item.label} (${completed + 1}/${reinstallableSelected.length})`,
+              increment: 100 / reinstallableSelected.length,
             });
 
-            let skill = index.skills.find(
-              (s: Skill) =>
-                s.name === item.entry.meta.name &&
-                s.source === item.entry.meta.source,
+            const skill = findIndexedSkillForInstalledMeta(
+              index.skills,
+              item.entry.meta,
             );
-            // source が "unknown" の場合は name だけで検索
-            if (!skill && item.entry.meta.source === "unknown") {
-              skill = index.skills.find(
-                (s: Skill) => s.name === item.entry.meta.name,
-              );
-            }
 
             if (skill) {
               try {
@@ -1655,14 +1683,22 @@ export function activate(
       );
 
       await updateInstructionFilesForRoots(
-        selected.map((item) => item.entry.root),
+        reinstallableSelected.map((item) => item.entry.root),
       );
 
       refreshAllViews();
       vscode.window.showInformationMessage(
         isJapanese()
-          ? `${selected.length} 個のスキルを再インストールしました`
-          : `Reinstalled ${selected.length} skills`,
+          ? `${reinstallableSelected.length} 個のスキルを再インストールしました${
+              skippedLocalCount > 0
+                ? `（ローカルスキル ${skippedLocalCount} 個は対象外）`
+                : ""
+            }`
+          : `Reinstalled ${reinstallableSelected.length} skills${
+              skippedLocalCount > 0
+                ? ` (${skippedLocalCount} local skill(s) excluded)`
+                : ""
+            }`,
       );
     },
   );
@@ -3163,8 +3199,8 @@ async function checkVersionAndRefreshMetadata(
 
   // インストール済みスキルを取得
   const installedSkills = await getManagedInstalledSkillsWithMeta(workspaceUri);
-  const remoteSkillCount = installedSkills.filter(
-    ({ meta }) => meta.source && meta.source !== "unknown",
+  const remoteSkillCount = installedSkills.filter(({ meta }) =>
+    shouldAutoUpdateInstalledSkillFromIndex(meta),
   ).length;
 
   // スキル自動更新設定を確認
