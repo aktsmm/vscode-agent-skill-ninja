@@ -159,6 +159,7 @@ const {
   resolveConfiguredPath,
   resolveUserGlobalInstructionPath,
   resolveWorkspaceSkillsDirectory,
+  resolveWorkspaceSkillsRootUri,
   DEFAULT_WORKSPACE_SKILLS_DIRECTORY,
 } = skillLocationsExports;
 
@@ -414,6 +415,38 @@ function makeConfigStub(values) {
       resolveWorkspaceSkillsDirectory(own, sibling),
       DEFAULT_WORKSPACE_SKILLS_DIRECTORY,
     );
+  });
+
+  await test("resolveWorkspaceSkillsRootUri: keeps relative workspace paths under workspace", () => {
+    const workspaceUri = vscodeStub.Uri.file(
+      path.join(path.sep, "workspace", "repo"),
+    );
+    const own = makeConfigStub({ skillsDirectory: "custom/skills" });
+    const resolved = resolveWorkspaceSkillsRootUri(workspaceUri, own);
+
+    assert.strictEqual(
+      resolved.fsPath,
+      path.join(workspaceUri.fsPath, "custom", "skills"),
+    );
+  });
+
+  await test("resolveWorkspaceSkillsRootUri: preserves absolute sibling overrides", () => {
+    const workspaceUri = vscodeStub.Uri.file(
+      path.join(path.sep, "workspace", "repo"),
+    );
+    const own = makeConfigStub({
+      skillsDirectory: DEFAULT_WORKSPACE_SKILLS_DIRECTORY,
+    });
+    const siblingAbsolutePath = path.join(
+      os.tmpdir(),
+      "agent-ninja-shared-skills",
+    );
+    const sibling = makeConfigStub({
+      resourcesDirectory: siblingAbsolutePath,
+    });
+    const resolved = resolveWorkspaceSkillsRootUri(workspaceUri, own, sibling);
+
+    assert.strictEqual(resolved.fsPath, path.resolve(siblingAbsolutePath));
   });
 
   await test("builds built-in candidate paths for bundled and session skills", () => {

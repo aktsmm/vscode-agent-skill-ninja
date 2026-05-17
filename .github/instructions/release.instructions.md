@@ -20,17 +20,18 @@ npm test
 
 ### テストが必要なケース
 
-| 変更内容                 | 必須テスト                                                  |
-| ------------------------ | ----------------------------------------------------------- |
-| `instructionManager.ts`  | `npm run compile` + 手動で Update Instruction File 確認     |
-| `skillInstaller.ts`      | `npm run compile` + 手動でスキルインストール確認            |
-| `skillIndex.ts`          | `npm run compile` + インデックス読み込み確認                |
-| `indexUpdater.ts`        | `npm run compile` + ソース更新・追加確認                    |
-| `treeProvider.ts`        | `npm run compile` + TreeView 表示確認                       |
-| `i18n.ts`                | `npm run compile` + 日英両方で UI 確認                      |
-| `skillSearch.ts`         | `npm run compile` + `node scripts/test-search-logic.js`     |
-| スキルスキャン範囲       | `npm run compile` + `node scripts/test-skill-scan-paths.js` |
-| When to Use 抽出ロジック | `node scripts/test-whenToUse.js`                            |
+| 変更内容                 | 必須テスト                                                     |
+| ------------------------ | -------------------------------------------------------------- |
+| `instructionManager.ts`  | `npm run compile` + 手動で Update Instruction File 確認        |
+| `skillInstaller.ts`      | `npm run compile` + 手動でスキルインストール確認               |
+| `skillIndex.ts`          | `npm run compile` + インデックス読み込み確認                   |
+| `indexUpdater.ts`        | `npm run compile` + ソース更新・追加確認                       |
+| `treeProvider.ts`        | `npm run compile` + TreeView 表示確認                          |
+| `i18n.ts`                | `npm run compile` + 日英両方で UI 確認                         |
+| `skillSearch.ts`         | `npm run compile` + `node scripts/test-search-logic.js`        |
+| スキルスキャン範囲       | `npm run compile` + `node scripts/test-skill-scan-paths.js`    |
+| 登録状態 / 共存マーカー  | `npm run compile` + `node scripts/test-local-skill-scanner.js` |
+| When to Use 抽出ロジック | `node scripts/test-whenToUse.js`                               |
 
 ### 結合テスト（手動）
 
@@ -200,6 +201,7 @@ New-Item -ItemType Directory -Force artifacts/vsix | Out-Null; npx vsce package 
 | `scripts/test-search-logic.js`           | 検索ロジックのテスト（存在する場合）                        |
 | `scripts/test-skill-scan-paths.js`       | skillsDirectory 配下だけをスキャンする境界テスト            |
 | `scripts/test-skill-locations.js`        | workspace / user/global skill root 解決の境界テスト         |
+| `scripts/test-local-skill-scanner.js`    | shared / legacy marker の登録状態判定回帰テスト             |
 | `scripts/test-workspace-skill-groups.js` | TreeView の root grouping 回帰テスト                        |
 | `scripts/test-view-welcome-ux.js`        | viewsWelcome の empty-state 導線と文量制約の回帰テスト      |
 | `scripts/test-package-manifest.js`       | Settings 表示順・Command Palette・README 導線の整合性テスト |

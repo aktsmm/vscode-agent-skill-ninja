@@ -591,6 +591,44 @@ export function resolveWorkspaceSkillsDirectory(
   return DEFAULT_WORKSPACE_SKILLS_DIRECTORY;
 }
 
+export function resolveWorkspaceSkillsRootUri(
+  workspaceUri: vscode.Uri,
+  skillNinjaConfig: vscode.WorkspaceConfiguration = vscode.workspace.getConfiguration(
+    "skillNinja",
+  ),
+  resourceNinjaConfig: vscode.WorkspaceConfiguration = vscode.workspace.getConfiguration(
+    "resourceNinja",
+  ),
+): vscode.Uri {
+  const skillsDirectory = resolveWorkspaceSkillsDirectory(
+    skillNinjaConfig,
+    resourceNinjaConfig,
+  );
+
+  return (
+    resolveConfiguredPathToUri(skillsDirectory, workspaceUri) ||
+    vscode.Uri.joinPath(workspaceUri, skillsDirectory)
+  );
+}
+
+function getWorkspaceSkillsDisplayPath(
+  workspaceUri: vscode.Uri,
+  workspaceRootUri: vscode.Uri,
+): string {
+  const relativePath = path
+    .relative(workspaceUri.fsPath, workspaceRootUri.fsPath)
+    .replace(/\\/g, "/");
+
+  if (
+    relativePath === "" ||
+    (!relativePath.startsWith("..") && !path.isAbsolute(relativePath))
+  ) {
+    return relativePath || ".";
+  }
+
+  return pathToDisplayPath(workspaceRootUri.fsPath);
+}
+
 export async function getManagedSkillRoots(
   workspaceUri?: vscode.Uri,
 ): Promise<SkillRoot[]> {
@@ -632,8 +670,10 @@ export async function getManagedSkillRoots(
   };
 
   if (workspaceUri) {
-    const skillsDirectory = resolveWorkspaceSkillsDirectory(skillNinjaConfig);
-    const workspaceRootUri = vscode.Uri.joinPath(workspaceUri, skillsDirectory);
+    const workspaceRootUri = resolveWorkspaceSkillsRootUri(
+      workspaceUri,
+      skillNinjaConfig,
+    );
     const { instructionFile } = await resolveOutputFormat(workspaceUri);
     const instructionUri =
       resolveConfiguredPathToUri(instructionFile, workspaceUri) ||
@@ -647,7 +687,10 @@ export async function getManagedSkillRoots(
       label: "Workspace Skills",
       rootUri: workspaceRootUri,
       rootPath: workspaceRootUri.fsPath,
-      displayPath: skillsDirectory.replace(/\\/g, "/"),
+      displayPath: getWorkspaceSkillsDisplayPath(
+        workspaceUri,
+        workspaceRootUri,
+      ),
       isManaged: true,
       isReadOnly: false,
       instructionUri,

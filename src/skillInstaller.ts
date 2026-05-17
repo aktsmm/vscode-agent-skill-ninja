@@ -5,7 +5,11 @@ import * as vscode from "vscode";
 import { Skill, loadSkillIndex, Source, getSourceBranch } from "./skillIndex";
 import { isJapanese } from "./i18n";
 import { getGitHubToken } from "./githubAuth";
-import { getManagedSkillRoots, type SkillRoot } from "./skillLocations";
+import {
+  getManagedSkillRoots,
+  resolveWorkspaceSkillsRootUri,
+  type SkillRoot,
+} from "./skillLocations";
 import {
   createGitHubHeaders,
   fetchGitHubWithOptionalAuthRetry,
@@ -28,9 +32,7 @@ function resolveSkillsRootUri(
     return explicitRootUri;
   }
 
-  const config = vscode.workspace.getConfiguration("skillNinja");
-  const skillsDir = config.get<string>("skillsDirectory") || ".github/skills";
-  return vscode.Uri.joinPath(workspaceUri, skillsDir);
+  return resolveWorkspaceSkillsRootUri(workspaceUri);
 }
 
 /**

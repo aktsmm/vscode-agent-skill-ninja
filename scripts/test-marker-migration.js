@@ -65,6 +65,7 @@ const sandbox = {
       return {
         computeRelativeDirectoryPath: () => ".",
         getManagedSkillRoots: async () => [],
+        resolveConfiguredPathToUri: () => undefined,
       };
     }
     if (request === "./coexistence") {
@@ -87,12 +88,21 @@ vm.runInNewContext(transpiled.outputText, sandbox, {
   filename: sourcePath,
 });
 
-const { updateSection, SHARED_MARKER_START, SHARED_MARKER_END } =
+const {
+  cleanupManagedSkillBlocks,
+  updateSection,
+  SHARED_MARKER_START,
+  SHARED_MARKER_END,
+} =
   sandbox.module.exports;
 
 assert.ok(
   typeof updateSection === "function",
   "updateSection must be exported",
+);
+assert.ok(
+  typeof cleanupManagedSkillBlocks === "function",
+  "cleanupManagedSkillBlocks must be exported",
 );
 assert.strictEqual(SHARED_MARKER_START, "<!-- agent-ninja-START -->");
 assert.strictEqual(SHARED_MARKER_END, "<!-- agent-ninja-END -->");
@@ -195,6 +205,27 @@ test("multiple legacy blocks are merged into one shared block", () => {
   assert.ok(!result.includes(LEGACY_SKILL_MARKERS.start));
   assert.ok(!result.includes("<!-- resource-ninja-START -->"));
   assert.ok(!result.includes("<!-- SKILL-FINDER-START -->"));
+});
+
+test("cleanupManagedSkillBlocks keeps shared block when requested", () => {
+  const existing =
+    `# Header\n\n` +
+    buildSharedBlock("KEEP") +
+    `\n\n` +
+    buildLegacySkillBlock("DROP") +
+    `\n\n<!-- resource-ninja-START -->\nDROP\n<!-- resource-ninja-END -->\n`;
+
+  const result = cleanupManagedSkillBlocks(existing, { keepShared: true });
+  assert.ok(result.includes(SHARED_MARKERS.start));
+  assert.ok(!result.includes(LEGACY_SKILL_MARKERS.start));
+  assert.ok(!result.includes("<!-- resource-ninja-START -->"));
+});
+
+test("cleanupManagedSkillBlocks removes shared block by default", () => {
+  const existing = `# Header\n\n${buildSharedBlock("DROP")}\n`;
+
+  const result = cleanupManagedSkillBlocks(existing);
+  assert.ok(!result.includes(SHARED_MARKERS.start));
 });
 
 test("idempotent: re-running with same inputs is a no-op", () => {

@@ -55,6 +55,7 @@ import {
 import {
   getManagedSkillRoots,
   isInsidePath,
+  resolveWorkspaceSkillsRootUri,
   SkillRoot,
 } from "./skillLocations";
 import { createChatParticipant } from "./chatParticipant";
@@ -81,6 +82,9 @@ const EXTENSION_VERSION =
 
 // activation 時に保存し、deactivate で beacon をクリアするために使用。
 let activeContext: vscode.ExtensionContext | undefined;
+
+const LAST_MANAGED_INSTRUCTION_PATHS_KEY =
+  "skillNinja.lastManagedInstructionPaths";
 
 async function resolveSkillGitHubUrl(
   skill: Skill,
@@ -263,6 +267,102 @@ export function activate(
     return roots.filter((root) => root.isManaged && !root.isReadOnly);
   }
 
+  function normalizeInstructionPathForSet(filePath: string): string {
+    const normalized = filePath.replace(/\\/g, "/");
+    return process.platform === "win32" ? normalized.toLowerCase() : normalized;
+  }
+
+  function uniqueInstructionPaths(paths: string[]): string[] {
+    const result: string[] = [];
+    const seen = new Set<string>();
+    for (const filePath of paths) {
+      const normalized = normalizeInstructionPathForSet(filePath);
+      if (seen.has(normalized)) {
+        continue;
+      }
+      seen.add(normalized);
+      result.push(filePath);
+    }
+    return result;
+  }
+
+  function getStoredManagedInstructionPaths(): string[] {
+    return context.workspaceState.get<string[]>(
+      LAST_MANAGED_INSTRUCTION_PATHS_KEY,
+      [],
+    );
+  }
+
+  async function getCurrentManagedInstructionPaths(
+    workspaceUri: vscode.Uri,
+  ): Promise<string[]> {
+    const roots = await getManagedRootsForWorkspace(workspaceUri);
+    return uniqueInstructionPaths(
+      roots.flatMap((root) => (root.instructionUri ? [root.instructionUri.fsPath] : [])),
+    );
+  }
+
+  async function rememberCurrentManagedInstructionPaths(
+    workspaceUri: vscode.Uri,
+  ): Promise<void> {
+    await context.workspaceState.update(
+      LAST_MANAGED_INSTRUCTION_PATHS_KEY,
+      await getCurrentManagedInstructionPaths(workspaceUri),
+    );
+  }
+
+  async function cleanupInstructionFiles(
+    filePaths: string[],
+    keepShared: boolean,
+  ): Promise<void> {
+    for (const filePath of uniqueInstructionPaths(filePaths)) {
+      try {
+        await removeSkillSectionFromFile(vscode.Uri.file(filePath), {
+          keepShared,
+        });
+      } catch {
+        // ファイルが存在しない場合は無視
+      }
+    }
+  }
+
+  async function cleanupStaleStoredInstructionPaths(
+    workspaceUri: vscode.Uri,
+  ): Promise<void> {
+    const config = vscode.workspace.getConfiguration("skillNinja");
+    if (config.get<boolean>("autoUpdateInstruction") === false) {
+      return;
+    }
+
+    const storedPaths = getStoredManagedInstructionPaths();
+    if (storedPaths.length === 0) {
+      return;
+    }
+
+    const currentPaths = await getCurrentManagedInstructionPaths(workspaceUri);
+    const currentSet = new Set(currentPaths.map(normalizeInstructionPathForSet));
+    const stalePaths = storedPaths.filter(
+      (filePath) => !currentSet.has(normalizeInstructionPathForSet(filePath)),
+    );
+    if (stalePaths.length === 0) {
+      await context.workspaceState.update(
+        LAST_MANAGED_INSTRUCTION_PATHS_KEY,
+        currentPaths,
+      );
+      return;
+    }
+
+    const ownership = await getEffectiveOwnership(context);
+    const keepShared =
+      config.get<string>("coexistenceMode") !== "independent" &&
+      ownership.owner === "sibling";
+    await cleanupInstructionFiles(stalePaths, keepShared);
+    await context.workspaceState.update(
+      LAST_MANAGED_INSTRUCTION_PATHS_KEY,
+      currentPaths,
+    );
+  }
+
   function getLocalizedRootLabel(root: SkillRoot): string {
     switch (root.scope) {
       case "workspace":
@@ -302,6 +402,27 @@ export function activate(
     for (const root of uniqueRoots.values()) {
       await updateInstructionFileForRoot(root, context);
     }
+
+    const rememberedPaths = uniqueInstructionPaths(
+      [...uniqueRoots.values()].flatMap((root) =>
+        root.instructionUri ? [root.instructionUri.fsPath] : [],
+      ),
+    );
+    if (rememberedPaths.length > 0) {
+      await context.workspaceState.update(
+        LAST_MANAGED_INSTRUCTION_PATHS_KEY,
+        rememberedPaths,
+      );
+    }
+  }
+
+  if (workspaceFolder) {
+    cleanupStaleStoredInstructionPaths(workspaceFolder.uri).catch((err) => {
+      console.error(
+        "[Skill Ninja] Failed to clean stale instruction files:",
+        err,
+      );
+    });
   }
 
   async function findManagedRootForSkillFile(
@@ -474,6 +595,12 @@ export function activate(
             e.affectsConfiguration("skillNinja.instructionFile") ||
             e.affectsConfiguration("skillNinja.customInstructionPath")
           ) {
+            const ownership = await getEffectiveOwnership(context);
+            const keepShared =
+              vscode.workspace.getConfiguration("skillNinja").get<string>(
+                "coexistenceMode",
+              ) !== "independent" && ownership.owner === "sibling";
+
             // 古いファイルパスを使ってスキルセクションを削除
             // （変更前の値は取得できないので、全ての候補ファイルから削除を試みる）
             const candidateFiles = [
@@ -485,21 +612,25 @@ export function activate(
               ".windsurfrules",
               ".clinerules",
             ];
-            for (const file of candidateFiles) {
-              try {
-                await removeSkillSectionFromFile(
-                  vscode.Uri.joinPath(workspaceFolders[0].uri, file),
-                );
-              } catch {
-                // ファイルが存在しない場合は無視
-              }
-            }
+            await cleanupInstructionFiles(
+              [
+                ...candidateFiles.map(
+                  (file) => vscode.Uri.joinPath(workspaceFolders[0].uri, file)
+                    .fsPath,
+                ),
+                ...getStoredManagedInstructionPaths(),
+              ],
+              keepShared,
+            );
           }
 
           // 少し待ってから更新（設定が完全に反映されるのを待つ）
           setTimeout(async () => {
             try {
               await updateAllInstructionFiles(workspaceFolders[0].uri, context);
+              await rememberCurrentManagedInstructionPaths(
+                workspaceFolders[0].uri,
+              );
               vscode.window.showInformationMessage(
                 messages.instructionFileUpdatedOnSettingChange(),
               );
@@ -559,13 +690,12 @@ export function activate(
         }
       }
 
-      const config = vscode.workspace.getConfiguration("skillNinja");
-      const skillsDir =
-        config.get<string>("skillsDirectory") || ".github/skills";
       const skillName = (item.label as string).replace(/^[✓○]\s*/, "");
+      const skillRootUri =
+        getSkillRootFromItem(item)?.rootUri ||
+        resolveWorkspaceSkillsRootUri(workspaceFolder.uri);
       const skillPath = vscode.Uri.joinPath(
-        workspaceFolder.uri,
-        skillsDir,
+        skillRootUri,
         skillName,
         "SKILL.md",
       );
@@ -602,18 +732,13 @@ export function activate(
       }
 
       // インストール済みスキル（.github/skills 配下）の場合
-      const config = vscode.workspace.getConfiguration("skillNinja");
-      const skillsDir =
-        config.get<string>("skillsDirectory") || ".github/skills";
-
       // ラベルからステータスアイコンを削除してスキル名を取得
       const skillName = (item.label as string).replace(/^[✓○]\s*/, "");
+      const skillRootUri =
+        getSkillRootFromItem(item)?.rootUri ||
+        resolveWorkspaceSkillsRootUri(workspaceFolder.uri);
 
-      const folderPath = vscode.Uri.joinPath(
-        workspaceFolder.uri,
-        skillsDir,
-        skillName,
-      );
+      const folderPath = vscode.Uri.joinPath(skillRootUri, skillName);
 
       await vscode.commands.executeCommand("revealFileInOS", folderPath);
     },
@@ -3106,13 +3231,13 @@ Add examples here
   );
 
   // SKILL.md の変更を監視してメタデータを自動更新
-  const config = vscode.workspace.getConfiguration("skillNinja");
-  const skillsDir = config.get<string>("skillsDirectory") || ".github/skills";
   const skillMdWatcher = vscode.workspace.createFileSystemWatcher(
-    new vscode.RelativePattern(
-      vscode.workspace.workspaceFolders?.[0] || "",
-      `${skillsDir}/**/SKILL.md`,
-    ),
+    workspaceFolder
+      ? new vscode.RelativePattern(
+          resolveWorkspaceSkillsRootUri(workspaceFolder.uri),
+          "**/SKILL.md",
+        )
+      : new vscode.RelativePattern("", ".github/skills/**/SKILL.md"),
   );
 
   // デバウンス用の Map（同じファイルへの連続保存を1回にまとめる）

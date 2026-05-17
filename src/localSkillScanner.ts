@@ -4,12 +4,17 @@
 import * as path from "path";
 import * as vscode from "vscode";
 import { Skill } from "./skillIndex";
-import { updateInstructionFileForRoot } from "./instructionManager";
+import {
+  SHARED_MARKER_END,
+  SHARED_MARKER_START,
+  updateInstructionFileForRoot,
+} from "./instructionManager";
 import type { SkillMeta } from "./skillInstaller";
 import {
   getBuiltInSkillRoots,
   getExtensionSkillRoots,
   getManagedSkillRoots,
+  resolveConfiguredPathToUri,
   SkillRoot,
   SkillScope,
   normalizeFileSystemPath,
@@ -330,8 +335,62 @@ async function parseLocalSkillFile(
 
 /**
  * AGENTS.md などの instruction file を読み取り、登録状態をチェック
- * ※ skill-ninja マーカー内のみをチェック（手動記載との重複を避けるため）
+ * ※ managed マーカー内のみをチェック（手動記載との重複を避けるため）
  */
+const LEGACY_SKILL_MARKER_START = "<!-- skill-ninja-START -->";
+const LEGACY_SKILL_MARKER_END = "<!-- skill-ninja-END -->";
+
+const MANAGED_SKILL_MARKERS = [
+  { start: SHARED_MARKER_START, end: SHARED_MARKER_END },
+  { start: LEGACY_SKILL_MARKER_START, end: LEGACY_SKILL_MARKER_END },
+];
+
+export function extractManagedSkillMarkerContent(
+  text: string,
+): string | undefined {
+  for (const markers of MANAGED_SKILL_MARKERS) {
+    const startIndex = text.indexOf(markers.start);
+    if (startIndex === -1) {
+      continue;
+    }
+
+    const endIndex = text.indexOf(markers.end, startIndex);
+    if (endIndex === -1) {
+      continue;
+    }
+
+    return text.substring(startIndex, endIndex + markers.end.length);
+  }
+
+  return undefined;
+}
+
+/**
+ * managed marker ブロック内に対象スキルへのリンクが含まれているかを判定する。
+ * vscode API に依存しない純粋関数。round-trip 回帰テストから直接呼ばれる。
+ */
+export function isSkillReferencedInManagedBlock(
+  instructionText: string,
+  relativeSkillsDir: string,
+  skillRelativePath: string,
+): boolean {
+  const markerContent = extractManagedSkillMarkerContent(instructionText);
+  if (!markerContent) {
+    return false;
+  }
+
+  const normalizedDir = relativeSkillsDir
+    .replace(/\\/g, "/")
+    .replace(/\/+$/, "");
+  const normalizedRelative = skillRelativePath.replace(/\\/g, "/");
+  const skillLink =
+    `${normalizedDir}/${normalizedRelative}/SKILL.md`.replace(/^\.\//, "");
+  return (
+    markerContent.includes(skillLink) ||
+    markerContent.includes(`./${skillLink}`)
+  );
+}
+
 async function checkRegistrationStatusForRoot(
   skills: LocalSkill[],
   root: SkillRoot,
@@ -340,27 +399,15 @@ async function checkRegistrationStatusForRoot(
     return;
   }
 
-  // マーカー
-  const MARKER_START = "<!-- skill-ninja-START -->";
-  const MARKER_END = "<!-- skill-ninja-END -->";
-
   try {
     const content = await vscode.workspace.fs.readFile(root.instructionUri);
-    const text = Buffer.from(content).toString("utf8");
-
-    // マーカー内の部分のみを抽出
-    const startIndex = text.indexOf(MARKER_START);
-    const endIndex = text.indexOf(MARKER_END);
+    const instructionText = Buffer.from(content).toString("utf8");
+    const markerContent = extractManagedSkillMarkerContent(instructionText);
 
     // マーカーがない場合は未登録として扱う
-    if (startIndex === -1 || endIndex === -1) {
+    if (!markerContent) {
       return;
     }
-
-    const markerContent = text.substring(
-      startIndex,
-      endIndex + MARKER_END.length,
-    );
 
     const relativeSkillsDir =
       root.linkPathFromInstruction ||
@@ -368,17 +415,15 @@ async function checkRegistrationStatusForRoot(
 
     // スキル参照を検出（マーカー内のみ）
     for (const skill of skills) {
-      const skillLink = `${relativeSkillsDir}/${skill.relativePath}/SKILL.md`
-        .replace(/\\/g, "/")
-        .replace(/^\.\//, "");
-      const patterns = [skillLink, `./${skillLink}`];
-
-      for (const pattern of patterns) {
-        if (markerContent.includes(pattern)) {
-          skill.isRegistered = true;
-          skill.registrationFile = root.instructionPath;
-          break;
-        }
+      if (
+        isSkillReferencedInManagedBlock(
+          instructionText,
+          relativeSkillsDir,
+          skill.relativePath,
+        )
+      ) {
+        skill.isRegistered = true;
+        skill.registrationFile = root.instructionPath;
       }
     }
   } catch {
@@ -507,7 +552,9 @@ export async function parseInstructionFile(
     instructionPath = instructionFile;
   }
 
-  const instructionUri = vscode.Uri.joinPath(workspaceUri, instructionPath);
+  const instructionUri =
+    resolveConfiguredPathToUri(instructionPath, workspaceUri) ||
+    vscode.Uri.joinPath(workspaceUri, instructionPath);
 
   try {
     const content = await vscode.workspace.fs.readFile(instructionUri);

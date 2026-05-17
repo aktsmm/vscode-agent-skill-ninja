@@ -10,6 +10,7 @@ import { SKILL_DESCRIPTION_LIMITS } from "./constants";
 import {
   computeRelativeDirectoryPath,
   getManagedSkillRoots,
+  resolveConfiguredPathToUri,
   SkillRoot,
 } from "./skillLocations";
 import { getCoexistenceMode, getEffectiveOwnership } from "./coexistence";
@@ -102,6 +103,16 @@ function stripAllManagedBlocks(
   }
   // 連続改行を 2 行までに整形
   return result.replace(/\n{3,}/g, "\n\n");
+}
+
+export function cleanupManagedSkillBlocks(
+  content: string,
+  options: { keepShared?: boolean; keepLegacySkill?: boolean } = {},
+): string {
+  return stripAllManagedBlocks(content, {
+    keepShared: options.keepShared ?? false,
+    keepLegacySkill: options.keepLegacySkill,
+  }).trim();
 }
 
 /**
@@ -455,15 +466,13 @@ export function updateSection(
  */
 export async function removeSkillSectionFromFile(
   fileUri: vscode.Uri,
+  options: { keepShared?: boolean; keepLegacySkill?: boolean } = {},
 ): Promise<void> {
   try {
     const content = await vscode.workspace.fs.readFile(fileUri);
     let existingContent = Buffer.from(content).toString("utf-8");
 
-    const stripped = stripAllManagedBlocks(existingContent, {
-      keepShared: false,
-      keepLegacySkill: false,
-    }).trim();
+    const stripped = cleanupManagedSkillBlocks(existingContent, options);
 
     if (stripped !== existingContent.trim()) {
       existingContent = stripped;
@@ -492,7 +501,9 @@ export async function removeSkillSection(
       config.get<string>("customInstructionPath") || "AGENTS.md";
   }
 
-  const instructionUri = vscode.Uri.joinPath(workspaceUri, instructionPath);
+  const instructionUri =
+    resolveConfiguredPathToUri(instructionPath, workspaceUri) ||
+    vscode.Uri.joinPath(workspaceUri, instructionPath);
   await removeSkillSectionFromFile(instructionUri);
 }
 

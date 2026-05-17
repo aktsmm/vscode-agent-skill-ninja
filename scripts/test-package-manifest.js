@@ -436,6 +436,9 @@ test("MCP tool responses do not contain corrupted markdown fragments", () => {
 test("release instructions include the maintained npm test path", () => {
   assert.ok(releaseInstructions.includes("npm test"));
   assert.ok(releaseInstructions.includes("scripts/test-skill-scan-paths.js"));
+  assert.ok(
+    releaseInstructions.includes("scripts/test-local-skill-scanner.js"),
+  );
   assert.ok(releaseInstructions.includes("code --install-extension"));
   assert.ok(releaseInstructions.includes("docs/**"));
 });
