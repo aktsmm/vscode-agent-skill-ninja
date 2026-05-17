@@ -298,7 +298,9 @@ export function activate(
   ): Promise<string[]> {
     const roots = await getManagedRootsForWorkspace(workspaceUri);
     return uniqueInstructionPaths(
-      roots.flatMap((root) => (root.instructionUri ? [root.instructionUri.fsPath] : [])),
+      roots.flatMap((root) =>
+        root.instructionUri ? [root.instructionUri.fsPath] : [],
+      ),
     );
   }
 
@@ -340,7 +342,9 @@ export function activate(
     }
 
     const currentPaths = await getCurrentManagedInstructionPaths(workspaceUri);
-    const currentSet = new Set(currentPaths.map(normalizeInstructionPathForSet));
+    const currentSet = new Set(
+      currentPaths.map(normalizeInstructionPathForSet),
+    );
     const stalePaths = storedPaths.filter(
       (filePath) => !currentSet.has(normalizeInstructionPathForSet(filePath)),
     );
@@ -597,9 +601,10 @@ export function activate(
           ) {
             const ownership = await getEffectiveOwnership(context);
             const keepShared =
-              vscode.workspace.getConfiguration("skillNinja").get<string>(
-                "coexistenceMode",
-              ) !== "independent" && ownership.owner === "sibling";
+              vscode.workspace
+                .getConfiguration("skillNinja")
+                .get<string>("coexistenceMode") !== "independent" &&
+              ownership.owner === "sibling";
 
             // 古いファイルパスを使ってスキルセクションを削除
             // （変更前の値は取得できないので、全ての候補ファイルから削除を試みる）
@@ -615,8 +620,8 @@ export function activate(
             await cleanupInstructionFiles(
               [
                 ...candidateFiles.map(
-                  (file) => vscode.Uri.joinPath(workspaceFolders[0].uri, file)
-                    .fsPath,
+                  (file) =>
+                    vscode.Uri.joinPath(workspaceFolders[0].uri, file).fsPath,
                 ),
                 ...getStoredManagedInstructionPaths(),
               ],

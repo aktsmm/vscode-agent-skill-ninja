@@ -93,8 +93,7 @@ const {
   updateSection,
   SHARED_MARKER_START,
   SHARED_MARKER_END,
-} =
-  sandbox.module.exports;
+} = sandbox.module.exports;
 
 assert.ok(
   typeof updateSection === "function",

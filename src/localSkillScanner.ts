@@ -383,8 +383,10 @@ export function isSkillReferencedInManagedBlock(
     .replace(/\\/g, "/")
     .replace(/\/+$/, "");
   const normalizedRelative = skillRelativePath.replace(/\\/g, "/");
-  const skillLink =
-    `${normalizedDir}/${normalizedRelative}/SKILL.md`.replace(/^\.\//, "");
+  const skillLink = `${normalizedDir}/${normalizedRelative}/SKILL.md`.replace(
+    /^\.\//,
+    "",
+  );
   return (
     markerContent.includes(skillLink) ||
     markerContent.includes(`./${skillLink}`)
