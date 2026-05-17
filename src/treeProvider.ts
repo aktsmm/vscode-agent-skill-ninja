@@ -58,6 +58,13 @@ interface BuiltInProviderGroup {
   skillCount: number;
 }
 
+interface ExtensionProviderGroup {
+  key: string;
+  label: string;
+  roots: WorkspaceSkillRootGroup[];
+  skillCount: number;
+}
+
 function localizeRootLabel(english: string, japanese: string): string {
   return isJapanese() ? japanese : english;
 }
@@ -146,6 +153,40 @@ export function getBuiltInVariantLabel(root: SkillRoot): string | undefined {
   return undefined;
 }
 
+export function getExtensionProviderKey(root: SkillRoot): string {
+  return root.extensionId || normalizeFileSystemPath(root.rootPath);
+}
+
+export function getExtensionProviderLabel(root: SkillRoot): string {
+  return (
+    root.extensionDisplayName ||
+    root.label ||
+    localizeRootLabel("Installed Extension", "インストール済み拡張機能")
+  );
+}
+
+export function getExtensionVariantLabel(root: SkillRoot): string | undefined {
+  const normalizedRootPath = normalizeFileSystemPath(root.rootPath);
+
+  if (
+    normalizedRootPath.endsWith("/assets/prompts/skills") ||
+    normalizedRootPath.endsWith("/dist/prompts/skills") ||
+    normalizedRootPath.endsWith("/prompts/skills")
+  ) {
+    return localizeRootLabel("Prompts", "Prompts");
+  }
+
+  if (
+    normalizedRootPath.endsWith("/assets/skills") ||
+    normalizedRootPath.endsWith("/dist/skills") ||
+    normalizedRootPath.endsWith("/skills")
+  ) {
+    return localizeRootLabel("Skills", "スキル");
+  }
+
+  return undefined;
+}
+
 function getRootLabelFromPath(root: SkillRoot): string | undefined {
   const normalizedRootPath = normalizeFileSystemPath(root.rootPath);
 
@@ -202,6 +243,14 @@ function getRootLabelFromPath(root: SkillRoot): string | undefined {
 export function getSkillRootGroupLabel(root: SkillRoot): string {
   if (root.scope === "workspace") {
     return localizeRootLabel("Workspace Skills", "ワークスペース スキル");
+  }
+
+  if (root.scope === "extension") {
+    return (
+      getExtensionVariantLabel(root) ||
+      getRootLabelFromPath(root) ||
+      root.displayPath
+    );
   }
 
   if (root.scope === "builtIn") {
@@ -341,6 +390,35 @@ export function buildBuiltInProviderGroups(
   );
 }
 
+export function buildExtensionProviderGroups(
+  workspaceSkills: WorkspaceSkill[],
+): ExtensionProviderGroup[] {
+  const providerGroups = new Map<string, ExtensionProviderGroup>();
+
+  for (const rootGroup of buildSkillRootGroups(
+    workspaceSkills.filter((skill) => skill.scope === "extension"),
+  )) {
+    const key = getExtensionProviderKey(rootGroup.root);
+    const existingGroup = providerGroups.get(key);
+    if (existingGroup) {
+      existingGroup.roots.push(rootGroup);
+      existingGroup.skillCount += rootGroup.skills.length;
+      continue;
+    }
+
+    providerGroups.set(key, {
+      key,
+      label: getExtensionProviderLabel(rootGroup.root),
+      roots: [rootGroup],
+      skillCount: rootGroup.skills.length,
+    });
+  }
+
+  return Array.from(providerGroups.values()).sort((left, right) =>
+    left.label.localeCompare(right.label),
+  );
+}
+
 function createSkillRootGroupItem(
   root: SkillRoot,
   skillCount: number,
@@ -378,7 +456,9 @@ function createManagedSkillTreeItem(
   recentlyInstalled?: Set<string>,
 ): SkillTreeItem {
   const contextValue = skill.isReadOnly
-    ? "builtInSkill"
+    ? skill.scope === "extension"
+      ? "extensionSkill"
+      : "builtInSkill"
     : skill.isRegistered
       ? "managedSkill"
       : "managedUnregisteredSkill";
@@ -431,9 +511,13 @@ function createManagedSkillTreeItem(
 
   const noDescription = isJapanese() ? "説明なし" : "No description";
   const statusText = skill.isReadOnly
-    ? isJapanese()
-      ? "Built-in Skills（読み取り専用）"
-      : "Built-in Skills (read-only)"
+    ? skill.scope === "extension"
+      ? isJapanese()
+        ? "インストール済み拡張機能（読み取り専用）"
+        : "Installed Extension (read-only)"
+      : isJapanese()
+        ? "Built-in Skills（読み取り専用）"
+        : "Built-in Skills (read-only)"
     : skill.isRegistered
       ? isJapanese()
         ? "Managed（登録済み）"
@@ -610,8 +694,16 @@ export class UserGlobalSkillsProvider implements vscode.TreeDataProvider<SkillTr
       return undefined;
     }
 
+    if (element.contextValue === "extensionScopeGroup") {
+      return undefined;
+    }
+
     if (element.contextValue === "builtInProviderGroup") {
       return this.buildBuiltInSectionItem();
+    }
+
+    if (element.contextValue === "extensionProviderGroup") {
+      return this.buildExtensionSectionItem();
     }
 
     if (element.contextValue === "builtInSkillRootGroup" && element.skillRoot) {
@@ -622,13 +714,36 @@ export class UserGlobalSkillsProvider implements vscode.TreeDataProvider<SkillTr
     }
 
     if (
+      element.contextValue === "extensionSkillRootGroup" &&
+      element.skillRoot
+    ) {
+      const providerKey = getExtensionProviderKey(element.skillRoot);
+      return this.buildExtensionProviderItems().find(
+        (item) => item.groupKey === providerKey,
+      );
+    }
+
+    if (
       element.skillRoot &&
       element.contextValue !== "skillRootGroup" &&
       element.contextValue !== "builtInProviderGroup" &&
       element.contextValue !== "builtInSkillRootGroup" &&
+      element.contextValue !== "extensionProviderGroup" &&
+      element.contextValue !== "extensionSkillRootGroup" &&
       element.contextValue !== "placeholder"
     ) {
       const rootPath = normalizeFileSystemPath(element.skillRoot.rootPath);
+      const extensionParent = this.buildExtensionRootItems(
+        getExtensionProviderKey(element.skillRoot),
+      ).find(
+        (item) =>
+          item.skillRoot &&
+          normalizeFileSystemPath(item.skillRoot.rootPath) === rootPath,
+      );
+      if (extensionParent) {
+        return extensionParent;
+      }
+
       const builtInParent = this.buildBuiltInRootItems(
         getBuiltInProviderKey(element.skillRoot),
       ).find(
@@ -676,6 +791,10 @@ export class UserGlobalSkillsProvider implements vscode.TreeDataProvider<SkillTr
       }
 
       const items = this.buildUserRootItems();
+      const extensionSection = this.buildExtensionSectionItem();
+      if (extensionSection) {
+        items.push(extensionSection);
+      }
       const builtInSection = this.buildBuiltInSectionItem();
       if (builtInSection) {
         items.push(builtInSection);
@@ -684,6 +803,23 @@ export class UserGlobalSkillsProvider implements vscode.TreeDataProvider<SkillTr
     }
 
     if (element.contextValue === "skillRootGroup" && element.skillRoot) {
+      return this.getSkillsForRoot(element.skillRoot.rootPath).map((skill) =>
+        this.toSkillItem(skill),
+      );
+    }
+
+    if (element.contextValue === "extensionScopeGroup") {
+      return this.buildExtensionProviderItems();
+    }
+
+    if (element.contextValue === "extensionProviderGroup") {
+      return this.buildExtensionRootItems(element.groupKey);
+    }
+
+    if (
+      element.contextValue === "extensionSkillRootGroup" &&
+      element.skillRoot
+    ) {
       return this.getSkillsForRoot(element.skillRoot.rootPath).map((skill) =>
         this.toSkillItem(skill),
       );
@@ -710,6 +846,35 @@ export class UserGlobalSkillsProvider implements vscode.TreeDataProvider<SkillTr
     return buildSkillRootGroups(
       this.userGlobalSkills.filter((skill) => skill.scope === "userGlobal"),
     ).map((group) => createSkillRootGroupItem(group.root, group.skills.length));
+  }
+
+  private buildExtensionSectionItem(): SkillTreeItem | undefined {
+    const extensionProviderGroups = buildExtensionProviderGroups(
+      this.userGlobalSkills,
+    );
+    if (extensionProviderGroups.length === 0) {
+      return undefined;
+    }
+
+    const totalSkills = extensionProviderGroups.reduce(
+      (count, group) => count + group.skillCount,
+      0,
+    );
+    const sourceLabels = extensionProviderGroups
+      .map((group) => group.label)
+      .join(" / ");
+    const description = isJapanese()
+      ? `${totalSkills} 件のスキル • ${sourceLabels}`
+      : `${totalSkills} skills • ${sourceLabels}`;
+    const item = new SkillTreeItem(
+      isJapanese() ? "インストール済み拡張機能" : "Installed Extensions",
+      description,
+      vscode.TreeItemCollapsibleState.Collapsed,
+      "extensionScopeGroup",
+    );
+    item.iconPath = new vscode.ThemeIcon("extensions");
+    item.tooltip = item.description;
+    return item;
   }
 
   private buildBuiltInSectionItem(): SkillTreeItem | undefined {
@@ -741,6 +906,33 @@ export class UserGlobalSkillsProvider implements vscode.TreeDataProvider<SkillTr
     return item;
   }
 
+  private buildExtensionProviderItems(): SkillTreeItem[] {
+    return buildExtensionProviderGroups(this.userGlobalSkills).map((group) => {
+      const variants = group.roots
+        .map((rootGroup) => getSkillRootGroupLabel(rootGroup.root))
+        .join(" / ");
+      const description = isJapanese()
+        ? `${group.skillCount} 件のスキル • ${variants}`
+        : `${group.skillCount} skills • ${variants}`;
+      const item = new SkillTreeItem(
+        group.label,
+        description,
+        vscode.TreeItemCollapsibleState.Collapsed,
+        "extensionProviderGroup",
+        undefined,
+        undefined,
+        undefined,
+        undefined,
+        undefined,
+        "extension",
+        group.key,
+      );
+      item.iconPath = new vscode.ThemeIcon("extensions");
+      item.tooltip = `${group.label}\n${description}`;
+      return item;
+    });
+  }
+
   private buildBuiltInProviderItems(): SkillTreeItem[] {
     return buildBuiltInProviderGroups(this.userGlobalSkills).map((group) => {
       const variants = group.roots
@@ -766,6 +958,23 @@ export class UserGlobalSkillsProvider implements vscode.TreeDataProvider<SkillTr
       item.tooltip = `${group.label}\n${description}`;
       return item;
     });
+  }
+
+  private buildExtensionRootItems(providerKey?: string): SkillTreeItem[] {
+    const providerGroups = buildExtensionProviderGroups(this.userGlobalSkills);
+    const matchingGroups = providerKey
+      ? providerGroups.filter((group) => group.key === providerKey)
+      : providerGroups;
+
+    return matchingGroups.flatMap((providerGroup) =>
+      providerGroup.roots.map((group) =>
+        createSkillRootGroupItem(
+          group.root,
+          group.skills.length,
+          "extensionSkillRootGroup",
+        ),
+      ),
+    );
   }
 
   private buildBuiltInRootItems(providerKey?: string): SkillTreeItem[] {
@@ -807,7 +1016,10 @@ export class UserGlobalSkillsProvider implements vscode.TreeDataProvider<SkillTr
     const visibleSkills = await scanVisibleSkills(this.workspaceUri);
     this.userGlobalSkills = visibleSkills
       .filter(
-        (skill) => skill.scope === "userGlobal" || skill.scope === "builtIn",
+        (skill) =>
+          skill.scope === "userGlobal" ||
+          skill.scope === "extension" ||
+          skill.scope === "builtIn",
       )
       .map(toWorkspaceSkill);
   }

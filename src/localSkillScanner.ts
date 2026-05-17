@@ -8,6 +8,7 @@ import { updateInstructionFileForRoot } from "./instructionManager";
 import type { SkillMeta } from "./skillInstaller";
 import {
   getBuiltInSkillRoots,
+  getExtensionSkillRoots,
   getManagedSkillRoots,
   SkillRoot,
   SkillScope,
@@ -461,15 +462,21 @@ export async function scanVisibleSkills(
   workspaceUri?: vscode.Uri,
 ): Promise<LocalSkill[]> {
   const managedRoots = await getManagedSkillRoots(workspaceUri);
+  const extensionRoots = await getExtensionSkillRoots();
   const builtInRoots = await getBuiltInSkillRoots();
-  const allRoots = [...managedRoots, ...builtInRoots];
+  const allRoots = [...managedRoots, ...extensionRoots, ...builtInRoots];
 
   const skills = await Promise.all(
     allRoots.map((root) => scanSkillsForRoot(root)),
   );
   return skills.flat().sort((left, right) => {
     if (left.scope !== right.scope) {
-      const scopeOrder: SkillScope[] = ["workspace", "userGlobal", "builtIn"];
+      const scopeOrder: SkillScope[] = [
+        "workspace",
+        "userGlobal",
+        "extension",
+        "builtIn",
+      ];
       return scopeOrder.indexOf(left.scope) - scopeOrder.indexOf(right.scope);
     }
 

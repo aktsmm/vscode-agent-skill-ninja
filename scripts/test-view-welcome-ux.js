@@ -141,6 +141,11 @@ test("welcome text stays skill-oriented", () => {
 });
 
 test("user/global welcome explains built-in skills are hidden by default", () => {
+  assert.match(localizedContent(userGlobalView), /installed extensions/);
+  assert.match(
+    localizedContent(userGlobalView, "ja"),
+    /インストール済み拡張機能/,
+  );
   assert.match(
     localizedContent(userGlobalView),
     /Built-in skills stay hidden until enabled/,

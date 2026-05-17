@@ -254,6 +254,10 @@ export function activate(
         return isJapanese()
           ? "ユーザー / グローバル スキル"
           : "User / Global Skills";
+      case "extension":
+        return isJapanese()
+          ? "インストール済み拡張機能"
+          : "Installed Extensions";
       case "builtIn":
         return "Built-in Skills";
       default:

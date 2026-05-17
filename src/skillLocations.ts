@@ -3,7 +3,7 @@ import * as path from "path";
 import * as vscode from "vscode";
 import { resolveOutputFormat } from "./toolDetector";
 
-export type SkillScope = "workspace" | "userGlobal" | "builtIn";
+export type SkillScope = "workspace" | "userGlobal" | "extension" | "builtIn";
 
 export interface SkillRoot {
   scope: SkillScope;
@@ -13,6 +13,8 @@ export interface SkillRoot {
   displayPath: string;
   isManaged: boolean;
   isReadOnly: boolean;
+  extensionId?: string;
+  extensionDisplayName?: string;
   instructionUri?: vscode.Uri;
   instructionPath?: string;
   linkPathFromInstruction?: string;
@@ -63,14 +65,43 @@ const COPILOT_EXTENSION_IDS = [
   "github.copilot",
 ];
 
+const OWN_EXTENSION_IDS = ["yamapan.agent-skill-ninja"];
+
 const EXTENSION_SKILL_SUBDIRS = [
   ["skills"],
+  ["resources", "skills"],
   ["dist", "skills"],
   ["assets", "skills"],
+  ["resources", "prompts", "skills"],
   ["assets", "prompts", "skills"],
   ["dist", "prompts", "skills"],
   ["prompts", "skills"],
 ];
+
+function isCopilotExtensionId(extensionId: string): boolean {
+  const normalizedId = extensionId.toLowerCase();
+  return COPILOT_EXTENSION_IDS.some(
+    (candidate) => candidate.toLowerCase() === normalizedId,
+  );
+}
+
+function isOwnExtensionId(extensionId: string): boolean {
+  const normalizedId = extensionId.toLowerCase();
+  return OWN_EXTENSION_IDS.some(
+    (candidate) => candidate.toLowerCase() === normalizedId,
+  );
+}
+
+function isBundledExtensionPath(extensionPath: string): boolean {
+  const normalizedExtensionPath = normalizeFileSystemPath(extensionPath);
+  const normalizedAppExtensionsPath = normalizeFileSystemPath(
+    path.join(vscode.env.appRoot, "extensions"),
+  );
+  return (
+    normalizedExtensionPath === normalizedAppExtensionsPath ||
+    normalizedExtensionPath.startsWith(`${normalizedAppExtensionsPath}/`)
+  );
+}
 
 export function normalizeFileSystemPath(filePath: string): string {
   const normalized = path.normalize(filePath).replace(/\\/g, "/");
@@ -710,4 +741,65 @@ export async function getBuiltInSkillRoots(): Promise<SkillRoot[]> {
   }
 
   return roots;
+}
+
+export async function getExtensionSkillRoots(): Promise<SkillRoot[]> {
+  const roots: SkillRoot[] = [];
+  const seen = new Set<string>();
+
+  for (const extension of vscode.extensions.all) {
+    const extensionId = extension.id || "";
+    if (!extensionId) {
+      continue;
+    }
+
+    if (isCopilotExtensionId(extensionId) || isOwnExtensionId(extensionId)) {
+      continue;
+    }
+
+    const extensionPath = extension.extensionUri.fsPath;
+    if (isBundledExtensionPath(extensionPath)) {
+      continue;
+    }
+
+    const extensionDisplayName =
+      pickFirstString([
+        extension.packageJSON?.displayName,
+        extension.packageJSON?.name,
+      ]) || extensionId;
+
+    for (const parts of EXTENSION_SKILL_SUBDIRS) {
+      const rootUri = vscode.Uri.joinPath(extension.extensionUri, ...parts);
+      const normalizedRootPath = normalizeFileSystemPath(rootUri.fsPath);
+      if (seen.has(normalizedRootPath) || !(await pathExists(rootUri))) {
+        continue;
+      }
+
+      roots.push({
+        scope: "extension",
+        label: "Installed Extensions",
+        rootUri,
+        rootPath: rootUri.fsPath,
+        displayPath: pathToDisplayPath(rootUri.fsPath),
+        isManaged: false,
+        isReadOnly: true,
+        extensionId,
+        extensionDisplayName,
+      });
+      seen.add(normalizedRootPath);
+    }
+  }
+
+  return roots.sort((left, right) => {
+    const leftName = (left.extensionDisplayName || left.extensionId || "").toLowerCase();
+    const rightName = (right.extensionDisplayName || right.extensionId || "").toLowerCase();
+    const labelCompare = leftName.localeCompare(rightName);
+    if (labelCompare !== 0) {
+      return labelCompare;
+    }
+
+    return normalizeFileSystemPath(left.rootPath).localeCompare(
+      normalizeFileSystemPath(right.rootPath),
+    );
+  });
 }

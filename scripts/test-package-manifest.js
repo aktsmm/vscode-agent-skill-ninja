@@ -203,6 +203,7 @@ test("README files describe workspace, user/global, and built-in skill scopes", 
   assert.ok(readme.includes("skillNinja.useVsCodeAgentSkillLocations"));
   assert.ok(readme.includes("skillNinja.showBuiltInSkills"));
   assert.ok(readme.includes("User / Global Skills"));
+  assert.ok(readme.includes("Installed Extensions"));
   assert.ok(readme.includes("Built-in Skills"));
   assert.ok(readme.includes("provider/origin"));
   assert.ok(readmeJa.includes("skillNinja.skillsDirectory"));
@@ -210,6 +211,7 @@ test("README files describe workspace, user/global, and built-in skill scopes", 
   assert.ok(readmeJa.includes("skillNinja.useVsCodeAgentSkillLocations"));
   assert.ok(readmeJa.includes("skillNinja.showBuiltInSkills"));
   assert.ok(readmeJa.includes("ユーザー / グローバル スキル"));
+  assert.ok(readmeJa.includes("インストール済み拡張機能"));
   assert.ok(readmeJa.includes("Built-in Skills"));
   assert.strictEqual(readmeJa.includes("built-in skills"), false);
   assert.ok(readmeJa.includes("provider/origin"));
@@ -223,11 +225,33 @@ test("built-in setting descriptions explain provider-based grouping", () => {
   const nlsJa = fs.readFileSync(path.join(root, "package.nls.ja.json"), "utf8");
 
   assert.ok(nls.includes("provider/origin"));
+  assert.ok(nls.includes("installed extensions"));
   assert.ok(nls.includes("variant/root"));
   assert.ok(nlsJa.includes("Built-in Skills"));
   assert.strictEqual(nlsJa.includes("built-in skills"), false);
+  assert.ok(nlsJa.includes("インストール済み拡張機能"));
   assert.ok(nlsJa.includes("provider/origin"));
   assert.ok(nlsJa.includes("variant/root"));
+});
+
+test("read-only extension skills expose only open/copy actions", () => {
+  const commands = (pkg.contributes.menus["view/item/context"] || [])
+    .filter(
+      (item) => typeof item.when === "string" && item.when.includes("extensionSkill"),
+    )
+    .map((item) => item.command)
+    .sort();
+
+  assert.deepStrictEqual(commands, [
+    "skillNinja.copyPath",
+    "skillNinja.copyPath",
+    "skillNinja.openInTerminal",
+    "skillNinja.openInTerminal",
+    "skillNinja.openSkillFile",
+    "skillNinja.openSkillFile",
+    "skillNinja.openSkillFolder",
+    "skillNinja.openSkillFolder",
+  ]);
 });
 
 test("manifest exposes installed, user/global, and remote views", () => {

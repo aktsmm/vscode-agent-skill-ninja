@@ -100,10 +100,13 @@ const englishExports = loadTreeProviderExports(false);
 const japaneseExports = loadTreeProviderExports(true);
 
 const {
+  buildExtensionProviderGroups,
   buildBuiltInProviderGroups,
   buildSkillRootGroups,
   getBuiltInProviderLabel,
   getBuiltInVariantLabel,
+  getExtensionProviderLabel,
+  getExtensionVariantLabel,
   getSkillRootGroupLabel,
   getSkillRootGroupDescription,
   getManagedSkillTreeItemLabel,
@@ -335,6 +338,56 @@ test("groups built-in roots by provider before variant", () => {
         rootLabels: ["Session Skills"],
       },
     ],
+  );
+});
+
+test("groups installed extension roots by extension before variant", () => {
+  const extensionPromptSkill = createSkill(
+    "azure-prompts",
+    "extension",
+    "C:/Users/test/.vscode/extensions/ms-azuretools.vscode-azure-github-copilot/resources/prompts/skills",
+    "azure-prompts",
+  );
+  extensionPromptSkill.root.extensionId =
+    "ms-azuretools.vscode-azure-github-copilot";
+  extensionPromptSkill.root.extensionDisplayName = "GitHub Copilot for Azure";
+
+  const extensionSkill = createSkill(
+    "azure-skills",
+    "extension",
+    "C:/Users/test/.vscode/extensions/ms-azuretools.vscode-azure-github-copilot/resources/skills",
+    "azure-skills",
+  );
+  extensionSkill.root.extensionId =
+    "ms-azuretools.vscode-azure-github-copilot";
+  extensionSkill.root.extensionDisplayName = "GitHub Copilot for Azure";
+
+  const providerGroups = JSON.parse(
+    JSON.stringify(
+      buildExtensionProviderGroups([extensionPromptSkill, extensionSkill]),
+    ),
+  );
+
+  assert.deepStrictEqual(
+    providerGroups.map((group) => ({
+      label: group.label,
+      skillCount: group.skillCount,
+      rootLabels: group.roots.map((rootGroup) =>
+        getExtensionVariantLabel(rootGroup.root),
+      ),
+    })),
+    [
+      {
+        label: "GitHub Copilot for Azure",
+        skillCount: 2,
+        rootLabels: ["Prompts", "Skills"],
+      },
+    ],
+  );
+
+  assert.strictEqual(
+    getExtensionProviderLabel(extensionPromptSkill.root),
+    "GitHub Copilot for Azure",
   );
 });
 

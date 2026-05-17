@@ -86,7 +86,7 @@
 
 ### 📁 ワークスペーススキル管理
 
-- **SKILL.md** を workspace / user-global / built-in の 3 scope で管理
+- **SKILL.md** を workspace / user-global / インストール済み拡張機能 / built-in の 4 scope で管理
 - `skillNinja.skillsDirectory` を managed な workspace root として使い、VS Code の Agent Skill Locations から user/global root も自動検出
 - 書き込み可能な各 root ごとに、最寄りの instruction file へ managed skills を自動同期
 - テンプレートから新規スキル作成
@@ -204,9 +204,10 @@ ext install yamapan.agent-skill-ninja
 - 空状態: 検索 / 新規作成 / インストラクションファイルを開く
 - workspace scope のスキルフォルダ / ファイルを開けます
 
-3. **ユーザー / グローバル スキル** - personal skills は skill root ごと、Built-in Skills は provider/origin ごとに表示
+3. **ユーザー / グローバル スキル** - personal skills は skill root ごと、インストール済み拡張機能の読み取り専用スキルと Built-in Skills は別セクションで表示
 
 - **ユーザー / グローバル スキル**: 標準の personal roots（`~/.copilot/skills`, `~/.claude/skills`, `~/.agents/skills`）と VS Code の Agent Skill Locations から見つかった managed skills
+- **インストール済み拡張機能**: インストール済み VS Code 拡張に同梱された skill folder から見つかった読み取り専用スキル。拡張ごと、その下に variant/root ごとに表示します
 - **Built-in Skills**: Copilot / VS Code 同梱 skills を読み取り専用で表示する任意グループ。GitHub Copilot Chat、GitHub Copilot CLI、VS Code などの provider/origin で先にまとめ、その配下に Prompts、Skills、Package (Universal) などの variant/root を表示します
 - ルートノードは短い home / product 名で表示し、件数とフルパスは description / tooltip 側に寄せます
 - ツールバー: Instruction / インストラクション更新 / 新規作成 / 更新 / 設定

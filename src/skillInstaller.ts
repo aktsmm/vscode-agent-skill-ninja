@@ -711,7 +711,12 @@ export async function getManagedInstalledSkillsWithMeta(
 
   return groupedSkills.flat().sort((left, right) => {
     if (left.root.scope !== right.root.scope) {
-      const scopeOrder = ["workspace", "userGlobal", "builtIn"] as const;
+      const scopeOrder = [
+        "workspace",
+        "userGlobal",
+        "extension",
+        "builtIn",
+      ] as const;
       return (
         scopeOrder.indexOf(left.root.scope) -
         scopeOrder.indexOf(right.root.scope)

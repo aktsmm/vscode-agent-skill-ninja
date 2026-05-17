@@ -90,7 +90,7 @@ Settings → **Output Format** → Select `full`, `compact`, or `legacy`
 
 ### 📁 Workspace Skill Management
 
-- Manage **SKILL.md** files across three scopes: workspace, user/global, and optional built-in
+- Manage **SKILL.md** files across four scopes: workspace, user/global, read-only installed extensions, and optional built-in
 - Use `skillNinja.skillsDirectory` as the managed workspace root and auto-discover extra user/global roots from VS Code Agent Skill Locations
 - Automatically sync managed skills to the closest instruction file for each writable root
 - Create new skill from template
@@ -208,9 +208,10 @@ Preset index includes skills from official, curated, and community sources out o
 - Empty state: Search / Create / Open Instruction File quick links
 - Open skill folder or file from the workspace scope
 
-3. **User / Global Skills** - Personal skills grouped by skill root, plus optional built-in skills grouped by provider/origin
+3. **User / Global Skills** - Personal skills grouped by skill root, plus read-only installed extension skills and optional built-in skills
 
 - **User / Global Skills**: discovered from standard personal roots (`~/.copilot/skills`, `~/.claude/skills`, `~/.agents/skills`) plus VS Code Agent Skill Locations
+- **Installed Extensions**: read-only skills discovered from skill folders bundled with installed VS Code extensions, grouped by extension first and then by variant/root
 - **Built-in Skills**: optional read-only group for Copilot / VS Code packaged skills, grouped first by provider/origin (for example GitHub Copilot Chat, GitHub Copilot CLI, VS Code) and then by variant/root (for example Prompts, Skills, Package (Universal))
 - Root nodes use concise home/product labels, while counts and full paths stay in the secondary description / tooltip
 - Toolbar: Instruction File / Update Instruction / Create / Refresh / Settings

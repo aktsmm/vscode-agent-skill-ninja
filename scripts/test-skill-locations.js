@@ -67,6 +67,7 @@ const vscodeStub = {
     },
   },
   extensions: {
+    all: [],
     getExtension() {
       return undefined;
     },
@@ -139,6 +140,7 @@ const {
   getBuiltInCandidatePaths,
   getBuiltInSkillRoots,
   getDefaultUserGlobalSkillLocationPaths,
+  getExtensionSkillRoots,
   getPackagedBuiltInSkillLocationPaths,
   parseAgentSkillLocationConfig,
   pathToDisplayPath,
@@ -673,6 +675,102 @@ function makeConfigStub(values) {
       process.env.HOME = originalHome;
       vscodeStub.env.appRoot = originalAppRoot;
       vscodeStub.__configBySection.skillNinja = {};
+    }
+  });
+
+  await test("getExtensionSkillRoots discovers installed extension skill folders and excludes Copilot built-ins", async () => {
+    const tempExtensions = fs.mkdtempSync(
+      path.join(os.tmpdir(), "skill-ninja-ext-roots-"),
+    );
+    const tempAppRoot = fs.mkdtempSync(
+      path.join(os.tmpdir(), "skill-ninja-ext-app-"),
+    );
+    const azureExtensionRoot = path.join(
+      tempExtensions,
+      "ms-azuretools.vscode-azure-github-copilot-1.0.0",
+    );
+    const azureSkillsRoot = path.join(
+      azureExtensionRoot,
+      "resources",
+      "prompts",
+      "skills",
+    );
+    const copilotChatExtensionRoot = path.join(
+      tempExtensions,
+      "github.copilot-chat-1.0.0",
+    );
+    const copilotChatSkillsRoot = path.join(
+      copilotChatExtensionRoot,
+      "assets",
+      "prompts",
+      "skills",
+    );
+    const bundledExtensionRoot = path.join(
+      tempAppRoot,
+      "extensions",
+      "ms-vscode.azure-account",
+    );
+    const bundledSkillsRoot = path.join(
+      bundledExtensionRoot,
+      "resources",
+      "skills",
+    );
+    const ownExtensionRoot = path.join(
+      tempExtensions,
+      "yamapan.agent-skill-ninja-0.9.5",
+    );
+    const ownSkillsRoot = path.join(ownExtensionRoot, "resources", "skills");
+    fs.mkdirSync(azureSkillsRoot, { recursive: true });
+    fs.mkdirSync(copilotChatSkillsRoot, { recursive: true });
+    fs.mkdirSync(bundledSkillsRoot, { recursive: true });
+    fs.mkdirSync(ownSkillsRoot, { recursive: true });
+
+    const originalExtensions = vscodeStub.extensions.all;
+    const originalAppRoot = vscodeStub.env.appRoot;
+    vscodeStub.env.appRoot = tempAppRoot;
+    vscodeStub.extensions.all = [
+      {
+        id: "ms-azuretools.vscode-azure-github-copilot",
+        extensionUri: vscodeStub.Uri.file(azureExtensionRoot),
+        packageJSON: { displayName: "GitHub Copilot for Azure" },
+      },
+      {
+        id: "github.copilot-chat",
+        extensionUri: vscodeStub.Uri.file(copilotChatExtensionRoot),
+        packageJSON: { displayName: "GitHub Copilot Chat" },
+      },
+      {
+        id: "ms-vscode.azure-account",
+        extensionUri: vscodeStub.Uri.file(bundledExtensionRoot),
+        packageJSON: { displayName: "Azure Account" },
+      },
+      {
+        id: "yamapan.agent-skill-ninja",
+        extensionUri: vscodeStub.Uri.file(ownExtensionRoot),
+        packageJSON: { displayName: "Agent Skills Ninja" },
+      },
+    ];
+
+    try {
+      const roots = JSON.parse(JSON.stringify(await getExtensionSkillRoots()));
+      assert.strictEqual(roots.length, 1);
+      assert.strictEqual(roots[0].scope, "extension");
+      assert.strictEqual(roots[0].label, "Installed Extensions");
+      assert.strictEqual(
+        path.normalize(roots[0].rootPath),
+        path.normalize(azureSkillsRoot),
+      );
+      assert.strictEqual(
+        roots[0].extensionId,
+        "ms-azuretools.vscode-azure-github-copilot",
+      );
+      assert.strictEqual(
+        roots[0].extensionDisplayName,
+        "GitHub Copilot for Azure",
+      );
+    } finally {
+      vscodeStub.env.appRoot = originalAppRoot;
+      vscodeStub.extensions.all = originalExtensions;
     }
   });
 

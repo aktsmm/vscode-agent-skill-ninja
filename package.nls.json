@@ -38,8 +38,8 @@
   "config.skillsDirectory.description": "Directory to install and manage workspace skills",
   "config.useVsCodeAgentSkillLocations.description": "Also discover standard personal skill roots and extra user/global skills from VS Code Agent Skill Locations",
   "config.useVsCodeAgentSkillLocations.markdownDescription": "Discover managed skill roots from standard personal locations (`~/.copilot/skills`, `~/.claude/skills`, `~/.agents/skills`) and from VS Code Agent Skill Locations settings. Configured paths support `${workspaceFolder}`, `${userHome}`, `${env:NAME}`, and `%NAME%`.",
-  "config.showBuiltInSkills.description": "Show read-only built-in skills discovered from Copilot / VS Code assets, grouped by provider/origin",
-  "config.showBuiltInSkills.markdownDescription": "Show built-in skills as a separate read-only scope in the User / Global Skills view, grouped by provider/origin and then by variant/root. These entries can be opened, but not installed, edited, or uninstalled.",
+  "config.showBuiltInSkills.description": "Show read-only built-in skills from Copilot / VS Code assets, separate from installed extension skills, grouped by provider/origin",
+  "config.showBuiltInSkills.markdownDescription": "Show built-in skills as a separate read-only scope in the User / Global Skills view, distinct from read-only skills discovered from installed extensions. Group built-in entries by provider/origin and then by variant/root. These entries can be opened, but not installed, edited, or uninstalled.",
   "config.autoUpdateInstruction.description": "Automatically update instruction file on install/uninstall",
   "config.autoUpdateInstruction.markdownDescription": "**Automatically update instruction file** (AGENTS.md etc.) on skill install/uninstall",
   "config.autoUpdateSkillsOnUpgrade.markdownDescription": "**Update installed skills** when extension is upgraded\\n\\n- `always`: Automatically reinstall all skills\\n- `prompt`: Ask before updating\\n- `never`: Do not update",
@@ -59,7 +59,7 @@
   "config.outputFormat.compact": "📦 Compact - IMPORTANT + Compressed index (100 chars)",
   "config.outputFormat.legacy": "🕰️ Legacy - Simple table only (OLD)",
   "config.singleClickInstall.description": "Install skills with single click in Browse view instead of double-clicking a row",
-  "config.versionInfo.markdownDescription": "---\n\n### ℹ️ Version Info\n\n| Item | Value |\n|------|-------|\n| Extension | **0.9.5** |\n| Skill Index | **v1.18.0** |\n| Last Updated | 2026-05-15 |\n| Skills | 1426 |\n| Sources | 11 |\n\n[📋 Changelog](https://github.com/aktsmm/vscode-agent-skill-ninja/blob/master/CHANGELOG.md) · [🐛 Report Bug](https://github.com/aktsmm/vscode-agent-skill-ninja/issues)",
+  "config.versionInfo.markdownDescription": "---\n\n### ℹ️ Version Info\n\n| Item | Value |\n|------|-------|\n| Extension | **0.9.6** |\n| Skill Index | **v1.18.0** |\n| Last Updated | 2026-05-17 |\n| Skills | 1426 |\n| Sources | 11 |\n\n[📋 Changelog](https://github.com/aktsmm/vscode-agent-skill-ninja/blob/master/CHANGELOG.md) · [🐛 Report Bug](https://github.com/aktsmm/vscode-agent-skill-ninja/issues)",
   "config.companionExtension.markdownDescription": "### 🧩 Companion Extension\n\n[Agent Resources Ninja](https://marketplace.visualstudio.com/items?itemName=yamapan.agent-resources-ninja) - Resource-oriented companion extension for managing skills plus agents, prompts, instructions, hooks, MCP config resources, and related AI coding resources. [GitHub](https://github.com/aktsmm/vscode-agent-resources-ninja)",
   "view.workspace": "Installed Skills",
   "view.userGlobal": "User / Global Skills",
@@ -87,6 +87,6 @@
   "command.openInTerminal": "Open in Terminal",
   "command.reportBug": "Report a Bug",
   "viewsWelcome.workspace": "Workspace skills appear here after install or local scan.\n\n[Search Remote Skills](command:skillNinja.search)\n[Create New Skill](command:skillNinja.createSkill)\n[Open Instruction File](command:skillNinja.openInstructionFile)",
-  "viewsWelcome.userGlobal": "User and global skills appear here. Built-in skills stay hidden until enabled.\n\n[Create New Skill](command:skillNinja.createSkill)\n[Show Built-in Skills](command:skillNinja.showBuiltInSkills)\n[Open Settings](command:skillNinja.openSettings)",
+  "viewsWelcome.userGlobal": "User/global skills appear here.\nRead-only skills from installed extensions also appear here.\nBuilt-in skills stay hidden until enabled.\n\n[Create New Skill](command:skillNinja.createSkill)\n[Show Built-in Skills](command:skillNinja.showBuiltInSkills)\n[Open Settings](command:skillNinja.openSettings)",
   "viewsWelcome.remote": "Browse bundled and GitHub skill sources here.\n\n[Search Skills](command:skillNinja.search)\n[Update Index](command:skillNinja.updateIndex)\n[Add Source Repository](command:skillNinja.addSource)"
 }
