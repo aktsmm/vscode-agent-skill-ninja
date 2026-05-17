@@ -351,21 +351,21 @@ If you don't need MCP tools, you can disable them from GitHub Copilot Chat:
 
 ## ⚙️ Settings
 
-| Order | Setting                                   | Default          | Description                                                        |
-| :---: | ----------------------------------------- | ---------------- | ------------------------------------------------------------------ |
-|   1   | `skillNinja.autoUpdateInstruction`        | `true`           | **Auto-update instruction file on install**                        |
-|   2   | `skillNinja.instructionFile`              | `AGENTS.md`      | Instruction file format _(requires Auto Update)_                   |
-|   3   | `skillNinja.customInstructionPath`        | `""`             | Custom path _(only when 'custom' selected)_                        |
-|   4   | `skillNinja.skillsDirectory`              | `.github/skills` | Directory to install and manage workspace skills                   |
-|   5   | `skillNinja.useVsCodeAgentSkillLocations` | `true`           | Discover standard personal roots and extra user/global skill roots |
-|   6   | `skillNinja.showBuiltInSkills`            | `false`          | Show read-only built-in skills                                     |
-|   7   | `skillNinja.outputFormat`                 | `full`           | Output format (full / compact / legacy)                            |
-|   8   | `skillNinja.language`                     | `auto`           | UI language (auto / en / ja)                                       |
-|   9   | `skillNinja.autoUpdateSkillsOnUpgrade`    | `prompt`         | Update installed skills after extension upgrade                    |
-|  10   | `skillNinja.githubToken`                  | `""`             | GitHub Token (for API rate limit)                                  |
-|  11   | `skillNinja.singleClickInstall`           | `false`          | Install remote skills with single click                            |
-|  12   | `skillNinja.coexistenceMode`              | `auto`           | Coexistence with Agent Resources Ninja (`auto` / `independent`)    |
-|  13   | `skillNinja.useSharedSourcesManifest`     | `false`          | (Experimental) Share remote source list via `~/.agent-ninja/`      |
+| Order | Setting                                   | Default          | Description                                                                         |
+| :---: | ----------------------------------------- | ---------------- | ----------------------------------------------------------------------------------- |
+|   1   | `skillNinja.autoUpdateInstruction`        | `true`           | **Auto-update instruction file on install**                                         |
+|   2   | `skillNinja.instructionFile`              | `AGENTS.md`      | Instruction file format _(requires Auto Update)_                                    |
+|   3   | `skillNinja.customInstructionPath`        | `""`             | Custom path _(only when 'custom' selected)_                                         |
+|   4   | `skillNinja.skillsDirectory`              | `.github/skills` | Directory to install and manage workspace skills                                    |
+|   5   | `skillNinja.useVsCodeAgentSkillLocations` | `true`           | Discover standard personal roots and extra user/global skill roots                  |
+|   6   | `skillNinja.showBuiltInSkills`            | `false`          | Show read-only built-in skills                                                      |
+|   7   | `skillNinja.outputFormat`                 | `full`           | Output format (full / compact / legacy)                                             |
+|   8   | `skillNinja.language`                     | `auto`           | UI language (auto / en / ja)                                                        |
+|   9   | `skillNinja.autoUpdateSkillsOnUpgrade`    | `prompt`         | Update installed skills after extension upgrade                                     |
+|  10   | `skillNinja.githubToken`                  | `""`             | GitHub Token (for API rate limit)                                                   |
+|  11   | `skillNinja.singleClickInstall`           | `false`          | Install remote skills with single click                                             |
+|  12   | `skillNinja.coexistenceMode`              | `auto`           | Coexistence with Agent Resources Ninja (`auto` / `independent`)                     |
+|  13   | `skillNinja.useSharedSourcesManifest`     | `false`          | Share source-list SSOT with Agent Resources Ninja via `~/.agent-ninja/sources.json` |
 
 > Settings are displayed in the order above
 
@@ -378,6 +378,8 @@ When the companion extension [Agent Resources Ninja](https://marketplace.visuals
 Local workspace skills managed by Resources Ninja keep `source: "local"` metadata. Skill Ninja lists them as local skills, but does not treat them as missing from the remote skill index and excludes them from remote-index reinstall commands.
 
 If the sibling extension is uninstalled, Skill Ninja takes over the same shared block on the next `vscode.extensions.onDidChange` event — no parallel blocks, no orphan markers, no manual cleanup needed in the normal case.
+
+Optional shared source list: enable `skillNinja.useSharedSourcesManifest` when you want Skill Ninja and Agent Resources Ninja to reuse the same remote source definitions through `~/.agent-ninja/sources.json`. This shares the source list only; each extension still refreshes and stores its own index contents.
 
 #### Note: `resourceNinja.kindsExcluded` after uninstalling Skill Ninja
 

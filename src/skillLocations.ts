@@ -791,8 +791,16 @@ export async function getExtensionSkillRoots(): Promise<SkillRoot[]> {
   }
 
   return roots.sort((left, right) => {
-    const leftName = (left.extensionDisplayName || left.extensionId || "").toLowerCase();
-    const rightName = (right.extensionDisplayName || right.extensionId || "").toLowerCase();
+    const leftName = (
+      left.extensionDisplayName ||
+      left.extensionId ||
+      ""
+    ).toLowerCase();
+    const rightName = (
+      right.extensionDisplayName ||
+      right.extensionId ||
+      ""
+    ).toLowerCase();
     const labelCompare = leftName.localeCompare(rightName);
     if (labelCompare !== 0) {
       return labelCompare;

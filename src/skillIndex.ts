@@ -6,6 +6,12 @@ import {
   createGitHubHeaders,
   fetchGitHubWithOptionalAuthRetry,
 } from "./githubFetch";
+import {
+  applySharedSourcesManifestToSkillIndex,
+  bootstrapSharedSourcesManifest,
+  readSharedSourcesManifest,
+  syncSharedSourcesManifestFromSources,
+} from "./shared-sources-manifest-store";
 
 // スキル情報の型定義
 export interface Skill {
@@ -72,6 +78,8 @@ export interface Source {
   branch?: string; // デフォルトブランチ（省略時は"main"）
   description: string;
   description_ja?: string; // 日本語説明（オプション）
+  includePaths?: string[]; // 取り込むパス prefix の限定
+  excludePaths?: string[]; // 除外するパス prefix
 }
 
 // カテゴリ情報の型定義
@@ -124,6 +132,55 @@ function normalizeSkillIndex(index: Partial<SkillIndex>): SkillIndex {
   };
 }
 
+function getConfiguredUseSharedSourcesManifest(): boolean {
+  return (
+    vscode.workspace
+      .getConfiguration("skillNinja")
+      .get<boolean>("useSharedSourcesManifest") ?? false
+  );
+}
+
+async function writeLocalSkillIndex(
+  context: vscode.ExtensionContext,
+  index: SkillIndex,
+): Promise<void> {
+  const localIndexPath = vscode.Uri.joinPath(
+    context.globalStorageUri,
+    "skill-index.json",
+  );
+  await vscode.workspace.fs.createDirectory(context.globalStorageUri);
+  await vscode.workspace.fs.writeFile(
+    localIndexPath,
+    Buffer.from(JSON.stringify(index, null, 2), "utf-8"),
+  );
+}
+
+async function loadSharedSourcesIntoSkillIndex(
+  currentIndex: SkillIndex,
+): Promise<SkillIndex> {
+  if (!getConfiguredUseSharedSourcesManifest()) {
+    return currentIndex;
+  }
+
+  const manifest = await readSharedSourcesManifest();
+  if (manifest) {
+    return applySharedSourcesManifestToSkillIndex(currentIndex, manifest);
+  }
+
+  try {
+    await bootstrapSharedSourcesManifest(
+      currentIndex.sources.map((source) => ({ ...source })),
+    );
+  } catch (error) {
+    console.warn(
+      "[Skill Ninja] Failed to bootstrap shared sources manifest:",
+      error,
+    );
+  }
+
+  return currentIndex;
+}
+
 /**
  * スキルインデックスを読み込む
  * 1. globalStorageUri にローカルインデックスがあればそれを使用
@@ -167,35 +224,38 @@ export async function loadSkillIndex(
     // バンドル版がある場合は常にマージ（description_ja の補完のため）
     if (bundledIndex) {
       const mergedIndex = mergeSkillIndexes(localIndex, bundledIndex);
-      // バンドル版で補完できるメタデータがあれば保存する
-      if (shouldPersistMergedIndex(localIndex, mergedIndex)) {
-        await saveSkillIndex(context, mergedIndex);
+      const sharedMergedIndex =
+        await loadSharedSourcesIntoSkillIndex(mergedIndex);
+      // バンドル版または shared manifest で補完できるメタデータがあれば保存する
+      if (shouldPersistMergedIndex(localIndex, sharedMergedIndex)) {
+        await writeLocalSkillIndex(context, sharedMergedIndex);
       }
-      return mergedIndex;
+      return sharedMergedIndex;
     }
 
-    return localIndex;
+    const sharedLocalIndex = await loadSharedSourcesIntoSkillIndex(localIndex);
+    if (shouldPersistMergedIndex(localIndex, sharedLocalIndex)) {
+      await writeLocalSkillIndex(context, sharedLocalIndex);
+    }
+
+    return sharedLocalIndex;
   } catch {
     // ローカルにない場合はバンドルされたインデックスを使用
     if (bundledIndex) {
       // ローカルにコピー
-      await vscode.workspace.fs.createDirectory(context.globalStorageUri);
-      await vscode.workspace.fs.writeFile(
-        localIndexPath,
-        Buffer.from(JSON.stringify(bundledIndex, null, 2), "utf-8"),
-      );
-      return bundledIndex;
+      await writeLocalSkillIndex(context, bundledIndex);
+      return loadSharedSourcesIntoSkillIndex(bundledIndex);
     }
 
     // バンドルされたインデックスもない場合は空のインデックスを返す
     console.warn("No skill index found, using empty index");
-    return {
+    return loadSharedSourcesIntoSkillIndex({
       version: "1.0.0",
       lastUpdated: new Date().toISOString().split("T")[0],
       sources: [],
       skills: [],
       categories: [],
-    };
+    });
   }
 }
 
@@ -371,7 +431,12 @@ function shouldPersistMergedIndex(
       localSource.type !== mergedSource.type ||
       localSource.branch !== mergedSource.branch ||
       localSource.description !== mergedSource.description ||
-      localSource.description_ja !== mergedSource.description_ja
+      localSource.description_ja !== mergedSource.description_ja ||
+      !areStringArraysEqual(
+        localSource.includePaths,
+        mergedSource.includePaths,
+      ) ||
+      !areStringArraysEqual(localSource.excludePaths, mergedSource.excludePaths)
     ) {
       return true;
     }
@@ -458,15 +523,22 @@ export async function saveSkillIndex(
   context: vscode.ExtensionContext,
   index: SkillIndex,
 ): Promise<void> {
-  const localIndexPath = vscode.Uri.joinPath(
-    context.globalStorageUri,
-    "skill-index.json",
-  );
-  await vscode.workspace.fs.createDirectory(context.globalStorageUri);
-  await vscode.workspace.fs.writeFile(
-    localIndexPath,
-    Buffer.from(JSON.stringify(index, null, 2), "utf-8"),
-  );
+  await writeLocalSkillIndex(context, index);
+
+  if (!getConfiguredUseSharedSourcesManifest()) {
+    return;
+  }
+
+  try {
+    await syncSharedSourcesManifestFromSources(
+      index.sources.map((source) => ({ ...source })),
+    );
+  } catch (error) {
+    console.warn(
+      "[Skill Ninja] Failed to sync shared sources manifest:",
+      error,
+    );
+  }
 }
 
 // デフォルトブランチのキャッシュ（リポジトリURL → ブランチ名）

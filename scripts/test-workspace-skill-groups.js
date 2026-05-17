@@ -358,8 +358,7 @@ test("groups installed extension roots by extension before variant", () => {
     "C:/Users/test/.vscode/extensions/ms-azuretools.vscode-azure-github-copilot/resources/skills",
     "azure-skills",
   );
-  extensionSkill.root.extensionId =
-    "ms-azuretools.vscode-azure-github-copilot";
+  extensionSkill.root.extensionId = "ms-azuretools.vscode-azure-github-copilot";
   extensionSkill.root.extensionDisplayName = "GitHub Copilot for Azure";
 
   const providerGroups = JSON.parse(

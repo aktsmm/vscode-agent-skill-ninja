@@ -6,6 +6,8 @@ dist/
 output_blog_tips/
 output_retro/
 compile-output.txt
+.tmp-*
+.tmp-*.*
 compile-*.txt
 test-*.txt
 audit-*.txt

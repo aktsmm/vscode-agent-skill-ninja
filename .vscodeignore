@@ -12,6 +12,10 @@ AGENTS.md
 AGENTS.md.backup
 *.vsix
 artifacts/**
+.tmp-*
+.tmp-*.*
+**/.tmp-*
+**/.tmp-*.*
 tmp-*
 /*-capture.txt
 /*-capture.json

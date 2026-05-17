@@ -237,7 +237,8 @@ test("built-in setting descriptions explain provider-based grouping", () => {
 test("read-only extension skills expose only open/copy actions", () => {
   const commands = (pkg.contributes.menus["view/item/context"] || [])
     .filter(
-      (item) => typeof item.when === "string" && item.when.includes("extensionSkill"),
+      (item) =>
+        typeof item.when === "string" && item.when.includes("extensionSkill"),
     )
     .map((item) => item.command)
     .sort();
@@ -277,7 +278,9 @@ test("README files explain double-click workspace install behavior", () => {
   assert.ok(readme.includes("workspace skill root"));
   assert.ok(readme.includes("inline Install action"));
 
-  assert.ok(readmeJa.includes("ダブルクリックすると、既定で workspace skill root"));
+  assert.ok(
+    readmeJa.includes("ダブルクリックすると、既定で workspace skill root"),
+  );
   assert.ok(readmeJa.includes("シングルクリックインストールに切り替え可能"));
   assert.ok(readmeJa.includes("inline の Install"));
 });
@@ -350,13 +353,29 @@ test("README files and settings surface the companion extension", () => {
 test("README files document coexistence behavior and standalone exclusions", () => {
   assert.ok(readme.includes("### Coexistence with Agent Resources Ninja"));
   assert.ok(readme.includes("skillNinja.coexistenceMode"));
+  assert.ok(readme.includes("skillNinja.useSharedSourcesManifest"));
+  assert.ok(readme.includes("sources.json"));
   assert.ok(readme.includes("resourceNinja.kindsExcluded"));
   assert.ok(readme.includes("Show Coexistence Status"));
 
   assert.ok(readmeJa.includes("### Agent Resources Ninja との共存"));
   assert.ok(readmeJa.includes("skillNinja.coexistenceMode"));
+  assert.ok(readmeJa.includes("skillNinja.useSharedSourcesManifest"));
+  assert.ok(readmeJa.includes("sources.json"));
   assert.ok(readmeJa.includes("resourceNinja.kindsExcluded"));
   assert.ok(readmeJa.includes("Show Coexistence Status"));
+});
+
+test("shared sources manifest setting is described as a source-list SSOT", () => {
+  const nls = fs.readFileSync(path.join(root, "package.nls.json"), "utf8");
+  const nlsJa = fs.readFileSync(path.join(root, "package.nls.ja.json"), "utf8");
+
+  assert.ok(nls.includes("Agent Resources Ninja"));
+  assert.ok(nls.includes("sources.json"));
+  assert.ok(nls.includes("source definitions only"));
+  assert.ok(nlsJa.includes("Agent Resources Ninja"));
+  assert.ok(nlsJa.includes("sources.json"));
+  assert.ok(nlsJa.includes("source 定義だけ"));
 });
 
 test("tool model descriptions do not hardcode workspace-only skill paths", () => {
@@ -456,6 +475,8 @@ test("npm test regression scripts are not excluded by .gitignore", () => {
 test("temporary capture logs are excluded from the VSIX", () => {
   const ignoreMatchers = getVscodeIgnoreEntries().map(globToRegExp);
   for (const filePath of [
+    ".tmp-vsce-show.json",
+    ".tmp-release.log",
     "compile-capture.txt",
     "test-capture.txt",
     "vsce-package-capture.txt",
@@ -485,6 +506,8 @@ test("temporary capture logs are excluded from the VSIX", () => {
 test("local debug logs and backup files are excluded from git", () => {
   const ignoreMatchers = getGitIgnoreEntries().map(globToRegExp);
   for (const filePath of [
+    ".tmp-vsce-show.json",
+    ".tmp-release.log",
     "compile-exit.txt",
     "compile-output-latest.txt",
     "test-exit.txt",

@@ -330,6 +330,7 @@ export async function scanRepositoryForSkills(
   repoUrl: string,
   token?: string,
   preferredBranch?: string, // skill-index.json で指定されたブランチ
+  sourceOptions?: Pick<Source, "includePaths" | "excludePaths">,
 ): Promise<{ skills: Skill[]; source: Source; bundles?: Bundle[] } | null> {
   // URLからowner/repoを抽出
   const match = repoUrl.match(/github\.com\/([^/]+)\/([^/]+)/);
@@ -364,6 +365,7 @@ export async function scanRepositoryForSkills(
       repoName,
       branch,
       token,
+      sourceOptions,
     );
     if (registryResult) {
       return registryResult;
@@ -392,6 +394,7 @@ export async function scanRepositoryForSkills(
           repoUrl,
           fallbackBranch,
           token,
+          sourceOptions,
         );
       }
       throw new Error(
@@ -416,6 +419,43 @@ export async function scanRepositoryForSkills(
     repoUrl,
     branch,
     token,
+    sourceOptions,
+  );
+}
+
+function normalizePathPrefix(prefix: string): string {
+  return prefix
+    .replace(/\\/g, "/")
+    .replace(/^\/+/, "")
+    .replace(/\/+$/, "")
+    .toLowerCase();
+}
+
+function pathMatchesPrefix(filePath: string, prefix: string): boolean {
+  return filePath === prefix || filePath.startsWith(`${prefix}/`);
+}
+
+function isSkillPathAllowed(
+  filePath: string,
+  sourceOptions?: Pick<Source, "includePaths" | "excludePaths">,
+): boolean {
+  const normalizedPath = normalizePathPrefix(filePath);
+  const includePaths = (sourceOptions?.includePaths || []).map(
+    normalizePathPrefix,
+  );
+  const excludePaths = (sourceOptions?.excludePaths || []).map(
+    normalizePathPrefix,
+  );
+
+  if (
+    includePaths.length > 0 &&
+    !includePaths.some((prefix) => pathMatchesPrefix(normalizedPath, prefix))
+  ) {
+    return false;
+  }
+
+  return !excludePaths.some((prefix) =>
+    pathMatchesPrefix(normalizedPath, prefix),
   );
 }
 
@@ -429,22 +469,28 @@ async function processTreeResponse(
   repoUrl: string,
   branch: string,
   _token?: string,
+  sourceOptions?: Pick<Source, "includePaths" | "excludePaths">,
 ): Promise<{ skills: Skill[]; source: Source; bundles?: Bundle[] }> {
   // SKILL.md / skill.md ファイルを探す（どのディレクトリでも可、大文字小文字両対応）
   const skillFiles = data.tree.filter((item) => {
     if (item.type !== "blob") return false;
     const lowerPath = item.path.toLowerCase();
     // 正確に skill.md で終わるもののみ（blockskill.md 等を除外）
-    return lowerPath === "skill.md" || lowerPath.endsWith("/skill.md");
+    return (
+      (lowerPath === "skill.md" || lowerPath.endsWith("/skill.md")) &&
+      isSkillPathAllowed(item.path, sourceOptions)
+    );
   });
+  const canUseLegacyFallbackScanner = skillFiles.length === 0;
   // PRPs-agentic-eng リポジトリの特別処理: .claude/commands/**/*.md をスキャン
   const isPRPsRepo = repoName.toLowerCase().includes("prps-agentic");
-  if (isPRPsRepo) {
+  if (isPRPsRepo && canUseLegacyFallbackScanner) {
     const claudeCommandSkills = await scanClaudeCommands(
       data,
       owner,
       repoName,
       branch,
+      sourceOptions,
     );
     const source: Source = {
       id: `${owner}-${repoName}`,
@@ -453,6 +499,8 @@ async function processTreeResponse(
       type: "user-added",
       branch, // ブランチを保存
       description: `User added repository: ${owner}/${repoName}`,
+      includePaths: sourceOptions?.includePaths,
+      excludePaths: sourceOptions?.excludePaths,
     };
     return { skills: claudeCommandSkills, source };
   }
@@ -461,8 +509,13 @@ async function processTreeResponse(
   const isComposioRepo = repoName
     .toLowerCase()
     .includes("awesome-claude-skills");
-  if (isComposioRepo) {
-    const composioSkills = scanComposioSkills(data, owner, repoName);
+  if (isComposioRepo && canUseLegacyFallbackScanner) {
+    const composioSkills = scanComposioSkills(
+      data,
+      owner,
+      repoName,
+      sourceOptions,
+    );
     const source: Source = {
       id: `${owner}-${repoName}`,
       name: repoName,
@@ -470,6 +523,8 @@ async function processTreeResponse(
       type: "user-added",
       branch, // ブランチを保存
       description: `User added repository: ${owner}/${repoName}`,
+      includePaths: sourceOptions?.includePaths,
+      excludePaths: sourceOptions?.excludePaths,
     };
     return { skills: composioSkills, source };
   }
@@ -495,7 +550,7 @@ async function processTreeResponse(
         const skill: Skill = {
           name: skillInfo.name,
           source: `${owner}-${repoName}`,
-          path: file.path.replace("/SKILL.md", ""),
+          path: normalizeSkillRootPathFromSkillFile(file.path),
           categories: skillInfo.categories || [],
           description: skillInfo.description || "",
         };
@@ -517,7 +572,7 @@ async function processTreeResponse(
           license.toLowerCase().includes("license.txt") ||
           license.toLowerCase().includes("complete terms")
         ) {
-          const skillDir = file.path.replace("/SKILL.md", "");
+          const skillDir = normalizeSkillRootPathFromSkillFile(file.path);
           const extractedLicense = await fetchAndExtractLicense(
             owner,
             repoName,
@@ -547,7 +602,13 @@ async function processTreeResponse(
   );
 
   // bundle.json を検出してBundle定義を取得
-  const bundles = await scanBundleJson(data, owner, repoName, branch);
+  const bundles = await scanBundleJson(
+    data,
+    owner,
+    repoName,
+    branch,
+    sourceOptions,
+  );
 
   // 同じスキル名の重複を除去（パスが短い方を優先）
   // 例: vscode-extension-guide と skills/vscode-extension-guide がある場合、前者を優先
@@ -572,9 +633,20 @@ async function processTreeResponse(
     type: "user-added",
     branch, // ブランチを保存
     description: `User added repository: ${owner}/${repoName}`,
+    includePaths: sourceOptions?.includePaths,
+    excludePaths: sourceOptions?.excludePaths,
   };
 
   return { skills: deduplicatedSkills, source, bundles };
+}
+
+export function normalizeSkillRootPathFromSkillFile(filePath: string): string {
+  const normalizedPath = filePath.replace(/\\/g, "/");
+  if (/^skill\.md$/i.test(normalizedPath)) {
+    return "";
+  }
+
+  return normalizedPath.replace(/\/skill\.md$/i, "");
 }
 
 /**
@@ -586,12 +658,14 @@ async function scanBundleJson(
   owner: string,
   repoName: string,
   branch: string,
+  sourceOptions?: Pick<Source, "includePaths" | "excludePaths">,
 ): Promise<Bundle[]> {
   // bundle.json ファイルを探す（ルートまたはどこでも）
   const bundleFiles = data.tree.filter(
     (item) =>
       item.type === "blob" &&
-      (item.path === "bundle.json" || item.path.endsWith("/bundle.json")),
+      (item.path === "bundle.json" || item.path.endsWith("/bundle.json")) &&
+      isSkillPathAllowed(item.path, sourceOptions),
   );
 
   const bundles: Bundle[] = [];
@@ -654,6 +728,7 @@ async function scanClaudeCommands(
   owner: string,
   repoName: string,
   branch: string,
+  sourceOptions?: Pick<Source, "includePaths" | "excludePaths">,
 ): Promise<Skill[]> {
   console.log(
     `[Skill Ninja] scanClaudeCommands: ${owner}/${repoName} branch=${branch}`,
@@ -665,7 +740,8 @@ async function scanClaudeCommands(
     (item) =>
       item.type === "blob" &&
       item.path.startsWith(".claude/commands/") &&
-      item.path.endsWith(".md"),
+      item.path.endsWith(".md") &&
+      isSkillPathAllowed(item.path, sourceOptions),
   );
 
   console.log(`[Skill Ninja] Found ${commandFiles.length} command files`);
@@ -738,6 +814,7 @@ function scanComposioSkills(
   data: { tree: Array<{ path: string; type: string }> },
   owner: string,
   repoName: string,
+  sourceOptions?: Pick<Source, "includePaths" | "excludePaths">,
 ): Skill[] {
   // 除外するディレクトリ（設定ファイルや非スキル）
   const excludeDirs = new Set([
@@ -766,7 +843,9 @@ function scanComposioSkills(
     description: `${dir.path} skill`,
   }));
 
-  return skills;
+  return skills.filter((skill) =>
+    isSkillPathAllowed(skill.path, sourceOptions),
+  );
 }
 
 /**
@@ -778,6 +857,7 @@ async function scanSkillRegistryJson(
   repoName: string,
   branch: string,
   _token?: string,
+  sourceOptions?: Pick<Source, "includePaths" | "excludePaths">,
 ): Promise<{ skills: Skill[]; source: Source } | null> {
   console.log(
     `[Skill Ninja] scanSkillRegistryJson: ${owner}/${repoName} branch=${branch}`,
@@ -807,7 +887,13 @@ async function scanSkillRegistryJson(
         skills?: RegistrySkill[];
         total?: number;
       };
-      return parseRegistryJson(registryData, owner, repoName, branch);
+      return parseRegistryJson(
+        registryData,
+        owner,
+        repoName,
+        branch,
+        sourceOptions,
+      );
     }
 
     const searchIndex = (await response.json()) as {
@@ -815,7 +901,13 @@ async function scanSkillRegistryJson(
       t?: number;
       s?: SearchIndexSkill[];
     };
-    return parseSearchIndex(searchIndex, owner, repoName, branch);
+    return parseSearchIndex(
+      searchIndex,
+      owner,
+      repoName,
+      branch,
+      sourceOptions,
+    );
   } catch (error) {
     console.error(`[Skill Ninja] Failed to fetch skill registry:`, error);
     return null;
@@ -839,6 +931,7 @@ function parseSearchIndex(
   owner: string,
   repoName: string,
   branch: string,
+  sourceOptions?: Pick<Source, "includePaths" | "excludePaths">,
 ): { skills: Skill[]; source: Source } {
   const sourceId = `${owner}-${repoName}`;
   const skills: Skill[] = [];
@@ -863,6 +956,9 @@ function parseSearchIndex(
     const skillsToProcess = data.s.slice(0, MAX_SKILLS);
 
     for (const item of skillsToProcess) {
+      if (!isSkillPathAllowed(item.i, sourceOptions)) {
+        continue;
+      }
       const category = categoryMap[item.c] || item.c || "other";
       const tags = item.g || [];
 
@@ -888,6 +984,8 @@ function parseSearchIndex(
     type: "user-added",
     branch, // ブランチを保存
     description: `Claude Skills Registry - ${data.t || skills.length} skills indexed`,
+    includePaths: sourceOptions?.includePaths,
+    excludePaths: sourceOptions?.excludePaths,
   };
 
   return { skills, source };
@@ -912,6 +1010,7 @@ function parseRegistryJson(
   owner: string,
   repoName: string,
   branch: string,
+  sourceOptions?: Pick<Source, "includePaths" | "excludePaths">,
 ): { skills: Skill[]; source: Source } {
   const sourceId = `${owner}-${repoName}`;
   const skills: Skill[] = [];
@@ -922,6 +1021,10 @@ function parseRegistryJson(
     const skillsToProcess = data.skills.slice(0, MAX_SKILLS);
 
     for (const item of skillsToProcess) {
+      const resourcePath = item.install_path || item.path || item.repo || "";
+      if (!isSkillPathAllowed(resourcePath, sourceOptions)) {
+        continue;
+      }
       const categories: string[] = [];
       if (item.category) categories.push(item.category);
       if (item.tags) categories.push(...item.tags.slice(0, 3));
@@ -929,7 +1032,7 @@ function parseRegistryJson(
       skills.push({
         name: item.name,
         source: sourceId,
-        path: item.install_path || item.path || item.repo || "",
+        path: resourcePath,
         categories: categories.length > 0 ? categories : ["other"],
         description: item.description || "",
         stars: item.stars,
@@ -948,6 +1051,8 @@ function parseRegistryJson(
     type: "user-added",
     branch, // ブランチを保存
     description: `Claude Skills Registry - ${data.total || skills.length} skills indexed`,
+    includePaths: sourceOptions?.includePaths,
+    excludePaths: sourceOptions?.excludePaths,
   };
 
   return { skills, source };
@@ -1115,6 +1220,7 @@ export async function updateSingleSource(
       source.url,
       token,
       source.branch,
+      source,
     );
 
     if (!result) {
@@ -1297,6 +1403,7 @@ export async function updateIndexFromSingleSource(
     source.url,
     token,
     source.branch,
+    source,
   );
 
   if (!result) {

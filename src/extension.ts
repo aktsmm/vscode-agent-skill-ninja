@@ -72,6 +72,7 @@ import {
   MIGRATION_GUARD_DELAY_MS,
   AgentNinjaExtensionApi,
 } from "./coexistence";
+import { readSharedSourcesManifest } from "./shared-sources-manifest-store";
 
 // 現在の拡張機能バージョン
 const EXTENSION_VERSION =
@@ -219,6 +220,22 @@ export function activate(
   function refreshAllViews(): void {
     refreshInstalledViews();
     browseProvider.refresh();
+  }
+
+  function isSharedSourcesManifestEnabled(): boolean {
+    return vscode.workspace
+      .getConfiguration("skillNinja")
+      .get<boolean>("useSharedSourcesManifest", false);
+  }
+
+  async function getRemoteSourceIndex(
+    forceReload: boolean = false,
+  ): Promise<SkillIndex> {
+    if (forceReload || isSharedSourcesManifestEnabled() || !skillIndex) {
+      skillIndex = await loadSkillIndex(context);
+    }
+
+    return skillIndex!;
   }
 
   function markRecentlyInstalled(skill: Skill): void {
@@ -422,6 +439,11 @@ export function activate(
     if (e.affectsConfiguration("skillNinja.language")) {
       // 言語設定が変わったらインデックスを再読み込みしてツリービューをリフレッシュ
       // バンドル版の description_ja を反映させるため
+      skillIndex = await loadSkillIndex(context);
+      refreshAllViews();
+    }
+
+    if (e.affectsConfiguration("skillNinja.useSharedSourcesManifest")) {
       skillIndex = await loadSkillIndex(context);
       refreshAllViews();
     }
@@ -1758,9 +1780,7 @@ export function activate(
   const updateIndexCmd = vscode.commands.registerCommand(
     "skillNinja.updateIndex",
     async () => {
-      if (!skillIndex) {
-        skillIndex = await loadSkillIndex(context);
-      }
+      skillIndex = await getRemoteSourceIndex();
 
       const oldCount = skillIndex.skills.length;
 
@@ -1816,9 +1836,7 @@ export function activate(
         return;
       }
 
-      if (!skillIndex) {
-        skillIndex = await loadSkillIndex(context);
-      }
+      skillIndex = await getRemoteSourceIndex();
 
       const oldCount = skillIndex.skills.filter(
         (s) => s.source === sourceId,
@@ -1914,9 +1932,7 @@ export function activate(
         return;
       }
 
-      if (!skillIndex) {
-        skillIndex = await loadSkillIndex(context);
-      }
+      skillIndex = await getRemoteSourceIndex();
 
       try {
         const result = await vscode.window.withProgress(
@@ -2213,9 +2229,7 @@ export function activate(
   const removeSourceCmd = vscode.commands.registerCommand(
     "skillNinja.removeSource",
     async (item?: SkillTreeItem) => {
-      if (!skillIndex) {
-        skillIndex = await loadSkillIndex(context);
-      }
+      skillIndex = await getRemoteSourceIndex();
 
       let sourceId: string | undefined;
       let sourceName: string | undefined;
@@ -2875,6 +2889,12 @@ Add examples here
       const sibling = decision.siblingBeacon;
       const selfPublished = getPublishedSelfBeacon(context);
       const siblingExt = vscode.extensions.getExtension(SIBLING_EXTENSION_ID);
+      const useSharedSourcesManifest = vscode.workspace
+        .getConfiguration("skillNinja")
+        .get<boolean>("useSharedSourcesManifest", false);
+      const sharedSourcesManifest = useSharedSourcesManifest
+        ? await readSharedSourcesManifest()
+        : undefined;
       const lines: string[] = [];
       lines.push("=== Agent Skills Ninja: Coexistence Status ===");
       lines.push(`Self extensionId : ${SELF_EXTENSION_ID}`);
@@ -2912,6 +2932,9 @@ Add examples here
       lines.push("");
       lines.push(
         `Coexistence mode : ${vscode.workspace.getConfiguration("skillNinja").get<string>("coexistenceMode") ?? "auto"}`,
+      );
+      lines.push(
+        `Shared sources   : ${useSharedSourcesManifest ? (sharedSourcesManifest ? `${sharedSourcesManifest.sources.length} sources via ~/.agent-ninja/sources.json` : "enabled (not initialized)") : "disabled"}`,
       );
       lines.push(
         decision.owner === "self"

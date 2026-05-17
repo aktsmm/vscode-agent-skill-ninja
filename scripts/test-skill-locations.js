@@ -99,6 +99,12 @@ function loadTranspiledModule(sourcePath, extraModules = {}, options = {}) {
       if (request in extraModules) {
         return extraModules[request];
       }
+      if (`${request}.ts` in extraModules) {
+        return extraModules[`${request}.ts`];
+      }
+      if (request.includes("shared-sources-manifest-store")) {
+        return extraModules["./shared-sources-manifest-store"];
+      }
       return require(request);
     },
   };
@@ -131,6 +137,12 @@ const skillIndexExports = loadTranspiledModule(skillIndexPath, {
   "./githubFetch": {
     createGitHubHeaders: () => ({}),
     fetchGitHubWithOptionalAuthRetry: async () => ({ ok: false }),
+  },
+  "./shared-sources-manifest-store": {
+    applySharedSourcesManifestToSkillIndex: (index) => index,
+    bootstrapSharedSourcesManifest: async () => undefined,
+    readSharedSourcesManifest: async () => undefined,
+    syncSharedSourcesManifestFromSources: async () => undefined,
   },
 });
 

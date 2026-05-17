@@ -158,10 +158,18 @@ npx vsce publish --packagePath artifacts/vsix/agent-skill-ninja-X.X.X.vsix  # Ma
 
 対象バージョンの publish が `already exists` を返した場合、そのバージョンは Marketplace 側で公開済みと扱ってよい。ただし Marketplace metadata は反映遅延することがあるため、GitHub Release、VSIX asset、必要なら後続の `vsce show` で別経路確認を続ける（2026-05-11 / GitHub Copilot）。
 
+Marketplace の public HTML ページ（`items?itemName=...`）も publish 直後は stale な version 表示のまま残ることがある。HTML が旧版を出していても、`vsce publish` 成功出力、`gh release view vX.Y.Z`、`git ls-remote --tags origin vX.Y.Z` が揃っていれば、即座に version bump や再 publish を行わず、反映待ちとして扱う（2026-05-17 / GitHub Copilot）。
+
 ### 7. GitHub Release 作成
 
 ```bash
 gh release create vX.X.X artifacts/vsix/agent-skill-ninja-X.X.X.vsix --title "vX.X.X - タイトル" --notes "リリースノート"
+```
+
+PowerShell で release の JSON を確認するときは、`--json` の field list を 1 引数としてクォートすること。クォートしないと `accepts at most 1 arg(s)` で失敗する。
+
+```pwsh
+gh release view vX.X.X --json "tagName,name,url,isDraft,isPrerelease,publishedAt"
 ```
 
 ### 8. ローカル VSIX の整理
@@ -212,3 +220,4 @@ New-Item -ItemType Directory -Force artifacts/vsix | Out-Null; npx vsce package 
 
 - 🛒 Marketplace: https://marketplace.visualstudio.com/items?itemName=yamapan.agent-skill-ninja
 - 📦 GitHub Releases: https://github.com/aktsmm/vscode-agent-skill-ninja/releases
+- PowerShell / CLI 裏取り例: `npx vsce show yamapan.agent-skill-ninja --json`, `gh release view vX.X.X --json "tagName,name,url,isDraft,isPrerelease,publishedAt"`, `git ls-remote --tags origin vX.X.X`

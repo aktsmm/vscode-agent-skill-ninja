@@ -347,21 +347,21 @@ MCP ツールが不要な場合は、GitHub Copilot Chat のツール一覧か�
 
 ## ⚙️ Settings
 
-| 順序 | Setting                                   | Default          | Description                                                           |
-| :--: | ----------------------------------------- | ---------------- | --------------------------------------------------------------------- |
-|  1   | `skillNinja.autoUpdateInstruction`        | `true`           | **インストール時に instruction file を自動更新**                      |
-|  2   | `skillNinja.instructionFile`              | `AGENTS.md`      | スキルを登録するファイル形式 _(要: Auto Update)_                      |
-|  3   | `skillNinja.customInstructionPath`        | `""`             | カスタムパス _(instructionFile が 'custom' の時のみ)_                 |
-|  4   | `skillNinja.skillsDirectory`              | `.github/skills` | ワークスペーススキルをインストール・管理するディレクトリ              |
-|  5   | `skillNinja.useVsCodeAgentSkillLocations` | `true`           | 標準 personal root と追加の user/global skill root を検出して管理する |
-|  6   | `skillNinja.showBuiltInSkills`            | `false`          | 読み取り専用の Built-in Skills を表示する                             |
-|  7   | `skillNinja.outputFormat`                 | `full`           | 出力形式（full / compact / legacy）                                   |
-|  8   | `skillNinja.language`                     | `auto`           | UI 言語（auto / en / ja）                                             |
-|  9   | `skillNinja.autoUpdateSkillsOnUpgrade`    | `prompt`         | 拡張機能アップグレード後のスキル更新                                  |
-|  10  | `skillNinja.githubToken`                  | `""`             | GitHub Token（API 制限緩和用）                                        |
-|  11  | `skillNinja.singleClickInstall`           | `false`          | リモートスキルをシングルクリックでインストール                        |
-|  12  | `skillNinja.coexistenceMode`              | `auto`           | Agent Resources Ninja との共存モード（`auto` / `independent`）        |
-|  13  | `skillNinja.useSharedSourcesManifest`     | `false`          | （実験的）`~/.agent-ninja/` 経由でリモートソース一覧を共有            |
+| 順序 | Setting                                   | Default          | Description                                                                           |
+| :--: | ----------------------------------------- | ---------------- | ------------------------------------------------------------------------------------- |
+|  1   | `skillNinja.autoUpdateInstruction`        | `true`           | **インストール時に instruction file を自動更新**                                      |
+|  2   | `skillNinja.instructionFile`              | `AGENTS.md`      | スキルを登録するファイル形式 _(要: Auto Update)_                                      |
+|  3   | `skillNinja.customInstructionPath`        | `""`             | カスタムパス _(instructionFile が 'custom' の時のみ)_                                 |
+|  4   | `skillNinja.skillsDirectory`              | `.github/skills` | ワークスペーススキルをインストール・管理するディレクトリ                              |
+|  5   | `skillNinja.useVsCodeAgentSkillLocations` | `true`           | 標準 personal root と追加の user/global skill root を検出して管理する                 |
+|  6   | `skillNinja.showBuiltInSkills`            | `false`          | 読み取り専用の Built-in Skills を表示する                                             |
+|  7   | `skillNinja.outputFormat`                 | `full`           | 出力形式（full / compact / legacy）                                                   |
+|  8   | `skillNinja.language`                     | `auto`           | UI 言語（auto / en / ja）                                                             |
+|  9   | `skillNinja.autoUpdateSkillsOnUpgrade`    | `prompt`         | 拡張機能アップグレード後のスキル更新                                                  |
+|  10  | `skillNinja.githubToken`                  | `""`             | GitHub Token（API 制限緩和用）                                                        |
+|  11  | `skillNinja.singleClickInstall`           | `false`          | リモートスキルをシングルクリックでインストール                                        |
+|  12  | `skillNinja.coexistenceMode`              | `auto`           | Agent Resources Ninja との共存モード（`auto` / `independent`）                        |
+|  13  | `skillNinja.useSharedSourcesManifest`     | `false`          | `~/.agent-ninja/sources.json` 経由で Agent Resources Ninja と source list SSOT を共有 |
 
 > 設定画面では上記の順序で表示されます
 
@@ -374,6 +374,8 @@ MCP ツールが不要な場合は、GitHub Copilot Chat のツール一覧か�
 Resources Ninja が管理するローカル workspace skill は `source: "local"` のメタデータを保持します。Skill Ninja はこれらをローカルスキルとして表示しますが、リモート skill index の欠落扱いにはせず、リモート index からの再インストール対象からも除外します。
 
 姉妹拡張がアンインストールされた場合、`vscode.extensions.onDidChange` を契機に Skill Ninja が同じ共通ブロックの owner に昇格 — 並列ブロックも孤児マーカーも残らず、通常は手動掃除不要です。
+
+任意の shared source list: `skillNinja.useSharedSourcesManifest` を有効にすると、Skill Ninja と Agent Resources Ninja が `~/.agent-ninja/sources.json` の同じ remote source 定義を使います。共有されるのは source 一覧だけで、各拡張の index 本体や scan cache までは共有しません。
 
 #### 注: Skill Ninja アンインストール後の `resourceNinja.kindsExcluded` の挙動
 
