@@ -45,12 +45,12 @@
 
 ### Format Options
 
-| Format         | Instruction file              | Catalog file (`refCatalogFormat`)          |
-| -------------- | ----------------------------- | ------------------------------------------ |
-| 🔗 **Ref**     | IMPORTANT + link only         | Separate file: `full` / `compact` / `legacy` |
-| ✅ **Full**    | IMPORTANT + detailed table    | —                                          |
-| 📦 **Compact** | IMPORTANT + compressed index  | —                                          |
-| 🕰️ **Legacy**  | Simple table (no IMPORTANT)   | —                                          |
+| Format         | Instruction file             | Catalog file (`refCatalogFormat`)            |
+| -------------- | ---------------------------- | -------------------------------------------- |
+| 🔗 **Ref**     | IMPORTANT + link only        | Separate file: `full` / `compact` / `legacy` |
+| ✅ **Full**    | IMPORTANT + detailed table   | —                                            |
+| 📦 **Compact** | IMPORTANT + compressed index | —                                            |
+| 🕰️ **Legacy**  | Simple table (no IMPORTANT)  | —                                            |
 
 ### IMPORTANT Prompt
 
@@ -416,12 +416,12 @@ Diagnostics: `Agent Skills Ninja: Show Coexistence Status` / `Recompute Coexiste
 
 ### Output Format Details
 
-| Format    | Content                                                            | Best For                              |
-| --------- | ------------------------------------------------------------------ | ------------------------------------- |
-| `ref`     | IMPORTANT + link in instruction file; catalog in a separate file   | Always-loaded context hygiene *(Default)* |
-| `full`    | IMPORTANT + Detailed table (200 chars)                             | Complete information in one file      |
-| `compact` | IMPORTANT + Compressed index (100 chars)                           | Token-efficient prompts in one file   |
-| `legacy`  | Simple table only (no IMPORTANT)                                   | Backward compatibility                |
+| Format    | Content                                                          | Best For                                  |
+| --------- | ---------------------------------------------------------------- | ----------------------------------------- |
+| `ref`     | IMPORTANT + link in instruction file; catalog in a separate file | Always-loaded context hygiene _(Default)_ |
+| `full`    | IMPORTANT + Detailed table (200 chars)                           | Complete information in one file          |
+| `compact` | IMPORTANT + Compressed index (100 chars)                         | Token-efficient prompts in one file       |
+| `legacy`  | Simple table only (no IMPORTANT)                                 | Backward compatibility                    |
 
 When using `ref`, configure `skillNinja.refCatalogPath` (where the catalog is written) and `skillNinja.refCatalogFormat` (`full` / `compact` / `legacy`) to set the detail level inside that catalog file.
 

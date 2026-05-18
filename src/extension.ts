@@ -3505,7 +3505,10 @@ function migrateOutputFormatSetting(): boolean {
   const targets: Array<[string | undefined, vscode.ConfigurationTarget]> = [
     [inspected?.globalValue, vscode.ConfigurationTarget.Global],
     [inspected?.workspaceValue, vscode.ConfigurationTarget.Workspace],
-    [inspected?.workspaceFolderValue, vscode.ConfigurationTarget.WorkspaceFolder],
+    [
+      inspected?.workspaceFolderValue,
+      vscode.ConfigurationTarget.WorkspaceFolder,
+    ],
   ];
 
   for (const [value, target] of targets) {

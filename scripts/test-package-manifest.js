@@ -376,11 +376,13 @@ test("outputFormat markdownDescription surfaces ref-catalog sub-settings", () =>
   // The description table must mention refCatalogPath and refCatalogFormat links
   const desc = nls["config.outputFormat.markdownDescription"] || "";
   assert.ok(
-    desc.includes("refCatalogPath") || desc.includes("#skillNinja.refCatalogPath#"),
+    desc.includes("refCatalogPath") ||
+      desc.includes("#skillNinja.refCatalogPath#"),
     "outputFormat description should link to refCatalogPath",
   );
   assert.ok(
-    desc.includes("refCatalogFormat") || desc.includes("#skillNinja.refCatalogFormat#"),
+    desc.includes("refCatalogFormat") ||
+      desc.includes("#skillNinja.refCatalogFormat#"),
     "outputFormat description should link to refCatalogFormat",
   );
   // refCatalogPath and refCatalogFormat descriptions must mention they only apply in ref mode
@@ -710,11 +712,15 @@ test("configWatcher watches refCatalogPath and refCatalogFormat", () => {
     "utf8",
   );
   assert.ok(
-    extensionSource.includes('affectsConfiguration("skillNinja.refCatalogPath")'),
+    extensionSource.includes(
+      'affectsConfiguration("skillNinja.refCatalogPath")',
+    ),
     "configWatcher must watch refCatalogPath",
   );
   assert.ok(
-    extensionSource.includes('affectsConfiguration("skillNinja.refCatalogFormat")'),
+    extensionSource.includes(
+      'affectsConfiguration("skillNinja.refCatalogFormat")',
+    ),
     "configWatcher must watch refCatalogFormat",
   );
 });

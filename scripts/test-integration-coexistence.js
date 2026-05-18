@@ -341,7 +341,9 @@ function loadInstructionManager(vscodeStub, injectedSkills) {
         return {
           normalizeOutputFormat,
           resolveOutputFormat: async () => ({
-            format: normalizeOutputFormat(skillConfig.get("outputFormat", "ref")),
+            format: normalizeOutputFormat(
+              skillConfig.get("outputFormat", "ref"),
+            ),
           }),
         };
       }

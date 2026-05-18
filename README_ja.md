@@ -41,12 +41,12 @@
 
 ### フォーマットオプション
 
-| フォーマット   | instruction file              | catalog file (`refCatalogFormat`)              |
-| -------------- | ----------------------------- | ---------------------------------------------- |
-| 🔗 **Ref**     | IMPORTANT + リンクのみ        | 別ファイル: `full` / `compact` / `legacy` から選択 |
-| ✅ **Full**    | IMPORTANT + 詳細テーブル      | —                                              |
-| 📦 **Compact** | IMPORTANT + 圧縮インデックス  | —                                              |
-| 🕰️ **Legacy**  | シンプルテーブル（IMPORTANT なし）| —                                           |
+| フォーマット   | instruction file                   | catalog file (`refCatalogFormat`)                  |
+| -------------- | ---------------------------------- | -------------------------------------------------- |
+| 🔗 **Ref**     | IMPORTANT + リンクのみ             | 別ファイル: `full` / `compact` / `legacy` から選択 |
+| ✅ **Full**    | IMPORTANT + 詳細テーブル           | —                                                  |
+| 📦 **Compact** | IMPORTANT + 圧縮インデックス       | —                                                  |
+| 🕰️ **Legacy**  | シンプルテーブル（IMPORTANT なし） | —                                                  |
 
 ### IMPORTANT プロンプト
 
@@ -412,12 +412,12 @@ Skill Ninja が active な間は、Resources Ninja は runtime で `kindsExclude
 
 ### 出力フォーマット詳細
 
-| フォーマット | 内容                                                                      | 用途                                 |
-| ------------ | ------------------------------------------------------------------------- | ------------------------------------ |
-| `ref`        | IMPORTANT + instruction file にリンク、catalog は別ファイルへ分離        | 常時ロードのコンテキスト軽量化 *(既定)* |
-| `full`       | IMPORTANT + 詳細テーブル (200文字)                                         | 1ファイルで完全な情報                |
-| `compact`    | IMPORTANT + 圧縮インデックス (100文字)                                     | 1ファイルでトークン節約              |
-| `legacy`     | シンプルテーブルのみ（IMPORTANT なし）                                    | 後方互換性                           |
+| フォーマット | 内容                                                              | 用途                                    |
+| ------------ | ----------------------------------------------------------------- | --------------------------------------- |
+| `ref`        | IMPORTANT + instruction file にリンク、catalog は別ファイルへ分離 | 常時ロードのコンテキスト軽量化 _(既定)_ |
+| `full`       | IMPORTANT + 詳細テーブル (200文字)                                | 1ファイルで完全な情報                   |
+| `compact`    | IMPORTANT + 圧縮インデックス (100文字)                            | 1ファイルでトークン節約                 |
+| `legacy`     | シンプルテーブルのみ（IMPORTANT なし）                            | 後方互換性                              |
 
 `ref` を使う場合は `skillNinja.refCatalogPath`（catalog の出力先）と `skillNinja.refCatalogFormat`（`full` / `compact` / `legacy`）で catalog 内の詳細レベルを設定します。
 

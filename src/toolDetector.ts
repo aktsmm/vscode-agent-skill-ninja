@@ -380,7 +380,9 @@ export async function resolveOutputFormat(
   _workspaceUri: vscode.Uri,
 ): Promise<{ format: OutputFormat; instructionFile: string }> {
   const config = vscode.workspace.getConfiguration("skillNinja");
-  const outputFormat = normalizeOutputFormat(config.get<string>("outputFormat"));
+  const outputFormat = normalizeOutputFormat(
+    config.get<string>("outputFormat"),
+  );
 
   // ユーザーが設定した instructionFile を取得
   const userInstructionFile =
