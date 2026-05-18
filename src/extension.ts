@@ -1,5 +1,6 @@
 // Agent Skills Ninja - VS Code Extension
 
+import * as path from "path";
 import * as vscode from "vscode";
 import {
   SkillIndex,
@@ -55,9 +56,11 @@ import {
 import {
   getManagedSkillRoots,
   isInsidePath,
+  resolveConfiguredPathToUri,
   resolveWorkspaceSkillsRootUri,
   SkillRoot,
 } from "./skillLocations";
+import { resolveOutputFormat } from "./toolDetector";
 import { createChatParticipant } from "./chatParticipant";
 import { registerMcpTools } from "./mcpTools";
 import { getGitHubToken } from "./githubAuth";
@@ -2762,7 +2765,7 @@ Add examples here
     },
   );
 
-  // Command: Open instruction file (AGENTS.md etc.)
+  // Command: Open the primary managed output (instruction file or ref catalog)
   const openInstructionFileCmd = vscode.commands.registerCommand(
     "skillNinja.openInstructionFile",
     async () => {
@@ -2774,38 +2777,90 @@ Add examples here
       const targetRoot = await pickManagedRoot(
         workspaceFolder.uri,
         isJapanese()
-          ? "開くインストラクションファイルのスコープを選択"
-          : "Select the instruction file scope to open",
+          ? "開くスキル出力のスコープを選択"
+          : "Select the skill output scope to open",
       );
 
       if (!targetRoot?.instructionUri || !targetRoot.instructionPath) {
         return;
       }
 
-      const fileUri = targetRoot.instructionUri;
-      const filePath = targetRoot.instructionPath;
+      const instructionUri = targetRoot.instructionUri;
+      const instructionPath = targetRoot.instructionPath;
+      let fileUri = instructionUri;
+      let openedTarget: "instruction" | "catalog" = "instruction";
 
-      try {
-        // ファイルが存在するか確認
-        await vscode.workspace.fs.stat(fileUri);
-        const doc = await vscode.workspace.openTextDocument(fileUri);
-        await vscode.window.showTextDocument(doc);
-      } catch {
-        // ファイルがなければ作成するか確認
-        const create = await vscode.window.showInformationMessage(
-          `${filePath} が見つかりません。作成しますか？`,
-          "作成",
-          "キャンセル",
+      const { format } = await resolveOutputFormat(workspaceFolder.uri);
+      if (format === "ref") {
+        const config = vscode.workspace.getConfiguration("skillNinja");
+        const configuredCatalogPath =
+          config.get<string>("refCatalogPath") || ".github/skills/README.md";
+        const instructionDirUri = vscode.Uri.file(
+          path.dirname(instructionUri.fsPath),
         );
-        if (create === "作成") {
-          // 空のファイルを作成
-          await vscode.workspace.fs.writeFile(
-            fileUri,
-            Buffer.from("# Agent Skills\n\n"),
-          );
-          const doc = await vscode.workspace.openTextDocument(fileUri);
+        const catalogUri =
+          (targetRoot.scope === "workspace"
+            ? resolveConfiguredPathToUri(
+                configuredCatalogPath,
+                workspaceFolder.uri,
+              )
+            : resolveConfiguredPathToUri(configuredCatalogPath)) ||
+          vscode.Uri.joinPath(instructionDirUri, configuredCatalogPath);
+        fileUri = catalogUri;
+        openedTarget = "catalog";
+      }
+
+      const tryOpen = async (uri: vscode.Uri): Promise<boolean> => {
+        try {
+          await vscode.workspace.fs.stat(uri);
+          const doc = await vscode.workspace.openTextDocument(uri);
           await vscode.window.showTextDocument(doc);
+          return true;
+        } catch {
+          return false;
         }
+      };
+
+      if (await tryOpen(fileUri)) {
+        return;
+      }
+
+      // 生成物がまだ無い場合は最新の managed output を再生成してから再試行
+      try {
+        await updateInstructionFileForRoot(targetRoot, context);
+      } catch {
+        // 再生成できない場合は後続のフォールバックへ
+      }
+
+      if (await tryOpen(fileUri)) {
+        return;
+      }
+
+      // ref catalog がまだ開けない場合は instruction file をフォールバックとして開く
+      if (openedTarget === "catalog" && (await tryOpen(instructionUri))) {
+        vscode.window.showInformationMessage(
+          isJapanese()
+            ? "Ref catalog がまだ生成されていなかったため、インストラクションファイルを開きました。"
+            : "The Ref catalog was not available yet, so the instruction file was opened instead.",
+        );
+        return;
+      }
+
+      // instruction file 自体が存在しない場合だけ手動作成を提案
+      const create = await vscode.window.showInformationMessage(
+        isJapanese()
+          ? `${instructionPath} が見つかりません。作成しますか？`
+          : `${instructionPath} was not found. Create it now?`,
+        isJapanese() ? "作成" : "Create",
+        isJapanese() ? "キャンセル" : "Cancel",
+      );
+      if (create === (isJapanese() ? "作成" : "Create")) {
+        await vscode.workspace.fs.writeFile(
+          instructionUri,
+          Buffer.from("# Agent Skills\n\n"),
+        );
+        const doc = await vscode.workspace.openTextDocument(instructionUri);
+        await vscode.window.showTextDocument(doc);
       }
     },
   );

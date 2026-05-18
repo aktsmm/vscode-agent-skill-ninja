@@ -410,6 +410,34 @@ test("README files explain double-click workspace install behavior", () => {
   assert.ok(readmeJa.includes("inline の Install"));
 });
 
+test("open output wording matches ref-first UX", () => {
+  const nls = JSON.parse(
+    fs.readFileSync(path.join(root, "package.nls.json"), "utf8"),
+  );
+  const nlsJa = JSON.parse(
+    fs.readFileSync(path.join(root, "package.nls.ja.json"), "utf8"),
+  );
+
+  assert.strictEqual(nls["command.openInstructionFile"], "Open Skill Output");
+  assert.strictEqual(nlsJa["command.openInstructionFile"], "スキル出力を開く");
+  assert.ok(readme.includes("Toolbar: Skill Output / Update Instruction"));
+  assert.ok(readme.includes("Open Skill Output quick links"));
+  assert.ok(
+    readme.includes("In `ref` mode, **Skill Output** opens the linked catalog"),
+  );
+  assert.ok(readme.includes("Agent Skills Ninja: Open Skill Output"));
+  assert.ok(
+    readmeJa.includes("ツールバー: スキル出力 / インストラクション更新"),
+  );
+  assert.ok(readmeJa.includes("空状態: 検索 / 新規作成 / スキル出力を開く"));
+  assert.ok(
+    readmeJa.includes(
+      "`ref` モードでは **スキル出力** がリンク先 catalog を開き",
+    ),
+  );
+  assert.ok(readmeJa.includes("Agent Skills Ninja: Open Skill Output"));
+});
+
 test("extension keeps default double-click workspace install contract", () => {
   assert.ok(extensionSource.includes("resolveDefaultInstallTargetRoot"));
   assert.ok(extensionSource.includes('root.scope === "workspace"'));
@@ -725,16 +753,36 @@ test("configWatcher watches refCatalogPath and refCatalogFormat", () => {
   );
 });
 
+test("openInstructionFile is ref-catalog aware", () => {
+  assert.ok(
+    extensionSource.includes("resolveOutputFormat(workspaceFolder.uri)"),
+    "openInstructionFile should resolve output format",
+  );
+  assert.ok(
+    extensionSource.includes("Select the skill output scope to open"),
+    "openInstructionFile quick pick should use skill output wording",
+  );
+  assert.ok(
+    extensionSource.includes("refCatalogPath"),
+    "openInstructionFile should consult refCatalogPath in ref mode",
+  );
+  assert.ok(
+    extensionSource.includes("Ref catalog was not available yet") ||
+      extensionSource.includes("Ref catalog がまだ生成されていなかったため"),
+    "openInstructionFile should fall back from catalog to instruction file",
+  );
+});
+
 test("Output Format Details table in README includes ref as default", () => {
   // The secondary Output Format Details section must include ref
   assert.ok(
     readme.includes("Always-loaded context hygiene") &&
-      readme.includes("*(Default)*"),
+      readme.includes("_(Default)_"),
     "README Output Format Details must include ref as the default",
   );
   assert.ok(
     readmeJa.includes("常時ロードのコンテキスト軽量化") &&
-      readmeJa.includes("*(既定)*"),
+      readmeJa.includes("_(既定)_"),
     "README_ja Output Format Details must include ref as the default",
   );
   // Ensure full is no longer labeled as default
