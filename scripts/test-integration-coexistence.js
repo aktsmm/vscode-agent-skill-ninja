@@ -558,7 +558,10 @@ test("Scenario A-ref: lightweight instruction block writes separate catalog with
       catalog.includes("../skills/sample-alpha/SKILL.md"),
       `catalog should link to skills relative to catalog location; got:\n${catalog}`,
     );
-    assert.ok(catalog.includes("sample-beta"), "catalog should contain skill rows");
+    assert.ok(
+      catalog.includes("sample-beta"),
+      "catalog should contain skill rows",
+    );
 
     await instructionManager.updateInstructionFileForRoot(root, ctx);
     const instructionAgain = fs.readFileSync(
@@ -586,7 +589,10 @@ test("Scenario U-ref: user/global ref catalog resolves from instruction director
   try {
     fs.mkdirSync(path.join(tmp, "user-skills"), { recursive: true });
     fs.mkdirSync(path.join(tmp, "instructions"), { recursive: true });
-    fs.writeFileSync(path.join(tmp, "instructions", "AGENTS.md"), "# User instructions\n");
+    fs.writeFileSync(
+      path.join(tmp, "instructions", "AGENTS.md"),
+      "# User instructions\n",
+    );
 
     const baseUri = makeUri(tmp);
     const stub = makeVscodeStub({

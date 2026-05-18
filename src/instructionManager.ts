@@ -212,7 +212,9 @@ function resolveCatalogUriForRoot(
   configuredPath: string,
 ): vscode.Uri {
   const baseUri =
-    (root.scope === "workspace" ? getWorkspaceFolderUriForRoot(root) : undefined) ||
+    (root.scope === "workspace"
+      ? getWorkspaceFolderUriForRoot(root)
+      : undefined) ||
     getInstructionDirectoryUri(root) ||
     root.rootUri;
 
@@ -290,7 +292,11 @@ export async function updateInstructionFileForRoot(
   let skillSection: string;
   if (format === "ref") {
     // ref モード: catalog ファイルに詳細を書き出し、instruction ファイルには参照リンクのみ
-    const catalogLink = await writeCatalogFile(root, installedSkills, localSkills);
+    const catalogLink = await writeCatalogFile(
+      root,
+      installedSkills,
+      localSkills,
+    );
     skillSection = swapMarkers(
       generateRefSection(catalogLink),
       SHARED_MARKERS,
@@ -434,9 +440,7 @@ async function writeCatalogFile(
       catalogUri,
       Buffer.from(newCatalogContent, "utf-8"),
     );
-    console.log(
-      `[Skill Ninja] Written skill catalog to ${catalogUri.fsPath}`,
-    );
+    console.log(`[Skill Ninja] Written skill catalog to ${catalogUri.fsPath}`);
   }
 
   return catalogLinkFromInstruction;

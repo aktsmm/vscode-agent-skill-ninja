@@ -45,12 +45,12 @@
 
 ### Format Options
 
-| Format         | Description                     | IMPORTANT Prompt | Detailed Table | Compressed Index |
-| -------------- | ------------------------------- | ---------------- | -------------- | ---------------- |
-| 🔗 **Ref**     | Reference link in the instruction file; full catalog in a separate file | ❌ | ✅ 200 chars (catalog) | ❌ |
-| ✅ **Full**    | Detailed table only (optimized) | ✅               | ✅ 200 chars   | ❌               |
-| 📦 **Compact** | Compressed index with IMPORTANT | ✅               | ❌             | ✅ 100 chars     |
-| 🕰️ **Legacy**  | Simple table only (OLD)         | ❌               | ✅ 200 chars   | ❌               |
+| Format         | Description                                                             | IMPORTANT Prompt | Detailed Table         | Compressed Index |
+| -------------- | ----------------------------------------------------------------------- | ---------------- | ---------------------- | ---------------- |
+| 🔗 **Ref**     | Reference link in the instruction file; full catalog in a separate file | ❌               | ✅ 200 chars (catalog) | ❌               |
+| ✅ **Full**    | Detailed table only (optimized)                                         | ✅               | ✅ 200 chars           | ❌               |
+| 📦 **Compact** | Compressed index with IMPORTANT                                         | ✅               | ❌                     | ✅ 100 chars     |
+| 🕰️ **Legacy**  | Simple table only (OLD)                                                 | ❌               | ✅ 200 chars           | ❌               |
 
 ### IMPORTANT Prompt
 
@@ -368,22 +368,22 @@ If you don't need MCP tools, you can disable them from GitHub Copilot Chat:
 
 ## ⚙️ Settings
 
-| Order | Setting                                   | Default          | Description                                                                         |
-| :---: | ----------------------------------------- | ---------------- | ----------------------------------------------------------------------------------- |
-|   1   | `skillNinja.autoUpdateInstruction`        | `true`           | **Auto-update instruction file on install**                                         |
-|   2   | `skillNinja.instructionFile`              | `AGENTS.md`      | Instruction file format _(requires Auto Update)_                                    |
-|   3   | `skillNinja.customInstructionPath`        | `""`             | Custom path _(only when 'custom' selected)_                                         |
-|   4   | `skillNinja.skillsDirectory`              | `.github/skills` | Directory to install and manage workspace skills                                    |
-|   5   | `skillNinja.useVsCodeAgentSkillLocations` | `true`           | Discover standard personal roots and extra user/global skill roots                  |
-|   6   | `skillNinja.showBuiltInSkills`            | `false`          | Show read-only built-in skills                                                      |
-|   7   | `skillNinja.outputFormat`                 | `ref`            | Output format (ref / full / compact / legacy)                                       |
-|   8   | `skillNinja.refCatalogPath`               | `.github/skills/README.md` | Catalog file path used by the `ref` format                                  |
-|   9   | `skillNinja.language`                     | `auto`           | UI language (auto / en / ja)                                                        |
-|  10   | `skillNinja.autoUpdateSkillsOnUpgrade`    | `prompt`         | Update installed skills after extension upgrade                                     |
-|  11   | `skillNinja.githubToken`                  | `""`             | GitHub Token (for API rate limit)                                                   |
-|  12   | `skillNinja.singleClickInstall`           | `false`          | Install remote skills with single click                                             |
-|  13   | `skillNinja.coexistenceMode`              | `auto`           | Coexistence with Agent Resources Ninja (`auto` / `independent`)                     |
-|  14   | `skillNinja.useSharedSourcesManifest`     | `false`          | Share source-list SSOT with Agent Resources Ninja via `~/.agent-ninja/sources.json` |
+| Order | Setting                                   | Default                    | Description                                                                         |
+| :---: | ----------------------------------------- | -------------------------- | ----------------------------------------------------------------------------------- |
+|   1   | `skillNinja.autoUpdateInstruction`        | `true`                     | **Auto-update instruction file on install**                                         |
+|   2   | `skillNinja.instructionFile`              | `AGENTS.md`                | Instruction file format _(requires Auto Update)_                                    |
+|   3   | `skillNinja.customInstructionPath`        | `""`                       | Custom path _(only when 'custom' selected)_                                         |
+|   4   | `skillNinja.skillsDirectory`              | `.github/skills`           | Directory to install and manage workspace skills                                    |
+|   5   | `skillNinja.useVsCodeAgentSkillLocations` | `true`                     | Discover standard personal roots and extra user/global skill roots                  |
+|   6   | `skillNinja.showBuiltInSkills`            | `false`                    | Show read-only built-in skills                                                      |
+|   7   | `skillNinja.outputFormat`                 | `ref`                      | Output format (ref / full / compact / legacy)                                       |
+|   8   | `skillNinja.refCatalogPath`               | `.github/skills/README.md` | Catalog file path used by the `ref` format                                          |
+|   9   | `skillNinja.language`                     | `auto`                     | UI language (auto / en / ja)                                                        |
+|  10   | `skillNinja.autoUpdateSkillsOnUpgrade`    | `prompt`                   | Update installed skills after extension upgrade                                     |
+|  11   | `skillNinja.githubToken`                  | `""`                       | GitHub Token (for API rate limit)                                                   |
+|  12   | `skillNinja.singleClickInstall`           | `false`                    | Install remote skills with single click                                             |
+|  13   | `skillNinja.coexistenceMode`              | `auto`                     | Coexistence with Agent Resources Ninja (`auto` / `independent`)                     |
+|  14   | `skillNinja.useSharedSourcesManifest`     | `false`                    | Share source-list SSOT with Agent Resources Ninja via `~/.agent-ninja/sources.json` |
 
 > Settings are displayed in the order above
 

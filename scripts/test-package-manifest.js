@@ -167,7 +167,8 @@ test("settings order matches the documented primary flow", () => {
 });
 
 test("output format defaults and docs are aligned to ref", () => {
-  const setting = pkg.contributes.configuration.properties["skillNinja.outputFormat"];
+  const setting =
+    pkg.contributes.configuration.properties["skillNinja.outputFormat"];
   assert.ok(setting);
   assert.strictEqual(setting.default, "ref");
   assert.ok(
@@ -179,14 +180,24 @@ test("output format defaults and docs are aligned to ref", () => {
   assert.ok(readme.includes("skillNinja.refCatalogPath"));
   assert.ok(readme.includes("workspace root"));
   assert.ok(readme.includes("instruction file directory"));
-  assert.strictEqual(readme.includes("|   7   | `skillNinja.outputFormat`                 | `full`"), false);
+  assert.strictEqual(
+    readme.includes(
+      "|   7   | `skillNinja.outputFormat`                 | `full`",
+    ),
+    false,
+  );
   assert.ok(readmeJa.includes("🔗 **Ref**"));
   assert.ok(readmeJa.includes("Ref フォーマット（既定）"));
   assert.ok(readmeJa.includes("`ref`, `full`, `compact`, `legacy`"));
   assert.ok(readmeJa.includes("skillNinja.refCatalogPath"));
   assert.ok(readmeJa.includes("workspace root 基準"));
   assert.ok(readmeJa.includes("instruction file の親ディレクトリ基準"));
-  assert.strictEqual(readmeJa.includes("|  7   | `skillNinja.outputFormat`                 | `full`"), false);
+  assert.strictEqual(
+    readmeJa.includes(
+      "|  7   | `skillNinja.outputFormat`                 | `full`",
+    ),
+    false,
+  );
 });
 
 test("tool detection keeps markdown-based assistants on ref by default", () => {
@@ -200,9 +211,19 @@ test("tool detection keeps markdown-based assistants on ref by default", () => {
       toolDetectorSource.includes('instructionFile: "CLAUDE.md"') &&
       toolDetectorSource.includes('format: "ref"'),
   );
-  assert.ok(toolDetectorSource.includes('let recommendedFormat: OutputFormat = "ref";'));
-  assert.ok(toolDetectorSource.includes('return { format: "ref", instructionFile: "AGENTS.md" };'));
-  assert.ok(toolDetectorSource.includes('return { format: "ref", instructionFile: "CLAUDE.md" };'));
+  assert.ok(
+    toolDetectorSource.includes('let recommendedFormat: OutputFormat = "ref";'),
+  );
+  assert.ok(
+    toolDetectorSource.includes(
+      'return { format: "ref", instructionFile: "AGENTS.md" };',
+    ),
+  );
+  assert.ok(
+    toolDetectorSource.includes(
+      'return { format: "ref", instructionFile: "CLAUDE.md" };',
+    ),
+  );
 });
 
 test("package lock metadata stays in sync with package manifest", () => {
