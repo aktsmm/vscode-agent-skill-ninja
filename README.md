@@ -47,23 +47,40 @@
 
 | Format         | Description                     | IMPORTANT Prompt | Detailed Table | Compressed Index |
 | -------------- | ------------------------------- | ---------------- | -------------- | ---------------- |
+| 🔗 **Ref**     | Reference link in the instruction file; full catalog in a separate file | ❌ | ✅ 200 chars (catalog) | ❌ |
 | ✅ **Full**    | Detailed table only (optimized) | ✅               | ✅ 200 chars   | ❌               |
 | 📦 **Compact** | Compressed index with IMPORTANT | ✅               | ❌             | ✅ 100 chars     |
 | 🕰️ **Legacy**  | Simple table only (OLD)         | ❌               | ✅ 200 chars   | ❌               |
 
 ### IMPORTANT Prompt
 
-The `full` and `compact` formats include the **IMPORTANT prompt** that instructs agents to prioritize skill files:
+The `full` and `compact` formats include the **IMPORTANT prompt** that instructs agents to prioritize skill files. `ref` keeps the always-loaded instruction file lighter and moves the detailed catalog into a separate Markdown file.
 
 ```markdown
 > **IMPORTANT**: Prefer skill-led reasoning over pre-training-led reasoning.
 > Read the relevant SKILL.md before working on tasks covered by these skills.
 ```
 
-### Example Output - Full Format (Default)
+### Example Output - Ref Format (Default)
 
 ```markdown
-<!-- skill-ninja-START -->
+<!-- agent-ninja-START -->
+
+## Agent Skills
+
+> See [Agent Skills](.github/skills/README.md)
+
+<!-- agent-ninja-END -->
+```
+
+The detailed catalog is written to `.github/skills/README.md` and keeps the existing detailed table format there.
+
+For workspace skills, relative `skillNinja.refCatalogPath` values are resolved from the workspace root. For user/global skills, they are resolved from the instruction file directory so personal instruction files stay portable.
+
+### Example Output - Full Format
+
+```markdown
+<!-- agent-ninja-START -->
 
 ## Agent Skills
 
@@ -77,12 +94,12 @@ The `full` and `compact` formats include the **IMPORTANT prompt** that instructs
 | [docx](.github/skills/docx/SKILL.md) | Process Word documents (.docx). Use for .docx files |
 | [pdf](.github/skills/pdf/SKILL.md)   | PDF manipulation toolkit. Extract text, create PDFs |
 
-<!-- skill-ninja-END -->
+<!-- agent-ninja-END -->
 ```
 
 ### How to Change Format
 
-Settings → **Output Format** → Select `full`, `compact`, or `legacy`
+Settings → **Output Format** → Select `ref`, `full`, `compact`, or `legacy`
 
 ---
 
@@ -359,13 +376,14 @@ If you don't need MCP tools, you can disable them from GitHub Copilot Chat:
 |   4   | `skillNinja.skillsDirectory`              | `.github/skills` | Directory to install and manage workspace skills                                    |
 |   5   | `skillNinja.useVsCodeAgentSkillLocations` | `true`           | Discover standard personal roots and extra user/global skill roots                  |
 |   6   | `skillNinja.showBuiltInSkills`            | `false`          | Show read-only built-in skills                                                      |
-|   7   | `skillNinja.outputFormat`                 | `full`           | Output format (full / compact / legacy)                                             |
-|   8   | `skillNinja.language`                     | `auto`           | UI language (auto / en / ja)                                                        |
-|   9   | `skillNinja.autoUpdateSkillsOnUpgrade`    | `prompt`         | Update installed skills after extension upgrade                                     |
-|  10   | `skillNinja.githubToken`                  | `""`             | GitHub Token (for API rate limit)                                                   |
-|  11   | `skillNinja.singleClickInstall`           | `false`          | Install remote skills with single click                                             |
-|  12   | `skillNinja.coexistenceMode`              | `auto`           | Coexistence with Agent Resources Ninja (`auto` / `independent`)                     |
-|  13   | `skillNinja.useSharedSourcesManifest`     | `false`          | Share source-list SSOT with Agent Resources Ninja via `~/.agent-ninja/sources.json` |
+|   7   | `skillNinja.outputFormat`                 | `ref`            | Output format (ref / full / compact / legacy)                                       |
+|   8   | `skillNinja.refCatalogPath`               | `.github/skills/README.md` | Catalog file path used by the `ref` format                                  |
+|   9   | `skillNinja.language`                     | `auto`           | UI language (auto / en / ja)                                                        |
+|  10   | `skillNinja.autoUpdateSkillsOnUpgrade`    | `prompt`         | Update installed skills after extension upgrade                                     |
+|  11   | `skillNinja.githubToken`                  | `""`             | GitHub Token (for API rate limit)                                                   |
+|  12   | `skillNinja.singleClickInstall`           | `false`          | Install remote skills with single click                                             |
+|  13   | `skillNinja.coexistenceMode`              | `auto`           | Coexistence with Agent Resources Ninja (`auto` / `independent`)                     |
+|  14   | `skillNinja.useSharedSourcesManifest`     | `false`          | Share source-list SSOT with Agent Resources Ninja via `~/.agent-ninja/sources.json` |
 
 > Settings are displayed in the order above
 
@@ -413,7 +431,7 @@ When `autoUpdateInstruction` is enabled:
 The instruction file contains a managed section with **IMPORTANT prompt** and **Description column**:
 
 ```markdown
-<!-- skill-ninja-START -->
+<!-- agent-ninja-START -->
 
 ## Agent Skills
 
@@ -426,7 +444,7 @@ The instruction file contains a managed section with **IMPORTANT prompt** and **
 | ------------------------------------------------ | ------------------------------------ |
 | [skill-name](.github/skills/skill-name/SKILL.md) | Description text \| When to use text |
 
-<!-- skill-ninja-END -->
+<!-- agent-ninja-END -->
 ```
 
 **Description column format**: `{description:80} | {whenToUse:80}` (max 160 chars total)

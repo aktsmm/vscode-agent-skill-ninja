@@ -3379,6 +3379,7 @@ async function checkVersionAndRefreshMetadata(
             ? `🥷 v${EXTENSION_VERSION} にアップデートしました。${remoteSkillCount} 個のスキルを最新版に更新しました。`
             : `🥷 Updated to v${EXTENSION_VERSION}. Updated ${remoteSkillCount} skill(s) to latest version.`,
         );
+        await showRefFormatUpdateNotice(context);
         return; // 再インストールしたのでメタデータ更新はスキップ
       } catch (error) {
         console.error("[Skill Ninja] Failed to reinstall skills:", error);
@@ -3412,6 +3413,50 @@ async function checkVersionAndRefreshMetadata(
     }
   } catch (error) {
     console.error("[Skill Ninja] Failed to refresh metadata:", error);
+  }
+
+  await showRefFormatUpdateNotice(context);
+}
+
+async function showRefFormatUpdateNotice(
+  context: vscode.ExtensionContext,
+): Promise<void> {
+  const REF_FORMAT_NOTICE_KEY =
+    "skillNinja.refFormatNoticeShown.ref-default-intro";
+  const alreadyShown = context.globalState.get<boolean>(REF_FORMAT_NOTICE_KEY);
+  if (alreadyShown) {
+    return;
+  }
+
+  const config = vscode.workspace.getConfiguration("skillNinja");
+  const inspected = config.inspect<string>("outputFormat");
+  const explicitValue =
+    inspected?.workspaceFolderValue ??
+    inspected?.workspaceValue ??
+    inspected?.globalValue;
+  const currentValue = (config.get<string>("outputFormat") || "ref").trim();
+
+  const message = isJapanese()
+    ? explicitValue && currentValue !== "ref"
+      ? `🥷 出力フォーマットの既定は Ref に変わりました。現在の設定（${currentValue}）はそのまま維持されます。AGENTS.md には参照だけを書き、詳細を別 catalog に分けるので、常時ロードのコンテキストを抑えたいときは Ref を試せます。`
+      : "🥷 新しい Ref 出力フォーマットが既定になりました。AGENTS.md には参照だけを書き、詳細は別 catalog に分けるので、常時ロードのコンテキストを抑えたいときに向いています。"
+    : explicitValue && currentValue !== "ref"
+      ? `🥷 Ref is now the default output format. Your current setting (${currentValue}) stays as-is. Ref keeps AGENTS.md as a lightweight reference and moves the detailed catalog to a separate file, so it can help reduce always-loaded context.`
+      : "🥷 Ref is now the default output format. It keeps AGENTS.md as a lightweight reference and writes the detailed catalog to a separate file, which helps reduce always-loaded context.";
+
+  const openSettingsLabel = isJapanese() ? "設定を開く" : "Open Settings";
+  const selection = await vscode.window.showInformationMessage(
+    message,
+    openSettingsLabel,
+  );
+
+  await context.globalState.update(REF_FORMAT_NOTICE_KEY, true);
+
+  if (selection === openSettingsLabel) {
+    await vscode.commands.executeCommand(
+      "workbench.action.openSettings",
+      "skillNinja.outputFormat",
+    );
   }
 }
 

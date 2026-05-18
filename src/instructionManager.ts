@@ -189,7 +189,37 @@ async function resolveInstructionFormatForRoot(
   }
 
   const config = vscode.workspace.getConfiguration("skillNinja");
-  return (config.get<string>("outputFormat") || "full") as OutputFormat;
+  return (config.get<string>("outputFormat") || "ref") as OutputFormat;
+}
+
+function getWorkspaceFolderUriForRoot(root: SkillRoot): vscode.Uri | undefined {
+  return vscode.workspace.workspaceFolders?.find((folder) =>
+    normalizeFsPath(root.rootPath).startsWith(
+      normalizeFsPath(folder.uri.fsPath),
+    ),
+  )?.uri;
+}
+
+function getInstructionDirectoryUri(root: SkillRoot): vscode.Uri | undefined {
+  if (!root.instructionUri) {
+    return undefined;
+  }
+  return vscode.Uri.file(path.dirname(root.instructionUri.fsPath));
+}
+
+function resolveCatalogUriForRoot(
+  root: SkillRoot,
+  configuredPath: string,
+): vscode.Uri {
+  const baseUri =
+    (root.scope === "workspace" ? getWorkspaceFolderUriForRoot(root) : undefined) ||
+    getInstructionDirectoryUri(root) ||
+    root.rootUri;
+
+  return (
+    resolveConfiguredPathToUri(configuredPath, baseUri) ||
+    vscode.Uri.joinPath(baseUri, configuredPath)
+  );
 }
 
 function normalizeFsPath(targetPath: string): string {
@@ -257,13 +287,27 @@ export async function updateInstructionFileForRoot(
   const targetMarkers: MarkerPair =
     mode === "independent" ? LEGACY_SKILL_MARKERS : SHARED_MARKERS;
 
-  let skillSection = generateSkillSectionForFormat(
-    installedSkills,
-    localSkills,
-    relativeSkillsDir,
-    format,
-  );
-  skillSection = swapMarkers(skillSection, SHARED_MARKERS, targetMarkers);
+  let skillSection: string;
+  if (format === "ref") {
+    // ref モード: catalog ファイルに詳細を書き出し、instruction ファイルには参照リンクのみ
+    const catalogLink = await writeCatalogFile(root, installedSkills, localSkills);
+    skillSection = swapMarkers(
+      generateRefSection(catalogLink),
+      SHARED_MARKERS,
+      targetMarkers,
+    );
+  } else {
+    skillSection = swapMarkers(
+      generateSkillSectionForFormat(
+        installedSkills,
+        localSkills,
+        relativeSkillsDir,
+        format,
+      ),
+      SHARED_MARKERS,
+      targetMarkers,
+    );
+  }
 
   let existingContent = "";
   try {
@@ -316,10 +360,86 @@ function generateSkillSectionForFormat(
       return generateCompactSection(installedSkills, localSkills, skillsDir);
     case "legacy":
       return generateLegacySection(installedSkills, localSkills, skillsDir);
+    case "ref":
     case "full":
     default:
       return generateFullSection(installedSkills, localSkills, skillsDir);
   }
+}
+
+/**
+ * ref モード用: instruction ファイルに書く参照リンクセクションを生成
+ */
+function generateRefSection(catalogLinkFromInstruction: string): string {
+  return `${MARKER_START}
+## Agent Skills
+
+> See [Agent Skills](${catalogLinkFromInstruction})
+
+${MARKER_END}`;
+}
+
+/**
+ * ref モード用: catalog ファイルに詳細スキルリストを書き出し、
+ * instruction ファイルから catalog への相対リンクを返す。
+ */
+async function writeCatalogFile(
+  root: SkillRoot,
+  installedSkills: SkillMeta[],
+  localSkills: LocalSkill[],
+): Promise<string> {
+  const config = vscode.workspace.getConfiguration("skillNinja");
+  const catalogRelPath =
+    config.get<string>("refCatalogPath") || ".github/skills/README.md";
+
+  const catalogUri = resolveCatalogUriForRoot(root, catalogRelPath);
+
+  // instruction ファイルから catalog への相対リンクを計算
+  const instructionAbsPath = root.instructionUri!.fsPath;
+  const catalogAbsPath = catalogUri.fsPath;
+  const catalogLinkFromInstruction = path
+    .relative(path.dirname(instructionAbsPath), catalogAbsPath)
+    .replace(/\\/g, "/");
+
+  const relativeSkillsDirFromCatalog = computeRelativeDirectoryPath(
+    catalogAbsPath,
+    root.rootPath,
+  );
+
+  // catalog ファイルにフルセクションを書き出す
+  const catalogSection = generateFullSection(
+    installedSkills,
+    localSkills,
+    relativeSkillsDirFromCatalog,
+  );
+
+  let existingCatalogContent = "";
+  try {
+    const raw = await vscode.workspace.fs.readFile(catalogUri);
+    existingCatalogContent = Buffer.from(raw).toString("utf-8");
+  } catch {
+    existingCatalogContent = "";
+  }
+
+  const newCatalogContent = updateSection(
+    existingCatalogContent,
+    catalogSection,
+    "full",
+  );
+
+  if (newCatalogContent !== existingCatalogContent) {
+    const catalogDir = vscode.Uri.joinPath(catalogUri, "..");
+    await vscode.workspace.fs.createDirectory(catalogDir);
+    await vscode.workspace.fs.writeFile(
+      catalogUri,
+      Buffer.from(newCatalogContent, "utf-8"),
+    );
+    console.log(
+      `[Skill Ninja] Written skill catalog to ${catalogUri.fsPath}`,
+    );
+  }
+
+  return catalogLinkFromInstruction;
 }
 
 /**

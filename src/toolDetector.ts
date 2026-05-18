@@ -17,11 +17,12 @@ export type AITool =
 
 /**
  * 出力フォーマット（スキルリストの表示形式）
- * - full: IMPORTANT + 詳細テーブル + 圧縮インデックス（既定）
+ * - ref: instruction ファイルには参照リンクのみ、詳細は catalog ファイルへ分離（既定）
+ * - full: IMPORTANT + 詳細テーブル
  * - compact: IMPORTANT + 圧縮インデックスのみ
  * - legacy: シンプルテーブルのみ（OLD）
  */
-export type OutputFormat = "full" | "compact" | "legacy";
+export type OutputFormat = "full" | "compact" | "legacy" | "ref";
 
 /**
  * 検出されたツール情報
@@ -116,14 +117,14 @@ export async function detectAITools(
     {
       pattern: "CLAUDE.md",
       tool: "claude-code",
-      format: "full",
+      format: "ref",
       instructionFile: "CLAUDE.md",
       confidence: "high",
     },
     {
       pattern: ".claude/**",
       tool: "claude-code",
-      format: "full",
+      format: "ref",
       instructionFile: "CLAUDE.md",
       confidence: "medium",
     },
@@ -131,21 +132,21 @@ export async function detectAITools(
     {
       pattern: ".github/copilot-instructions.md",
       tool: "github-copilot",
-      format: "full",
+      format: "ref",
       instructionFile: ".github/copilot-instructions.md",
       confidence: "high",
     },
     {
       pattern: ".github/instructions/**",
       tool: "github-copilot",
-      format: "full",
+      format: "ref",
       instructionFile: ".github/instructions/SkillList.instructions.md",
       confidence: "high",
     },
     {
       pattern: "AGENTS.md",
       tool: "github-copilot",
-      format: "full",
+      format: "ref",
       instructionFile: "AGENTS.md",
       confidence: "medium",
     },
@@ -170,7 +171,7 @@ export async function detectAITools(
     }
   }
 
-  let recommendedFormat: OutputFormat = "full";
+  let recommendedFormat: OutputFormat = "ref";
   let recommendedInstructionFile = "AGENTS.md";
 
   // 推奨フォーマットを決定（優先順位: cursor > windsurf > cline > claude-code > github-copilot）
@@ -239,7 +240,7 @@ export async function promptToolSelection(
       return undefined;
     }
 
-    // 選択に基づいてフォーマットを決定（フォーマットは全て full）
+    // 選択に基づいてフォーマットを決定
     if (selected.label.includes("Cursor")) {
       return {
         format: "full",
@@ -250,9 +251,9 @@ export async function promptToolSelection(
     } else if (selected.label.includes("Cline")) {
       return { format: "full", instructionFile: ".clinerules" };
     } else if (selected.label.includes("Claude")) {
-      return { format: "full", instructionFile: "CLAUDE.md" };
+      return { format: "ref", instructionFile: "CLAUDE.md" };
     } else {
-      return { format: "full", instructionFile: "AGENTS.md" };
+      return { format: "ref", instructionFile: "AGENTS.md" };
     }
   }
 
@@ -326,7 +327,7 @@ export async function promptToolSelection(
     // 再帰的に選択を促す（空の結果で）
     return promptToolSelection({
       detectedTools: [],
-      recommendedFormat: "full",
+      recommendedFormat: "ref",
       recommendedInstructionFile: "AGENTS.md",
     });
   }
@@ -361,7 +362,7 @@ export async function resolveOutputFormat(
   _workspaceUri: vscode.Uri,
 ): Promise<{ format: OutputFormat; instructionFile: string }> {
   const config = vscode.workspace.getConfiguration("skillNinja");
-  const outputFormat = config.get<string>("outputFormat") || "full";
+  const outputFormat = config.get<string>("outputFormat") || "ref";
 
   // ユーザーが設定した instructionFile を取得
   const userInstructionFile =

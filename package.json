@@ -2,7 +2,7 @@
   "name": "agent-skill-ninja",
   "displayName": "%displayName%",
   "description": "%description%",
-  "version": "0.9.8",
+  "version": "0.9.9",
   "publisher": "yamapan",
   "license": "CC-BY-NC-SA-4.0",
   "icon": "resources/icon.png",
@@ -867,7 +867,7 @@
         "skillNinja.autoUpdateSkillsOnUpgrade": {
           "type": "string",
           "default": "prompt",
-          "order": 9,
+          "order": 10,
           "enum": [
             "always",
             "prompt",
@@ -941,13 +941,13 @@
         "skillNinja.githubToken": {
           "type": "string",
           "default": "",
-          "order": 10,
+          "order": 11,
           "markdownDescription": "%config.githubToken.markdownDescription%"
         },
         "skillNinja.language": {
           "type": "string",
           "default": "auto",
-          "order": 8,
+          "order": 9,
           "enum": [
             "auto",
             "en",
@@ -962,30 +962,38 @@
         },
         "skillNinja.outputFormat": {
           "type": "string",
-          "default": "full",
+          "default": "ref",
           "order": 7,
           "enum": [
+            "ref",
             "full",
             "compact",
             "legacy"
           ],
           "enumDescriptions": [
+            "%config.outputFormat.ref%",
             "%config.outputFormat.full%",
             "%config.outputFormat.compact%",
             "%config.outputFormat.legacy%"
           ],
           "markdownDescription": "%config.outputFormat.markdownDescription%"
         },
+        "skillNinja.refCatalogPath": {
+          "type": "string",
+          "default": ".github/skills/README.md",
+          "order": 8,
+          "markdownDescription": "%config.refCatalogPath.markdownDescription%"
+        },
         "skillNinja.singleClickInstall": {
           "type": "boolean",
           "default": false,
-          "order": 11,
+          "order": 12,
           "description": "%config.singleClickInstall.description%"
         },
         "skillNinja.coexistenceMode": {
           "type": "string",
           "default": "auto",
-          "order": 12,
+          "order": 13,
           "enum": [
             "auto",
             "independent"
@@ -999,7 +1007,7 @@
         "skillNinja.useSharedSourcesManifest": {
           "type": "boolean",
           "default": false,
-          "order": 13,
+          "order": 14,
           "markdownDescription": "%config.useSharedSourcesManifest.markdownDescription%"
         },
         "skillNinja.versionInfo": {

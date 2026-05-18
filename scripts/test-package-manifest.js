@@ -26,6 +26,10 @@ const extensionSource = fs.readFileSync(
   path.join(root, "src", "extension.ts"),
   "utf8",
 );
+const toolDetectorSource = fs.readFileSync(
+  path.join(root, "src", "toolDetector.ts"),
+  "utf8",
+);
 
 function test(name, fn) {
   try {
@@ -133,6 +137,7 @@ test("settings order matches the documented primary flow", () => {
       "skillNinja.useVsCodeAgentSkillLocations",
       "skillNinja.showBuiltInSkills",
       "skillNinja.outputFormat",
+      "skillNinja.refCatalogPath",
       "skillNinja.language",
       "skillNinja.autoUpdateSkillsOnUpgrade",
       "skillNinja.githubToken",
@@ -149,15 +154,55 @@ test("settings order matches the documented primary flow", () => {
       ["skillNinja.useVsCodeAgentSkillLocations", 5],
       ["skillNinja.showBuiltInSkills", 6],
       ["skillNinja.outputFormat", 7],
-      ["skillNinja.language", 8],
-      ["skillNinja.autoUpdateSkillsOnUpgrade", 9],
-      ["skillNinja.githubToken", 10],
-      ["skillNinja.singleClickInstall", 11],
-      ["skillNinja.coexistenceMode", 12],
-      ["skillNinja.useSharedSourcesManifest", 13],
+      ["skillNinja.refCatalogPath", 8],
+      ["skillNinja.language", 9],
+      ["skillNinja.autoUpdateSkillsOnUpgrade", 10],
+      ["skillNinja.githubToken", 11],
+      ["skillNinja.singleClickInstall", 12],
+      ["skillNinja.coexistenceMode", 13],
+      ["skillNinja.useSharedSourcesManifest", 14],
       ["skillNinja.includeLocalSkills", 90],
     ],
   );
+});
+
+test("output format defaults and docs are aligned to ref", () => {
+  const setting = pkg.contributes.configuration.properties["skillNinja.outputFormat"];
+  assert.ok(setting);
+  assert.strictEqual(setting.default, "ref");
+  assert.ok(
+    pkg.contributes.configuration.properties["skillNinja.refCatalogPath"],
+  );
+  assert.ok(readme.includes("🔗 **Ref**"));
+  assert.ok(readme.includes("Ref Format (Default)"));
+  assert.ok(readme.includes("Select `ref`, `full`, `compact`, or `legacy`"));
+  assert.ok(readme.includes("skillNinja.refCatalogPath"));
+  assert.ok(readme.includes("workspace root"));
+  assert.ok(readme.includes("instruction file directory"));
+  assert.strictEqual(readme.includes("|   7   | `skillNinja.outputFormat`                 | `full`"), false);
+  assert.ok(readmeJa.includes("🔗 **Ref**"));
+  assert.ok(readmeJa.includes("Ref フォーマット（既定）"));
+  assert.ok(readmeJa.includes("`ref`, `full`, `compact`, `legacy`"));
+  assert.ok(readmeJa.includes("skillNinja.refCatalogPath"));
+  assert.ok(readmeJa.includes("workspace root 基準"));
+  assert.ok(readmeJa.includes("instruction file の親ディレクトリ基準"));
+  assert.strictEqual(readmeJa.includes("|  7   | `skillNinja.outputFormat`                 | `full`"), false);
+});
+
+test("tool detection keeps markdown-based assistants on ref by default", () => {
+  assert.ok(
+    toolDetectorSource.includes('tool: "github-copilot"') &&
+      toolDetectorSource.includes('pattern: "AGENTS.md"') &&
+      toolDetectorSource.includes('format: "ref"'),
+  );
+  assert.ok(
+    toolDetectorSource.includes('tool: "claude-code"') &&
+      toolDetectorSource.includes('instructionFile: "CLAUDE.md"') &&
+      toolDetectorSource.includes('format: "ref"'),
+  );
+  assert.ok(toolDetectorSource.includes('let recommendedFormat: OutputFormat = "ref";'));
+  assert.ok(toolDetectorSource.includes('return { format: "ref", instructionFile: "AGENTS.md" };'));
+  assert.ok(toolDetectorSource.includes('return { format: "ref", instructionFile: "CLAUDE.md" };'));
 });
 
 test("package lock metadata stays in sync with package manifest", () => {

@@ -328,8 +328,11 @@ function loadInstructionManager(vscodeStub, injectedSkills) {
         return {};
       }
       if (req === "./toolDetector") {
+        const skillConfig = vscodeStub.workspace.getConfiguration("skillNinja");
         return {
-          resolveOutputFormat: async () => ({ format: "full" }),
+          resolveOutputFormat: async () => ({
+            format: skillConfig.get("outputFormat", "ref"),
+          }),
         };
       }
       if (req === "./constants") {
@@ -344,6 +347,15 @@ function loadInstructionManager(vscodeStub, injectedSkills) {
             return r || ".";
           },
           getManagedSkillRoots: async () => [],
+          resolveConfiguredPathToUri: (configuredPath, rootUri) => {
+            if (!configuredPath) {
+              return undefined;
+            }
+            if (path.isAbsolute(configuredPath)) {
+              return makeUri(configuredPath);
+            }
+            return joinPath(rootUri, configuredPath);
+          },
         };
       }
       if (req === "path") return path;
@@ -407,6 +419,23 @@ function makeRoot(workspaceUri, skillsDir = ".github/skills") {
     instructionUri,
     instructionPath: instructionUri.fsPath,
     linkPathFromInstruction: skillsDir,
+  };
+}
+
+function makeUserGlobalRoot(baseUri) {
+  const rootUri = joinPath(baseUri, "user-skills");
+  const instructionUri = joinPath(baseUri, "instructions", "AGENTS.md");
+  return {
+    scope: "userGlobal",
+    label: "User / Global",
+    rootUri,
+    rootPath: rootUri.fsPath,
+    displayPath: "user-skills",
+    isManaged: true,
+    isReadOnly: false,
+    instructionUri,
+    instructionPath: instructionUri.fsPath,
+    linkPathFromInstruction: "../user-skills",
   };
 }
 
@@ -486,6 +515,112 @@ test("Scenario A: Skill solo writes shared block with skill rows", async () => {
     const after3 = fs.readFileSync(path.join(tmp, "AGENTS.md"), "utf8");
     assert.strictEqual(after1, after2, "second run should be a no-op");
     assert.strictEqual(after2, after3, "third run should be a no-op");
+  } finally {
+    cleanupTmp(tmp);
+  }
+});
+
+test("Scenario A-ref: lightweight instruction block writes separate catalog with catalog-relative skill links", async () => {
+  const tmp = setupTmpFixture("A-skill-solo");
+  try {
+    const wsUri = makeUri(tmp);
+    const stub = makeVscodeStub({
+      workspaceUri: wsUri,
+      settings: {
+        "skillNinja.outputFormat": "ref",
+        "skillNinja.refCatalogPath": ".github/catalog/skills.md",
+      },
+      siblingExports: undefined,
+    });
+    const skills = [
+      makeSampleSkill("sample-alpha", "First sample skill"),
+      makeSampleSkill("sample-beta", "Second sample skill"),
+    ];
+    const { instructionManager } = loadInstructionManager(stub, skills);
+    const ctx = makeContext();
+    const root = makeRoot(wsUri);
+
+    await instructionManager.updateInstructionFileForRoot(root, ctx);
+
+    const instruction = fs.readFileSync(path.join(tmp, "AGENTS.md"), "utf8");
+    const catalogPath = path.join(tmp, ".github", "catalog", "skills.md");
+    const catalog = fs.readFileSync(catalogPath, "utf8");
+
+    assert.ok(
+      instruction.includes("> See [Agent Skills](.github/catalog/skills.md)"),
+      `instruction file should reference external catalog; got:\n${instruction}`,
+    );
+    assert.ok(
+      !instruction.includes("sample-alpha/SKILL.md"),
+      "instruction file should stay lightweight in ref mode",
+    );
+    assert.ok(
+      catalog.includes("../skills/sample-alpha/SKILL.md"),
+      `catalog should link to skills relative to catalog location; got:\n${catalog}`,
+    );
+    assert.ok(catalog.includes("sample-beta"), "catalog should contain skill rows");
+
+    await instructionManager.updateInstructionFileForRoot(root, ctx);
+    const instructionAgain = fs.readFileSync(
+      path.join(tmp, "AGENTS.md"),
+      "utf8",
+    );
+    const catalogAgain = fs.readFileSync(catalogPath, "utf8");
+    assert.strictEqual(
+      instruction,
+      instructionAgain,
+      "ref instruction output should be idempotent",
+    );
+    assert.strictEqual(
+      catalog,
+      catalogAgain,
+      "ref catalog output should be idempotent",
+    );
+  } finally {
+    cleanupTmp(tmp);
+  }
+});
+
+test("Scenario U-ref: user/global ref catalog resolves from instruction directory", async () => {
+  const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "user-global-ref-"));
+  try {
+    fs.mkdirSync(path.join(tmp, "user-skills"), { recursive: true });
+    fs.mkdirSync(path.join(tmp, "instructions"), { recursive: true });
+    fs.writeFileSync(path.join(tmp, "instructions", "AGENTS.md"), "# User instructions\n");
+
+    const baseUri = makeUri(tmp);
+    const stub = makeVscodeStub({
+      workspaceUri: undefined,
+      settings: {
+        "skillNinja.outputFormat": "ref",
+        "skillNinja.refCatalogPath": ".catalog/skills.md",
+      },
+      siblingExports: undefined,
+    });
+    const skills = [makeSampleSkill("global-alpha", "Global sample skill")];
+    const { instructionManager } = loadInstructionManager(stub, skills);
+    const ctx = makeContext();
+    const root = makeUserGlobalRoot(baseUri);
+
+    await instructionManager.updateInstructionFileForRoot(root, ctx);
+
+    const instructionPath = path.join(tmp, "instructions", "AGENTS.md");
+    const catalogPath = path.join(tmp, "instructions", ".catalog", "skills.md");
+    const instruction = fs.readFileSync(instructionPath, "utf8");
+    const catalog = fs.readFileSync(catalogPath, "utf8");
+
+    assert.ok(
+      instruction.includes("> See [Agent Skills](.catalog/skills.md)"),
+      `user/global instruction should link to catalog beside instruction file; got:\n${instruction}`,
+    );
+    assert.ok(
+      !instruction.includes("global-alpha/SKILL.md"),
+      "user/global instruction file should stay lightweight in ref mode",
+    );
+    assert.ok(
+      catalog.includes("../../user-skills/global-alpha/SKILL.md"),
+      `user/global catalog should link to skills relative to catalog location; got:\n${catalog}`,
+    );
   } finally {
     cleanupTmp(tmp);
   }

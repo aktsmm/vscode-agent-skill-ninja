@@ -43,23 +43,40 @@
 
 | フォーマット   | 説明                                   | IMPORTANT | 詳細テーブル | 圧縮インデックス |
 | -------------- | -------------------------------------- | --------- | ------------ | ---------------- |
+| 🔗 **Ref**     | instruction file には参照リンクのみを書き、詳細は別 catalog に分離 | ❌ | ✅ 200文字（catalog） | ❌ |
 | ✅ **Full**    | IMPORTANT + 詳細テーブルのみ（最適化） | ✅        | ✅ 200文字   | ❌               |
 | 📦 **Compact** | IMPORTANT + 圧縮インデックス           | ✅        | ❌           | ✅ 100文字       |
 | 🕰️ **Legacy**  | シンプルテーブルのみ (OLD)             | ❌        | ✅ 200文字   | ❌               |
 
 ### IMPORTANT プロンプト
 
-`full` と `compact` フォーマットには、エージェントにスキルファイルを優先するよう指示する **IMPORTANT プロンプト** が含まれます：
+`full` と `compact` フォーマットには、エージェントにスキルファイルを優先するよう指示する **IMPORTANT プロンプト** が含まれます。`ref` は常時ロードされる instruction file を軽く保つため、詳細を別 Markdown ファイルに分離します：
 
 ```markdown
 > **IMPORTANT**: Prefer skill-led reasoning over pre-training-led reasoning.
 > Read the relevant SKILL.md before working on tasks covered by these skills.
 ```
 
-### 出力例 - Full フォーマット（既定）
+### 出力例 - Ref フォーマット（既定）
 
 ```markdown
-<!-- skill-ninja-START -->
+<!-- agent-ninja-START -->
+
+## Agent Skills
+
+> See [Agent Skills](.github/skills/README.md)
+
+<!-- agent-ninja-END -->
+```
+
+詳細 catalog は `.github/skills/README.md` に出力され、そこでは従来どおり詳細テーブルを保持します。
+
+workspace skills では `skillNinja.refCatalogPath` の相対パスは workspace root 基準で解決されます。user/global skills では personal instruction file を持ち運びやすくするため、instruction file の親ディレクトリ基準で解決されます。
+
+### 出力例 - Full フォーマット
+
+```markdown
+<!-- agent-ninja-START -->
 
 ## Agent Skills
 
@@ -73,12 +90,12 @@
 | [docx](.github/skills/docx/SKILL.md) | Process Word documents (.docx). Use for .docx files |
 | [pdf](.github/skills/pdf/SKILL.md)   | PDF manipulation toolkit. Extract text, create PDFs |
 
-<!-- skill-ninja-END -->
+<!-- agent-ninja-END -->
 ```
 
 ### フォーマットの変更方法
 
-設定 → **Output Format (出力フォーマット)** → `full`, `compact`, `legacy` から選択
+設定 → **Output Format (出力フォーマット)** → `ref`, `full`, `compact`, `legacy` から選択
 
 ---
 
@@ -355,13 +372,14 @@ MCP ツールが不要な場合は、GitHub Copilot Chat のツール一覧か�
 |  4   | `skillNinja.skillsDirectory`              | `.github/skills` | ワークスペーススキルをインストール・管理するディレクトリ                              |
 |  5   | `skillNinja.useVsCodeAgentSkillLocations` | `true`           | 標準 personal root と追加の user/global skill root を検出して管理する                 |
 |  6   | `skillNinja.showBuiltInSkills`            | `false`          | 読み取り専用の Built-in Skills を表示する                                             |
-|  7   | `skillNinja.outputFormat`                 | `full`           | 出力形式（full / compact / legacy）                                                   |
-|  8   | `skillNinja.language`                     | `auto`           | UI 言語（auto / en / ja）                                                             |
-|  9   | `skillNinja.autoUpdateSkillsOnUpgrade`    | `prompt`         | 拡張機能アップグレード後のスキル更新                                                  |
-|  10  | `skillNinja.githubToken`                  | `""`             | GitHub Token（API 制限緩和用）                                                        |
-|  11  | `skillNinja.singleClickInstall`           | `false`          | リモートスキルをシングルクリックでインストール                                        |
-|  12  | `skillNinja.coexistenceMode`              | `auto`           | Agent Resources Ninja との共存モード（`auto` / `independent`）                        |
-|  13  | `skillNinja.useSharedSourcesManifest`     | `false`          | `~/.agent-ninja/sources.json` 経由で Agent Resources Ninja と source list SSOT を共有 |
+|  7   | `skillNinja.outputFormat`                 | `ref`            | 出力形式（ref / full / compact / legacy）                                             |
+|  8   | `skillNinja.refCatalogPath`               | `.github/skills/README.md` | `ref` 形式で使う catalog file path                                         |
+|  9   | `skillNinja.language`                     | `auto`           | UI 言語（auto / en / ja）                                                             |
+|  10  | `skillNinja.autoUpdateSkillsOnUpgrade`    | `prompt`         | 拡張機能アップグレード後のスキル更新                                                  |
+|  11  | `skillNinja.githubToken`                  | `""`             | GitHub Token（API 制限緩和用）                                                        |
+|  12  | `skillNinja.singleClickInstall`           | `false`          | リモートスキルをシングルクリックでインストール                                        |
+|  13  | `skillNinja.coexistenceMode`              | `auto`           | Agent Resources Ninja との共存モード（`auto` / `independent`）                        |
+|  14  | `skillNinja.useSharedSourcesManifest`     | `false`          | `~/.agent-ninja/sources.json` 経由で Agent Resources Ninja と source list SSOT を共有 |
 
 > 設定画面では上記の順序で表示されます
 
@@ -409,7 +427,7 @@ Skill Ninja が active な間は、Resources Ninja は runtime で `kindsExclude
 instruction file には **IMPORTANT プロンプト** と **Description 列** を含む管理セクションが追加されます：
 
 ```markdown
-<!-- skill-ninja-START -->
+<!-- agent-ninja-START -->
 
 ## Agent Skills
 
@@ -422,7 +440,7 @@ instruction file には **IMPORTANT プロンプト** と **Description 列** �
 | ------------------------------------------------ | -------------------------- |
 | [skill-name](.github/skills/skill-name/SKILL.md) | 説明テキスト \| いつ使うか |
 
-<!-- skill-ninja-END -->
+<!-- agent-ninja-END -->
 ```
 
 **Description 列の形式**: `{description:80} | {whenToUse:80}`（合計最大160文字）
