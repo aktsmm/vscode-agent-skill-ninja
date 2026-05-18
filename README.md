@@ -45,16 +45,16 @@
 
 ### Format Options
 
-| Format         | Description                                                             | IMPORTANT Prompt | Detailed Table         | Compressed Index |
-| -------------- | ----------------------------------------------------------------------- | ---------------- | ---------------------- | ---------------- |
-| 🔗 **Ref**     | Reference link in the instruction file; full catalog in a separate file | ❌               | ✅ 200 chars (catalog) | ❌               |
-| ✅ **Full**    | Detailed table only (optimized)                                         | ✅               | ✅ 200 chars           | ❌               |
-| 📦 **Compact** | Compressed index with IMPORTANT                                         | ✅               | ❌                     | ✅ 100 chars     |
-| 🕰️ **Legacy**  | Simple table only (OLD)                                                 | ❌               | ✅ 200 chars           | ❌               |
+| Format         | Description                                                                                   | IMPORTANT Prompt | Detailed Table         | Compressed Index |
+| -------------- | --------------------------------------------------------------------------------------------- | ---------------- | ---------------------- | ---------------- |
+| 🔗 **Ref**     | Lightweight IMPORTANT + catalog link in the instruction file; full catalog in a separate file | ✅               | ✅ 200 chars (catalog) | ❌               |
+| ✅ **Full**    | Detailed table only (optimized)                                                               | ✅               | ✅ 200 chars           | ❌               |
+| 📦 **Compact** | Compressed index with IMPORTANT                                                               | ✅               | ❌                     | ✅ 100 chars     |
+| 🕰️ **Legacy**  | Simple table only (OLD)                                                                       | ❌               | ✅ 200 chars           | ❌               |
 
 ### IMPORTANT Prompt
 
-The `full` and `compact` formats include the **IMPORTANT prompt** that instructs agents to prioritize skill files. `ref` keeps the always-loaded instruction file lighter and moves the detailed catalog into a separate Markdown file.
+The `ref`, `full`, and `compact` formats include the **IMPORTANT prompt** that instructs agents to prioritize skill files. `ref` keeps the always-loaded instruction file lighter by keeping only the routing prompt and catalog link in the instruction file, while moving the detailed catalog into a separate Markdown file.
 
 ```markdown
 > **IMPORTANT**: Prefer skill-led reasoning over pre-training-led reasoning.
@@ -68,7 +68,8 @@ The `full` and `compact` formats include the **IMPORTANT prompt** that instructs
 
 ## Agent Skills
 
-> See [Agent Skills](.github/skills/README.md)
+> **IMPORTANT**: Prefer skill-led reasoning over pre-training-led reasoning.
+> See [Agent Skills](.github/skills/README.md) before working on tasks covered by these skills.
 
 <!-- agent-ninja-END -->
 ```

@@ -41,16 +41,16 @@
 
 ### フォーマットオプション
 
-| フォーマット   | 説明                                                               | IMPORTANT | 詳細テーブル          | 圧縮インデックス |
-| -------------- | ------------------------------------------------------------------ | --------- | --------------------- | ---------------- |
-| 🔗 **Ref**     | instruction file には参照リンクのみを書き、詳細は別 catalog に分離 | ❌        | ✅ 200文字（catalog） | ❌               |
-| ✅ **Full**    | IMPORTANT + 詳細テーブルのみ（最適化）                             | ✅        | ✅ 200文字            | ❌               |
-| 📦 **Compact** | IMPORTANT + 圧縮インデックス                                       | ✅        | ❌                    | ✅ 100文字       |
-| 🕰️ **Legacy**  | シンプルテーブルのみ (OLD)                                         | ❌        | ✅ 200文字            | ❌               |
+| フォーマット   | 説明                                                                                   | IMPORTANT | 詳細テーブル          | 圧縮インデックス |
+| -------------- | -------------------------------------------------------------------------------------- | --------- | --------------------- | ---------------- |
+| 🔗 **Ref**     | instruction file には軽量 IMPORTANT + catalog link のみを書き、詳細は別 catalog に分離 | ✅        | ✅ 200文字（catalog） | ❌               |
+| ✅ **Full**    | IMPORTANT + 詳細テーブルのみ（最適化）                                                 | ✅        | ✅ 200文字            | ❌               |
+| 📦 **Compact** | IMPORTANT + 圧縮インデックス                                                           | ✅        | ❌                    | ✅ 100文字       |
+| 🕰️ **Legacy**  | シンプルテーブルのみ (OLD)                                                             | ❌        | ✅ 200文字            | ❌               |
 
 ### IMPORTANT プロンプト
 
-`full` と `compact` フォーマットには、エージェントにスキルファイルを優先するよう指示する **IMPORTANT プロンプト** が含まれます。`ref` は常時ロードされる instruction file を軽く保つため、詳細を別 Markdown ファイルに分離します：
+`ref`、`full`、`compact` フォーマットには、エージェントにスキルファイルを優先するよう指示する **IMPORTANT プロンプト** が含まれます。`ref` は常時ロードされる instruction file には routing prompt と catalog link だけを残し、詳細を別 Markdown ファイルに分離します：
 
 ```markdown
 > **IMPORTANT**: Prefer skill-led reasoning over pre-training-led reasoning.
@@ -64,7 +64,8 @@
 
 ## Agent Skills
 
-> See [Agent Skills](.github/skills/README.md)
+> **IMPORTANT**: Prefer skill-led reasoning over pre-training-led reasoning.
+> See [Agent Skills](.github/skills/README.md) before working on tasks covered by these skills.
 
 <!-- agent-ninja-END -->
 ```

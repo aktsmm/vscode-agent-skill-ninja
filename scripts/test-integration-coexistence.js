@@ -547,7 +547,10 @@ test("Scenario A-ref: lightweight instruction block writes separate catalog with
     const catalog = fs.readFileSync(catalogPath, "utf8");
 
     assert.ok(
-      instruction.includes("> See [Agent Skills](.github/catalog/skills.md)"),
+      instruction.includes(
+        "> **IMPORTANT**: Prefer skill-led reasoning over pre-training-led reasoning.\n" +
+          "> See [Agent Skills](.github/catalog/skills.md) before working on tasks covered by these skills.",
+      ),
       `instruction file should reference external catalog; got:\n${instruction}`,
     );
     assert.ok(
@@ -616,7 +619,10 @@ test("Scenario U-ref: user/global ref catalog resolves from instruction director
     const catalog = fs.readFileSync(catalogPath, "utf8");
 
     assert.ok(
-      instruction.includes("> See [Agent Skills](.catalog/skills.md)"),
+      instruction.includes(
+        "> **IMPORTANT**: Prefer skill-led reasoning over pre-training-led reasoning.\n" +
+          "> See [Agent Skills](.catalog/skills.md) before working on tasks covered by these skills.",
+      ),
       `user/global instruction should link to catalog beside instruction file; got:\n${instruction}`,
     );
     assert.ok(

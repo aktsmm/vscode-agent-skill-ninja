@@ -17,7 +17,7 @@ export type AITool =
 
 /**
  * 出力フォーマット（スキルリストの表示形式）
- * - ref: instruction ファイルには参照リンクのみ、詳細は catalog ファイルへ分離（既定）
+ * - ref: instruction ファイルには軽量 IMPORTANT + catalog link、詳細は catalog ファイルへ分離（既定）
  * - full: IMPORTANT + 詳細テーブル
  * - compact: IMPORTANT + 圧縮インデックスのみ
  * - legacy: シンプルテーブルのみ（OLD）

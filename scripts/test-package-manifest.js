@@ -176,6 +176,7 @@ test("output format defaults and docs are aligned to ref", () => {
   );
   assert.ok(readme.includes("🔗 **Ref**"));
   assert.ok(readme.includes("Ref Format (Default)"));
+  assert.ok(readme.includes("Lightweight IMPORTANT + catalog link"));
   assert.ok(readme.includes("Select `ref`, `full`, `compact`, or `legacy`"));
   assert.ok(readme.includes("skillNinja.refCatalogPath"));
   assert.ok(readme.includes("workspace root"));
@@ -188,6 +189,7 @@ test("output format defaults and docs are aligned to ref", () => {
   );
   assert.ok(readmeJa.includes("🔗 **Ref**"));
   assert.ok(readmeJa.includes("Ref フォーマット（既定）"));
+  assert.ok(readmeJa.includes("軽量 IMPORTANT + catalog link"));
   assert.ok(readmeJa.includes("`ref`, `full`, `compact`, `legacy`"));
   assert.ok(readmeJa.includes("skillNinja.refCatalogPath"));
   assert.ok(readmeJa.includes("workspace root 基準"));

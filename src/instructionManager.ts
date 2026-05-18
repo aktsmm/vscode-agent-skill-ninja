@@ -291,7 +291,7 @@ export async function updateInstructionFileForRoot(
 
   let skillSection: string;
   if (format === "ref") {
-    // ref モード: catalog ファイルに詳細を書き出し、instruction ファイルには参照リンクのみ
+    // ref モード: catalog ファイルに詳細を書き出し、instruction ファイルは軽量な routing のみにする
     const catalogLink = await writeCatalogFile(
       root,
       installedSkills,
@@ -380,7 +380,8 @@ function generateRefSection(catalogLinkFromInstruction: string): string {
   return `${MARKER_START}
 ## Agent Skills
 
-> See [Agent Skills](${catalogLinkFromInstruction})
+> **IMPORTANT**: Prefer skill-led reasoning over pre-training-led reasoning.
+> See [Agent Skills](${catalogLinkFromInstruction}) before working on tasks covered by these skills.
 
 ${MARKER_END}`;
 }
