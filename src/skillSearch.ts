@@ -10,9 +10,17 @@ import {
 } from "./skillIndex";
 import { isJapanese } from "./i18n";
 
+export const MAX_SEARCH_RESULTS = 100;
+
 // QuickPick用のアイテム型
 export interface SkillQuickPickItem extends vscode.QuickPickItem {
   skill: Skill;
+}
+
+export interface SearchSkillsResult {
+  items: SkillQuickPickItem[];
+  totalMatches: number;
+  truncated: boolean;
 }
 
 /**
@@ -76,8 +84,8 @@ function calculateSearchScore(skill: Skill, keywords: string[]): number {
  */
 export function searchSkills(
   index: SkillIndex,
-  query: string
-): SkillQuickPickItem[] {
+  query: string,
+): SearchSkillsResult {
   const lowerQuery = query.toLowerCase().trim();
 
   // クエリが空の場合はソースタイプ順でソートして返す
@@ -88,7 +96,13 @@ export function searchSkills(
       if (priorityA !== priorityB) return priorityA - priorityB;
       return a.name.localeCompare(b.name);
     });
-    return sorted.slice(0, 100).map((skill) => skillToQuickPickItem(skill));
+    return {
+      items: sorted
+        .slice(0, MAX_SEARCH_RESULTS)
+        .map((skill) => skillToQuickPickItem(skill)),
+      totalMatches: sorted.length,
+      truncated: sorted.length > MAX_SEARCH_RESULTS,
+    };
   }
 
   // スペース区切りで複数キーワード対応（AND検索）
@@ -117,9 +131,13 @@ export function searchSkills(
   });
 
   // 最大100件に制限
-  return scoredSkills
-    .slice(0, 100)
-    .map(({ skill }) => skillToQuickPickItem(skill));
+  return {
+    items: scoredSkills
+      .slice(0, MAX_SEARCH_RESULTS)
+      .map(({ skill }) => skillToQuickPickItem(skill)),
+    totalMatches: scoredSkills.length,
+    truncated: scoredSkills.length > MAX_SEARCH_RESULTS,
+  };
 }
 
 /**

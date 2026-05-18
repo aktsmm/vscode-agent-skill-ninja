@@ -23,8 +23,6 @@ import { isJapanese } from "./i18n";
 import { getGitHubToken } from "./githubAuth";
 import { getManagedSkillRoots, type SkillRoot } from "./skillLocations";
 
-/** スキルインデックスをキャッシュ */
-let cachedIndex: SkillIndex | undefined;
 let extContext: vscode.ExtensionContext | undefined;
 
 function requireExtContext(): vscode.ExtensionContext {
@@ -37,10 +35,7 @@ function requireExtContext(): vscode.ExtensionContext {
 /** スキルインデックスを取得 */
 async function getSkillIndex(): Promise<SkillIndex> {
   const context = requireExtContext();
-  if (!cachedIndex) {
-    cachedIndex = await loadSkillIndex(context);
-  }
-  return cachedIndex;
+  return loadSkillIndex(context);
 }
 
 /**
@@ -888,10 +883,7 @@ class UpdateIndexTool implements vscode.LanguageModelTool<
       // VS Code コマンドでインデックス更新を実行
       await vscode.commands.executeCommand("skillNinja.updateIndex");
 
-      // キャッシュをクリアして新しいインデックスを読み込む
-      cachedIndex = undefined;
       const newIndex = await loadSkillIndex(extContext);
-      cachedIndex = newIndex;
 
       const newCount = newIndex.skills.length;
       const newUpdated =
@@ -1086,9 +1078,6 @@ class AddSourceTool implements vscode.LanguageModelTool<{ repoUrl: string }> {
       // ソースを追加
       const result = await addSource(extContext, currentIndex, normalizedUrl);
 
-      // キャッシュを更新
-      cachedIndex = result.index;
-
       const summaryTable = renderMarkdownTable(
         ["項目", "内容"],
         [
@@ -1211,7 +1200,6 @@ Try searching for the skill first with skillNinja_search.`,
       if (updated) {
         // インデックスを保存
         await saveSkillIndex(requireExtContext(), index);
-        cachedIndex = index;
       }
 
       const summaryTable = renderMarkdownTable(

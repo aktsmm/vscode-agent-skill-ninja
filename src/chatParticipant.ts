@@ -12,8 +12,6 @@ import {
 import { updateInstructionFileForRoot } from "./instructionManager";
 import { getManagedSkillRoots, type SkillRoot } from "./skillLocations";
 
-/** スキルインデックスをキャッシュ */
-let cachedIndex: SkillIndex | undefined;
 let indexContext: vscode.ExtensionContext | undefined;
 
 function requireIndexContext(): vscode.ExtensionContext {
@@ -26,10 +24,7 @@ function requireIndexContext(): vscode.ExtensionContext {
 /** スキルインデックスを取得 */
 async function getSkillIndex(): Promise<SkillIndex> {
   const context = requireIndexContext();
-  if (!cachedIndex) {
-    cachedIndex = await loadSkillIndex(context);
-  }
-  return cachedIndex;
+  return loadSkillIndex(context);
 }
 
 async function getDefaultManagedRoot(

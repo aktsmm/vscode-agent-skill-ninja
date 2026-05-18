@@ -26,6 +26,10 @@ const extensionSource = fs.readFileSync(
   path.join(root, "src", "extension.ts"),
   "utf8",
 );
+const chatParticipantSource = fs.readFileSync(
+  path.join(root, "src", "chatParticipant.ts"),
+  "utf8",
+);
 const toolDetectorSource = fs.readFileSync(
   path.join(root, "src", "toolDetector.ts"),
   "utf8",
@@ -248,6 +252,44 @@ test("tool detection keeps markdown-based assistants on ref by default", () => {
     toolDetectorSource.includes(
       'return { format: "ref", instructionFile: "CLAUDE.md" };',
     ),
+  );
+});
+
+test("chat participant and MCP tools always reload the latest skill index", () => {
+  assert.strictEqual(
+    chatParticipantSource.includes("let cachedIndex"),
+    false,
+    "chatParticipant should not keep a long-lived cached index",
+  );
+  assert.strictEqual(
+    mcpToolsSource.includes("let cachedIndex"),
+    false,
+    "mcpTools should not keep a long-lived cached index",
+  );
+  assert.ok(
+    chatParticipantSource.includes("return loadSkillIndex(context);"),
+    "chatParticipant should reload the index for each request",
+  );
+  assert.ok(
+    mcpToolsSource.includes("return loadSkillIndex(context);"),
+    "mcpTools should reload the index for each invocation",
+  );
+});
+
+test("open managed output reports open failures instead of silently swallowing them", () => {
+  assert.ok(
+    extensionSource.includes("const reportOpenFailure = (") &&
+      extensionSource.includes("[Skill Ninja] Failed to open ${label}:"),
+    "extension should log managed output open failures",
+  );
+  assert.ok(
+    extensionSource.includes("The configured ") &&
+      extensionSource.includes("could not be opened"),
+    "extension should surface a warning when the configured output cannot be opened",
+  );
+  assert.ok(
+    extensionSource.includes("Failed to regenerate managed output"),
+    "extension should log regeneration failures before falling back",
   );
 });
 

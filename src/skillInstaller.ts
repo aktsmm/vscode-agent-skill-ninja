@@ -35,6 +35,18 @@ function resolveSkillsRootUri(
   return resolveWorkspaceSkillsRootUri(workspaceUri);
 }
 
+function buildGitHub403Message(token?: string): string {
+  if (isJapanese()) {
+    return token
+      ? "GitHub API へのアクセスが拒否されました (403)。トークン権限不足、トークン無効、または対象リポジトリ/検索で追加認証が必要な可能性があります。GitHub 認証設定を確認してください。"
+      : "GitHub API へのアクセスが拒否されました (403)。未認証のレート制限に達したか、対象リポジトリ/検索に認証が必要な可能性があります。GitHub トークンを設定して再試行してください。";
+  }
+
+  return token
+    ? "GitHub API access was denied (403). The token may be invalid, missing required scope, or the target repository/search may require additional authentication. Check your GitHub auth settings."
+    : "GitHub API access was denied (403). You may have hit the unauthenticated rate limit, or the target repository/search may require authentication. Configure a GitHub token and try again.";
+}
+
 /**
  * GitHub API でフォルダ内のファイル一覧を取得
  */
@@ -63,9 +75,7 @@ async function listGitHubDirectoryInternal(
   });
   if (!response.ok) {
     if (response.status === 403) {
-      throw new Error(
-        `GitHub API rate limit exceeded (403). Please authenticate with a GitHub token.`,
-      );
+      throw new Error(buildGitHub403Message(token));
     }
     throw new Error(`Failed to list directory: ${response.status}`);
   }

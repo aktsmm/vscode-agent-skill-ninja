@@ -61,6 +61,7 @@ import {
   SkillRoot,
 } from "./skillLocations";
 import { resolveOutputFormat } from "./toolDetector";
+import { MAX_SEARCH_RESULTS } from "./skillSearch";
 import { createChatParticipant } from "./chatParticipant";
 import { registerMcpTools } from "./mcpTools";
 import { getGitHubToken } from "./githubAuth";
@@ -528,6 +529,44 @@ export function activate(
     let fileUri = instructionUri;
     let openedTarget: "instruction" | "catalog" = "instruction";
 
+    const describeError = (error: unknown): string => {
+      if (error instanceof Error && error.message) {
+        return error.message;
+      }
+      return String(error);
+    };
+
+    const isFileNotFoundError = (error: unknown): boolean => {
+      if (error instanceof vscode.FileSystemError) {
+        return error.code === "FileNotFound";
+      }
+      const candidate = error as
+        | { code?: string; message?: string }
+        | undefined;
+      return (
+        candidate?.code === "FileNotFound" ||
+        candidate?.message?.includes("FileNotFound") === true
+      );
+    };
+
+    const reportOpenFailure = (
+      label: "instruction" | "catalog",
+      uri: vscode.Uri,
+      error: unknown,
+    ): void => {
+      console.warn(
+        `[Skill Ninja] Failed to open ${label}: ${uri.fsPath}`,
+        error,
+      );
+    };
+
+    const targetLabel = (label: "instruction" | "catalog"): string =>
+      isJapanese()
+        ? label === "catalog"
+          ? "Ref catalog"
+          : "インストラクションファイル"
+        : label;
+
     const { format } = await resolveOutputFormat(workspaceFolder!.uri);
     if (format === "ref") {
       const config = vscode.workspace.getConfiguration("skillNinja");
@@ -548,38 +587,89 @@ export function activate(
       openedTarget = "catalog";
     }
 
-    const tryOpen = async (uri: vscode.Uri): Promise<boolean> => {
+    const tryOpen = async (
+      uri: vscode.Uri,
+    ): Promise<{ opened: boolean; missing: boolean; error?: unknown }> => {
       try {
         await vscode.workspace.fs.stat(uri);
+      } catch (error) {
+        if (isFileNotFoundError(error)) {
+          return { opened: false, missing: true };
+        }
+        return { opened: false, missing: false, error };
+      }
+
+      try {
         const doc = await vscode.workspace.openTextDocument(uri);
         await vscode.window.showTextDocument(doc);
-        return true;
-      } catch {
-        return false;
+        return { opened: true, missing: false };
+      } catch (error) {
+        return { opened: false, missing: false, error };
       }
     };
 
-    if (await tryOpen(fileUri)) {
+    const firstOpenAttempt = await tryOpen(fileUri);
+    if (firstOpenAttempt.opened) {
+      return;
+    }
+
+    if (firstOpenAttempt.error) {
+      reportOpenFailure(openedTarget, fileUri, firstOpenAttempt.error);
+      vscode.window.showWarningMessage(
+        isJapanese()
+          ? `設定された${targetLabel(openedTarget)}を開けませんでした: ${describeError(firstOpenAttempt.error)}`
+          : `The configured ${openedTarget} could not be opened: ${describeError(firstOpenAttempt.error)}`,
+      );
       return;
     }
 
     try {
       await updateInstructionFileForRoot(targetRoot, context);
-    } catch {
-      // 再生成できない場合は後続のフォールバックへ
+    } catch (error) {
+      console.warn(
+        `[Skill Ninja] Failed to regenerate managed output for ${instructionPath}`,
+        error,
+      );
     }
 
-    if (await tryOpen(fileUri)) {
+    const regeneratedOpenAttempt = await tryOpen(fileUri);
+    if (regeneratedOpenAttempt.opened) {
       return;
     }
 
-    if (openedTarget === "catalog" && (await tryOpen(instructionUri))) {
-      vscode.window.showInformationMessage(
+    if (regeneratedOpenAttempt.error) {
+      reportOpenFailure(openedTarget, fileUri, regeneratedOpenAttempt.error);
+      vscode.window.showWarningMessage(
         isJapanese()
-          ? "Ref catalog がまだ生成されていなかったため、インストラクションファイルを開きました。"
-          : "The Ref catalog was not available yet, so the instruction file was opened instead.",
+          ? `再生成後も${targetLabel(openedTarget)}を開けませんでした: ${describeError(regeneratedOpenAttempt.error)}`
+          : `The ${openedTarget} still could not be opened after regeneration: ${describeError(regeneratedOpenAttempt.error)}`,
       );
       return;
+    }
+
+    if (openedTarget === "catalog") {
+      const instructionFallbackAttempt = await tryOpen(instructionUri);
+      if (instructionFallbackAttempt.opened) {
+        vscode.window.showInformationMessage(
+          isJapanese()
+            ? "Ref catalog がまだ生成されていなかったため、インストラクションファイルを開きました。"
+            : "The Ref catalog was not available yet, so the instruction file was opened instead.",
+        );
+        return;
+      }
+      if (instructionFallbackAttempt.error) {
+        reportOpenFailure(
+          "instruction",
+          instructionUri,
+          instructionFallbackAttempt.error,
+        );
+        vscode.window.showWarningMessage(
+          isJapanese()
+            ? `Ref catalog もインストラクションファイルも開けませんでした: ${describeError(instructionFallbackAttempt.error)}`
+            : `Neither the Ref catalog nor the instruction file could be opened: ${describeError(instructionFallbackAttempt.error)}`,
+        );
+        return;
+      }
     }
 
     const create = await vscode.window.showInformationMessage(
@@ -858,8 +948,11 @@ export function activate(
         try {
           await vscode.window.showTextDocument(vscode.Uri.file(skill.fullPath));
           return;
-        } catch {
-          // フォールバック
+        } catch (error) {
+          console.warn(
+            `[Skill Ninja] Failed to open local skill file directly: ${skill.fullPath}`,
+            error,
+          );
         }
       }
 
@@ -875,7 +968,11 @@ export function activate(
 
       try {
         await vscode.window.showTextDocument(skillPath);
-      } catch {
+      } catch (error) {
+        console.warn(
+          `[Skill Ninja] Failed to open skill file: ${skillPath.fsPath}`,
+          error,
+        );
         vscode.window.showWarningMessage(messages.skillNotFound(skillName));
       }
     },
@@ -1072,14 +1169,23 @@ export function activate(
       }
 
       const quickPick = vscode.window.createQuickPick<SkillQuickPickItem>();
-      quickPick.placeholder = messages.searchPlaceholder();
       quickPick.matchOnDescription = true;
       quickPick.matchOnDetail = true;
 
-      quickPick.items = searchSkills(skillIndex, "");
+      const updateSearchQuickPick = (value: string): void => {
+        const result = searchSkills(skillIndex!, value);
+        quickPick.items = result.items;
+        quickPick.placeholder = result.truncated
+          ? value.trim()
+            ? `${messages.searchPlaceholder()} ${messages.searchResultsLimited(MAX_SEARCH_RESULTS, result.totalMatches)}`
+            : `${messages.searchPlaceholder()} ${messages.browseResultsLimited(MAX_SEARCH_RESULTS)}`
+          : messages.searchPlaceholder();
+      };
+
+      updateSearchQuickPick("");
 
       quickPick.onDidChangeValue((value) => {
-        quickPick.items = searchSkills(skillIndex!, value);
+        updateSearchQuickPick(value);
       });
 
       quickPick.onDidAccept(async () => {
@@ -2065,7 +2171,11 @@ export function activate(
 
         try {
           await vscode.window.showTextDocument(skillPath);
-        } catch {
+        } catch (error) {
+          console.warn(
+            `[Skill Ninja] Failed to open installed skill file: ${skillPath.fsPath}`,
+            error,
+          );
           vscode.window.showWarningMessage(
             messages.skillNotFound(selected.label),
           );
@@ -2607,9 +2717,11 @@ export function activate(
           skillIndex = await loadSkillIndex(context);
         }
 
-        const items: SkillQuickPickItem[] = searchSkills(skillIndex, "");
-        const selected = await vscode.window.showQuickPick(items, {
-          placeHolder: messages.searchPlaceholder(),
+        const result = searchSkills(skillIndex, "");
+        const selected = await vscode.window.showQuickPick(result.items, {
+          placeHolder: result.truncated
+            ? `${messages.searchPlaceholder()} ${messages.browseResultsLimited(MAX_SEARCH_RESULTS)}`
+            : messages.searchPlaceholder(),
           matchOnDescription: true,
           matchOnDetail: true,
         });

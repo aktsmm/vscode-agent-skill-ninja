@@ -13,6 +13,10 @@ const jaMessages = {
   uninstallFailed: "アンインストール失敗: {0}",
   selectSkillToUninstall: "アンインストールするスキルを選択",
   searchPlaceholder: "スキル名またはキーワードを入力...",
+  searchResultsLimited:
+    "上位 {0} / {1} 件を表示中です。絞り込むと探しやすくなります。",
+  browseResultsLimited:
+    "先頭 {0} 件のみ表示中です。入力して絞り込んでください。",
   installConfirm: '"{0}" をインストールしますか？',
   noInstalledSkills: "インストール済みスキルはありません",
   installedSkillsPlaceholder: "インストール済みスキル",
@@ -52,7 +56,7 @@ const jaMessages = {
   actionAddSourceRepo: "このリポジトリをソースに追加",
   actionOpenGitHub: "GitHub で開く",
   authRequired:
-    "GitHub認証が必要です。API制限を回避するために認証を設定してください。",
+    "GitHub認証が必要です。未認証の API 制限に達したか、対象リポジトリや検索に認証が必要な可能性があります。GitHub トークンまたは gh CLI 認証を設定してください。",
   openSettings: "設定を開く",
   resetSettingsTitle: "設定の初期化",
   resetSettingsPrompt: "初期化する項目を選択してください",
@@ -129,6 +133,10 @@ const enMessages: MessageDictionary = {
   uninstallFailed: "Uninstall failed: {0}",
   selectSkillToUninstall: "Select skill to uninstall",
   searchPlaceholder: "Enter skill name or keyword...",
+  searchResultsLimited:
+    "Showing top {0} of {1} matches. Refine your query to narrow the list.",
+  browseResultsLimited:
+    "Showing the first {0} skills only. Type to narrow the list.",
   installConfirm: 'Install "{0}"?',
   noInstalledSkills: "No skills installed",
   installedSkillsPlaceholder: "Installed Skills",
@@ -168,7 +176,7 @@ const enMessages: MessageDictionary = {
   actionAddSourceRepo: "Add this repository as source",
   actionOpenGitHub: "Open on GitHub",
   authRequired:
-    "GitHub authentication required. Please configure authentication to avoid API rate limits.",
+    "GitHub authentication required. You may have hit the unauthenticated API limit, or this repository/search requires authentication. Configure a GitHub token or authenticate with gh CLI.",
   openSettings: "Open Settings",
   resetSettingsTitle: "Reset Settings",
   resetSettingsPrompt: "Select items to reset",
@@ -292,6 +300,10 @@ export const messages = {
 
   // 検索関連
   searchPlaceholder: () => localize("searchPlaceholder"),
+  searchResultsLimited: (shown: number, total: number) =>
+    localize("searchResultsLimited", shown, total),
+  browseResultsLimited: (shown: number) =>
+    localize("browseResultsLimited", shown),
   installConfirm: (name: string) => localize("installConfirm", name),
   noInstalledSkills: () => localize("noInstalledSkills"),
   installedSkillsPlaceholder: () => localize("installedSkillsPlaceholder"),

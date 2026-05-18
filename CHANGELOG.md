@@ -7,6 +7,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.9.14] - 2026-05-18
+
+### Fixed
+
+- 🔄 **Fresh Index Reads for Chat and MCP** - Chat participant and MCP tools now reload the latest skill index on each request instead of holding a long-lived in-memory copy, so newly updated skills appear immediately after index refreshes / Chat participant と MCP tools が長寿命のメモリキャッシュを持たず、各リクエスト時に最新の skill index を再読込するよう改善し、index 更新直後の新しいスキルがすぐ反映されるよう修正
+- 🧭 **Managed Output Failure Transparency** - Opening managed skill output now distinguishes missing files from open failures, logs the underlying error, and shows a warning instead of silently falling through ambiguous create/fallback paths / managed skill output を開く導線で、ファイル未生成と open failure を区別し、原因ログと warning を出すよう改善して、曖昧な create / fallback 導線へ silent に落ちないよう修正
+- 🔐 **GitHub 403 Auth Guidance** - GitHub directory fetch failures no longer describe every 403 as just a rate limit; the message now explains unauthenticated limits, token issues, and auth-required repositories/searches more clearly / GitHub directory fetch の 403 を単純な rate limit 固定で扱わず、未認証上限、トークン不備、認証必須の repo / search の可能性を分かりやすく案内するよう修正
+- 🔎 **Search Result Limit Guidance** - Skill search now exposes when results are capped at 100 items and surfaces that state in search / preview quick-picks, so users know to refine broad queries instead of assuming matches are missing / スキル検索が 100 件で打ち切られた状態を返すようにし、search / preview の QuickPick でもその状態を案内して、広すぎるクエリ時に「候補が消えた」と誤解しにくいよう修正
+
+### Added
+
+- 🧪 **Search/Auth UX Regression Tests** - Added regression coverage for truncated search-result guidance and GitHub 403 authentication messaging, and wired the new test into `npm test` / 検索結果打ち切りガイダンスと GitHub 403 認証メッセージの回帰テストを追加し、`npm test` に組み込み
+
 ## [0.9.13] - 2026-05-18
 
 ### Changed
