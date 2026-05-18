@@ -262,6 +262,8 @@ test("package lock metadata stays in sync with package manifest", () => {
 test("legacy local skill commands are hidden from command palette", () => {
   const commandPalette = pkg.contributes.menus.commandPalette || [];
   for (const command of [
+    "skillNinja.openWorkspaceOutput",
+    "skillNinja.openUserGlobalOutput",
     "skillNinja.registerLocalSkill",
     "skillNinja.unregisterLocalSkill",
   ]) {
@@ -423,6 +425,11 @@ test("open output wording matches ref-first UX", () => {
   assert.ok(readme.includes("Toolbar: Skill Output / Update Instruction"));
   assert.ok(readme.includes("Open Skill Output quick links"));
   assert.ok(
+    readme.includes(
+      "workspace view, **Skill Output** opens the workspace root directly",
+    ),
+  );
+  assert.ok(
     readme.includes("In `ref` mode, **Skill Output** opens the linked catalog"),
   );
   assert.ok(readme.includes("Agent Skills Ninja: Open Skill Output"));
@@ -432,9 +439,16 @@ test("open output wording matches ref-first UX", () => {
   assert.ok(readmeJa.includes("空状態: 検索 / 新規作成 / スキル出力を開く"));
   assert.ok(
     readmeJa.includes(
+      "workspace view の **スキル出力** は全 root の QuickPick を出さず",
+    ),
+  );
+  assert.ok(
+    readmeJa.includes(
       "`ref` モードでは **スキル出力** がリンク先 catalog を開き",
     ),
   );
+  assert.ok(readme.includes("Default priority: VS Code user customizations"));
+  assert.ok(readmeJa.includes("既定優先順は VS Code ユーザーカスタマイズ"));
   assert.ok(readmeJa.includes("Agent Skills Ninja: Open Skill Output"));
 });
 
@@ -470,6 +484,22 @@ test("all views expose create skill and settings in the title bar", () => {
       `${viewId} should expose settings`,
     );
   }
+});
+
+test("view title bars use scope-specific output commands", () => {
+  const installedCommands = titleMenuCommandsFor("skillNinja.installedView");
+  const userGlobalCommands = titleMenuCommandsFor("skillNinja.userGlobalView");
+
+  assert.ok(installedCommands.includes("skillNinja.openWorkspaceOutput"));
+  assert.strictEqual(
+    installedCommands.includes("skillNinja.openInstructionFile"),
+    false,
+  );
+  assert.ok(userGlobalCommands.includes("skillNinja.openUserGlobalOutput"));
+  assert.strictEqual(
+    userGlobalCommands.includes("skillNinja.openInstructionFile"),
+    false,
+  );
 });
 
 test("user/global title bar exposes built-in skills toggle", () => {
@@ -755,12 +785,28 @@ test("configWatcher watches refCatalogPath and refCatalogFormat", () => {
 
 test("openInstructionFile is ref-catalog aware", () => {
   assert.ok(
-    extensionSource.includes("resolveOutputFormat(workspaceFolder.uri)"),
-    "openInstructionFile should resolve output format",
+    extensionSource.includes("async function openManagedOutputForRoot"),
+    "open output flow should be centralized in helper",
   );
   assert.ok(
     extensionSource.includes("Select the skill output scope to open"),
     "openInstructionFile quick pick should use skill output wording",
+  );
+  assert.ok(
+    extensionSource.includes("openManagedOutputForPreferredScope"),
+    "extension should support view-scoped default output opening",
+  );
+  assert.ok(
+    extensionSource.includes("scoreUserGlobalRoot"),
+    "user/global default output root should use explicit priority",
+  );
+  assert.ok(
+    extensionSource.includes('"skillNinja.openWorkspaceOutput"'),
+    "workspace output command should exist",
+  );
+  assert.ok(
+    extensionSource.includes('"skillNinja.openUserGlobalOutput"'),
+    "user/global output command should exist",
   );
   assert.ok(
     extensionSource.includes("refCatalogPath"),

@@ -2,7 +2,7 @@
   "name": "agent-skill-ninja",
   "displayName": "%displayName%",
   "description": "%description%",
-  "version": "0.9.12",
+  "version": "0.9.13",
   "publisher": "yamapan",
   "license": "CC-BY-NC-SA-4.0",
   "icon": "resources/icon.png",
@@ -538,6 +538,18 @@
         "icon": "$(file-text)"
       },
       {
+        "command": "skillNinja.openWorkspaceOutput",
+        "title": "%command.openInstructionFile%",
+        "category": "Agent Skills Ninja",
+        "icon": "$(file-text)"
+      },
+      {
+        "command": "skillNinja.openUserGlobalOutput",
+        "title": "%command.openInstructionFile%",
+        "category": "Agent Skills Ninja",
+        "icon": "$(file-text)"
+      },
+      {
         "command": "skillNinja.openSettings",
         "title": "%command.openSettings%",
         "category": "Agent Skills Ninja",
@@ -607,7 +619,7 @@
     "menus": {
       "view/title": [
         {
-          "command": "skillNinja.openInstructionFile",
+          "command": "skillNinja.openWorkspaceOutput",
           "when": "view == skillNinja.installedView",
           "group": "navigation@1"
         },
@@ -642,7 +654,7 @@
           "group": "z_reset@2"
         },
         {
-          "command": "skillNinja.openInstructionFile",
+          "command": "skillNinja.openUserGlobalOutput",
           "when": "view == skillNinja.userGlobalView",
           "group": "navigation@1"
         },
@@ -851,6 +863,14 @@
         },
         {
           "command": "skillNinja.unregisterLocalSkill",
+          "when": "false"
+        },
+        {
+          "command": "skillNinja.openWorkspaceOutput",
+          "when": "false"
+        },
+        {
+          "command": "skillNinja.openUserGlobalOutput",
           "when": "false"
         }
       ]

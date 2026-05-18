@@ -106,19 +106,19 @@ test("welcome command links resolve to contributed commands", () => {
   }
 });
 
-test("workspace welcome links to search create and instruction file", () => {
+test("workspace welcome links to search create and workspace output", () => {
   assertHasCommands(workspaceView, [
     "skillNinja.search",
     "skillNinja.createSkill",
-    "skillNinja.openInstructionFile",
+    "skillNinja.openWorkspaceOutput",
   ]);
 });
 
-test("user/global welcome links to create built-in toggle and settings", () => {
+test("user/global welcome links to create built-in toggle and user/global output", () => {
   assertHasCommands(userGlobalView, [
     "skillNinja.createSkill",
     "skillNinja.showBuiltInSkills",
-    "skillNinja.openSettings",
+    "skillNinja.openUserGlobalOutput",
   ]);
 });
 

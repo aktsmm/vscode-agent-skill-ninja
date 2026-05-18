@@ -223,6 +223,7 @@ Preset index includes skills from official, curated, and community sources out o
 - **Workspace Skills**: managed under `skillNinja.skillsDirectory` (default: `.github/skills`)
 - Newly installed skills (temporary badge)
 - Toolbar: Skill Output / Update Instruction / Create / Refresh / Settings
+- In the workspace view, **Skill Output** opens the workspace root directly without showing the all-roots picker
 - In `ref` mode, **Skill Output** opens the linked catalog; in `full` / `compact` / `legacy`, it opens the instruction file itself
 - Empty state: Search / Create / Open Skill Output quick links
 - Open skill folder or file from the workspace scope
@@ -234,8 +235,10 @@ Preset index includes skills from official, curated, and community sources out o
 - **Built-in Skills**: optional read-only group for Copilot / VS Code packaged skills, grouped first by provider/origin (for example GitHub Copilot Chat, GitHub Copilot CLI, VS Code) and then by variant/root (for example Prompts, Skills, Package (Universal))
 - Root nodes use concise home/product labels, while counts and full paths stay in the secondary description / tooltip
 - Toolbar: Skill Output / Update Instruction / Create / Refresh / Settings
+- In the user/global view, **Skill Output** opens the default writable user/global root directly without showing the all-roots picker
+  Default priority: VS Code user customizations, then Copilot home, Claude home, and finally the global agent home
 - In `ref` mode, **Skill Output** opens the linked catalog; in `full` / `compact` / `legacy`, it opens the instruction file itself
-- Empty state: Create / Show Built-in Skills / Open Settings quick links
+- Empty state: Create / Show Built-in Skills / Open Skill Output quick links
 - Open skill folder or file from any visible user/global scope
 
 4. **Remote Skills** - Browse skills by source
@@ -260,23 +263,23 @@ Preset index includes skills from official, curated, and community sources out o
 
 ### Command Palette
 
-| Command                                        | Description                                                                |
-| ---------------------------------------------- | -------------------------------------------------------------------------- |
-| `Agent Skills Ninja: Search Skills`            | Search and install skills                                                  |
-| `Agent Skills Ninja: Update Index`             | Update index from all sources                                              |
-| `Agent Skills Ninja: Search on GitHub`         | Search skills on GitHub                                                    |
-| `Agent Skills Ninja: Add Source Repository`    | Add new source repository                                                  |
-| `Agent Skills Ninja: Remove Source Repository` | Remove source repository                                                   |
-| `Agent Skills Ninja: Uninstall Skill`          | Uninstall a skill                                                          |
-| `Agent Skills Ninja: Show Installed Skills`    | Show installed skills                                                      |
-| `Agent Skills Ninja: Create New Skill`         | Create new workspace skill                                                 |
-| `Agent Skills Ninja: Reinstall All`            | Reinstall all skills from latest source                                    |
-| `Agent Skills Ninja: Uninstall All`            | Uninstall all skills (with confirmation)                                   |
-| `Agent Skills Ninja: Uninstall Multiple`       | Select multiple skills to uninstall                                        |
-| `Agent Skills Ninja: Reinstall Multiple`       | Select multiple skills to reinstall                                        |
-| `Agent Skills Ninja: Open Skill Output`        | Open the linked catalog in `ref`, or the instruction file in other formats |
-| `Agent Skills Ninja: Update Instruction`       | Update instruction file manually                                           |
-| `Agent Skills Ninja: Open Skill Folder`        | Open installed skill folder in OS                                          |
+| Command                                        | Description                                                                                             |
+| ---------------------------------------------- | ------------------------------------------------------------------------------------------------------- |
+| `Agent Skills Ninja: Search Skills`            | Search and install skills                                                                               |
+| `Agent Skills Ninja: Update Index`             | Update index from all sources                                                                           |
+| `Agent Skills Ninja: Search on GitHub`         | Search skills on GitHub                                                                                 |
+| `Agent Skills Ninja: Add Source Repository`    | Add new source repository                                                                               |
+| `Agent Skills Ninja: Remove Source Repository` | Remove source repository                                                                                |
+| `Agent Skills Ninja: Uninstall Skill`          | Uninstall a skill                                                                                       |
+| `Agent Skills Ninja: Show Installed Skills`    | Show installed skills                                                                                   |
+| `Agent Skills Ninja: Create New Skill`         | Create new workspace skill                                                                              |
+| `Agent Skills Ninja: Reinstall All`            | Reinstall all skills from latest source                                                                 |
+| `Agent Skills Ninja: Uninstall All`            | Uninstall all skills (with confirmation)                                                                |
+| `Agent Skills Ninja: Uninstall Multiple`       | Select multiple skills to uninstall                                                                     |
+| `Agent Skills Ninja: Reinstall Multiple`       | Select multiple skills to reinstall                                                                     |
+| `Agent Skills Ninja: Open Skill Output`        | Choose a managed scope, then open the linked catalog in `ref`, or the instruction file in other formats |
+| `Agent Skills Ninja: Update Instruction`       | Update instruction file manually                                                                        |
+| `Agent Skills Ninja: Open Skill Folder`        | Open installed skill folder in OS                                                                       |
 
 ### Quick Start
 

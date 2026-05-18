@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.9.13] - 2026-05-18
+
+### Changed
+
+- 🎯 **Deterministic User/Global Output Default** - The user/global view now prefers VS Code user customizations first, then Copilot home, Claude home, and finally the global agent home when choosing the default writable output root / user/global view の既定出力 root は、VS Code ユーザーカスタマイズを最優先にし、次に Copilot home、Claude home、最後に global agent home の順で選ぶよう明示化しました
+
+### Fixed
+
+- 🎯 **View-Scoped Skill Output Opening** - The workspace view now opens the workspace output directly, and the user/global view opens the default writable user/global output directly, so users are no longer forced through the all-roots picker from view toolbar and empty-state flows / workspace view は workspace output を直接開き、user/global view は既定の書き込み可能な user/global output を直接開くよう改善し、view のツールバーと empty-state から毎回 all-roots picker を通らなくてよくなりました
+
 ## [0.9.12] - 2026-05-18
 
 ### Fixed
@@ -14,6 +24,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - 🧭 **Ref Output Open Flow** - The toolbar / welcome action now opens the linked catalog in `ref` mode instead of always pushing users through AGENTS.md first, and falls back to the instruction file only when the catalog is not available / ツールバーと empty-state の導線が `ref` モードでは AGENTS.md 固定ではなくリンク先 catalog を直接開くよう改善し、catalog 未生成時だけ instruction file にフォールバックするよう修正しました
 - 🏷️ **Skill Output Wording** - Renamed the action label from "Open Instruction File" to "Open Skill Output" so the UI matches what users actually get in `ref` mode / `ref` モード時の実挙動に合わせてアクション名を "Open Instruction File" から "Open Skill Output" / 「スキル出力を開く」へ変更しました
 - 🧭 **Skill Output Scope Picker Copy** - Updated the scope picker prompt to say "skill output" instead of "instruction file" so the last remaining quick-pick guidance matches the ref-first UI / スコープ選択の QuickPick 文言も "instruction file" ではなく "skill output" 基準へ更新し、ref-first UI に合わせて最後に残っていた案内文のズレを解消しました
+- 🎯 **View-Specific Default Output Roots** - The workspace view now opens the workspace output directly, and the user/global view now opens the default writable user/global output directly; only the generic command keeps the all-roots picker / workspace view は workspace output を直接開き、user/global view は既定の書き込み可能な user/global output を直接開くよう改善し、全 root から選ぶ QuickPick は汎用コマンド側だけに残しました
 
 ## [0.9.11] - 2026-05-18
 
