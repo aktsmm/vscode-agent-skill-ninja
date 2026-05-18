@@ -581,11 +581,13 @@ export function activate(
       refreshAllViews();
     }
 
-    // インストラクションファイルまたは出力フォーマットが変更されたら自動更新
+    // インストラクションファイルまたは出力フォーマット関連設定が変更されたら自動更新
     if (
       e.affectsConfiguration("skillNinja.instructionFile") ||
       e.affectsConfiguration("skillNinja.customInstructionPath") ||
-      e.affectsConfiguration("skillNinja.outputFormat")
+      e.affectsConfiguration("skillNinja.outputFormat") ||
+      e.affectsConfiguration("skillNinja.refCatalogPath") ||
+      e.affectsConfiguration("skillNinja.refCatalogFormat")
     ) {
       const workspaceFolders = vscode.workspace.workspaceFolders;
       if (workspaceFolders && workspaceFolders.length > 0) {
@@ -3488,7 +3490,6 @@ async function promptForSkillUpdate(skillCount: number): Promise<boolean> {
  */
 function migrateOutputFormatSetting(): boolean {
   const config = vscode.workspace.getConfiguration("skillNinja");
-  const currentValue = config.get<string>("outputFormat");
 
   // マイグレーションマップ（旧値 → 新値）
   const migrationMap: Record<string, string> = {
@@ -3497,15 +3498,28 @@ function migrateOutputFormatSetting(): boolean {
     "markdown-with-index": "full",
   };
 
-  if (currentValue && migrationMap[currentValue]) {
-    const newValue = migrationMap[currentValue];
-    config.update("outputFormat", newValue, vscode.ConfigurationTarget.Global);
-    console.log(
-      `[Skill Ninja] Migrated outputFormat: ${currentValue} → ${newValue}`,
-    );
-    return true;
+  let migrated = false;
+
+  // Global / Workspace / WorkspaceFolder の各スコープで独立して確認してマイグレーション
+  const inspected = config.inspect<string>("outputFormat");
+  const targets: Array<[string | undefined, vscode.ConfigurationTarget]> = [
+    [inspected?.globalValue, vscode.ConfigurationTarget.Global],
+    [inspected?.workspaceValue, vscode.ConfigurationTarget.Workspace],
+    [inspected?.workspaceFolderValue, vscode.ConfigurationTarget.WorkspaceFolder],
+  ];
+
+  for (const [value, target] of targets) {
+    if (value && migrationMap[value]) {
+      const newValue = migrationMap[value];
+      config.update("outputFormat", newValue, target);
+      console.log(
+        `[Skill Ninja] Migrated outputFormat (${vscode.ConfigurationTarget[target]}): ${value} → ${newValue}`,
+      );
+      migrated = true;
+    }
   }
-  return false;
+
+  return migrated;
 }
 
 export function deactivate(): Thenable<void> | void {

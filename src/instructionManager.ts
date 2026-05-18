@@ -4,7 +4,11 @@
 import * as vscode from "vscode";
 import { getInstalledSkillsWithMeta, SkillMeta } from "./skillInstaller";
 import type { LocalSkill } from "./localSkillScanner";
-import { OutputFormat, resolveOutputFormat } from "./toolDetector";
+import {
+  normalizeOutputFormat,
+  OutputFormat,
+  resolveOutputFormat,
+} from "./toolDetector";
 import * as path from "path";
 import { SKILL_DESCRIPTION_LIMITS } from "./constants";
 import {
@@ -189,7 +193,18 @@ async function resolveInstructionFormatForRoot(
   }
 
   const config = vscode.workspace.getConfiguration("skillNinja");
-  return (config.get<string>("outputFormat") || "ref") as OutputFormat;
+  return normalizeOutputFormat(config.get<string>("outputFormat"));
+}
+
+type RefCatalogFormat = Exclude<OutputFormat, "ref">;
+
+function getRefCatalogFormat(
+  config: vscode.WorkspaceConfiguration,
+): RefCatalogFormat {
+  const configuredFormat = config.get<string>("refCatalogFormat") || "full";
+  return configuredFormat === "compact" || configuredFormat === "legacy"
+    ? configuredFormat
+    : "full";
 }
 
 function getWorkspaceFolderUriForRoot(root: SkillRoot): vscode.Uri | undefined {
@@ -398,6 +413,7 @@ async function writeCatalogFile(
   const config = vscode.workspace.getConfiguration("skillNinja");
   const catalogRelPath =
     config.get<string>("refCatalogPath") || ".github/skills/README.md";
+  const catalogFormat = getRefCatalogFormat(config);
 
   const catalogUri = resolveCatalogUriForRoot(root, catalogRelPath);
 
@@ -413,11 +429,12 @@ async function writeCatalogFile(
     root.rootPath,
   );
 
-  // catalog ファイルにフルセクションを書き出す
-  const catalogSection = generateFullSection(
+  // catalog ファイルには ref 入口とは別に選択された詳細フォーマットを書き出す
+  const catalogSection = generateSkillSectionForFormat(
     installedSkills,
     localSkills,
     relativeSkillsDirFromCatalog,
+    catalogFormat,
   );
 
   let existingCatalogContent = "";
@@ -431,7 +448,7 @@ async function writeCatalogFile(
   const newCatalogContent = updateSection(
     existingCatalogContent,
     catalogSection,
-    "full",
+    catalogFormat,
   );
 
   if (newCatalogContent !== existingCatalogContent) {

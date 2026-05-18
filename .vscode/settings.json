@@ -4,5 +4,6 @@
     "dist": true
   },
   "typescript.tsc.autoDetect": "off",
-  "skillNinja.outputFormat": "compressed-index"
+  "skillNinja.outputFormat": "ref",
+  "skillNinja.refCatalogFormat": "compact"
 }

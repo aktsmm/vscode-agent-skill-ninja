@@ -329,9 +329,19 @@ function loadInstructionManager(vscodeStub, injectedSkills) {
       }
       if (req === "./toolDetector") {
         const skillConfig = vscodeStub.workspace.getConfiguration("skillNinja");
+        const normalizeOutputFormat = (value) => {
+          if (["ref", "full", "compact", "legacy"].includes(value)) {
+            return value;
+          }
+          if (value === "markdown") return "legacy";
+          if (value === "compressed-index") return "compact";
+          if (value === "markdown-with-index") return "full";
+          return "ref";
+        };
         return {
+          normalizeOutputFormat,
           resolveOutputFormat: async () => ({
-            format: skillConfig.get("outputFormat", "ref"),
+            format: normalizeOutputFormat(skillConfig.get("outputFormat", "ref")),
           }),
         };
       }
@@ -581,6 +591,49 @@ test("Scenario A-ref: lightweight instruction block writes separate catalog with
       catalog,
       catalogAgain,
       "ref catalog output should be idempotent",
+    );
+  } finally {
+    cleanupTmp(tmp);
+  }
+});
+
+test("Scenario A-ref-compact: ref catalog format can use compact index", async () => {
+  const tmp = setupTmpFixture("A-skill-solo");
+  try {
+    const wsUri = makeUri(tmp);
+    const stub = makeVscodeStub({
+      workspaceUri: wsUri,
+      settings: {
+        "skillNinja.outputFormat": "ref",
+        "skillNinja.refCatalogPath": ".github/catalog/skills.md",
+        "skillNinja.refCatalogFormat": "compact",
+      },
+      siblingExports: undefined,
+    });
+    const skills = [makeSampleSkill("sample-alpha", "First sample skill")];
+    const { instructionManager } = loadInstructionManager(stub, skills);
+    const ctx = makeContext();
+    const root = makeRoot(wsUri);
+
+    await instructionManager.updateInstructionFileForRoot(root, ctx);
+
+    const instruction = fs.readFileSync(path.join(tmp, "AGENTS.md"), "utf8");
+    const catalog = fs.readFileSync(
+      path.join(tmp, ".github", "catalog", "skills.md"),
+      "utf8",
+    );
+
+    assert.ok(
+      instruction.includes("> See [Agent Skills](.github/catalog/skills.md)"),
+      `instruction file should still link to compact catalog; got:\n${instruction}`,
+    );
+    assert.ok(
+      catalog.includes("## Agent Skills (Compressed Index)"),
+      `catalog should use compact format; got:\n${catalog}`,
+    );
+    assert.ok(
+      catalog.includes("../skills/sample-alpha/SKILL.md"),
+      `compact catalog should keep catalog-relative links; got:\n${catalog}`,
     );
   } finally {
     cleanupTmp(tmp);

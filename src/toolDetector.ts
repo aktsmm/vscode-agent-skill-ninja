@@ -24,6 +24,24 @@ export type AITool =
  */
 export type OutputFormat = "full" | "compact" | "legacy" | "ref";
 
+export function normalizeOutputFormat(value: string | undefined): OutputFormat {
+  switch ((value || "").trim()) {
+    case "ref":
+    case "full":
+    case "compact":
+    case "legacy":
+      return value as OutputFormat;
+    case "markdown":
+      return "legacy";
+    case "compressed-index":
+      return "compact";
+    case "markdown-with-index":
+      return "full";
+    default:
+      return "ref";
+  }
+}
+
 /**
  * 検出されたツール情報
  */
@@ -362,7 +380,7 @@ export async function resolveOutputFormat(
   _workspaceUri: vscode.Uri,
 ): Promise<{ format: OutputFormat; instructionFile: string }> {
   const config = vscode.workspace.getConfiguration("skillNinja");
-  const outputFormat = config.get<string>("outputFormat") || "ref";
+  const outputFormat = normalizeOutputFormat(config.get<string>("outputFormat"));
 
   // ユーザーが設定した instructionFile を取得
   const userInstructionFile =
@@ -380,7 +398,7 @@ export async function resolveOutputFormat(
   const instructionFile = resolveInstructionFile();
 
   return {
-    format: outputFormat as OutputFormat,
+    format: outputFormat,
     instructionFile,
   };
 }

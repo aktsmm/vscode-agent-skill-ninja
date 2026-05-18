@@ -138,6 +138,7 @@ test("settings order matches the documented primary flow", () => {
       "skillNinja.showBuiltInSkills",
       "skillNinja.outputFormat",
       "skillNinja.refCatalogPath",
+      "skillNinja.refCatalogFormat",
       "skillNinja.language",
       "skillNinja.autoUpdateSkillsOnUpgrade",
       "skillNinja.githubToken",
@@ -155,12 +156,13 @@ test("settings order matches the documented primary flow", () => {
       ["skillNinja.showBuiltInSkills", 6],
       ["skillNinja.outputFormat", 7],
       ["skillNinja.refCatalogPath", 8],
-      ["skillNinja.language", 9],
-      ["skillNinja.autoUpdateSkillsOnUpgrade", 10],
-      ["skillNinja.githubToken", 11],
-      ["skillNinja.singleClickInstall", 12],
-      ["skillNinja.coexistenceMode", 13],
-      ["skillNinja.useSharedSourcesManifest", 14],
+      ["skillNinja.refCatalogFormat", 9],
+      ["skillNinja.language", 10],
+      ["skillNinja.autoUpdateSkillsOnUpgrade", 11],
+      ["skillNinja.githubToken", 12],
+      ["skillNinja.singleClickInstall", 13],
+      ["skillNinja.coexistenceMode", 14],
+      ["skillNinja.useSharedSourcesManifest", 15],
       ["skillNinja.includeLocalSkills", 90],
     ],
   );
@@ -174,9 +176,24 @@ test("output format defaults and docs are aligned to ref", () => {
   assert.ok(
     pkg.contributes.configuration.properties["skillNinja.refCatalogPath"],
   );
+  const catalogFormatSetting =
+    pkg.contributes.configuration.properties["skillNinja.refCatalogFormat"];
+  assert.ok(catalogFormatSetting);
+  assert.strictEqual(catalogFormatSetting.default, "full");
+  assert.deepStrictEqual(catalogFormatSetting.enum, [
+    "full",
+    "compact",
+    "legacy",
+  ]);
   assert.ok(readme.includes("🔗 **Ref**"));
   assert.ok(readme.includes("Ref Format (Default)"));
-  assert.ok(readme.includes("Lightweight IMPORTANT + catalog link"));
+  // Output Format Details table now includes ref row
+  assert.ok(readme.includes("IMPORTANT + link in instruction file"));
+  assert.ok(readme.includes("Always-loaded context hygiene"));
+  // ref should NOT appear as just "Complete information (default)" — that was the old full label
+  assert.strictEqual(readme.includes("Complete information (default)"), false);
+  assert.ok(readme.includes("refCatalogFormat"));
+  assert.ok(readme.includes("skillNinja.refCatalogFormat"));
   assert.ok(readme.includes("Select `ref`, `full`, `compact`, or `legacy`"));
   assert.ok(readme.includes("skillNinja.refCatalogPath"));
   assert.ok(readme.includes("workspace root"));
@@ -189,7 +206,13 @@ test("output format defaults and docs are aligned to ref", () => {
   );
   assert.ok(readmeJa.includes("🔗 **Ref**"));
   assert.ok(readmeJa.includes("Ref フォーマット（既定）"));
-  assert.ok(readmeJa.includes("軽量 IMPORTANT + catalog link"));
+  // Output Format Details table now includes ref row
+  assert.ok(readmeJa.includes("IMPORTANT + instruction file にリンク"));
+  assert.ok(readmeJa.includes("常時ロードのコンテキスト軽量化"));
+  // ref should NOT appear as just "完全な情報（既定）" — that was the old full label
+  assert.strictEqual(readmeJa.includes("完全な情報（既定）"), false);
+  assert.ok(readmeJa.includes("refCatalogFormat"));
+  assert.ok(readmeJa.includes("skillNinja.refCatalogFormat"));
   assert.ok(readmeJa.includes("`ref`, `full`, `compact`, `legacy`"));
   assert.ok(readmeJa.includes("skillNinja.refCatalogPath"));
   assert.ok(readmeJa.includes("workspace root 基準"));
@@ -339,6 +362,38 @@ test("single-click install setting defaults to double-click behavior", () => {
     pkg.contributes.configuration.properties["skillNinja.singleClickInstall"];
   assert.ok(setting);
   assert.strictEqual(setting.default, false);
+  // markdownDescription was added (previously description-only) to align with other settings
+  assert.ok(
+    setting.markdownDescription,
+    "singleClickInstall should have markdownDescription",
+  );
+});
+
+test("outputFormat markdownDescription surfaces ref-catalog sub-settings", () => {
+  const nls = JSON.parse(
+    fs.readFileSync(path.join(root, "package.nls.json"), "utf8"),
+  );
+  // The description table must mention refCatalogPath and refCatalogFormat links
+  const desc = nls["config.outputFormat.markdownDescription"] || "";
+  assert.ok(
+    desc.includes("refCatalogPath") || desc.includes("#skillNinja.refCatalogPath#"),
+    "outputFormat description should link to refCatalogPath",
+  );
+  assert.ok(
+    desc.includes("refCatalogFormat") || desc.includes("#skillNinja.refCatalogFormat#"),
+    "outputFormat description should link to refCatalogFormat",
+  );
+  // refCatalogPath and refCatalogFormat descriptions must mention they only apply in ref mode
+  const pathDesc = nls["config.refCatalogPath.markdownDescription"] || "";
+  const fmtDesc = nls["config.refCatalogFormat.markdownDescription"] || "";
+  assert.ok(
+    pathDesc.toLowerCase().includes("ref"),
+    "refCatalogPath description should mention ref mode",
+  );
+  assert.ok(
+    fmtDesc.toLowerCase().includes("ref"),
+    "refCatalogFormat description should mention ref mode",
+  );
 });
 
 test("README files explain double-click workspace install behavior", () => {
@@ -614,6 +669,79 @@ test("manifest asset files exist and are not excluded from the VSIX", () => {
       `${assetPath} must not be excluded by .vscodeignore`,
     );
   }
+});
+
+test("outputFormat migration covers all configuration scopes", () => {
+  const extensionSource = fs.readFileSync(
+    path.join(root, "src", "extension.ts"),
+    "utf8",
+  );
+  // Migration must inspect all three VS Code config scopes
+  assert.ok(
+    extensionSource.includes("inspected?.globalValue"),
+    "migration must handle globalValue",
+  );
+  assert.ok(
+    extensionSource.includes("inspected?.workspaceValue"),
+    "migration must handle workspaceValue",
+  );
+  assert.ok(
+    extensionSource.includes("inspected?.workspaceFolderValue"),
+    "migration must handle workspaceFolderValue",
+  );
+  // Migration map must include all known legacy values (TS object shorthand, no quotes on keys)
+  assert.ok(
+    extensionSource.includes('markdown: "legacy"'),
+    "migration must map markdown → legacy",
+  );
+  assert.ok(
+    extensionSource.includes('"compressed-index": "compact"'),
+    "migration must map compressed-index → compact",
+  );
+  assert.ok(
+    extensionSource.includes('"markdown-with-index": "full"'),
+    "migration must map markdown-with-index → full",
+  );
+});
+
+test("configWatcher watches refCatalogPath and refCatalogFormat", () => {
+  const extensionSource = fs.readFileSync(
+    path.join(root, "src", "extension.ts"),
+    "utf8",
+  );
+  assert.ok(
+    extensionSource.includes('affectsConfiguration("skillNinja.refCatalogPath")'),
+    "configWatcher must watch refCatalogPath",
+  );
+  assert.ok(
+    extensionSource.includes('affectsConfiguration("skillNinja.refCatalogFormat")'),
+    "configWatcher must watch refCatalogFormat",
+  );
+});
+
+test("Output Format Details table in README includes ref as default", () => {
+  // The secondary Output Format Details section must include ref
+  assert.ok(
+    readme.includes("Always-loaded context hygiene") &&
+      readme.includes("*(Default)*"),
+    "README Output Format Details must include ref as the default",
+  );
+  assert.ok(
+    readmeJa.includes("常時ロードのコンテキスト軽量化") &&
+      readmeJa.includes("*(既定)*"),
+    "README_ja Output Format Details must include ref as the default",
+  );
+  // Ensure full is no longer labeled as default
+  assert.strictEqual(
+    readme.includes("Complete information (default)"),
+    false,
+    "full should not be labeled as default",
+  );
+  assert.strictEqual(
+    readmeJa.includes("完全な情報（既定）"),
+    false,
+    "full should not be labeled as default in Japanese README",
+  );
 });
 
 console.log("\nPackage manifest and README UX tests passed.");

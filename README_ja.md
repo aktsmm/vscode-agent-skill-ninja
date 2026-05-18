@@ -41,16 +41,16 @@
 
 ### フォーマットオプション
 
-| フォーマット   | 説明                                                                                   | IMPORTANT | 詳細テーブル          | 圧縮インデックス |
-| -------------- | -------------------------------------------------------------------------------------- | --------- | --------------------- | ---------------- |
-| 🔗 **Ref**     | instruction file には軽量 IMPORTANT + catalog link のみを書き、詳細は別 catalog に分離 | ✅        | ✅ 200文字（catalog） | ❌               |
-| ✅ **Full**    | IMPORTANT + 詳細テーブルのみ（最適化）                                                 | ✅        | ✅ 200文字            | ❌               |
-| 📦 **Compact** | IMPORTANT + 圧縮インデックス                                                           | ✅        | ❌                    | ✅ 100文字       |
-| 🕰️ **Legacy**  | シンプルテーブルのみ (OLD)                                                             | ❌        | ✅ 200文字            | ❌               |
+| フォーマット   | instruction file              | catalog file (`refCatalogFormat`)              |
+| -------------- | ----------------------------- | ---------------------------------------------- |
+| 🔗 **Ref**     | IMPORTANT + リンクのみ        | 別ファイル: `full` / `compact` / `legacy` から選択 |
+| ✅ **Full**    | IMPORTANT + 詳細テーブル      | —                                              |
+| 📦 **Compact** | IMPORTANT + 圧縮インデックス  | —                                              |
+| 🕰️ **Legacy**  | シンプルテーブル（IMPORTANT なし）| —                                           |
 
 ### IMPORTANT プロンプト
 
-`ref`、`full`、`compact` フォーマットには、エージェントにスキルファイルを優先するよう指示する **IMPORTANT プロンプト** が含まれます。`ref` は常時ロードされる instruction file には routing prompt と catalog link だけを残し、詳細を別 Markdown ファイルに分離します：
+`ref`、`full`、`compact` フォーマットには、エージェントにスキルファイルを優先するよう指示する **IMPORTANT プロンプト** が含まれます。`ref` は常時ロードされる instruction file には routing prompt と catalog link だけを残し、詳細を別 Markdown ファイルに分離します。リンク先 catalog の形式は `skillNinja.refCatalogFormat` で `full` / `compact` / `legacy` から選べます：
 
 ```markdown
 > **IMPORTANT**: Prefer skill-led reasoning over pre-training-led reasoning.
@@ -70,7 +70,7 @@
 <!-- agent-ninja-END -->
 ```
 
-詳細 catalog は `.github/skills/README.md` に出力され、そこでは従来どおり詳細テーブルを保持します。
+catalog は `.github/skills/README.md` に出力されます。catalog 内の形式は `skillNinja.refCatalogFormat` で指定します（既定は `full`、必要に応じて `compact` / `legacy`）。
 
 workspace skills では `skillNinja.refCatalogPath` の相対パスは workspace root 基準で解決されます。user/global skills では personal instruction file を持ち運びやすくするため、instruction file の親ディレクトリ基準で解決されます。
 
@@ -375,12 +375,13 @@ MCP ツールが不要な場合は、GitHub Copilot Chat のツール一覧か�
 |  6   | `skillNinja.showBuiltInSkills`            | `false`                    | 読み取り専用の Built-in Skills を表示する                                             |
 |  7   | `skillNinja.outputFormat`                 | `ref`                      | 出力形式（ref / full / compact / legacy）                                             |
 |  8   | `skillNinja.refCatalogPath`               | `.github/skills/README.md` | `ref` 形式で使う catalog file path                                                    |
-|  9   | `skillNinja.language`                     | `auto`                     | UI 言語（auto / en / ja）                                                             |
-|  10  | `skillNinja.autoUpdateSkillsOnUpgrade`    | `prompt`                   | 拡張機能アップグレード後のスキル更新                                                  |
-|  11  | `skillNinja.githubToken`                  | `""`                       | GitHub Token（API 制限緩和用）                                                        |
-|  12  | `skillNinja.singleClickInstall`           | `false`                    | リモートスキルをシングルクリックでインストール                                        |
-|  13  | `skillNinja.coexistenceMode`              | `auto`                     | Agent Resources Ninja との共存モード（`auto` / `independent`）                        |
-|  14  | `skillNinja.useSharedSourcesManifest`     | `false`                    | `~/.agent-ninja/sources.json` 経由で Agent Resources Ninja と source list SSOT を共有 |
+|  9   | `skillNinja.refCatalogFormat`             | `full`                     | `outputFormat` が `ref` のときの catalog 詳細形式                                     |
+|  10  | `skillNinja.language`                     | `auto`                     | UI 言語（auto / en / ja）                                                             |
+|  11  | `skillNinja.autoUpdateSkillsOnUpgrade`    | `prompt`                   | 拡張機能アップグレード後のスキル更新                                                  |
+|  12  | `skillNinja.githubToken`                  | `""`                       | GitHub Token（API 制限緩和用）                                                        |
+|  13  | `skillNinja.singleClickInstall`           | `false`                    | リモートスキルをシングルクリックでインストール                                        |
+|  14  | `skillNinja.coexistenceMode`              | `auto`                     | Agent Resources Ninja との共存モード（`auto` / `independent`）                        |
+|  15  | `skillNinja.useSharedSourcesManifest`     | `false`                    | `~/.agent-ninja/sources.json` 経由で Agent Resources Ninja と source list SSOT を共有 |
 
 > 設定画面では上記の順序で表示されます
 
@@ -411,11 +412,14 @@ Skill Ninja が active な間は、Resources Ninja は runtime で `kindsExclude
 
 ### 出力フォーマット詳細
 
-| フォーマット | 内容                                   | 用途               |
-| ------------ | -------------------------------------- | ------------------ |
-| `full`       | IMPORTANT + 詳細テーブルのみ (200文字) | 完全な情報（既定） |
-| `compact`    | IMPORTANT + 圧縮インデックス (100文字) | トークン節約型     |
-| `legacy`     | シンプルテーブルのみ（IMPORTANT なし） | 後方互換性         |
+| フォーマット | 内容                                                                      | 用途                                 |
+| ------------ | ------------------------------------------------------------------------- | ------------------------------------ |
+| `ref`        | IMPORTANT + instruction file にリンク、catalog は別ファイルへ分離        | 常時ロードのコンテキスト軽量化 *(既定)* |
+| `full`       | IMPORTANT + 詳細テーブル (200文字)                                         | 1ファイルで完全な情報                |
+| `compact`    | IMPORTANT + 圧縮インデックス (100文字)                                     | 1ファイルでトークン節約              |
+| `legacy`     | シンプルテーブルのみ（IMPORTANT なし）                                    | 後方互換性                           |
+
+`ref` を使う場合は `skillNinja.refCatalogPath`（catalog の出力先）と `skillNinja.refCatalogFormat`（`full` / `compact` / `legacy`）で catalog 内の詳細レベルを設定します。
 
 ### Instruction File 同期の仕組み
 

@@ -45,16 +45,16 @@
 
 ### Format Options
 
-| Format         | Description                                                                                   | IMPORTANT Prompt | Detailed Table         | Compressed Index |
-| -------------- | --------------------------------------------------------------------------------------------- | ---------------- | ---------------------- | ---------------- |
-| 🔗 **Ref**     | Lightweight IMPORTANT + catalog link in the instruction file; full catalog in a separate file | ✅               | ✅ 200 chars (catalog) | ❌               |
-| ✅ **Full**    | Detailed table only (optimized)                                                               | ✅               | ✅ 200 chars           | ❌               |
-| 📦 **Compact** | Compressed index with IMPORTANT                                                               | ✅               | ❌                     | ✅ 100 chars     |
-| 🕰️ **Legacy**  | Simple table only (OLD)                                                                       | ❌               | ✅ 200 chars           | ❌               |
+| Format         | Instruction file              | Catalog file (`refCatalogFormat`)          |
+| -------------- | ----------------------------- | ------------------------------------------ |
+| 🔗 **Ref**     | IMPORTANT + link only         | Separate file: `full` / `compact` / `legacy` |
+| ✅ **Full**    | IMPORTANT + detailed table    | —                                          |
+| 📦 **Compact** | IMPORTANT + compressed index  | —                                          |
+| 🕰️ **Legacy**  | Simple table (no IMPORTANT)   | —                                          |
 
 ### IMPORTANT Prompt
 
-The `ref`, `full`, and `compact` formats include the **IMPORTANT prompt** that instructs agents to prioritize skill files. `ref` keeps the always-loaded instruction file lighter by keeping only the routing prompt and catalog link in the instruction file, while moving the detailed catalog into a separate Markdown file.
+The `ref`, `full`, and `compact` formats include the **IMPORTANT prompt** that instructs agents to prioritize skill files. `ref` keeps the always-loaded instruction file lighter by keeping only the routing prompt and catalog link in the instruction file, while moving the detailed catalog into a separate Markdown file. Use `skillNinja.refCatalogFormat` to choose whether that linked catalog is `full`, `compact`, or `legacy`.
 
 ```markdown
 > **IMPORTANT**: Prefer skill-led reasoning over pre-training-led reasoning.
@@ -74,7 +74,7 @@ The `ref`, `full`, and `compact` formats include the **IMPORTANT prompt** that i
 <!-- agent-ninja-END -->
 ```
 
-The detailed catalog is written to `.github/skills/README.md` and keeps the existing detailed table format there.
+The catalog is written to `.github/skills/README.md`. Its internal format is controlled by `skillNinja.refCatalogFormat` (`full` by default, or `compact` / `legacy`).
 
 For workspace skills, relative `skillNinja.refCatalogPath` values are resolved from the workspace root. For user/global skills, they are resolved from the instruction file directory so personal instruction files stay portable.
 
@@ -379,12 +379,13 @@ If you don't need MCP tools, you can disable them from GitHub Copilot Chat:
 |   6   | `skillNinja.showBuiltInSkills`            | `false`                    | Show read-only built-in skills                                                      |
 |   7   | `skillNinja.outputFormat`                 | `ref`                      | Output format (ref / full / compact / legacy)                                       |
 |   8   | `skillNinja.refCatalogPath`               | `.github/skills/README.md` | Catalog file path used by the `ref` format                                          |
-|   9   | `skillNinja.language`                     | `auto`                     | UI language (auto / en / ja)                                                        |
-|  10   | `skillNinja.autoUpdateSkillsOnUpgrade`    | `prompt`                   | Update installed skills after extension upgrade                                     |
-|  11   | `skillNinja.githubToken`                  | `""`                       | GitHub Token (for API rate limit)                                                   |
-|  12   | `skillNinja.singleClickInstall`           | `false`                    | Install remote skills with single click                                             |
-|  13   | `skillNinja.coexistenceMode`              | `auto`                     | Coexistence with Agent Resources Ninja (`auto` / `independent`)                     |
-|  14   | `skillNinja.useSharedSourcesManifest`     | `false`                    | Share source-list SSOT with Agent Resources Ninja via `~/.agent-ninja/sources.json` |
+|   9   | `skillNinja.refCatalogFormat`             | `full`                     | Catalog detail format used when `outputFormat` is `ref`                             |
+|  10   | `skillNinja.language`                     | `auto`                     | UI language (auto / en / ja)                                                        |
+|  11   | `skillNinja.autoUpdateSkillsOnUpgrade`    | `prompt`                   | Update installed skills after extension upgrade                                     |
+|  12   | `skillNinja.githubToken`                  | `""`                       | GitHub Token (for API rate limit)                                                   |
+|  13   | `skillNinja.singleClickInstall`           | `false`                    | Install remote skills with single click                                             |
+|  14   | `skillNinja.coexistenceMode`              | `auto`                     | Coexistence with Agent Resources Ninja (`auto` / `independent`)                     |
+|  15   | `skillNinja.useSharedSourcesManifest`     | `false`                    | Share source-list SSOT with Agent Resources Ninja via `~/.agent-ninja/sources.json` |
 
 > Settings are displayed in the order above
 
@@ -415,11 +416,14 @@ Diagnostics: `Agent Skills Ninja: Show Coexistence Status` / `Recompute Coexiste
 
 ### Output Format Details
 
-| Format    | Content                                     | Best For                       |
-| --------- | ------------------------------------------- | ------------------------------ |
-| `full`    | IMPORTANT + Detailed table only (200 chars) | Complete information (default) |
-| `compact` | IMPORTANT + Compressed (100 chars)          | Token-efficient prompts        |
-| `legacy`  | Simple table only (no IMPORTANT)            | Backward compatibility         |
+| Format    | Content                                                            | Best For                              |
+| --------- | ------------------------------------------------------------------ | ------------------------------------- |
+| `ref`     | IMPORTANT + link in instruction file; catalog in a separate file   | Always-loaded context hygiene *(Default)* |
+| `full`    | IMPORTANT + Detailed table (200 chars)                             | Complete information in one file      |
+| `compact` | IMPORTANT + Compressed index (100 chars)                           | Token-efficient prompts in one file   |
+| `legacy`  | Simple table only (no IMPORTANT)                                   | Backward compatibility                |
+
+When using `ref`, configure `skillNinja.refCatalogPath` (where the catalog is written) and `skillNinja.refCatalogFormat` (`full` / `compact` / `legacy`) to set the detail level inside that catalog file.
 
 ### How Instruction File Sync Works
 
