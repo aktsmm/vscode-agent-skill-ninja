@@ -397,6 +397,8 @@ MCP ツールが不要な場合は、GitHub Copilot Chat のツール一覧か�
 
 姉妹拡張 [Agent Resources Ninja](https://marketplace.visualstudio.com/items?itemName=yamapan.agent-resources-ninja) を同時にインストールしている場合、両拡張は協調して AGENTS.md / CLAUDE.md などに **共通ブロック 1 つ**（`<!-- agent-ninja-START -->` / `<!-- agent-ninja-END -->`）だけを保つようにします。両方が active のときは Resources Ninja が owner となり、Skill Ninja は黙って書き込みを譲ります。既存の `<!-- skill-ninja-* -->` ブロックは初回起動時に共通マーカーへ自動で migration されます。
 
+どちらの拡張からインストールした remote skill でも、`.skill-meta.json` の契約は共通です。共存モードでは Skill Ninja もこの共有 metadata を登録状態の SSOT として扱うため、Resources Ninja から入れた skill でも Skill Ninja 側で managed skill として表示され、再インストールや登録解除の導線を維持します。
+
 Resources Ninja が管理するローカル workspace skill は `source: "local"` のメタデータを保持します。Skill Ninja はこれらをローカルスキルとして表示しますが、リモート skill index の欠落扱いにはせず、リモート index からの再インストール対象からも除外します。
 
 姉妹拡張がアンインストールされた場合、`vscode.extensions.onDidChange` を契機に Skill Ninja が同じ共通ブロックの owner に昇格 — 並列ブロックも孤児マーカーも残らず、通常は手動掃除不要です。

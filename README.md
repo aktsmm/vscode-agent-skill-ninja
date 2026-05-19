@@ -401,6 +401,8 @@ Legacy compatibility setting: `skillNinja.includeLocalSkills` is deprecated. Wor
 
 When the companion extension [Agent Resources Ninja](https://marketplace.visualstudio.com/items?itemName=yamapan.agent-resources-ninja) is also installed, both extensions cooperate so that AGENTS.md / CLAUDE.md / etc. always contains exactly **one shared block** (`<!-- agent-ninja-START -->` / `<!-- agent-ninja-END -->`). Resources Ninja is the owner whenever both are active; Skill Ninja silently defers and migrates any pre-existing `<!-- skill-ninja-* -->` block into the shared marker.
 
+Remote skills installed by either extension reuse the same `.skill-meta.json` contract. In coexistence mode, Skill Ninja now treats those shared metadata files as the source of truth for registration state as well, so skills installed from Resources Ninja still appear as managed skills and keep reinstall / unregister actions in Skill Ninja.
+
 Local workspace skills managed by Resources Ninja keep `source: "local"` metadata. Skill Ninja lists them as local skills, but does not treat them as missing from the remote skill index and excludes them from remote-index reinstall commands.
 
 If the sibling extension is uninstalled, Skill Ninja takes over the same shared block on the next `vscode.extensions.onDidChange` event — no parallel blocks, no orphan markers, no manual cleanup needed in the normal case.

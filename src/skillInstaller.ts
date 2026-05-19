@@ -507,6 +507,7 @@ export async function installSkill(
     categories: skill.categories,
     installedAt: new Date().toISOString(),
     relativePath: safeName,
+    remotePath: skill.path,
     registrationDisabled: existingRegistrationDisabled,
   };
   await vscode.workspace.fs.writeFile(
@@ -695,6 +696,7 @@ export interface SkillMeta {
   categories: string[];
   installedAt: string;
   relativePath?: string; // ネストされたスキルのパス（例: "document-skills/docx"）
+  remotePath?: string; // 配布元リポジトリでの相対パス
   registrationDisabled?: boolean;
   // 公式仕様に基づくメタデータ
   license?: string; // ライセンス（例: MIT, Apache-2.0）

@@ -28,7 +28,7 @@ export interface LocalSkill extends Skill {
   fullPath: string; // フルパス
   relativePath: string; // スキルルート相対パス
   displayPath: string; // UI 表示用パス
-  isRegistered: boolean; // AGENTS.md に登録済みか
+  isRegistered: boolean; // managed metadata または instruction block から登録済みと判定できるか
   registrationFile?: string; // 登録されているファイル (AGENTS.md など)
   scope: SkillScope;
   root: SkillRoot;
@@ -45,6 +45,12 @@ export interface SkillReference {
   path: string;
   line: number;
   isLocal: boolean;
+}
+
+export function isSkillRegisteredByMetadata(
+  meta?: Pick<SkillMeta, "registrationDisabled">,
+): boolean {
+  return meta !== undefined && meta.registrationDisabled !== true;
 }
 
 function unquoteYamlValue(value: string): string {
@@ -324,7 +330,7 @@ async function parseLocalSkillFile(
     fullPath: fileUri.fsPath,
     relativePath,
     displayPath,
-    isRegistered: false,
+    isRegistered: isSkillRegisteredByMetadata(meta),
     scope: root.scope,
     root,
     skillDirUri,

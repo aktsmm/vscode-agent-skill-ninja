@@ -7,6 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.9.15] - 2026-05-19
+
+### Fixed
+
+- 🤝 **Cross-Extension Registration State** - Skill NINJA now treats shared `.skill-meta.json` files as part of the registration-state source of truth in coexistence mode, so remote skills installed via Agent Resources Ninja continue to appear as managed skills and keep reinstall / unregister actions / 共存モードで shared `.skill-meta.json` を登録状態の SSOT の一部として扱うよう改善し、Agent Resources Ninja 経由で入れた remote skill でも Skill NINJA 側で managed skill として表示され、再インストールや登録解除の導線を維持するよう修正
+- 🔗 **Remote Path Index Matching** - Installed-skill index checks now fall back to remote repository path matching in addition to name/source matching, preventing false "not found in index" warnings for cross-extension installs that share the same remote skill but different metadata names or sources / インストール済み skill の index 照合で name/source 一致に加えて remote repository path 一致へフォールバックするよう改善し、同じ remote skill を共有していても metadata の名前や source が異なる cross-extension install で「インデックスに見つかりません」warning が出る誤検知を抑制
+
+### Added
+
+- 🧪 **Cross-Extension Metadata Regression Tests** - Added regression coverage for metadata-based registration recovery and remotePath-based installed-skill index matching, and kept those checks in the standard `npm test` flow / metadata ベースの登録状態復元と remotePath ベースの installed-skill index 照合を守る回帰テストを追加し、標準の `npm test` フローで継続検証するよう追加
+
 ## [0.9.14] - 2026-05-18
 
 ### Fixed

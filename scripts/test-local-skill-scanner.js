@@ -78,8 +78,24 @@ function test(name, fn) {
   }
 }
 
-const { extractManagedSkillMarkerContent, isSkillReferencedInManagedBlock } =
-  loadModule();
+const {
+  extractManagedSkillMarkerContent,
+  isSkillReferencedInManagedBlock,
+  isSkillRegisteredByMetadata,
+} = loadModule();
+
+test("isSkillRegisteredByMetadata treats enabled metadata as registered", () => {
+  assert.strictEqual(isSkillRegisteredByMetadata(undefined), false);
+  assert.strictEqual(isSkillRegisteredByMetadata({}), true);
+  assert.strictEqual(
+    isSkillRegisteredByMetadata({ registrationDisabled: false }),
+    true,
+  );
+  assert.strictEqual(
+    isSkillRegisteredByMetadata({ registrationDisabled: true }),
+    false,
+  );
+});
 
 test("extractManagedSkillMarkerContent prefers shared coexistence markers", () => {
   const text = [

@@ -49,10 +49,19 @@ const {
 } = loadModule();
 
 const skills = [
-  { name: "remote-alpha", source: "sample-source" },
-  { name: "legacy-beta", source: "renamed-source" },
-  { name: "duplicate", source: "first-source" },
-  { name: "duplicate", source: "second-source" },
+  {
+    name: "remote-alpha",
+    source: "sample-source",
+    path: "skills/remote-alpha",
+  },
+  { name: "legacy-beta", source: "renamed-source", path: "legacy/legacy-beta" },
+  { name: "duplicate", source: "first-source", path: "dupes/first" },
+  { name: "duplicate", source: "second-source", path: "dupes/second" },
+  {
+    name: "excalidraw-diagram-generator",
+    source: "resource-source",
+    path: "skills/excalidraw-diagram-generator",
+  },
 ];
 
 test("local installed skills are excluded from remote index checks", () => {
@@ -85,7 +94,11 @@ test("unknown legacy metadata keeps name-only fallback", () => {
   );
   assert.deepStrictEqual(
     findIndexedSkillForInstalledMeta(skills, unknownMeta),
-    { name: "legacy-beta", source: "renamed-source" },
+    {
+      name: "legacy-beta",
+      source: "renamed-source",
+      path: "legacy/legacy-beta",
+    },
   );
 });
 
@@ -105,7 +118,7 @@ test("remote metadata requires the matching source", () => {
       name: "duplicate",
       source: "second-source",
     }),
-    { name: "duplicate", source: "second-source" },
+    { name: "duplicate", source: "second-source", path: "dupes/second" },
   );
 
   assert.strictEqual(
@@ -114,6 +127,21 @@ test("remote metadata requires the matching source", () => {
       source: "missing-source",
     }),
     undefined,
+  );
+});
+
+test("remotePath fallback matches cross-extension metadata when source differs", () => {
+  assert.deepStrictEqual(
+    findIndexedSkillForInstalledMeta(skills, {
+      name: "excalidraw",
+      source: "companion-source",
+      remotePath: "skills/excalidraw-diagram-generator",
+    }),
+    {
+      name: "excalidraw-diagram-generator",
+      source: "resource-source",
+      path: "skills/excalidraw-diagram-generator",
+    },
   );
 });
 

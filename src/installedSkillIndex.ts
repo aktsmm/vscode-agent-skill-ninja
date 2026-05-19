@@ -1,7 +1,15 @@
 import type { Skill } from "./skillIndex";
 import type { SkillMeta } from "./skillInstaller";
 
-type InstalledSkillMetaIdentity = Pick<SkillMeta, "name" | "source">;
+type InstalledSkillMetaIdentity = Pick<
+  SkillMeta,
+  "name" | "source" | "remotePath"
+>;
+
+function normalizeRemotePath(remotePath?: string): string | undefined {
+  const normalized = remotePath?.trim().replace(/\\/g, "/");
+  return normalized ? normalized.replace(/^\/+/, "") : undefined;
+}
 
 export function isLocalInstalledSkillMeta(
   meta: Pick<SkillMeta, "source">,
@@ -36,6 +44,16 @@ export function findIndexedSkillForInstalledMeta(
   );
   if (exactMatch) {
     return exactMatch;
+  }
+
+  const normalizedRemotePath = normalizeRemotePath(meta.remotePath);
+  if (normalizedRemotePath) {
+    const pathMatch = skills.find(
+      (skill) => normalizeRemotePath(skill.path) === normalizedRemotePath,
+    );
+    if (pathMatch) {
+      return pathMatch;
+    }
   }
 
   if (meta.source === "unknown") {
