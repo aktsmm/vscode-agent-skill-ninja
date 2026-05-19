@@ -111,6 +111,7 @@ const {
   getSkillRootGroupDescription,
   getManagedSkillTreeItemLabel,
   getManagedSkillTreeItemDescription,
+  setViewRegistrationContext,
 } = englishExports;
 
 const {
@@ -406,6 +407,7 @@ test("keeps root descriptions path-aware without using the path as the label", (
 });
 
 test("uses clean skill labels and keeps registration state in description", () => {
+  setViewRegistrationContext({ initialSyncPending: false });
   const registeredSkill = createSkill(
     "User Evidence Agent",
     "userGlobal",
@@ -437,6 +439,28 @@ test("uses clean skill labels and keeps registration state in description", () =
     getManagedSkillTreeItemDescription(unregisteredSkill),
     "instructions/custom-skill • Not registered",
   );
+});
+
+test("shows pending description while initial sync is unresolved", () => {
+  setViewRegistrationContext({ initialSyncPending: true });
+
+  const pendingSkill = {
+    ...createSkill(
+      "Custom Skill",
+      "userGlobal",
+      "C:/Users/test/.copilot/skills",
+      "instructions/custom-skill",
+    ),
+    isRegistered: false,
+    registrationState: "unregistered",
+  };
+
+  assert.strictEqual(
+    getManagedSkillTreeItemDescription(pendingSkill),
+    "instructions/custom-skill • Resolving",
+  );
+
+  setViewRegistrationContext({ initialSyncPending: false });
 });
 
 test("localizes root labels and descriptions for Japanese UI", () => {

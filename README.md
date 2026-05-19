@@ -136,6 +136,7 @@ Settings → **Output Format** → Select `ref`, `full`, `compact`, or `legacy`
 - **Reinstall All** - Batch reinstall from latest source (with auto index update)
 - **Install Feedback** - NEW badge, status bar notification, auto-select in tree view
 - **Open Folder** - Quick access to installed skill folder
+- **Explain Skill State** - Diagnose registration source, metadata path, coexistence owner, and instruction target from the tree item context menu
 - **Index Integrity Check** - Auto-detect missing skills and prompt for index update
 
 ### 🔧 Multi-Tool Support

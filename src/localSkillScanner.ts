@@ -9,7 +9,7 @@ import {
   SHARED_MARKER_START,
   updateInstructionFileForRoot,
 } from "./instructionManager";
-import type { SkillMeta } from "./skillInstaller";
+import { enrichSkillMeta, type SkillMeta } from "./skillInstaller";
 import {
   getBuiltInSkillRoots,
   getExtensionSkillRoots,
@@ -29,12 +29,38 @@ export interface LocalSkill extends Skill {
   relativePath: string; // スキルルート相対パス
   displayPath: string; // UI 表示用パス
   isRegistered: boolean; // managed metadata または instruction block から登録済みと判定できるか
+  registrationState: "registered" | "unregistered";
+  registrationSource: "metadata" | "instruction" | "none";
+  registrationReason: string;
   registrationFile?: string; // 登録されているファイル (AGENTS.md など)
+  metadataPath: string;
+  metadataPresent: boolean;
   scope: SkillScope;
   root: SkillRoot;
   skillDirUri: vscode.Uri;
   isManaged: boolean;
   isReadOnly: boolean;
+  remotePath?: string;
+  installedAt?: string;
+  installedVia?: SkillMeta["installedVia"];
+  packageParentName?: string;
+  packageParentRemotePath?: string;
+  packageParentRelativePath?: string;
+}
+
+const visibleSkillsCache = new Map<string, Promise<LocalSkill[]>>();
+
+function getVisibleSkillsCacheKey(workspaceUri?: vscode.Uri): string {
+  return workspaceUri?.fsPath || "__no-workspace__";
+}
+
+export function invalidateVisibleSkillsCache(workspaceUri?: vscode.Uri): void {
+  if (workspaceUri) {
+    visibleSkillsCache.delete(getVisibleSkillsCacheKey(workspaceUri));
+    return;
+  }
+
+  visibleSkillsCache.clear();
 }
 
 /**
@@ -51,6 +77,43 @@ export function isSkillRegisteredByMetadata(
   meta?: Pick<SkillMeta, "registrationDisabled">,
 ): boolean {
   return meta !== undefined && meta.registrationDisabled !== true;
+}
+
+function buildRegistrationInfo(
+  meta: SkillMeta | undefined,
+): Pick<
+  LocalSkill,
+  | "isRegistered"
+  | "registrationState"
+  | "registrationSource"
+  | "registrationReason"
+> {
+  if (!meta) {
+    return {
+      isRegistered: false,
+      registrationState: "unregistered",
+      registrationSource: "none",
+      registrationReason:
+        "No managed metadata or instruction reference has been detected yet.",
+    };
+  }
+
+  if (meta.registrationDisabled) {
+    return {
+      isRegistered: false,
+      registrationState: "unregistered",
+      registrationSource: "none",
+      registrationReason:
+        "Managed metadata explicitly disables automatic registration.",
+    };
+  }
+
+  return {
+    isRegistered: true,
+    registrationState: "registered",
+    registrationSource: "metadata",
+    registrationReason: "Managed metadata marks this skill as registered.",
+  };
 }
 
 function unquoteYamlValue(value: string): string {
@@ -249,7 +312,9 @@ async function readSkillMetaFile(
     const metaContent = await vscode.workspace.fs.readFile(
       vscode.Uri.joinPath(skillDirUri, ".skill-meta.json"),
     );
-    return JSON.parse(Buffer.from(metaContent).toString("utf-8")) as SkillMeta;
+    return enrichSkillMeta(
+      JSON.parse(Buffer.from(metaContent).toString("utf-8")) as SkillMeta,
+    );
   } catch {
     return undefined;
   }
@@ -299,6 +364,11 @@ async function parseLocalSkillFile(
 
   const skillDirUri = vscode.Uri.file(path.dirname(fileUri.fsPath));
   const meta = await readSkillMetaFile(skillDirUri);
+  const registrationInfo = buildRegistrationInfo(meta);
+  const metadataPath = vscode.Uri.joinPath(
+    skillDirUri,
+    ".skill-meta.json",
+  ).fsPath;
 
   if (meta?.description) {
     description = meta.description;
@@ -330,12 +400,20 @@ async function parseLocalSkillFile(
     fullPath: fileUri.fsPath,
     relativePath,
     displayPath,
-    isRegistered: isSkillRegisteredByMetadata(meta),
+    ...registrationInfo,
+    metadataPath,
+    metadataPresent: meta !== undefined,
     scope: root.scope,
     root,
     skillDirUri,
     isManaged: root.isManaged,
     isReadOnly: root.isReadOnly,
+    remotePath: meta?.remotePath,
+    installedAt: meta?.installedAt,
+    installedVia: meta?.installedVia,
+    packageParentName: meta?.packageParentName,
+    packageParentRemotePath: meta?.packageParentRemotePath,
+    packageParentRelativePath: meta?.packageParentRelativePath,
   };
 }
 
@@ -431,6 +509,10 @@ async function checkRegistrationStatusForRoot(
         )
       ) {
         skill.isRegistered = true;
+        skill.registrationState = "registered";
+        skill.registrationSource = "instruction";
+        skill.registrationReason =
+          "Detected a managed instruction block reference for this skill.";
         skill.registrationFile = root.instructionPath;
       }
     }
@@ -514,34 +596,50 @@ export async function scanLocalSkills(
 export async function scanVisibleSkills(
   workspaceUri?: vscode.Uri,
 ): Promise<LocalSkill[]> {
-  const managedRoots = await getManagedSkillRoots(workspaceUri);
-  const extensionRoots = await getExtensionSkillRoots();
-  const builtInRoots = await getBuiltInSkillRoots();
-  const allRoots = [...managedRoots, ...extensionRoots, ...builtInRoots];
+  const cacheKey = getVisibleSkillsCacheKey(workspaceUri);
+  const cached = visibleSkillsCache.get(cacheKey);
+  if (cached) {
+    return cached;
+  }
 
-  const skills = await Promise.all(
-    allRoots.map((root) => scanSkillsForRoot(root)),
-  );
-  return skills.flat().sort((left, right) => {
-    if (left.scope !== right.scope) {
-      const scopeOrder: SkillScope[] = [
-        "workspace",
-        "userGlobal",
-        "extension",
-        "builtIn",
-      ];
-      return scopeOrder.indexOf(left.scope) - scopeOrder.indexOf(right.scope);
-    }
+  const pending = (async () => {
+    const managedRoots = await getManagedSkillRoots(workspaceUri);
+    const extensionRoots = await getExtensionSkillRoots();
+    const builtInRoots = await getBuiltInSkillRoots();
+    const allRoots = [...managedRoots, ...extensionRoots, ...builtInRoots];
 
-    const rootCompare = normalizeFileSystemPath(
-      left.root.rootPath,
-    ).localeCompare(normalizeFileSystemPath(right.root.rootPath));
-    if (rootCompare !== 0) {
-      return rootCompare;
-    }
+    const skills = await Promise.all(
+      allRoots.map((root) => scanSkillsForRoot(root)),
+    );
+    return skills.flat().sort((left, right) => {
+      if (left.scope !== right.scope) {
+        const scopeOrder: SkillScope[] = [
+          "workspace",
+          "userGlobal",
+          "extension",
+          "builtIn",
+        ];
+        return scopeOrder.indexOf(left.scope) - scopeOrder.indexOf(right.scope);
+      }
 
-    return left.relativePath.localeCompare(right.relativePath);
-  });
+      const rootCompare = normalizeFileSystemPath(
+        left.root.rootPath,
+      ).localeCompare(normalizeFileSystemPath(right.root.rootPath));
+      if (rootCompare !== 0) {
+        return rootCompare;
+      }
+
+      return left.relativePath.localeCompare(right.relativePath);
+    });
+  })();
+
+  visibleSkillsCache.set(cacheKey, pending);
+  try {
+    return await pending;
+  } catch (error) {
+    visibleSkillsCache.delete(cacheKey);
+    throw error;
+  }
 }
 
 /**

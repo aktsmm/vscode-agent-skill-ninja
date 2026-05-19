@@ -509,10 +509,11 @@ export async function installSkill(
     relativePath: safeName,
     remotePath: skill.path,
     registrationDisabled: existingRegistrationDisabled,
+    ...derivePackageMetadata(skill.name, skill.path, safeName),
   };
   await vscode.workspace.fs.writeFile(
     metaPath,
-    Buffer.from(JSON.stringify(meta, null, 2), "utf-8"),
+    Buffer.from(JSON.stringify(enrichSkillMeta(meta), null, 2), "utf-8"),
   );
 
   // インストール後の検証: SKILL.md が空またはフォールバック版かチェック
@@ -698,10 +699,82 @@ export interface SkillMeta {
   relativePath?: string; // ネストされたスキルのパス（例: "document-skills/docx"）
   remotePath?: string; // 配布元リポジトリでの相対パス
   registrationDisabled?: boolean;
+  metadataVersion?: 2;
+  installedVia?: "direct" | "packageRoot" | "packageChild" | "legacy";
+  packageParentName?: string;
+  packageParentRemotePath?: string;
+  packageParentRelativePath?: string;
   // 公式仕様に基づくメタデータ
   license?: string; // ライセンス（例: MIT, Apache-2.0）
   author?: string; // 作成者
   version?: string; // バージョン
+}
+
+function derivePackageMetadata(
+  name: string,
+  remotePath?: string,
+  relativePath?: string,
+): Pick<
+  SkillMeta,
+  | "installedVia"
+  | "packageParentName"
+  | "packageParentRemotePath"
+  | "packageParentRelativePath"
+> {
+  const normalizedRelativePath = relativePath?.replace(/\\/g, "/");
+  const relativeSegments = normalizedRelativePath
+    ? normalizedRelativePath.split("/").filter(Boolean)
+    : [];
+  const normalizedRemotePath = remotePath?.replace(/\\/g, "/");
+  const remoteSegments = normalizedRemotePath
+    ? normalizedRemotePath.split("/").filter(Boolean)
+    : [];
+
+  if (relativeSegments.length > 1) {
+    return {
+      installedVia: "packageChild",
+      packageParentRelativePath: relativeSegments.slice(0, -1).join("/"),
+    };
+  }
+
+  const leafSegment = remoteSegments.at(-1);
+  const parentSegment =
+    remoteSegments.length >= 2 ? remoteSegments.at(-2) : undefined;
+  if (
+    leafSegment &&
+    parentSegment &&
+    parentSegment.toLowerCase() !== leafSegment.toLowerCase() &&
+    parentSegment.toLowerCase() !== name.toLowerCase()
+  ) {
+    return {
+      installedVia: "packageChild",
+      packageParentName: parentSegment,
+      packageParentRemotePath: remoteSegments.slice(0, -1).join("/"),
+    };
+  }
+
+  return {
+    installedVia: remoteSegments.length > 0 ? "direct" : "legacy",
+  };
+}
+
+export function enrichSkillMeta(meta: SkillMeta): SkillMeta {
+  const derived = derivePackageMetadata(
+    meta.name,
+    meta.remotePath,
+    meta.relativePath,
+  );
+
+  return {
+    ...meta,
+    metadataVersion: 2,
+    installedVia: meta.installedVia ?? derived.installedVia,
+    packageParentName: meta.packageParentName ?? derived.packageParentName,
+    packageParentRemotePath:
+      meta.packageParentRemotePath ?? derived.packageParentRemotePath,
+    packageParentRelativePath:
+      meta.packageParentRelativePath ?? derived.packageParentRelativePath,
+  };
 }
 
 export interface ManagedInstalledSkill {
@@ -878,7 +951,9 @@ export async function refreshSkillMetadata(
       try {
         // 既存のメタデータを読み込む
         const content = await vscode.workspace.fs.readFile(metaPath);
-        const meta = JSON.parse(Buffer.from(content).toString("utf-8"));
+        const meta = enrichSkillMeta(
+          JSON.parse(Buffer.from(content).toString("utf-8")) as SkillMeta,
+        );
 
         // SKILL.md から description と whenToUse を再抽出
         const newDescription = await extractDescriptionFromSkillMd(skillMdPath);
@@ -896,6 +971,11 @@ export async function refreshSkillMetadata(
         // （customWhenToUse がある場合は whenToUse のみ更新、ユーザーのカスタム値は保持）
         if (meta.whenToUse !== newWhenToUse) {
           meta.whenToUse = newWhenToUse || undefined;
+          updated = true;
+        }
+
+        if (meta.metadataVersion !== 2) {
+          meta.metadataVersion = 2;
           updated = true;
         }
 
@@ -927,7 +1007,10 @@ export async function refreshSkillMetadata(
 
           await vscode.workspace.fs.writeFile(
             metaPath,
-            Buffer.from(JSON.stringify(newMeta, null, 2), "utf-8"),
+            Buffer.from(
+              JSON.stringify(enrichSkillMeta(newMeta), null, 2),
+              "utf-8",
+            ),
           );
           updatedCount++;
           console.log(
@@ -1028,7 +1111,9 @@ export async function getInstalledSkillsWithMeta(
     for (const entry of skillEntries) {
       try {
         const content = await vscode.workspace.fs.readFile(entry.metaPath);
-        const meta = JSON.parse(Buffer.from(content).toString("utf-8"));
+        const meta = enrichSkillMeta(
+          JSON.parse(Buffer.from(content).toString("utf-8")) as SkillMeta,
+        );
         // relativePath を追加（メタデータにない場合）
         if (!meta.relativePath) {
           meta.relativePath = entry.relativePath;
@@ -1051,6 +1136,8 @@ export async function getInstalledSkillsWithMeta(
           license,
           author,
           version,
+          metadataVersion: 2,
+          ...derivePackageMetadata(name, undefined, entry.relativePath),
         });
       }
     }

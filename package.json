@@ -2,7 +2,7 @@
   "name": "agent-skill-ninja",
   "displayName": "%displayName%",
   "description": "%description%",
-  "version": "0.9.15",
+  "version": "0.9.16",
   "publisher": "yamapan",
   "license": "CC-BY-NC-SA-4.0",
   "icon": "resources/icon.png",
@@ -614,6 +614,12 @@
         "title": "%command.reportBug%",
         "category": "Agent Skills Ninja",
         "icon": "$(bug)"
+      },
+      {
+        "command": "skillNinja.explainSkillState",
+        "title": "%command.explainSkillState%",
+        "category": "Agent Skills Ninja",
+        "icon": "$(info)"
       }
     ],
     "menus": {
@@ -747,12 +753,12 @@
         },
         {
           "command": "skillNinja.uninstall",
-          "when": "view == skillNinja.installedView && (viewItem == managedSkill || viewItem == managedUnregisteredSkill)",
+          "when": "view == skillNinja.installedView && (viewItem == managedSkill || viewItem == managedUnregisteredSkill || viewItem == managedPendingSkill)",
           "group": "inline"
         },
         {
           "command": "skillNinja.uninstall",
-          "when": "view == skillNinja.userGlobalView && (viewItem == managedSkill || viewItem == managedUnregisteredSkill)",
+          "when": "view == skillNinja.userGlobalView && (viewItem == managedSkill || viewItem == managedUnregisteredSkill || viewItem == managedPendingSkill)",
           "group": "inline"
         },
         {
@@ -767,32 +773,32 @@
         },
         {
           "command": "skillNinja.editWhenToUse",
-          "when": "view == skillNinja.installedView && (viewItem == managedSkill || viewItem == managedUnregisteredSkill)",
+          "when": "view == skillNinja.installedView && (viewItem == managedSkill || viewItem == managedUnregisteredSkill || viewItem == managedPendingSkill)",
           "group": "navigation"
         },
         {
           "command": "skillNinja.editWhenToUse",
-          "when": "view == skillNinja.userGlobalView && (viewItem == managedSkill || viewItem == managedUnregisteredSkill)",
+          "when": "view == skillNinja.userGlobalView && (viewItem == managedSkill || viewItem == managedUnregisteredSkill || viewItem == managedPendingSkill)",
           "group": "navigation"
         },
         {
           "command": "skillNinja.openSkillFolder",
-          "when": "view == skillNinja.installedView && (viewItem == managedSkill || viewItem == managedUnregisteredSkill || viewItem == builtInSkill || viewItem == extensionSkill)",
+          "when": "view == skillNinja.installedView && (viewItem == managedSkill || viewItem == managedUnregisteredSkill || viewItem == managedPendingSkill || viewItem == builtInSkill || viewItem == extensionSkill)",
           "group": "inline"
         },
         {
           "command": "skillNinja.openSkillFolder",
-          "when": "view == skillNinja.userGlobalView && (viewItem == managedSkill || viewItem == managedUnregisteredSkill || viewItem == builtInSkill || viewItem == extensionSkill)",
+          "when": "view == skillNinja.userGlobalView && (viewItem == managedSkill || viewItem == managedUnregisteredSkill || viewItem == managedPendingSkill || viewItem == builtInSkill || viewItem == extensionSkill)",
           "group": "inline"
         },
         {
           "command": "skillNinja.openSkillFile",
-          "when": "view == skillNinja.installedView && (viewItem == managedSkill || viewItem == managedUnregisteredSkill || viewItem == builtInSkill || viewItem == extensionSkill)",
+          "when": "view == skillNinja.installedView && (viewItem == managedSkill || viewItem == managedUnregisteredSkill || viewItem == managedPendingSkill || viewItem == builtInSkill || viewItem == extensionSkill)",
           "group": "inline"
         },
         {
           "command": "skillNinja.openSkillFile",
-          "when": "view == skillNinja.userGlobalView && (viewItem == managedSkill || viewItem == managedUnregisteredSkill || viewItem == builtInSkill || viewItem == extensionSkill)",
+          "when": "view == skillNinja.userGlobalView && (viewItem == managedSkill || viewItem == managedUnregisteredSkill || viewItem == managedPendingSkill || viewItem == builtInSkill || viewItem == extensionSkill)",
           "group": "inline"
         },
         {
@@ -837,23 +843,33 @@
         },
         {
           "command": "skillNinja.copyPath",
-          "when": "view == skillNinja.installedView && (viewItem == managedSkill || viewItem == managedUnregisteredSkill || viewItem == builtInSkill || viewItem == extensionSkill)",
+          "when": "view == skillNinja.installedView && (viewItem == managedSkill || viewItem == managedUnregisteredSkill || viewItem == managedPendingSkill || viewItem == builtInSkill || viewItem == extensionSkill)",
           "group": "navigation@1"
         },
         {
           "command": "skillNinja.copyPath",
-          "when": "view == skillNinja.userGlobalView && (viewItem == managedSkill || viewItem == managedUnregisteredSkill || viewItem == builtInSkill || viewItem == extensionSkill)",
+          "when": "view == skillNinja.userGlobalView && (viewItem == managedSkill || viewItem == managedUnregisteredSkill || viewItem == managedPendingSkill || viewItem == builtInSkill || viewItem == extensionSkill)",
           "group": "navigation@1"
         },
         {
           "command": "skillNinja.openInTerminal",
-          "when": "view == skillNinja.installedView && (viewItem == managedSkill || viewItem == managedUnregisteredSkill || viewItem == builtInSkill || viewItem == extensionSkill)",
+          "when": "view == skillNinja.installedView && (viewItem == managedSkill || viewItem == managedUnregisteredSkill || viewItem == managedPendingSkill || viewItem == builtInSkill || viewItem == extensionSkill)",
           "group": "navigation@2"
         },
         {
           "command": "skillNinja.openInTerminal",
-          "when": "view == skillNinja.userGlobalView && (viewItem == managedSkill || viewItem == managedUnregisteredSkill || viewItem == builtInSkill || viewItem == extensionSkill)",
+          "when": "view == skillNinja.userGlobalView && (viewItem == managedSkill || viewItem == managedUnregisteredSkill || viewItem == managedPendingSkill || viewItem == builtInSkill || viewItem == extensionSkill)",
           "group": "navigation@2"
+        },
+        {
+          "command": "skillNinja.explainSkillState",
+          "when": "view == skillNinja.installedView && (viewItem == managedSkill || viewItem == managedUnregisteredSkill || viewItem == managedPendingSkill)",
+          "group": "navigation@3"
+        },
+        {
+          "command": "skillNinja.explainSkillState",
+          "when": "view == skillNinja.userGlobalView && (viewItem == managedSkill || viewItem == managedUnregisteredSkill || viewItem == managedPendingSkill)",
+          "group": "navigation@3"
         }
       ],
       "commandPalette": [
@@ -871,6 +887,10 @@
         },
         {
           "command": "skillNinja.openUserGlobalOutput",
+          "when": "false"
+        },
+        {
+          "command": "skillNinja.explainSkillState",
           "when": "false"
         }
       ]

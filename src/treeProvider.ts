@@ -34,16 +34,70 @@ export interface WorkspaceSkill {
   fullPath: string;
   isInstalled: boolean;
   isRegistered: boolean;
+  registrationState: "registered" | "unregistered";
+  registrationSource: "metadata" | "instruction" | "none";
+  registrationReason: string;
+  metadataPath: string;
+  metadataPresent: boolean;
   isManaged: boolean;
   isReadOnly: boolean;
   scope: SkillScope;
   root: SkillRoot;
   source?: string; // インストール元ソース
   categories?: string[];
+  remotePath?: string;
+  installedAt?: string;
+  installedVia?: LocalSkill["installedVia"];
+  packageParentName?: string;
+  packageParentRemotePath?: string;
+  packageParentRelativePath?: string;
   // 公式仕様に基づくメタデータ
   license?: string; // ライセンス（例: MIT, Apache-2.0）
   author?: string; // 作成者
   version?: string; // バージョン
+}
+
+interface ViewRegistrationContext {
+  initialSyncPending: boolean;
+  owner?: "self" | "sibling";
+  ownerReason?: string;
+}
+
+let currentViewRegistrationContext: ViewRegistrationContext = {
+  initialSyncPending: false,
+};
+
+export function setViewRegistrationContext(
+  nextContext: Partial<ViewRegistrationContext>,
+): void {
+  currentViewRegistrationContext = {
+    ...currentViewRegistrationContext,
+    ...nextContext,
+  };
+}
+
+function getEffectiveRegistrationState(
+  skill: Pick<
+    WorkspaceSkill,
+    "isReadOnly" | "registrationState" | "isRegistered"
+  >,
+): "registered" | "unregistered" | "pending" {
+  if (skill.isReadOnly) {
+    return "registered";
+  }
+
+  const registrationState =
+    skill.registrationState ||
+    (skill.isRegistered ? "registered" : "unregistered");
+
+  if (
+    currentViewRegistrationContext.initialSyncPending &&
+    registrationState === "unregistered"
+  ) {
+    return "pending";
+  }
+
+  return registrationState;
 }
 
 interface WorkspaceSkillRootGroup {
@@ -289,8 +343,15 @@ export function getManagedSkillTreeItemLabel(
 export function getManagedSkillTreeItemDescription(
   skill: WorkspaceSkill,
 ): string {
-  if (skill.isReadOnly || skill.isRegistered) {
+  const registrationState = getEffectiveRegistrationState(skill);
+  if (skill.isReadOnly || registrationState === "registered") {
     return skill.relativePath;
+  }
+
+  if (registrationState === "pending") {
+    return isJapanese()
+      ? `${skill.relativePath} • 判定待ち`
+      : `${skill.relativePath} • Resolving`;
   }
 
   return isJapanese()
@@ -322,12 +383,23 @@ function toWorkspaceSkill(skill: LocalSkill): WorkspaceSkill {
     fullPath: skill.fullPath,
     isInstalled: skill.isManaged,
     isRegistered: skill.isReadOnly ? false : skill.isRegistered,
+    registrationState: skill.registrationState,
+    registrationSource: skill.registrationSource,
+    registrationReason: skill.registrationReason,
+    metadataPath: skill.metadataPath,
+    metadataPresent: skill.metadataPresent,
     isManaged: skill.isManaged,
     isReadOnly: skill.isReadOnly,
     scope: skill.scope,
     root: skill.root,
     source: skill.source,
     categories: skill.categories,
+    remotePath: skill.remotePath,
+    installedAt: skill.installedAt,
+    installedVia: skill.installedVia,
+    packageParentName: skill.packageParentName,
+    packageParentRemotePath: skill.packageParentRemotePath,
+    packageParentRelativePath: skill.packageParentRelativePath,
     license: skill.license,
     author: skill.author,
     version: skill.version,
@@ -455,13 +527,16 @@ function createManagedSkillTreeItem(
   skill: WorkspaceSkill,
   recentlyInstalled?: Set<string>,
 ): SkillTreeItem {
+  const registrationState = getEffectiveRegistrationState(skill);
   const contextValue = skill.isReadOnly
     ? skill.scope === "extension"
       ? "extensionSkill"
       : "builtInSkill"
-    : skill.isRegistered
-      ? "managedSkill"
-      : "managedUnregisteredSkill";
+    : registrationState === "pending"
+      ? "managedPendingSkill"
+      : registrationState === "registered"
+        ? "managedSkill"
+        : "managedUnregisteredSkill";
 
   const localizedDescription = isJapanese()
     ? skill.description_ja || skill.description
@@ -484,6 +559,11 @@ function createManagedSkillTreeItem(
       relativePath: skill.relativePath,
       displayPath: skill.displayPath,
       isRegistered: skill.isRegistered,
+      registrationState: skill.registrationState,
+      registrationSource: skill.registrationSource,
+      registrationReason: skill.registrationReason,
+      metadataPath: skill.metadataPath,
+      metadataPresent: skill.metadataPresent,
       scope: skill.scope,
       root: skill.root,
       skillDirUri: vscode.Uri.file(
@@ -491,6 +571,12 @@ function createManagedSkillTreeItem(
       ),
       isManaged: skill.isManaged,
       isReadOnly: skill.isReadOnly,
+      remotePath: skill.remotePath,
+      installedAt: skill.installedAt,
+      installedVia: skill.installedVia,
+      packageParentName: skill.packageParentName,
+      packageParentRemotePath: skill.packageParentRemotePath,
+      packageParentRelativePath: skill.packageParentRelativePath,
     } as Skill & Partial<LocalSkill>,
     undefined,
     undefined,
@@ -503,9 +589,11 @@ function createManagedSkillTreeItem(
     skill.isReadOnly ? "library" : "package",
     skill.isReadOnly
       ? new vscode.ThemeColor("disabledForeground")
-      : skill.isRegistered
-        ? new vscode.ThemeColor("charts.green")
-        : new vscode.ThemeColor("charts.yellow"),
+      : registrationState === "pending"
+        ? new vscode.ThemeColor("charts.blue")
+        : registrationState === "registered"
+          ? new vscode.ThemeColor("charts.green")
+          : new vscode.ThemeColor("charts.yellow"),
   );
   item.resourceUri = vscode.Uri.file(skill.fullPath);
 
@@ -518,17 +606,63 @@ function createManagedSkillTreeItem(
       : isJapanese()
         ? "Built-in Skills（読み取り専用）"
         : "Built-in Skills (read-only)"
-    : skill.isRegistered
+    : registrationState === "pending"
       ? isJapanese()
-        ? "Managed（登録済み）"
-        : "Managed (registered)"
-      : isJapanese()
-        ? "Managed（未登録）"
-        : "Managed (not registered)";
+        ? "Managed（同期中）"
+        : "Managed (syncing)"
+      : registrationState === "registered"
+        ? isJapanese()
+          ? "Managed（登録済み）"
+          : "Managed (registered)"
+        : isJapanese()
+          ? "Managed（未登録）"
+          : "Managed (not registered)";
   const metaLines = [
     `${isJapanese() ? "パス" : "Path"}: ${skill.displayPath}`,
     `${isJapanese() ? "状態" : "Status"}: ${statusText}`,
+    `${isJapanese() ? "登録ソース" : "Registration"}: ${skill.registrationSource}`,
+    `${isJapanese() ? "登録理由" : "Reason"}: ${skill.registrationReason}`,
+    `${isJapanese() ? "Metadata" : "Metadata"}: ${skill.metadataPresent ? skill.metadataPath : "missing"}`,
   ];
+
+  if (skill.source) {
+    metaLines.push(`${isJapanese() ? "ソース" : "Source"}: ${skill.source}`);
+  }
+  if (skill.remotePath) {
+    metaLines.push(
+      `${isJapanese() ? "Remote Path" : "Remote Path"}: ${skill.remotePath}`,
+    );
+  }
+  if (skill.installedAt) {
+    metaLines.push(
+      `${isJapanese() ? "インストール日時" : "Installed At"}: ${skill.installedAt}`,
+    );
+  }
+  if (skill.installedVia) {
+    metaLines.push(
+      `${isJapanese() ? "導入経路" : "Installed Via"}: ${skill.installedVia}`,
+    );
+  }
+  if (skill.packageParentName || skill.packageParentRelativePath) {
+    metaLines.push(
+      `${isJapanese() ? "親パック" : "Package Parent"}: ${skill.packageParentName || skill.packageParentRelativePath}`,
+    );
+  }
+  if (skill.root.instructionPath) {
+    metaLines.push(
+      `${isJapanese() ? "Instruction" : "Instruction"}: ${skill.root.instructionPath}`,
+    );
+  }
+  if (currentViewRegistrationContext.owner) {
+    metaLines.push(
+      `${isJapanese() ? "共存オーナー" : "Coexistence Owner"}: ${currentViewRegistrationContext.owner}`,
+    );
+  }
+  if (currentViewRegistrationContext.ownerReason) {
+    metaLines.push(
+      `${isJapanese() ? "オーナー理由" : "Owner Reason"}: ${currentViewRegistrationContext.ownerReason}`,
+    );
+  }
 
   if (skill.author) {
     metaLines.push(`${isJapanese() ? "Author" : "Author"}: ${skill.author}`);

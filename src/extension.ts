@@ -29,6 +29,7 @@ import {
 import {
   BrowseSkillsProvider,
   SkillTreeItem,
+  setViewRegistrationContext,
   UserGlobalSkillsProvider,
   WorkspaceSkillsProvider,
 } from "./treeProvider";
@@ -50,6 +51,7 @@ import {
 import { showSkillPreview, getSkillId } from "./skillPreview";
 import {
   LocalSkill,
+  invalidateVisibleSkillsCache,
   registerLocalSkill,
   unregisterLocalSkill,
 } from "./localSkillScanner";
@@ -86,6 +88,7 @@ const EXTENSION_VERSION =
 
 // activation 時に保存し、deactivate で beacon をクリアするために使用。
 let activeContext: vscode.ExtensionContext | undefined;
+let extensionShuttingDown = false;
 
 const LAST_MANAGED_INSTRUCTION_PATHS_KEY =
   "skillNinja.lastManagedInstructionPaths";
@@ -118,6 +121,7 @@ export function activate(
 ): AgentNinjaExtensionApi {
   console.log("Agent Skills Ninja is now active!");
   activeContext = context;
+  extensionShuttingDown = false;
 
   // Coexistence beacon を publish。Resource NINJA とのオーナー判定で使われる。
   publishBeacon(context).catch((err) => {
@@ -128,7 +132,10 @@ export function activate(
   const coexistenceChannel = vscode.window.createOutputChannel(
     "Agent Skills Ninja: Coexistence",
   );
-  context.subscriptions.push(coexistenceChannel);
+  const skillStateChannel = vscode.window.createOutputChannel(
+    "Agent Skills Ninja: Skill State",
+  );
+  context.subscriptions.push(coexistenceChannel, skillStateChannel);
 
   // 設定値のマイグレーション（旧フォーマット名 → 新フォーマット名）
   const formatMigrated = migrateOutputFormatSetting();
@@ -160,7 +167,93 @@ export function activate(
 
   // バージョンアップ時のメタデータ再抽出
   const workspaceFolder = vscode.workspace.workspaceFolders?.[0];
-  checkVersionAndRefreshMetadata(context, workspaceFolder?.uri, formatMigrated);
+  let initialSyncSettled = false;
+  let initialSyncTimer: ReturnType<typeof setTimeout> | undefined;
+  const deferredInstructionRoots = new Set<string>();
+
+  function isContextActive(): boolean {
+    return activeContext === context && !extensionShuttingDown;
+  }
+
+  async function flushDeferredInstructionUpdates(): Promise<void> {
+    if (!workspaceFolder || !isContextActive()) {
+      deferredInstructionRoots.clear();
+      return;
+    }
+
+    if (deferredInstructionRoots.size === 0) {
+      return;
+    }
+
+    const roots = await getManagedSkillRoots(workspaceFolder.uri);
+    const pendingRootPaths = [...deferredInstructionRoots];
+    deferredInstructionRoots.clear();
+
+    for (const rootPath of pendingRootPaths) {
+      const root = roots.find((candidate) => candidate.rootPath === rootPath);
+      if (!root) {
+        continue;
+      }
+
+      await updateInstructionFileForRoot(root, context);
+    }
+  }
+
+  async function settleInitialSync(): Promise<void> {
+    if (initialSyncSettled) {
+      return;
+    }
+
+    initialSyncSettled = true;
+    if (initialSyncTimer) {
+      clearTimeout(initialSyncTimer);
+      initialSyncTimer = undefined;
+    }
+
+    setViewRegistrationContext({ initialSyncPending: false });
+    await flushDeferredInstructionUpdates();
+    if (isContextActive()) {
+      refreshInstalledViews();
+    }
+  }
+
+  setViewRegistrationContext({ initialSyncPending: true });
+  initialSyncTimer = setTimeout(() => {
+    void settleInitialSync();
+  }, 3000);
+  context.subscriptions.push(
+    new vscode.Disposable(() => {
+      if (initialSyncTimer) {
+        clearTimeout(initialSyncTimer);
+        initialSyncTimer = undefined;
+      }
+      deferredInstructionRoots.clear();
+    }),
+  );
+
+  async function refreshViewRegistrationContext(): Promise<void> {
+    if (!isContextActive()) {
+      return;
+    }
+    const decision = await getEffectiveOwnership(context);
+    if (!isContextActive()) {
+      return;
+    }
+    setViewRegistrationContext({
+      owner: decision.owner,
+      ownerReason: decision.reason,
+    });
+  }
+
+  void refreshViewRegistrationContext();
+
+  void checkVersionAndRefreshMetadata(
+    context,
+    workspaceFolder?.uri,
+    formatMigrated,
+  ).finally(() => {
+    void settleInitialSync();
+  });
 
   loadSkillIndex(context).then(async (index: SkillIndex) => {
     skillIndex = index;
@@ -221,6 +314,7 @@ export function activate(
   const browseProvider = new BrowseSkillsProvider(context);
 
   function refreshInstalledViews(): void {
+    invalidateVisibleSkillsCache(workspaceFolder?.uri);
     workspaceProvider.refresh();
     userGlobalProvider.refresh();
   }
@@ -3234,6 +3328,68 @@ Add examples here
     },
   );
 
+  const explainSkillStateCmd = vscode.commands.registerCommand(
+    "skillNinja.explainSkillState",
+    async (item: SkillTreeItem) => {
+      if (!item?.skill) {
+        return;
+      }
+
+      const skill = item.skill as Skill & Partial<LocalSkill>;
+      const root = getSkillRootFromItem(item);
+      const decision = await getEffectiveOwnership(context);
+      let markerState = "none";
+
+      if (root?.instructionUri) {
+        try {
+          const content = await vscode.workspace.fs.readFile(
+            root.instructionUri,
+          );
+          const text = Buffer.from(content).toString("utf-8");
+          if (text.includes("<!-- agent-ninja-START -->")) {
+            markerState = "agent-ninja";
+          } else if (text.includes("<!-- skill-ninja-START -->")) {
+            markerState = "skill-ninja";
+          }
+        } catch {
+          markerState = "missing";
+        }
+      }
+
+      const lines: string[] = [];
+      lines.push("=== Agent Skills Ninja: Skill State ===");
+      lines.push(`Name             : ${skill.name}`);
+      lines.push(
+        `Relative Path    : ${skill.relativePath || skill.path || ""}`,
+      );
+      lines.push(`Display Path     : ${skill.displayPath || ""}`);
+      lines.push(
+        `Registration     : ${skill.registrationState || (skill.isRegistered ? "registered" : "unknown")}`,
+      );
+      lines.push(`Registration Src : ${skill.registrationSource || "unknown"}`);
+      lines.push(`Registration Why : ${skill.registrationReason || "(none)"}`);
+      lines.push(`Metadata Present : ${skill.metadataPresent ? "yes" : "no"}`);
+      lines.push(`Metadata Path    : ${skill.metadataPath || "(none)"}`);
+      lines.push(`Source           : ${skill.source || "(none)"}`);
+      lines.push(`Remote Path      : ${skill.remotePath || "(none)"}`);
+      lines.push(`Installed Via    : ${skill.installedVia || "(none)"}`);
+      lines.push(`Installed At     : ${skill.installedAt || "(none)"}`);
+      lines.push(
+        `Package Parent   : ${skill.packageParentName || skill.packageParentRelativePath || "(none)"}`,
+      );
+      lines.push(`Scope            : ${skill.scope || "(none)"}`);
+      lines.push(`Root Path        : ${root?.rootPath || "(none)"}`);
+      lines.push(`Instruction Path : ${root?.instructionPath || "(none)"}`);
+      lines.push(`Marker           : ${markerState}`);
+      lines.push(`Owner            : ${decision.owner}`);
+      lines.push(`Owner Reason     : ${decision.reason}`);
+
+      skillStateChannel.clear();
+      skillStateChannel.appendLine(lines.join("\n"));
+      skillStateChannel.show(true);
+    },
+  );
+
   // Command: Report Bug
   const reportBugCmd = vscode.commands.registerCommand(
     "skillNinja.reportBug",
@@ -3381,6 +3537,7 @@ Add examples here
       // 自分の beacon を再 publish して updatedAt を更新し、その後 instruction
       // ファイルを更新（owner==self の場合は実書き込み、sibling ならスキップ）。
       await publishBeacon(context);
+      await refreshViewRegistrationContext();
       const wsFolder = vscode.workspace.workspaceFolders?.[0];
       if (wsFolder) {
         await updateAllInstructionFiles(wsFolder.uri, context);
@@ -3439,6 +3596,9 @@ Add examples here
 
   // Owner ownership change subscription: re-run instruction sync if our role changes.
   const ownershipDisposable = subscribeOwnershipChanges(async () => {
+    if (!isContextActive()) {
+      return;
+    }
     const wsFolder = vscode.workspace.workspaceFolders?.[0];
     if (!wsFolder) {
       return;
@@ -3448,6 +3608,10 @@ Add examples here
     await new Promise((resolve) =>
       setTimeout(resolve, MIGRATION_GUARD_DELAY_MS),
     );
+    if (!isContextActive()) {
+      return;
+    }
+    await refreshViewRegistrationContext();
     await updateAllInstructionFiles(wsFolder.uri, context);
     refreshAllViews();
   });
@@ -3489,6 +3653,7 @@ Add examples here
     copyUrlCmd,
     copyPathCmd,
     openInTerminalCmd,
+    explainSkillStateCmd,
     reportBugCmd,
     openSkillFolderCmd,
     editWhenToUseCmd,
@@ -3525,6 +3690,10 @@ Add examples here
   const pendingUpdates = new Map<string, NodeJS.Timeout>();
 
   const handleSkillMdChange = async (uri: vscode.Uri) => {
+    if (!isContextActive()) {
+      return;
+    }
+
     const key = uri.fsPath;
 
     // 既存のタイマーをクリア
@@ -3537,6 +3706,10 @@ Add examples here
       key,
       setTimeout(async () => {
         pendingUpdates.delete(key);
+
+        if (!isContextActive()) {
+          return;
+        }
 
         const skillRoot = workspaceFolder
           ? await findManagedRootForSkillFile(workspaceFolder.uri, uri)
@@ -3555,7 +3728,11 @@ Add examples here
             .getConfiguration("skillNinja")
             .get<boolean>("autoUpdateInstruction", true);
           if (autoUpdate) {
-            await updateInstructionFileForRoot(skillRoot, context);
+            if (initialSyncSettled) {
+              await updateInstructionFileForRoot(skillRoot, context);
+            } else {
+              deferredInstructionRoots.add(skillRoot.rootPath);
+            }
           }
         }
       }, 500),
@@ -3598,7 +3775,9 @@ async function checkVersionAndRefreshMetadata(
   if (formatMigrated) {
     console.log("[Skill Ninja] Format migrated, updating instruction file...");
     try {
-      await updateAllInstructionFiles(workspaceUri, context);
+      if (activeContext === context && !extensionShuttingDown) {
+        await updateAllInstructionFiles(workspaceUri, context);
+      }
       vscode.window.showInformationMessage(
         isJapanese()
           ? "🥷 出力フォーマット設定が更新されました。インストラクションファイルを新フォーマットで再生成しました。"
@@ -3675,7 +3854,7 @@ async function checkVersionAndRefreshMetadata(
       // instruction ファイルを更新
       const autoUpdate = config.get<boolean>("autoUpdateInstruction") ?? true;
 
-      if (autoUpdate) {
+      if (autoUpdate && activeContext === context && !extensionShuttingDown) {
         await updateAllInstructionFiles(workspaceUri, context);
         console.log("[Skill Ninja] Instruction files updated");
       }
@@ -3801,6 +3980,7 @@ function migrateOutputFormatSetting(): boolean {
 
 export function deactivate(): Thenable<void> | void {
   const ctx = activeContext;
+  extensionShuttingDown = true;
   activeContext = undefined;
   if (ctx) {
     return clearBeacon(ctx).catch((err) => {

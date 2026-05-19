@@ -7,6 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.9.16] - 2026-05-20
+
+### Fixed
+
+- ⏱️ **Initial Sync Registration Stability** - Deferred instruction-file rewrites until the initial coexistence and metadata sync settles, so startup no longer flips between pending / unregistered states or rewrites the wrong owner block during activation races / 初回の coexistence と metadata 同期が落ち着くまで instruction file の再書き込みを保留するよう改善し、起動時の pending / 未登録の揺れや activation race 中の誤 owner block 書き換えを防止
+- 🛑 **Shutdown-Safe Instruction Updates** - Guarded ownership watchers, metadata refresh flows, and SKILL.md save handlers against stale extension context during deactivate, preventing late instruction writes after the extension starts shutting down / ownership watcher、metadata refresh、SKILL.md 保存ハンドラが deactivate 中の古い extension context で動かないよう保護し、終了開始後に instruction file へ遅延書き込みしないよう修正
+- 🔍 **Skill State Diagnostics** - Added richer managed-skill diagnostics including registration source, metadata path, remote path, package provenance, and coexistence owner details so registration-state issues can be explained directly from the tree view / registration source、metadata path、remote path、package provenance、coexistence owner を含む managed skill 診断情報を追加し、登録状態の問題を tree view から直接説明できるよう改善
+
+### Added
+
+- 🧪 **Pending-State Regression Coverage** - Added regression coverage for the temporary pending registration state shown during initial sync and kept the diagnostic command documented in both READMEs / 初期同期中に一時表示される pending 登録状態の回帰テストを追加し、新しい診断コマンドも英日 README に反映
+
 ## [0.9.15] - 2026-05-19
 
 ### Fixed
