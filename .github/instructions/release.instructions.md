@@ -149,6 +149,8 @@ $cli = "C:\Users\$env:USERNAME\AppData\Local\Programs\Microsoft VS Code\bin\code
 # VSIX が truncate しているので再生成する
 ```
 
+`Developer: Reload Window` だけでは、ワークスペースの未インストール変更は読まれず、既に入っている Marketplace / VSIX 版を再読込するだけのことがある。ローカル修正版の実機確認は、**生成した VSIX を `code --install-extension ... --force` で入れ直してから reload** するか、Extension Development Host (`F5`) を使うこと（2026-05-23 / GitHub Copilot）。
+
 `vsce ls` が prepublish ログだけを返す・出力不安定な場合は、生成済み `.vsix` を zip として直接列挙して収録物を確認する（例：PowerShell で `tar -xf <vsix> -C <tmpdir>` または `System.IO.Compression.ZipFile`）。この場合も、上記の不要物チェックは省略しない（2026-05-11 / GitHub Copilot）。
 
 ### 6. Marketplace 公開
@@ -173,6 +175,8 @@ PowerShell で release の JSON を確認するときは、`--json` の field li
 gh release view vX.X.X --json "tagName,name,url,isDraft,isPrerelease,publishedAt"
 ```
 
+`gh` を複数アカウントで使っている環境では、release 作成前に `gh auth status` で **active account** を確認すること。対象 repo の owner ではない account が active だと、`gh release create` が `workflow scope may be required` などの誤解しやすい権限エラーで失敗することがある。必要なら release 前に正しい account へ切り替え、完了後に元へ戻す（2026-05-23 / GitHub Copilot）。
+
 ### 8. ローカル VSIX の整理
 
 ```bash
@@ -195,16 +199,17 @@ New-Item -ItemType Directory -Force artifacts/vsix | Out-Null; npx vsce package 
 
 ## テストファイル一覧
 
-| ファイル                                 | 内容                                                        |
-| ---------------------------------------- | ----------------------------------------------------------- |
-| `scripts/test-whenToUse.js`              | When to Use 抽出ロジックのテスト                            |
-| `scripts/test-search-logic.js`           | 検索ロジックのテスト（存在する場合）                        |
-| `scripts/test-skill-scan-paths.js`       | skillsDirectory 配下だけをスキャンする境界テスト            |
-| `scripts/test-skill-locations.js`        | workspace / user/global skill root 解決の境界テスト         |
-| `scripts/test-local-skill-scanner.js`    | shared / legacy marker の登録状態判定回帰テスト             |
-| `scripts/test-workspace-skill-groups.js` | TreeView の root grouping 回帰テスト                        |
-| `scripts/test-view-welcome-ux.js`        | viewsWelcome の empty-state 導線と文量制約の回帰テスト      |
-| `scripts/test-package-manifest.js`       | Settings 表示順・Command Palette・README 導線の整合性テスト |
+| ファイル                                            | 内容                                                                             |
+| --------------------------------------------------- | -------------------------------------------------------------------------------- |
+| `scripts/test-whenToUse.js`                         | When to Use 抽出ロジックのテスト                                                 |
+| `scripts/test-search-logic.js`                      | 検索ロジックのテスト（存在する場合）                                             |
+| `scripts/test-skill-scan-paths.js`                  | skillsDirectory 配下だけをスキャンする境界テスト                                 |
+| `scripts/test-skill-locations.js`                   | workspace / user/global skill root 解決の境界テスト                              |
+| `scripts/test-local-skill-scanner.js`               | shared / legacy marker の登録状態判定回帰テスト                                  |
+| `scripts/test-skill-installer-metadata-fallback.js` | metadata-less skill を local 扱いに寄せる fallback / metadata 再生成の回帰テスト |
+| `scripts/test-workspace-skill-groups.js`            | TreeView の root grouping 回帰テスト                                             |
+| `scripts/test-view-welcome-ux.js`                   | viewsWelcome の empty-state 導線と文量制約の回帰テスト                           |
+| `scripts/test-package-manifest.js`                  | Settings 表示順・Command Palette・README 導線の整合性テスト                      |
 
 ## 注意事項
 
