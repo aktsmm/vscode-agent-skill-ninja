@@ -24,11 +24,45 @@ export function shouldCheckInstalledSkillAgainstIndex(
   return !isLocalInstalledSkillMeta(meta);
 }
 
+type ManagedInstalledSkillLike = {
+  root: { isReadOnly: boolean };
+  meta: Pick<SkillMeta, "source">;
+};
+
+export function shouldCheckManagedInstalledSkillAgainstIndex(
+  entry: ManagedInstalledSkillLike,
+): boolean {
+  return (
+    !entry.root.isReadOnly && shouldCheckInstalledSkillAgainstIndex(entry.meta)
+  );
+}
+
+export function shouldWarnManagedInstalledSkillMissingFromIndex(
+  entry: ManagedInstalledSkillLike,
+): boolean {
+  const source = entry.meta.source?.trim();
+  return (
+    !entry.root.isReadOnly &&
+    !!source &&
+    source !== "local" &&
+    source !== "unknown"
+  );
+}
+
 export function shouldAutoUpdateInstalledSkillFromIndex(
   meta: Pick<SkillMeta, "source">,
 ): boolean {
   const source = meta.source?.trim();
   return !!source && source !== "local" && source !== "unknown";
+}
+
+export function shouldAutoUpdateManagedInstalledSkillFromIndex(
+  entry: ManagedInstalledSkillLike,
+): boolean {
+  return (
+    !entry.root.isReadOnly &&
+    shouldAutoUpdateInstalledSkillFromIndex(entry.meta)
+  );
 }
 
 export function findIndexedSkillForInstalledMeta(

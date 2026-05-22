@@ -7,6 +7,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.9.17] - 2026-05-23
+
+### Changed
+
+- 👀 **Built-in Skills Default Visibility** - Built-in read-only skills are now shown by default in the user/global view, and the empty-state guidance now points users to Settings instead of a one-off reveal action / user/global view で Built-in の読み取り専用スキルを既定表示に変更し、empty-state の案内も一回限りの表示アクションではなく Settings 導線へ更新
+
+### Fixed
+
+- 🧹 **Deferred Ref Catalog Cleanup** - When Agent Resources Ninja owns coexistence, Skill NINJA now removes its stale `agent-ninja` catalog block from the ref catalog instead of leaving duplicate sections in `.github/skills/README.md` / Agent Resources Ninja が coexistence owner のとき、Skill NINJA が ref catalog に残していた古い `agent-ninja` ブロックを除去するようにし、`.github/skills/README.md` に重複セクションが残らないよう修正
+- 🏷️ **Metadata-less Skill Source Handling** - Workspace and user/global skills without `.skill-meta.json` are now treated as local skills instead of `unknown`, preventing repeated startup warnings and incorrect remote-index expectations for personal skills like `~/.copilot/skills/*` / `.skill-meta.json` を持たない workspace / user/global スキルを `unknown` ではなく local skill として扱うよう改善し、`~/.copilot/skills/*` のような personal skill で起動時 warning が繰り返し出たり remote index 前提で誤解される問題を防止
+- 🚫 **Read-only Index Warning Noise** - Startup index-mismatch warnings and upgrade auto-update prompts now ignore read-only managed roots such as installed-extension and built-in skills, reducing false "not found in index" notifications in coexistence-heavy environments / 起動時の index 不整合 warning とアップグレード時の自動更新判定で、installed-extension / built-in などの読み取り専用 root を除外するよう改善し、共存環境での誤った「インデックスに見つかりません」通知を抑制
+
+### Added
+
+- 🧪 **Catalog and Metadata Fallback Regression Tests** - Added regression coverage for ref catalog cleanup on defer, read-only / unknown-source index-check filtering, and metadata-less skill fallback behavior, and wired the new coverage into `npm test` / defer 時の ref catalog cleanup、read-only / unknown-source の index-check 除外、metadata-less skill fallback の回帰テストを追加し、新しい検証を `npm test` に組み込み
+
 ## [0.9.16] - 2026-05-20
 
 ### Fixed

@@ -282,6 +282,11 @@ export async function updateInstructionFileForRoot(
         `(${ownership.siblingBeacon?.extensionId ?? "yamapan.agent-resources-ninja"}). ` +
         `Reason: ${ownership.reason}.`,
     );
+
+    // ref モードで以前書いた catalog ファイルのブロックを cleanup する。
+    // Resources Ninja が独自マーカーで catalog を書くため、残存すると重複する。
+    await cleanupCatalogOnDefer(root);
+
     return;
   }
 
@@ -600,6 +605,42 @@ export function updateSection(
     return working.trimEnd() + "\n\n" + newSection + "\n";
   }
   return newSection + "\n";
+}
+
+/**
+ * Sibling に defer するとき、以前 ref モードで書いた catalog ファイルの
+ * Skill Ninja ブロック（agent-ninja-START/END）を除去する。
+ * Resources Ninja が独自マーカー（resource-ninja-catalog）で同じファイルに
+ * 書くため、残存すると重複セクションになる。
+ */
+async function cleanupCatalogOnDefer(root: SkillRoot): Promise<void> {
+  const config = vscode.workspace.getConfiguration("skillNinja");
+  const catalogRelPath =
+    config.get<string>("refCatalogPath") || ".github/skills/README.md";
+  const catalogUri = resolveCatalogUriForRoot(root, catalogRelPath);
+
+  try {
+    const raw = await vscode.workspace.fs.readFile(catalogUri);
+    const content = Buffer.from(raw).toString("utf-8");
+
+    // catalog ファイルに Skill Ninja のマーカーが無ければ何もしない
+    if (!content.includes(SHARED_MARKER_START)) {
+      return;
+    }
+
+    const stripped = cleanupManagedSkillBlocks(content);
+    if (stripped !== content.trim()) {
+      await vscode.workspace.fs.writeFile(
+        catalogUri,
+        Buffer.from(stripped, "utf-8"),
+      );
+      console.log(
+        `[Skill Ninja] Cleaned up catalog file on defer: ${catalogUri.fsPath}`,
+      );
+    }
+  } catch {
+    // catalog ファイルが存在しない場合は何もしない
+  }
 }
 
 /**

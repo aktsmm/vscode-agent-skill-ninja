@@ -229,17 +229,17 @@ Preset index includes skills from official, curated, and community sources out o
 - Empty state: Search / Create / Open Skill Output quick links
 - Open skill folder or file from the workspace scope
 
-3. **User / Global Skills** - Personal skills grouped by skill root, plus read-only installed extension skills and optional built-in skills
+3. **User / Global Skills** - Personal skills grouped by skill root, plus read-only installed extension skills and read-only built-in skills
 
 - **User / Global Skills**: discovered from standard personal roots (`~/.copilot/skills`, `~/.claude/skills`, `~/.agents/skills`) plus VS Code Agent Skill Locations
 - **Installed Extensions**: read-only skills discovered from skill folders bundled with installed VS Code extensions, grouped by extension first and then by variant/root
-- **Built-in Skills**: optional read-only group for Copilot / VS Code packaged skills, grouped first by provider/origin (for example GitHub Copilot Chat, GitHub Copilot CLI, VS Code) and then by variant/root (for example Prompts, Skills, Package (Universal))
+- **Built-in Skills**: read-only group for Copilot / VS Code packaged skills, grouped first by provider/origin (for example GitHub Copilot Chat, GitHub Copilot CLI, VS Code) and then by variant/root (for example Prompts, Skills, Package (Universal)); this group is shown by default and can be hidden from Settings
 - Root nodes use concise home/product labels, while counts and full paths stay in the secondary description / tooltip
 - Toolbar: Skill Output / Update Instruction / Create / Refresh / Settings
 - In the user/global view, **Skill Output** opens the default writable user/global root directly without showing the all-roots picker
   Default priority: VS Code user customizations, then Copilot home, Claude home, and finally the global agent home
 - In `ref` mode, **Skill Output** opens the linked catalog; in `full` / `compact` / `legacy`, it opens the instruction file itself
-- Empty state: Create / Show Built-in Skills / Open Skill Output quick links
+- Empty state: Create / Settings / Open Skill Output quick links
 - Open skill folder or file from any visible user/global scope
 
 4. **Remote Skills** - Browse skills by source
@@ -383,7 +383,7 @@ If you don't need MCP tools, you can disable them from GitHub Copilot Chat:
 |   3   | `skillNinja.customInstructionPath`        | `""`                       | Custom path _(only when 'custom' selected)_                                         |
 |   4   | `skillNinja.skillsDirectory`              | `.github/skills`           | Directory to install and manage workspace skills                                    |
 |   5   | `skillNinja.useVsCodeAgentSkillLocations` | `true`                     | Discover standard personal roots and extra user/global skill roots                  |
-|   6   | `skillNinja.showBuiltInSkills`            | `false`                    | Show read-only built-in skills                                                      |
+|   6   | `skillNinja.showBuiltInSkills`            | `true`                     | Show read-only built-in skills                                                      |
 |   7   | `skillNinja.outputFormat`                 | `ref`                      | Output format (ref / full / compact / legacy)                                       |
 |   8   | `skillNinja.refCatalogPath`               | `.github/skills/README.md` | Catalog file path used by the `ref` format                                          |
 |   9   | `skillNinja.refCatalogFormat`             | `full`                     | Catalog detail format used when `outputFormat` is `ref`                             |
@@ -396,7 +396,7 @@ If you don't need MCP tools, you can disable them from GitHub Copilot Chat:
 
 > Settings are displayed in the order above
 
-Legacy compatibility setting: `skillNinja.includeLocalSkills` is deprecated. Workspace skills stay scoped to `skillNinja.skillsDirectory`, while personal roots and additional user/global roots are discovered from `skillNinja.useVsCodeAgentSkillLocations`. Configured locations support `${workspaceFolder}`, `${userHome}`, `${env:APPDATA}`, and `%APPDATA%`. Built-in read-only skills are hidden unless `skillNinja.showBuiltInSkills` is enabled.
+Legacy compatibility setting: `skillNinja.includeLocalSkills` is deprecated. Workspace skills stay scoped to `skillNinja.skillsDirectory`, while personal roots and additional user/global roots are discovered from `skillNinja.useVsCodeAgentSkillLocations`. Configured locations support `${workspaceFolder}`, `${userHome}`, `${env:APPDATA}`, and `%APPDATA%`. Built-in read-only skills are controlled by `skillNinja.showBuiltInSkills` and are shown by default.
 
 ### Coexistence with Agent Resources Ninja
 

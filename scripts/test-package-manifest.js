@@ -318,6 +318,23 @@ test("legacy local skill commands are hidden from command palette", () => {
   }
 });
 
+test("show built-in command appears in command palette only when disabled", () => {
+  const commandPalette = pkg.contributes.menus.commandPalette || [];
+
+  assert.ok(
+    commandPalette.some(
+      (entry) =>
+        entry.command === "skillNinja.showBuiltInSkills" &&
+        entry.when === "config.skillNinja.showBuiltInSkills == false",
+    ),
+  );
+  assert.ok(extensionSource.includes('"skillNinja.showBuiltInSkills"'));
+  assert.strictEqual(
+    extensionSource.includes('"showBuiltInSkills",\n        false'),
+    false,
+  );
+});
+
 test("README files do not document removed or misleading settings", () => {
   for (const content of [readme, readmeJa]) {
     assert.strictEqual(
@@ -353,9 +370,10 @@ test("README files describe workspace, user/global, and built-in skill scopes", 
 });
 
 test("built-in setting descriptions explain provider-based grouping", () => {
-  assert.ok(
-    pkg.contributes.configuration.properties["skillNinja.showBuiltInSkills"],
-  );
+  const setting =
+    pkg.contributes.configuration.properties["skillNinja.showBuiltInSkills"];
+  assert.ok(setting);
+  assert.strictEqual(setting.default, true);
   const nls = fs.readFileSync(path.join(root, "package.nls.json"), "utf8");
   const nlsJa = fs.readFileSync(path.join(root, "package.nls.ja.json"), "utf8");
 

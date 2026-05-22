@@ -45,7 +45,10 @@ const {
   findIndexedSkillForInstalledMeta,
   isLocalInstalledSkillMeta,
   shouldAutoUpdateInstalledSkillFromIndex,
+  shouldAutoUpdateManagedInstalledSkillFromIndex,
+  shouldCheckManagedInstalledSkillAgainstIndex,
   shouldCheckInstalledSkillAgainstIndex,
+  shouldWarnManagedInstalledSkillMissingFromIndex,
 } = loadModule();
 
 const skills = [
@@ -108,6 +111,66 @@ test("known remote metadata is eligible for upgrade auto-update", () => {
       name: "remote-alpha",
       source: "sample-source",
     }),
+    true,
+  );
+});
+
+test("read-only managed roots are excluded from remote index checks", () => {
+  const readOnlyEntry = {
+    root: { isReadOnly: true },
+    meta: { name: "excalidraw", source: "companion-source" },
+  };
+  const writableEntry = {
+    root: { isReadOnly: false },
+    meta: { name: "remote-alpha", source: "sample-source" },
+  };
+
+  assert.strictEqual(
+    shouldCheckManagedInstalledSkillAgainstIndex(readOnlyEntry),
+    false,
+  );
+  assert.strictEqual(
+    shouldCheckManagedInstalledSkillAgainstIndex(writableEntry),
+    true,
+  );
+});
+
+test("read-only managed roots are excluded from auto-update checks", () => {
+  const readOnlyEntry = {
+    root: { isReadOnly: true },
+    meta: { name: "expense-report", source: "companion-source" },
+  };
+  const writableEntry = {
+    root: { isReadOnly: false },
+    meta: { name: "remote-alpha", source: "sample-source" },
+  };
+
+  assert.strictEqual(
+    shouldAutoUpdateManagedInstalledSkillFromIndex(readOnlyEntry),
+    false,
+  );
+  assert.strictEqual(
+    shouldAutoUpdateManagedInstalledSkillFromIndex(writableEntry),
+    true,
+  );
+});
+
+test("unknown-source managed skills are excluded from startup missing-index warnings", () => {
+  const unknownEntry = {
+    root: { isReadOnly: false },
+    meta: { name: "excalidraw", source: "unknown" },
+  };
+  const remoteEntry = {
+    root: { isReadOnly: false },
+    meta: { name: "remote-alpha", source: "sample-source" },
+  };
+
+  assert.strictEqual(
+    shouldWarnManagedInstalledSkillMissingFromIndex(unknownEntry),
+    false,
+  );
+  assert.strictEqual(
+    shouldWarnManagedInstalledSkillMissingFromIndex(remoteEntry),
     true,
   );
 });

@@ -1,9 +1,11 @@
 # Agent Skills
 
-<!-- skill-ninja-START -->
-## Agent Skills
+<!-- agent-ninja-START -->
+## Agent Resources
+
+### Skills
 
 > **IMPORTANT**: Prefer skill-led reasoning over pre-training-led reasoning.
-> See [Agent Skills](.github/skills/README.md) before working on tasks covered by these skills.
+> See [Skills](.github/skills/README.md) before working on tasks covered by these skills.
 
-<!-- skill-ninja-END -->
+<!-- agent-ninja-END -->

@@ -229,13 +229,13 @@ ext install yamapan.agent-skill-ninja
 
 - **ユーザー / グローバル スキル**: 標準の personal roots（`~/.copilot/skills`, `~/.claude/skills`, `~/.agents/skills`）と VS Code の Agent Skill Locations から見つかった managed skills
 - **インストール済み拡張機能**: インストール済み VS Code 拡張に同梱された skill folder から見つかった読み取り専用スキル。拡張ごと、その下に variant/root ごとに表示します
-- **Built-in Skills**: Copilot / VS Code 同梱 skills を読み取り専用で表示する任意グループ。GitHub Copilot Chat、GitHub Copilot CLI、VS Code などの provider/origin で先にまとめ、その配下に Prompts、Skills、Package (Universal) などの variant/root を表示します
+- **Built-in Skills**: Copilot / VS Code 同梱 skills を読み取り専用で表示するグループ。GitHub Copilot Chat、GitHub Copilot CLI、VS Code などの provider/origin で先にまとめ、その配下に Prompts、Skills、Package (Universal) などの variant/root を表示します。既定で表示され、設定から非表示にもできます
 - ルートノードは短い home / product 名で表示し、件数とフルパスは description / tooltip 側に寄せます
 - ツールバー: スキル出力 / インストラクション更新 / 新規作成 / 更新 / 設定
 - user/global view の **スキル出力** は全 root の QuickPick を出さず、既定の user/global root をそのまま開きます
   既定優先順は VS Code ユーザーカスタマイズ、Copilot home、Claude home、最後に global agent home です
 - `ref` モードでは **スキル出力** がリンク先 catalog を開き、`full` / `compact` / `legacy` では instruction file 自体を開きます
-- 空状態: 新規作成 / Built-in Skills 表示 / スキル出力を開く
+- 空状態: 新規作成 / 設定 / スキル出力を開く
 - どの user/global scope でもスキルフォルダ / ファイルを開けます
 
 4. **Remote Skills** - ソース別にスキルを閲覧
@@ -379,7 +379,7 @@ MCP ツールが不要な場合は、GitHub Copilot Chat のツール一覧か�
 |  3   | `skillNinja.customInstructionPath`        | `""`                       | カスタムパス _(instructionFile が 'custom' の時のみ)_                                 |
 |  4   | `skillNinja.skillsDirectory`              | `.github/skills`           | ワークスペーススキルをインストール・管理するディレクトリ                              |
 |  5   | `skillNinja.useVsCodeAgentSkillLocations` | `true`                     | 標準 personal root と追加の user/global skill root を検出して管理する                 |
-|  6   | `skillNinja.showBuiltInSkills`            | `false`                    | 読み取り専用の Built-in Skills を表示する                                             |
+|  6   | `skillNinja.showBuiltInSkills`            | `true`                     | 読み取り専用の Built-in Skills を表示する                                             |
 |  7   | `skillNinja.outputFormat`                 | `ref`                      | 出力形式（ref / full / compact / legacy）                                             |
 |  8   | `skillNinja.refCatalogPath`               | `.github/skills/README.md` | `ref` 形式で使う catalog file path                                                    |
 |  9   | `skillNinja.refCatalogFormat`             | `full`                     | `outputFormat` が `ref` のときの catalog 詳細形式                                     |
@@ -392,7 +392,7 @@ MCP ツールが不要な場合は、GitHub Copilot Chat のツール一覧か�
 
 > 設定画面では上記の順序で表示されます
 
-互換用設定: `skillNinja.includeLocalSkills` は非推奨です。ワークスペーススキルは `skillNinja.skillsDirectory` 配下を管理対象にし、personal root と追加の user/global root は `skillNinja.useVsCodeAgentSkillLocations` から検出します。設定された location では `${workspaceFolder}`, `${userHome}`, `${env:APPDATA}`, `%APPDATA%` を使えます。Built-in Skills は `skillNinja.showBuiltInSkills` を有効にしたときだけ表示します。
+互換用設定: `skillNinja.includeLocalSkills` は非推奨です。ワークスペーススキルは `skillNinja.skillsDirectory` 配下を管理対象にし、personal root と追加の user/global root は `skillNinja.useVsCodeAgentSkillLocations` から検出します。設定された location では `${workspaceFolder}`, `${userHome}`, `${env:APPDATA}`, `%APPDATA%` を使えます。Built-in Skills は `skillNinja.showBuiltInSkills` で制御され、既定で表示されます。
 
 ### Agent Resources Ninja との共存
 

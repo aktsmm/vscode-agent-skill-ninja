@@ -296,7 +296,7 @@ async function scanSkillRootEntries(
 function buildDefaultMeta(skill: LocalSkill): SkillMeta {
   return {
     name: skill.name,
-    source: skill.source || "unknown",
+    source: skill.source || "local",
     description: skill.description || "",
     description_ja: skill.description_ja || undefined,
     categories: skill.categories || [],

@@ -45,8 +45,9 @@ import { messages, isJapanese } from "./i18n";
 import {
   findIndexedSkillForInstalledMeta,
   isLocalInstalledSkillMeta,
-  shouldAutoUpdateInstalledSkillFromIndex,
-  shouldCheckInstalledSkillAgainstIndex,
+  shouldAutoUpdateManagedInstalledSkillFromIndex,
+  shouldCheckManagedInstalledSkillAgainstIndex,
+  shouldWarnManagedInstalledSkillMissingFromIndex,
 } from "./installedSkillIndex";
 import { showSkillPreview, getSkillId } from "./skillPreview";
 import {
@@ -265,13 +266,16 @@ export function activate(
         workspaceFolder.uri,
       );
       const missingSkills: string[] = [];
-      for (const { meta } of installedEntries) {
-        if (!shouldCheckInstalledSkillAgainstIndex(meta)) {
+      for (const entry of installedEntries) {
+        if (!shouldWarnManagedInstalledSkillMissingFromIndex(entry)) {
           continue;
         }
-        const skill = findIndexedSkillForInstalledMeta(index.skills, meta);
+        const skill = findIndexedSkillForInstalledMeta(
+          index.skills,
+          entry.meta,
+        );
         if (!skill) {
-          missingSkills.push(meta.name);
+          missingSkills.push(entry.meta.name);
         }
       }
 
@@ -1187,7 +1191,7 @@ export function activate(
 
           meta = {
             name: skill.name,
-            source: "unknown",
+            source: "local",
             description: description,
             categories: [],
             installedAt: new Date().toISOString(),
@@ -1553,8 +1557,8 @@ export function activate(
         return;
       }
 
-      const reinstallableEntries = installedEntries.filter(({ meta }) =>
-        shouldCheckInstalledSkillAgainstIndex(meta),
+      const reinstallableEntries = installedEntries.filter((entry) =>
+        shouldCheckManagedInstalledSkillAgainstIndex(entry),
       );
       const skippedLocalCount =
         installedEntries.length - reinstallableEntries.length;
@@ -2144,7 +2148,7 @@ export function activate(
       }
 
       const reinstallableSelected = selected.filter((item) =>
-        shouldCheckInstalledSkillAgainstIndex(item.entry.meta),
+        shouldCheckManagedInstalledSkillAgainstIndex(item.entry),
       );
       const skippedLocalCount = selected.length - reinstallableSelected.length;
 
@@ -3191,10 +3195,7 @@ Add examples here
     "skillNinja.showBuiltInSkills",
     async () => {
       const skillNinjaConfig = vscode.workspace.getConfiguration("skillNinja");
-      const alreadyEnabled = skillNinjaConfig.get<boolean>(
-        "showBuiltInSkills",
-        false,
-      );
+      const alreadyEnabled = skillNinjaConfig.get<boolean>("showBuiltInSkills");
 
       if (!alreadyEnabled) {
         await skillNinjaConfig.update(
@@ -3811,8 +3812,8 @@ async function checkVersionAndRefreshMetadata(
 
   // インストール済みスキルを取得
   const installedSkills = await getManagedInstalledSkillsWithMeta(workspaceUri);
-  const remoteSkillCount = installedSkills.filter(({ meta }) =>
-    shouldAutoUpdateInstalledSkillFromIndex(meta),
+  const remoteSkillCount = installedSkills.filter((entry) =>
+    shouldAutoUpdateManagedInstalledSkillFromIndex(entry),
   ).length;
 
   // スキル自動更新設定を確認

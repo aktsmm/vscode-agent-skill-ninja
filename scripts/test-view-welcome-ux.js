@@ -114,10 +114,10 @@ test("workspace welcome links to search create and workspace output", () => {
   ]);
 });
 
-test("user/global welcome links to create built-in toggle and user/global output", () => {
+test("user/global welcome links to create settings and user/global output", () => {
   assertHasCommands(userGlobalView, [
     "skillNinja.createSkill",
-    "skillNinja.showBuiltInSkills",
+    "skillNinja.openSettings",
     "skillNinja.openUserGlobalOutput",
   ]);
 });
@@ -140,7 +140,7 @@ test("welcome text stays skill-oriented", () => {
   }
 });
 
-test("user/global welcome explains built-in skills are hidden by default", () => {
+test("user/global welcome explains built-in skills appear as a read-only group", () => {
   assert.match(localizedContent(userGlobalView), /installed extensions/);
   assert.match(
     localizedContent(userGlobalView, "ja"),
@@ -148,11 +148,11 @@ test("user/global welcome explains built-in skills are hidden by default", () =>
   );
   assert.match(
     localizedContent(userGlobalView),
-    /Built-in skills stay hidden until enabled/,
+    /Built-in skills appear here when available/,
   );
   assert.match(
     localizedContent(userGlobalView, "ja"),
-    /Built-in Skills は有効化するまで非表示/,
+    /Built-in Skills は利用可能ならここに表示されます/,
   );
 });
 

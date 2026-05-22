@@ -1082,4 +1082,95 @@ test("Mixed-version: sibling.activate() throws -> Skill NINJA defers (no paralle
   }
 });
 
+
+// ---------------------------------------------------------------------------
+// Catalog cleanup on defer: previously written ref catalog block is removed
+// ---------------------------------------------------------------------------
+
+test("Catalog cleanup: defer removes pre-existing agent-ninja block from catalog file", async () => {
+  const tmp = setupTmpFixture("A-skill-solo");
+  try {
+    const wsUri = makeUri(tmp);
+    const catalogRelPath = ".github/skills/README.md";
+    const catalogAbsPath = path.join(tmp, catalogRelPath);
+
+    fs.mkdirSync(path.dirname(catalogAbsPath), { recursive: true });
+    const resourceNinjaCatalog = "<!-- resource-ninja-catalog: skill -->\n# Agent Skills\n| Resource | Source |\n<!-- /resource-ninja-catalog: skill -->\n";
+    const preExistingCatalog = SHARED_MARKERS.start + "\n## Agent Skills\n\n| Skill | Description |\n|-------|-------------|\n| [sample-alpha](.github/skills/sample-alpha/SKILL.md) | First |\n\n" + SHARED_MARKERS.end + "\n\n" + resourceNinjaCatalog;
+    fs.writeFileSync(catalogAbsPath, preExistingCatalog);
+
+    const siblingBeacon = {
+      extensionId: "yamapan.agent-resources-ninja",
+      version: "0.2.11",
+      kinds: ["skill", "agent", "instruction", "prompt", "hook", "mcp", "plugin", "cursor-rule"],
+      capabilities: ["owner-handoff-v3"],
+      protocolVersion: 3,
+      updatedAt: new Date().toISOString(),
+    };
+    const stub = makeVscodeStub({
+      workspaceUri: wsUri,
+      settings: {
+        "skillNinja.outputFormat": "ref",
+        "skillNinja.refCatalogPath": catalogRelPath,
+        "skillNinja.coexistenceMode": "auto",
+      },
+      siblingExports: { getAgentNinjaBeacon: () => siblingBeacon },
+    });
+    const skills = [makeSampleSkill("sample-alpha", "First")];
+    const { instructionManager } = loadInstructionManager(stub, skills);
+    const ctx = makeContext();
+    const root = makeRoot(wsUri);
+
+    await instructionManager.updateInstructionFileForRoot(root, ctx);
+
+    const catalogAfter = fs.readFileSync(catalogAbsPath, "utf8");
+    assert.ok(!catalogAfter.includes(SHARED_MARKERS.start), "catalog should not contain agent-ninja-START after defer cleanup");
+    assert.ok(!catalogAfter.includes(SHARED_MARKERS.end), "catalog should not contain agent-ninja-END after defer cleanup");
+    assert.ok(catalogAfter.includes("resource-ninja-catalog: skill"), "Resources Ninja catalog block should remain intact");
+  } finally {
+    cleanupTmp(tmp);
+  }
+});
+
+test("Catalog cleanup: no-op when catalog has no agent-ninja block", async () => {
+  const tmp = setupTmpFixture("A-skill-solo");
+  try {
+    const wsUri = makeUri(tmp);
+    const catalogRelPath = ".github/skills/README.md";
+    const catalogAbsPath = path.join(tmp, catalogRelPath);
+
+    fs.mkdirSync(path.dirname(catalogAbsPath), { recursive: true });
+    const cleanCatalog = "<!-- resource-ninja-catalog: skill -->\n# Agent Skills\n| Resource | Source |\n<!-- /resource-ninja-catalog: skill -->\n";
+    fs.writeFileSync(catalogAbsPath, cleanCatalog);
+
+    const siblingBeacon = {
+      extensionId: "yamapan.agent-resources-ninja",
+      version: "0.2.11",
+      kinds: ["skill", "agent", "instruction", "prompt", "hook", "mcp", "plugin", "cursor-rule"],
+      capabilities: ["owner-handoff-v3"],
+      protocolVersion: 3,
+      updatedAt: new Date().toISOString(),
+    };
+    const stub = makeVscodeStub({
+      workspaceUri: wsUri,
+      settings: {
+        "skillNinja.outputFormat": "ref",
+        "skillNinja.refCatalogPath": catalogRelPath,
+        "skillNinja.coexistenceMode": "auto",
+      },
+      siblingExports: { getAgentNinjaBeacon: () => siblingBeacon },
+    });
+    const skills = [makeSampleSkill("sample-alpha", "First")];
+    const { instructionManager } = loadInstructionManager(stub, skills);
+    const ctx = makeContext();
+    const root = makeRoot(wsUri);
+
+    await instructionManager.updateInstructionFileForRoot(root, ctx);
+
+    const catalogAfter = fs.readFileSync(catalogAbsPath, "utf8");
+    assert.strictEqual(catalogAfter, cleanCatalog, "catalog without agent-ninja block should be untouched");
+  } finally {
+    cleanupTmp(tmp);
+  }
+});
 run();

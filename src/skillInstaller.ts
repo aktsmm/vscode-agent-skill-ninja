@@ -710,6 +710,8 @@ export interface SkillMeta {
   version?: string; // バージョン
 }
 
+const FALLBACK_LOCAL_SOURCE = "local";
+
 function derivePackageMetadata(
   name: string,
   remotePath?: string,
@@ -997,7 +999,7 @@ export async function refreshSkillMetadata(
 
           const newMeta: SkillMeta = {
             name,
-            source: "unknown",
+            source: FALLBACK_LOCAL_SOURCE,
             description,
             whenToUse: whenToUse || undefined,
             categories: [],
@@ -1127,7 +1129,7 @@ export async function getInstalledSkillsWithMeta(
         const whenToUse = await extractWhenToUseFromSkillMd(entry.skillMdPath);
         metas.push({
           name,
-          source: "unknown", // メタデータがない古い形式
+          source: FALLBACK_LOCAL_SOURCE,
           description,
           whenToUse: whenToUse || undefined,
           categories: [],
