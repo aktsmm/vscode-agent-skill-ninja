@@ -7,6 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.9.18] - 2026-05-26
+
+### Fixed
+
+- 🧩 **Remote Skill Installability Recovery** - Remote installs now recover owner/repo/branch/path from `rawUrl` or GitHub folder/file URLs even when the source is not yet in the local index, so ad-hoc installs such as `local-media-transcription` no longer fall back to a placeholder `SKILL.md` / local index に source が未登録でも `rawUrl` や GitHub のフォルダ / ファイル URL から owner/repo/branch/path を復元して実体を取得するよう改善し、`local-media-transcription` のような ad-hoc install がプレースホルダー `SKILL.md` に落ちないよう修正
+- 🧹 **Preset Skill Index Cleanup** - Pruned 45 stale preset entries whose upstream `SKILL.md` paths no longer exist and refreshed the bundled skill index to `v1.19.0` with 1381 installable skills / upstream の `SKILL.md` パスが消えていた stale なプリセット entry を 45 件整理し、bundled skill index を `v1.19.0`・1381 件の installable な状態へ更新
+
+### Added
+
+- 🧪 **Installability Audit Guardrails** - Added an installability audit script plus local regression coverage, wired the audit regression into `npm test`, and documented `node scripts/audit-skill-installability.js --raw-only` as a release gate to prevent shipping stale preset entries again / installability 監査スクリプトとローカル回帰テストを追加し、その回帰を `npm test` に組み込み、さらに `node scripts/audit-skill-installability.js --raw-only` を release gate として手順化して stale なプリセット entry の再出荷を防ぐよう追加
+
 ## [0.9.17] - 2026-05-23
 
 ### Changed

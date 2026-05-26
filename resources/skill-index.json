@@ -1,6 +1,6 @@
 {
-  "version": "1.18.0",
-  "lastUpdated": "2026-03-10",
+  "version": "1.19.0",
+  "lastUpdated": "2026-05-26",
   "sources": [
     {
       "id": "anthropics-skills",
@@ -426,14 +426,6 @@
       "description_ja": ""
     },
     {
-      "name": "agent-browser",
-      "source": "compound-engineering",
-      "path": "plugins/compound-engineering/skills/agent-browser",
-      "categories": [],
-      "description": "Browser automation using Vercel's agent-browser CLI. Use when you need to interact with web pages, fill forms, take screenshots, or scrape data. Alternative to Playwright MCP - uses Bash commands with ref-based element selection. Triggers on \"browse website\", \"fill form\", \"click button\", \"take screenshot\", \"scrape page\", \"web automation\".",
-      "description_ja": "Agent Browser"
-    },
-    {
       "name": "agent-governance",
       "source": "github-awesome-copilot",
       "path": "skills/agent-governance",
@@ -448,14 +440,6 @@
       "categories": [],
       "description": "Automate Agent Mail tasks via Rube MCP (Composio). Always search tools first for current schemas.",
       "description_ja": ""
-    },
-    {
-      "name": "agent-native-architecture",
-      "source": "compound-engineering",
-      "path": "plugins/compound-engineering/skills/agent-native-architecture",
-      "categories": [],
-      "description": "Build applications where agents are first-class citizens. Use this skill when designing autonomous agents, creating MCP tools, implementing self-modifying systems, or building apps where features are outcomes achieved by agents operating in a loop.",
-      "description_ja": "Agent Native Architecture"
     },
     {
       "name": "agentic-eval",
@@ -648,14 +632,6 @@
       "categories": [],
       "description": "Automate Anchor Browser tasks via Rube MCP (Composio). Always search tools first for current schemas.",
       "description_ja": ""
-    },
-    {
-      "name": "andrew-kane-gem-writer",
-      "source": "compound-engineering",
-      "path": "plugins/compound-engineering/skills/andrew-kane-gem-writer",
-      "categories": [],
-      "description": "This skill should be used when writing Ruby gems following Andrew Kane's proven patterns and philosophy. It applies when creating new Ruby gems, refactoring existing gems, designing gem APIs, or when clean, minimal, production-ready Ruby library code is needed. Triggers on requests like \"create a gem\", \"write a Ruby library\", \"design a gem API\", or mentions of Andrew Kane's style.",
-      "description_ja": "Andrew Kane Gem Writer"
     },
     {
       "name": "AnnualReports",
@@ -1081,22 +1057,6 @@
       "path": "skills/azure-advisor",
       "categories": [],
       "description": "Expert knowledge for Azure Advisor development including best practices, decision making, limits & quotas, security, configuration, and integrations & coding patterns. Use when building, debugging, or optimizing Azure Advisor applications. Not for Azure Cost Management (use azure-cost-management), Azure Monitor (use azure-monitor), Azure Policy (use azure-policy), Azure Service Health (use azure-service-health).",
-      "description_ja": ""
-    },
-    {
-      "name": "azure-ai-foundry-local",
-      "source": "microsoftdocs-agent-skills",
-      "path": "skills/azure-ai-foundry-local",
-      "categories": [],
-      "description": "Expert knowledge for Azure AI Foundry Local development including troubleshooting, best practices, configuration, and integrations & coding patterns. Use when building, debugging, or optimizing Azure AI Foundry Local applications. Not for Azure Machine Learning (use azure-machine-learning), Azure AI services (use azure-ai-services), Azure AI Vision (use azure-ai-vision), Azure AI Document Intelligence (use azure-document-intelligence).",
-      "description_ja": ""
-    },
-    {
-      "name": "azure-ai-services",
-      "source": "microsoftdocs-agent-skills",
-      "path": "skills/azure-ai-services",
-      "categories": [],
-      "description": "Expert knowledge for Azure AI services development including troubleshooting, best practices, decision making, limits & quotas, security, configuration, integrations & coding patterns, and deployment. Use when building, debugging, or optimizing Azure AI services applications. Not for Azure Machine Learning (use azure-machine-learning), Azure AI Search (use azure-cognitive-search), Azure AI Speech (use azure-speech), Azure AI Custom Vision (use azure-custom-vision).",
       "description_ja": ""
     },
     {
@@ -1764,14 +1724,6 @@
       "description_ja": ""
     },
     {
-      "name": "azure-foundry-classic",
-      "source": "microsoftdocs-agent-skills",
-      "path": "skills/azure-foundry-classic",
-      "categories": [],
-      "description": "Expert knowledge for Azure Foundry Classic development including troubleshooting, best practices, decision making, architecture & design patterns, limits & quotas, security, configuration, integrations & coding patterns, and deployment. Use when building, debugging, or optimizing Azure Foundry Classic applications. Not for Azure AI Foundry Local (use azure-ai-foundry-local), Microsoft Foundry (use azure-microsoft-foundry), Azure Machine Learning (use azure-machine-learning).",
-      "description_ja": ""
-    },
-    {
       "name": "azure-front-door",
       "source": "microsoftdocs-agent-skills",
       "path": "skills/azure-front-door",
@@ -1841,14 +1793,6 @@
       "path": "skills/azure-import-export",
       "categories": [],
       "description": "Expert knowledge for Azure Import Export development including troubleshooting, limits & quotas, and security. Use when building, debugging, or optimizing Azure Import Export applications. Not for Azure Data Box (use azure-data-box-family), Azure Blob Storage (use azure-blob-storage), Azure Files (use azure-files).",
-      "description_ja": ""
-    },
-    {
-      "name": "azure-industry",
-      "source": "microsoftdocs-agent-skills",
-      "path": "skills/azure-industry",
-      "categories": [],
-      "description": "Expert knowledge for Azure Industry development including troubleshooting, limits & quotas, security, configuration, integrations & coding patterns, and deployment. Use when building, debugging, or optimizing Azure Industry applications. Not for Azure Health Data Services (use azure-health-data-services), Azure Energy Data Services (use azure-energy-data-services), Azure Data Manager for Agriculture (use azure-data-manager-for-agri), Azure IoT (use azure-iot).",
       "description_ja": ""
     },
     {
@@ -2033,14 +1977,6 @@
       "path": "skills/azure-metrics-advisor",
       "categories": [],
       "description": "Expert knowledge for Azure AI Metrics Advisor development including decision making, security, configuration, and integrations & coding patterns. Use when building, debugging, or optimizing Azure AI Metrics Advisor applications. Not for Azure AI Anomaly Detector (use azure-anomaly-detector), Azure Monitor (use azure-monitor).",
-      "description_ja": ""
-    },
-    {
-      "name": "azure-microsoft-foundry",
-      "source": "microsoftdocs-agent-skills",
-      "path": "skills/azure-microsoft-foundry",
-      "categories": [],
-      "description": "Expert knowledge for Microsoft Foundry development including troubleshooting, best practices, decision making, architecture & design patterns, limits & quotas, security, configuration, integrations & coding patterns, and deployment. Use when building, debugging, or optimizing Microsoft Foundry applications. Not for Azure AI Foundry Local (use azure-ai-foundry-local), Azure Foundry Classic (use azure-foundry-classic), Azure Machine Learning (use azure-machine-learning), Azure Databricks (use azure-databricks).",
       "description_ja": ""
     },
     {
@@ -3808,14 +3744,6 @@
       "description_ja": ""
     },
     {
-      "name": "compound-docs",
-      "source": "compound-engineering",
-      "path": "plugins/compound-engineering/skills/compound-docs",
-      "categories": [],
-      "description": "Capture solved problems as categorized documentation with YAML frontmatter for fast lookup",
-      "description_ja": "Compound Docs"
-    },
-    {
       "name": "comprehensive-research-agent",
       "source": "context-engineering-skills",
       "path": "examples/interleaved-thinking/generated_skills/comprehensive-research-agent",
@@ -3916,14 +3844,6 @@
       "categories": [],
       "description": "This skill should be used when the user asks to \"diagnose context problems\", \"fix lost-in-middle issues\", \"debug agent failures\", \"understand context poisoning\", or mentions context degradation, attention patterns, context clash, context confusion, or agent performance degradation. Provides patterns for recognizing and mitigating context failures.",
       "description_ja": "Handle context degradation"
-    },
-    {
-      "name": "context-engineering-collection",
-      "source": "context-engineering-skills",
-      "path": "",
-      "categories": [],
-      "description": "A comprehensive collection of Agent Skills for context engineering, multi-agent architectures, and production agent systems. Use when building, optimizing, or debugging agent systems that require effective context management.",
-      "description_ja": "Context Engineering Collection"
     },
     {
       "name": "context-fundamentals",
@@ -4102,14 +4022,6 @@
       "description_ja": ""
     },
     {
-      "name": "create-agent-skills",
-      "source": "compound-engineering",
-      "path": "plugins/compound-engineering/skills/create-agent-skills",
-      "categories": [],
-      "description": "Expert guidance for creating Claude Code skills and slash commands. Use when working with SKILL.md files, authoring new skills, improving existing skills, creating slash commands, or understanding skill structure and best practices.",
-      "description_ja": ""
-    },
-    {
       "name": "create-agentsmd",
       "source": "github-awesome-copilot",
       "path": "skills/create-agentsmd",
@@ -4158,14 +4070,6 @@
       "description_ja": ""
     },
     {
-      "name": "create-github-pull-request-from-specification",
-      "source": "github-awesome-copilot",
-      "path": "skills/create-github-pull-request-from-specification",
-      "categories": [],
-      "description": "Create GitHub Pull Request for feature request from specification file using pull_request_template.md template.",
-      "description_ja": ""
-    },
-    {
       "name": "create-implementation-plan",
       "source": "github-awesome-copilot",
       "path": "plugins/project-planning/skills/create-implementation-plan",
@@ -4179,14 +4083,6 @@
       "path": "skills/create-llms",
       "categories": [],
       "description": "Create an llms.txt file from scratch based on repository structure following the llms.txt specification at https://llmstxt.org/",
-      "description_ja": ""
-    },
-    {
-      "name": "create-oo-component-documentation",
-      "source": "github-awesome-copilot",
-      "path": "skills/create-oo-component-documentation",
-      "categories": [],
-      "description": "Create comprehensive, standardized documentation for object-oriented components following industry best practices and architectural documentation standards.",
       "description_ja": ""
     },
     {
@@ -4238,14 +4134,6 @@
       "description_ja": ""
     },
     {
-      "name": "create-web-form",
-      "source": "github-awesome-copilot",
-      "path": "skills/create-web-form",
-      "categories": [],
-      "description": "Create robust, accessible web forms with best practices for HTML structure, CSS styling, JavaScript interactivity, form validation, and server-side processing. Use when asked to \"create a form\", \"build a web form\", \"add a contact form\", \"make a signup form\", or when building any HTML form with data handling. Covers PHP and Python backends, MySQL database integration, REST APIs, XML data exchange, accessibility (ARIA), and progressive web apps.",
-      "description_ja": ""
-    },
-    {
       "name": "CreateCLI",
       "source": "pai-packs",
       "path": "Releases/v2.3/.claude/skills/CreateCLI",
@@ -4291,14 +4179,6 @@
       "path": "skills/csharp-docs",
       "categories": [],
       "description": "Ensure that C# types are documented with XML comments and follow best practices for documentation.",
-      "description_ja": ""
-    },
-    {
-      "name": "csharp-mcp-server-generator",
-      "source": "github-awesome-copilot",
-      "path": "plugins/csharp-mcp-development/skills/csharp-mcp-server-generator",
-      "categories": [],
-      "description": "Generate a complete MCP server project in C# with tools, prompts, and proper configuration",
       "description_ja": ""
     },
     {
@@ -4566,14 +4446,6 @@
       "description_ja": ""
     },
     {
-      "name": "develop-web-game",
-      "source": "openai-skills",
-      "path": "skills/.curated/develop-web-game",
-      "categories": [],
-      "description": "Use when Codex is building or iterating on a web game (HTML/JS) and needs a reliable development + testing loop: implement small changes, run a Playwright-based test script with short input bursts and intentional pauses, inspect screenshots/text, and review console errors with render_game_to_text.",
-      "description_ja": ""
-    },
-    {
       "name": "developer-growth-analysis",
       "source": "composio-awesome",
       "path": "developer-growth-analysis",
@@ -4590,14 +4462,6 @@
       "categories": [],
       "description": "Generate comprehensive rollout plans with preflight checks, step-by-step deployment, verification signals, rollback procedures, and communication plans for infrastructure and application changes",
       "description_ja": ""
-    },
-    {
-      "name": "dhh-rails-style",
-      "source": "compound-engineering",
-      "path": "plugins/compound-engineering/skills/dhh-rails-style",
-      "categories": [],
-      "description": "This skill should be used when writing Ruby and Rails code in DHH's distinctive 37signals style. It applies when writing Ruby code, Rails applications, creating models, controllers, or any Ruby file. Triggers on Ruby/Rails code generation, refactoring requests, code review, or when the user mentions DHH, 37signals, Basecamp, HEY, or Campfire style. Embodies REST purity, fat models, thin controllers, Current attributes, Hotwire patterns, and the \"clarity over cleverness\" philosophy.",
-      "description_ja": "Dhh Rails Style"
     },
     {
       "name": "dialmycalls-automation",
@@ -4688,14 +4552,6 @@
       "description_ja": ""
     },
     {
-      "name": "doc",
-      "source": "openai-skills",
-      "path": "skills/.curated/doc",
-      "categories": [],
-      "description": "Use when the task involves reading, creating, or editing `.docx` documents, especially when formatting or layout fidelity matters; prefer `python-docx` plus the bundled `scripts/render_docx.py` for visual checks.",
-      "description_ja": "Doc"
-    },
-    {
       "name": "doc-coauthoring",
       "source": "anthropics-skills",
       "path": "skills/doc-coauthoring",
@@ -4773,14 +4629,6 @@
       "path": "composio-skills/documenso-automation",
       "categories": [],
       "description": "Automate Documenso tasks via Rube MCP (Composio). Always search tools first for current schemas.",
-      "description_ja": ""
-    },
-    {
-      "name": "document-review",
-      "source": "compound-engineering",
-      "path": "plugins/compound-engineering/skills/document-review",
-      "categories": [],
-      "description": "This skill should be used to refine brainstorm or plan documents before proceeding to the next workflow step. It applies when a brainstorm or plan document exists and the user wants to improve it.",
       "description_ja": ""
     },
     {
@@ -4968,14 +4816,6 @@
       "categories": [],
       "description": "Automate Dropcontact tasks via Rube MCP (Composio). Always search tools first for current schemas.",
       "description_ja": ""
-    },
-    {
-      "name": "dspy-ruby",
-      "source": "compound-engineering",
-      "path": "plugins/compound-engineering/skills/dspy-ruby",
-      "categories": [],
-      "description": "Build type-safe LLM applications with DSPy.rb — Ruby's programmatic prompt framework with signatures, modules, agents, and optimization. Use when implementing predictable AI features, creating LLM signatures and modules, configuring language model providers, building agent systems with tools, optimizing prompts, or testing LLM-powered functionality in Ruby applications.",
-      "description_ja": "Dspy Ruby"
     },
     {
       "name": "dungeon-fighter-online-automation",
@@ -5234,14 +5074,6 @@
       "description_ja": ""
     },
     {
-      "name": "every-style-editor",
-      "source": "compound-engineering",
-      "path": "plugins/compound-engineering/skills/every-style-editor",
-      "categories": [],
-      "description": "This skill should be used when reviewing or editing copy to ensure adherence to Every's style guide. It provides a systematic line-by-line review process for grammar, punctuation, mechanics, and style guide compliance.",
-      "description_ja": "Every Style Editor"
-    },
-    {
       "name": "exa-automation",
       "source": "composio-awesome",
       "path": "composio-skills/exa-automation",
@@ -5418,14 +5250,6 @@
       ],
       "description": "Intelligently organizes your files and folders across your computer by understanding context, finding duplicates, suggesting better structures, and automating cleanup tasks. Reduces cognitive load and keeps your digital workspace tidy without manual effort.",
       "description_ja": "Organize files and directories"
-    },
-    {
-      "name": "file-todos",
-      "source": "compound-engineering",
-      "path": "plugins/compound-engineering/skills/file-todos",
-      "categories": [],
-      "description": "This skill should be used when managing the file-based todo tracking system in the todos/ directory. It provides workflows for creating todos, managing status and dependencies, conducting triage, and integrating with slash commands and code review processes.",
-      "description_ja": "File Todos"
     },
     {
       "name": "file-watcher",
@@ -5828,14 +5652,6 @@
       "description_ja": ""
     },
     {
-      "name": "gemini-imagegen",
-      "source": "compound-engineering",
-      "path": "plugins/compound-engineering/skills/gemini-imagegen",
-      "categories": [],
-      "description": "This skill should be used when generating and editing images using the Gemini API (Nano Banana Pro). It applies when creating images from text prompts, editing existing images, applying style transfers, generating logos with text, creating stickers, product mockups, or any image generation/manipulation task. Supports text-to-image, image editing, multi-turn refinement, and composition from multiple reference images.",
-      "description_ja": "Gemini Imagegen"
-    },
-    {
       "name": "gen-specs-as-issues",
       "source": "github-awesome-copilot",
       "path": "skills/gen-specs-as-issues",
@@ -5916,14 +5732,6 @@
       "description_ja": "Gh Address Comments"
     },
     {
-      "name": "gh-cli",
-      "source": "github-awesome-copilot",
-      "path": "skills/gh-cli",
-      "categories": [],
-      "description": "GitHub CLI (gh) comprehensive reference for repositories, issues, pull requests, Actions, projects, releases, gists, codespaces, organizations, extensions, and all GitHub operations from the command line.",
-      "description_ja": "Gh Cli"
-    },
-    {
       "name": "gh-fix-ci",
       "source": "openai-skills",
       "path": "skills/.curated/gh-fix-ci",
@@ -5978,14 +5786,6 @@
       "categories": [],
       "description": "Intelligent Git Flow branch creator that analyzes git status/diff and creates appropriate branches following the nvie Git Flow branching model.",
       "description_ja": ""
-    },
-    {
-      "name": "git-worktree",
-      "source": "compound-engineering",
-      "path": "plugins/compound-engineering/skills/git-worktree",
-      "categories": [],
-      "description": "This skill manages Git worktrees for isolated parallel development. It handles creating, listing, switching, and cleaning up worktrees with a simple interactive interface, following KISS principles.",
-      "description_ja": "Git Worktree"
     },
     {
       "name": "github-copilot-starter",
@@ -6588,14 +6388,6 @@
       "categories": [],
       "description": "Process and manipulate images using ImageMagick. Supports resizing, format conversion, batch processing, and retrieving image metadata. Use when working with images, creating thumbnails, resizing wallpapers, or performing batch image operations.",
       "description_ja": "Image Manipulation Image Magick"
-    },
-    {
-      "name": "imagegen",
-      "source": "openai-skills",
-      "path": "skills/.curated/imagegen",
-      "categories": [],
-      "description": "Use when the user asks to generate or edit images via the OpenAI Image API (for example: generate image, edit/inpaint/mask, background removal or replacement, transparent background, product shots, concept art, covers, or batch variants); run the bundled CLI (`scripts/image_gen.py`) and require `OPENAI_API_KEY` for live calls.",
-      "description_ja": "Imagegen"
     },
     {
       "name": "imagekit-io-automation",
@@ -7356,14 +7148,6 @@
       "description_ja": ""
     },
     {
-      "name": "make-skill-template",
-      "source": "github-awesome-copilot",
-      "path": "skills/make-skill-template",
-      "categories": [],
-      "description": "Create new Agent Skills for GitHub Copilot from prompts or by duplicating this template. Use when asked to \"create a skill\", \"make a new skill\", \"scaffold a skill\", or when building specialized AI capabilities with bundled resources. Generates SKILL.md files with proper frontmatter, directory structure, and optional scripts/references/assets folders.",
-      "description_ja": "Make Skill Template"
-    },
-    {
       "name": "many_chat-automation",
       "source": "composio-awesome",
       "path": "composio-skills/many_chat-automation",
@@ -7426,14 +7210,6 @@
       "categories": [],
       "description": "Interface for MCP (Model Context Protocol) servers via CLI. Use when you need to interact with external tools, APIs, or data sources through MCP servers, list available MCP servers/tools, or call MCP tools from command line.",
       "description_ja": "Mcp Cli"
-    },
-    {
-      "name": "mcp-configure",
-      "source": "github-awesome-copilot",
-      "path": "plugins/dataverse/skills/mcp-configure",
-      "categories": [],
-      "description": "Configure an MCP server for GitHub Copilot with your Dataverse environment.",
-      "description_ja": ""
     },
     {
       "name": "mcp-copilot-studio-server-generator",
@@ -7694,14 +7470,6 @@
       "description_ja": ""
     },
     {
-      "name": "model-recommendation",
-      "source": "github-awesome-copilot",
-      "path": "skills/model-recommendation",
-      "categories": [],
-      "description": "Analyze chatmode or prompt files and recommend optimal AI models based on task complexity, required capabilities, and cost-efficiency",
-      "description_ja": ""
-    },
-    {
       "name": "modelry-automation",
       "source": "composio-awesome",
       "path": "composio-skills/modelry-automation",
@@ -7819,22 +7587,6 @@
       "path": "composio-skills/mx-toolbox-automation",
       "categories": [],
       "description": "Automate Mx Toolbox tasks via Rube MCP (Composio). Always search tools first for current schemas.",
-      "description_ja": ""
-    },
-    {
-      "name": "my-issues",
-      "source": "github-awesome-copilot",
-      "path": "skills/my-issues",
-      "categories": [],
-      "description": "List my issues in the current repository",
-      "description_ja": ""
-    },
-    {
-      "name": "my-pull-requests",
-      "source": "github-awesome-copilot",
-      "path": "skills/my-pull-requests",
-      "categories": [],
-      "description": "List my pull requests in the current repository",
       "description_ja": ""
     },
     {
@@ -8222,14 +7974,6 @@
       "description_ja": ""
     },
     {
-      "name": "orchestrating-swarms",
-      "source": "compound-engineering",
-      "path": "plugins/compound-engineering/skills/orchestrating-swarms",
-      "categories": [],
-      "description": "This skill should be used when orchestrating multi-agent swarms using Claude Code's TeammateTool and Task system. It applies when coordinating multiple agents, running parallel code reviews, creating pipeline workflows with dependencies, building self-organizing task queues, or any task benefiting from divide-and-conquer patterns.",
-      "description_ja": ""
-    },
-    {
       "name": "OSINT",
       "source": "pai-packs",
       "path": "Releases/v2.3/.claude/skills/OSINT",
@@ -8614,14 +8358,6 @@
       "description_ja": ""
     },
     {
-      "name": "polyglot-test-agent",
-      "source": "github-awesome-copilot",
-      "path": "plugins/polyglot-test-agent/skills/polyglot-test-agent",
-      "categories": [],
-      "description": "Generates comprehensive, workable unit tests for any programming language using a multi-agent pipeline. Use when asked to generate tests, write unit tests, improve test coverage, add test coverage, create test files, or test a codebase. Supports C#, TypeScript, JavaScript, Python, Go, Rust, Java, and more. Orchestrates research, planning, and implementation phases to produce tests that compile, pass, and follow project conventions.",
-      "description_ja": ""
-    },
-    {
       "name": "polygon-automation",
       "source": "composio-awesome",
       "path": "composio-skills/polygon-automation",
@@ -8854,14 +8590,6 @@
       "description_ja": ""
     },
     {
-      "name": "prompt-builder",
-      "source": "github-awesome-copilot",
-      "path": "skills/prompt-builder",
-      "categories": [],
-      "description": "Guide users through creating high-quality GitHub Copilot prompts with proper structure, tools, and best practices.",
-      "description_ja": ""
-    },
-    {
       "name": "Prompting",
       "source": "pai-packs",
       "path": "Releases/v2.3/.claude/skills/Prompting",
@@ -8876,14 +8604,6 @@
       "categories": [],
       "description": "Prompt injection testing. USE WHEN prompt injection, jailbreak, LLM security, AI security assessment, pentest AI application, test chatbot vulnerabilities.",
       "description_ja": "PromptInjection"
-    },
-    {
-      "name": "proof",
-      "source": "compound-engineering",
-      "path": "plugins/compound-engineering/skills/proof",
-      "categories": [],
-      "description": "Create, edit, comment on, and share markdown documents via Proof's web API and local bridge. Use when asked to \"proof\", \"share a doc\", \"create a proof doc\", \"comment on a document\", \"suggest edits\", \"review in proof\", or when given a proofeditor.ai URL.",
-      "description_ja": ""
     },
     {
       "name": "proofly-automation",
@@ -9038,14 +8758,6 @@
       "categories": [],
       "description": "Automate Ravenseotools tasks via Rube MCP (Composio). Always search tools first for current schemas.",
       "description_ja": ""
-    },
-    {
-      "name": "rclone",
-      "source": "compound-engineering",
-      "path": "plugins/compound-engineering/skills/rclone",
-      "categories": [],
-      "description": "Upload, sync, and manage files across cloud storage providers using rclone. Use when uploading files (images, videos, documents) to S3, Cloudflare R2, Backblaze B2, Google Drive, Dropbox, or any S3-compatible storage. Triggers on \"upload to S3\", \"sync to cloud\", \"rclone\", \"backup files\", \"upload video/image to bucket\", or requests to transfer files to remote storage.",
-      "description_ja": "Rclone"
     },
     {
       "name": "re-amaze-automation",
@@ -9285,14 +8997,6 @@
       "path": "composio-skills/resend-automation",
       "categories": [],
       "description": "Automate Resend tasks via Rube MCP (Composio). Always search tools first for current schemas.",
-      "description_ja": ""
-    },
-    {
-      "name": "resolve-pr-parallel",
-      "source": "compound-engineering",
-      "path": "plugins/compound-engineering/skills/resolve-pr-parallel",
-      "categories": [],
-      "description": "Resolve all PR comments using parallel processing. Use when addressing PR review feedback, resolving review threads, or batch-fixing PR comments.",
       "description_ja": ""
     },
     {
@@ -9784,14 +9488,6 @@
       "description_ja": ""
     },
     {
-      "name": "setup",
-      "source": "compound-engineering",
-      "path": "plugins/compound-engineering/skills/setup",
-      "categories": [],
-      "description": "Configure which review agents run for your project. Auto-detects stack and writes compound-engineering.local.md.",
-      "description_ja": ""
-    },
-    {
       "name": "setup-agent-tail",
       "source": "claude-command-suite",
       "path": ".claude/skills/setup-agent-tail",
@@ -10042,14 +9738,6 @@
       "description_ja": ""
     },
     {
-      "name": "slides",
-      "source": "openai-skills",
-      "path": "skills/.curated/slides",
-      "categories": [],
-      "description": "Create and edit presentation slide decks (`.pptx`) with PptxGenJS, bundled layout helpers, and render/validation utilities. Use when tasks involve building a new PowerPoint deck, recreating slides from screenshots/PDFs/reference decks, modifying slide content while preserving editable output, adding charts/diagrams/visuals, or diagnosing layout issues such as overflow, overlaps, and font substitution.",
-      "description_ja": ""
-    },
-    {
       "name": "smartproxy-automation",
       "source": "composio-awesome",
       "path": "composio-skills/smartproxy-automation",
@@ -10104,14 +9792,6 @@
       "categories": [],
       "description": "Create, alter, and validate Snowflake semantic views using Snowflake CLI (snow). Use when asked to build or troubleshoot semantic views/semantic layer definitions with CREATE/ALTER SEMANTIC VIEW, to validate semantic-view DDL against Snowflake via CLI, or to guide Snowflake CLI installation and connection setup.",
       "description_ja": "Snowflake Semanticview"
-    },
-    {
-      "name": "sora",
-      "source": "openai-skills",
-      "path": "skills/.curated/sora",
-      "categories": [],
-      "description": "Use when the user asks to generate, remix, poll, list, download, or delete Sora videos via OpenAI\\u2019s video API using the bundled CLI (`scripts/sora.py`), including requests like \\u201cgenerate AI video,\\u201d \\u201cSora,\\u201d \\u201cvideo remix,\\u201d \\u201cdownload video/thumbnail/spritesheet,\\u201d and batch video generation; requires `OPENAI_API_KEY` and Sora API access.",
-      "description_ja": "Sora"
     },
     {
       "name": "sourcegraph-automation",
@@ -10176,14 +9856,6 @@
       "categories": [],
       "description": "Automate Spotlightr tasks via Rube MCP (Composio). Always search tools first for current schemas.",
       "description_ja": ""
-    },
-    {
-      "name": "spreadsheet",
-      "source": "openai-skills",
-      "path": "skills/.curated/spreadsheet",
-      "categories": [],
-      "description": "Use when tasks involve creating, editing, analyzing, or formatting spreadsheets (`.xlsx`, `.csv`, `.tsv`) with formula-aware workflows, cached recalculation, and visual review.",
-      "description_ja": "Spreadsheet"
     },
     {
       "name": "sql-code-review",
@@ -10966,14 +10638,6 @@
       "description_ja": ""
     },
     {
-      "name": "update-oo-component-documentation",
-      "source": "github-awesome-copilot",
-      "path": "skills/update-oo-component-documentation",
-      "categories": [],
-      "description": "Update existing object-oriented component documentation following industry best practices and architectural documentation standards.",
-      "description_ja": ""
-    },
-    {
       "name": "update-specification",
       "source": "github-awesome-copilot",
       "path": "skills/update-specification",
@@ -11230,14 +10894,6 @@
       "description_ja": "Build web artifacts and components"
     },
     {
-      "name": "web-coder",
-      "source": "github-awesome-copilot",
-      "path": "skills/web-coder",
-      "categories": [],
-      "description": "Expert 10x engineer with comprehensive knowledge of web development, internet protocols, and web standards. Use when working with HTML, CSS, JavaScript, web APIs, HTTP/HTTPS, web security, performance optimization, accessibility, or any web/internet concepts. Specializes in translating web terminology accurately and implementing modern web standards across frontend and backend development.",
-      "description_ja": ""
-    },
-    {
       "name": "web-design-reviewer",
       "source": "github-awesome-copilot",
       "path": "skills/web-design-reviewer",
@@ -11310,14 +10966,6 @@
       "description_ja": ""
     },
     {
-      "name": "winapp-cli",
-      "source": "github-awesome-copilot",
-      "path": "skills/winapp-cli",
-      "categories": [],
-      "description": "Windows App Development CLI (winapp) for building, packaging, and deploying Windows applications. Use when asked to initialize Windows app projects, create MSIX packages, generate AppxManifest.xml, manage development certificates, add package identity for debugging, sign packages, publish to the Microsoft Store, create external catalogs, or access Windows SDK build tools. Supports .NET (csproj), C++, Electron, Rust, Tauri, and cross-platform frameworks targeting Windows.",
-      "description_ja": ""
-    },
-    {
       "name": "winmd-api-search",
       "source": "github-awesome-copilot",
       "path": "skills/winmd-api-search",
@@ -11339,14 +10987,6 @@
       "path": "skills/.curated/winui-app",
       "categories": [],
       "description": "Bootstrap, develop, and design modern WinUI 3 desktop applications with C# and the Windows App SDK using official Microsoft guidance, WinUI Gallery patterns, Windows App SDK samples, and CommunityToolkit components. Use when creating a brand new app, preparing a machine for WinUI, reviewing, refactoring, planning, troubleshooting, environment-checking, or setting up WinUI 3 XAML, controls, navigation, windowing, theming, accessibility, responsiveness, performance, deployment, or related Windows app design and development work.",
-      "description_ja": ""
-    },
-    {
-      "name": "winui3-migration-guide",
-      "source": "github-awesome-copilot",
-      "path": "plugins/winui3-development/skills/winui3-migration-guide",
-      "categories": [],
-      "description": "UWP-to-WinUI 3 migration reference. Maps legacy UWP APIs to correct Windows App SDK equivalents with before/after code snippets. Covers namespace changes, threading (CoreDispatcher to DispatcherQueue), windowing (CoreWindow to AppWindow), dialogs, pickers, sharing, printing, background tasks, and the most common Copilot code generation mistakes.",
       "description_ja": ""
     },
     {

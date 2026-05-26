@@ -69,6 +69,9 @@ npm run compile
 
 # 回帰テスト一式
 npm test
+
+# プリセット skill index の installability 監査
+node scripts/audit-skill-installability.js --raw-only
 ```
 
 **テストが全て PASS していることを確認してからリリースに進む。**
@@ -210,6 +213,7 @@ New-Item -ItemType Directory -Force artifacts/vsix | Out-Null; npx vsce package 
 | `scripts/test-workspace-skill-groups.js`            | TreeView の root grouping 回帰テスト                                             |
 | `scripts/test-view-welcome-ux.js`                   | viewsWelcome の empty-state 導線と文量制約の回帰テスト                           |
 | `scripts/test-package-manifest.js`                  | Settings 表示順・Command Palette・README 導線の整合性テスト                      |
+| `scripts/test-audit-skill-installability.js`        | installability 監査スクリプトのローカル単体テスト                                |
 
 ## 注意事項
 
@@ -218,6 +222,7 @@ New-Item -ItemType Directory -Force artifacts/vsix | Out-Null; npx vsce package 
 - ✅ **コード変更時は必ずテストを実行**
 - ✅ リリース前に `git status` で未コミットファイルがないことを確認
 - ✅ `npm run compile` が成功することを確認してから公開
+- ✅ `node scripts/audit-skill-installability.js --raw-only` で、プリセット index の全 skill が install 到達可能であることを確認してから公開
 - ✅ `npx vsce ls` で不要な開発用ファイルが VSIX に入っていないことを確認してから公開
 - ✅ **`code --install-extension <vsix>` でローカル install が通ることを確認してから publish**（VSIX truncate / zip 破損は `vsce ls` で見逃しやすい，2026-05-12 / GitHub Copilot）
 - ✅ 一時的な VS Code task を使った場合は、公開完了前に `.vscode/tasks.json` から release / verify 用 task を削除し、watch task だけの状態に戻す

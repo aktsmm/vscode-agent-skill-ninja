@@ -552,8 +552,14 @@ export function cacheResolvedBranch(repoUrl: string, branch: string): void {
   branchCache.set(repoUrl, branch);
 }
 
-function normalizeGitHubRepoUrl(repoUrl: string): string {
-  return repoUrl.replace(/\.git$/, "").replace(/\/$/, "");
+export function normalizeGitHubRepoUrl(repoUrl: string): string {
+  const trimmed = repoUrl.trim().replace(/[?#].*$/, "");
+  const match = trimmed.match(/^https?:\/\/github\.com\/([^/]+)\/([^/]+)/i);
+  if (!match) {
+    return trimmed.replace(/\.git$/i, "").replace(/\/$/, "");
+  }
+
+  return `https://github.com/${match[1]}/${match[2].replace(/\.git$/i, "")}`;
 }
 
 function getGitHubRepoParts(

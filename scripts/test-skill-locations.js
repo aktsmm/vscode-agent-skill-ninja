@@ -170,6 +170,7 @@ const {
   getDefaultBranch,
   getSkillGitHubUrl,
   getSkillGitHubUrlAsync,
+  normalizeGitHubRepoUrl,
 } = skillIndexExports;
 
 async function test(name, fn) {
@@ -836,6 +837,24 @@ function makeConfigStub(values) {
         "humanize-writing/SKILL.md",
       ),
       "https://github.com/aktsmm/Agent-Skills/blob/master/humanize-writing/SKILL.md",
+    );
+  });
+
+  await test("normalizeGitHubRepoUrl strips tree/blob suffixes before link generation", () => {
+    assert.strictEqual(
+      normalizeGitHubRepoUrl(
+        "https://github.com/aktsmm/Agent-Skills/tree/master/local-media-transcription?tab=readme#top",
+      ),
+      "https://github.com/aktsmm/Agent-Skills",
+    );
+
+    assert.strictEqual(
+      buildGitHubContentUrl(
+        "https://github.com/aktsmm/Agent-Skills/blob/master/local-media-transcription/SKILL.md",
+        "master",
+        "humanize-writing",
+      ),
+      "https://github.com/aktsmm/Agent-Skills/tree/master/humanize-writing",
     );
   });
 

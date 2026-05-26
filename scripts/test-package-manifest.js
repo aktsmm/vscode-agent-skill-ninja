@@ -10,10 +10,17 @@ const path = require("path");
 const root = path.join(__dirname, "..");
 const pkg = require(path.join(root, "package.json"));
 const packageLock = require(path.join(root, "package-lock.json"));
+const skillIndex = require(path.join(root, "resources", "skill-index.json"));
 const readme = fs.readFileSync(path.join(root, "README.md"), "utf8");
 const readmeJa = fs.readFileSync(path.join(root, "README_ja.md"), "utf8");
 const vscodeIgnore = fs.readFileSync(path.join(root, ".vscodeignore"), "utf8");
 const gitIgnore = fs.readFileSync(path.join(root, ".gitignore"), "utf8");
+const packageNls = JSON.parse(
+  fs.readFileSync(path.join(root, "package.nls.json"), "utf8"),
+);
+const packageNlsJa = JSON.parse(
+  fs.readFileSync(path.join(root, "package.nls.ja.json"), "utf8"),
+);
 const releaseInstructions = fs.readFileSync(
   path.join(root, ".github", "instructions", "release.instructions.md"),
   "utf8",
@@ -34,6 +41,7 @@ const toolDetectorSource = fs.readFileSync(
   path.join(root, "src", "toolDetector.ts"),
   "utf8",
 );
+const i18nSource = fs.readFileSync(path.join(root, "src", "i18n.ts"), "utf8");
 
 function test(name, fn) {
   try {
@@ -227,6 +235,18 @@ test("output format defaults and docs are aligned to ref", () => {
     ),
     false,
   );
+});
+
+test("package version info stays in sync with skill-index metadata", () => {
+  for (const description of [
+    packageNls["config.versionInfo.markdownDescription"] || "",
+    packageNlsJa["config.versionInfo.markdownDescription"] || "",
+  ]) {
+    assert.ok(description.includes(`Skill Index | **v${skillIndex.version}**`));
+    assert.ok(description.includes(`Last Updated | ${skillIndex.lastUpdated}`));
+    assert.ok(description.includes(`Skills | ${skillIndex.skills.length}`));
+    assert.ok(description.includes(`Sources | ${skillIndex.sources.length}`));
+  }
 });
 
 test("tool detection keeps markdown-based assistants on ref by default", () => {
@@ -472,6 +492,22 @@ test("README files explain double-click workspace install behavior", () => {
   assert.ok(readmeJa.includes("inline の Install"));
 });
 
+test("Add Source docs and prompts accept GitHub folder/file URLs", () => {
+  assert.ok(
+    readme.includes("Add Source accepts a repository root URL") &&
+      readme.includes("GitHub folder/file URL"),
+  );
+  assert.ok(
+    readmeJa.includes("GitHub 上のフォルダ / ファイル URL") &&
+      readmeJa.includes("リポジトリ root を解決"),
+  );
+  assert.ok(i18nSource.includes("folder/file URL inside the repository"));
+  assert.ok(
+    i18nSource.includes("フォルダ/ファイル URL") ||
+      i18nSource.includes("フォルダ / ファイル URL"),
+  );
+});
+
 test("open output wording matches ref-first UX", () => {
   const nls = JSON.parse(
     fs.readFileSync(path.join(root, "package.nls.json"), "utf8"),
@@ -681,6 +717,11 @@ test("release instructions include the maintained npm test path", () => {
   assert.ok(releaseInstructions.includes("scripts/test-skill-scan-paths.js"));
   assert.ok(
     releaseInstructions.includes("scripts/test-local-skill-scanner.js"),
+  );
+  assert.ok(
+    releaseInstructions.includes(
+      "node scripts/audit-skill-installability.js --raw-only",
+    ),
   );
   assert.ok(releaseInstructions.includes("code --install-extension"));
   assert.ok(releaseInstructions.includes("docs/**"));

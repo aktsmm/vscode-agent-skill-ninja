@@ -246,6 +246,7 @@ ext install yamapan.agent-skill-ninja
 - 行のダブルクリックで既定の workspace root にインストール。スコープ選択したい場合は inline の Install を利用
 
 - ツールバー: 検索 / Web Search / インデックス更新 / ソース追加 / 新規作成 / 設定
+- ソース追加では、リポジトリ root URL だけでなく GitHub 上のフォルダ / ファイル URL も受け付けます。保存時には自動でリポジトリ root を解決します。
 
 ### アイコン凡例
 

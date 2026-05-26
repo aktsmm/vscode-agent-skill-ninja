@@ -250,6 +250,7 @@ Preset index includes skills from official, curated, and community sources out o
 - Double-click a row to install to the workspace root by default, or use the inline Install action when you want the scope picker
 
 - Toolbar: Search / Web Search / Update Index / Add Source / Create / Settings
+- Add Source accepts a repository root URL or a GitHub folder/file URL inside that repository. The repository root is detected automatically.
 
 ### Icon Legend
 

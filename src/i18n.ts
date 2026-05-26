@@ -32,9 +32,11 @@ const jaMessages = {
   sourceIdNotFound: "ソース ID が見つかりません。",
   copiedToClipboard: "コピーしました",
   copiedToClipboardWithValue: "コピーしました: {0}",
-  enterRepoUrl: "GitHub リポジトリの URL を入力してください",
+  enterRepoUrl:
+    "GitHub リポジトリ URL、またはリポジトリ内のフォルダ/ファイル URL を入力してください",
   repoUrlPlaceholder: "https://github.com/owner/repo",
-  invalidRepoUrl: "有効な GitHub リポジトリ URL を入力してください",
+  invalidRepoUrl:
+    "有効な GitHub リポジトリ URL、または GitHub 上のフォルダ/ファイル URL を入力してください",
   scanningRepo: "リポジトリをスキャン中...",
   sourceAdded: "✅ ソースを追加しました ({0} スキル発見)",
   addSourceFailed: "ソース追加失敗: {0}",
@@ -152,9 +154,11 @@ const enMessages: MessageDictionary = {
   sourceIdNotFound: "Source ID not found.",
   copiedToClipboard: "Copied to clipboard",
   copiedToClipboardWithValue: "Copied: {0}",
-  enterRepoUrl: "Enter GitHub repository URL",
+  enterRepoUrl:
+    "Enter a GitHub repository URL, or a folder/file URL inside the repository",
   repoUrlPlaceholder: "https://github.com/owner/repo",
-  invalidRepoUrl: "Please enter a valid GitHub repository URL",
+  invalidRepoUrl:
+    "Please enter a valid GitHub repository URL, or a GitHub folder/file URL inside that repository",
   scanningRepo: "Scanning repository for skills...",
   sourceAdded: "✅ Source added ({0} skills found)",
   addSourceFailed: "Failed to add source: {0}",

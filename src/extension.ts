@@ -7,6 +7,7 @@ import {
   Skill,
   Source,
   buildGitHubContentUrl,
+  normalizeGitHubRepoUrl,
   loadSkillIndex,
   getSkillGitHubUrl,
   getSkillGitHubUrlAsync,
@@ -2398,12 +2399,12 @@ export function activate(
 
         if (trimmed.startsWith("http")) {
           return trimmed.match(/github\.com\/[^/]+\/[^/]+/)
-            ? trimmed
+            ? normalizeGitHubRepoUrl(trimmed)
             : undefined;
         }
 
         return trimmed.match(/^[^/]+\/[^/]+$/)
-          ? `https://github.com/${trimmed}`
+          ? normalizeGitHubRepoUrl(`https://github.com/${trimmed}`)
           : undefined;
       };
 
