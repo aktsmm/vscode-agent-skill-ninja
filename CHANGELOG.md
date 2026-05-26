@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.9.19] - 2026-05-26
+
+### Added
+
+- 🧪 **Compressed Catalog Coexistence Coverage** - Expanded the coexistence regression fixture so catalog cleanup on defer is verified against the real compressed `ref` catalog shape, preventing stale `agent-ninja` blocks from lingering beside Resource NINJA catalog sections in `.github/skills/README.md` / coexistence 回帰 fixture を実際の compressed `ref` catalog 形式に広げ、defer 時の catalog cleanup を `.github/skills/README.md` の実形に近い形で検証するよう改善し、Resource NINJA の catalog セクション横に古い `agent-ninja` ブロックが残る再発を防ぐよう追加
+
 ## [0.9.18] - 2026-05-26
 
 ### Fixed

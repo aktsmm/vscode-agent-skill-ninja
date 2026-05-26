@@ -1082,7 +1082,6 @@ test("Mixed-version: sibling.activate() throws -> Skill NINJA defers (no paralle
   }
 });
 
-
 // ---------------------------------------------------------------------------
 // Catalog cleanup on defer: previously written ref catalog block is removed
 // ---------------------------------------------------------------------------
@@ -1095,14 +1094,40 @@ test("Catalog cleanup: defer removes pre-existing agent-ninja block from catalog
     const catalogAbsPath = path.join(tmp, catalogRelPath);
 
     fs.mkdirSync(path.dirname(catalogAbsPath), { recursive: true });
-    const resourceNinjaCatalog = "<!-- resource-ninja-catalog: skill -->\n# Agent Skills\n| Resource | Source |\n<!-- /resource-ninja-catalog: skill -->\n";
-    const preExistingCatalog = SHARED_MARKERS.start + "\n## Agent Skills\n\n| Skill | Description |\n|-------|-------------|\n| [sample-alpha](.github/skills/sample-alpha/SKILL.md) | First |\n\n" + SHARED_MARKERS.end + "\n\n" + resourceNinjaCatalog;
+    const resourceNinjaCatalog =
+      "<!-- resource-ninja-catalog: skill -->\n# Agent Skills\n| Resource | Source |\n<!-- /resource-ninja-catalog: skill -->\n";
+    const compressedCatalog = [
+      SHARED_MARKERS.start,
+      "## Agent Skills (Compressed Index)",
+      "",
+      "> **IMPORTANT**: Prefer skill-led reasoning over pre-training-led reasoning.",
+      "> Read the relevant SKILL.md before working on tasks covered by these skills.",
+      "",
+      "### Skills Index",
+      "",
+      "| Skill | Path | Description |",
+      "|-------|------|-------------|",
+      "| [sample-alpha](./sample-alpha/SKILL.md) | `sample-alpha` | First |",
+      "",
+      SHARED_MARKERS.end,
+    ].join("\n");
+    const preExistingCatalog =
+      compressedCatalog + "\n\n" + resourceNinjaCatalog;
     fs.writeFileSync(catalogAbsPath, preExistingCatalog);
 
     const siblingBeacon = {
       extensionId: "yamapan.agent-resources-ninja",
       version: "0.2.11",
-      kinds: ["skill", "agent", "instruction", "prompt", "hook", "mcp", "plugin", "cursor-rule"],
+      kinds: [
+        "skill",
+        "agent",
+        "instruction",
+        "prompt",
+        "hook",
+        "mcp",
+        "plugin",
+        "cursor-rule",
+      ],
       capabilities: ["owner-handoff-v3"],
       protocolVersion: 3,
       updatedAt: new Date().toISOString(),
@@ -1124,9 +1149,18 @@ test("Catalog cleanup: defer removes pre-existing agent-ninja block from catalog
     await instructionManager.updateInstructionFileForRoot(root, ctx);
 
     const catalogAfter = fs.readFileSync(catalogAbsPath, "utf8");
-    assert.ok(!catalogAfter.includes(SHARED_MARKERS.start), "catalog should not contain agent-ninja-START after defer cleanup");
-    assert.ok(!catalogAfter.includes(SHARED_MARKERS.end), "catalog should not contain agent-ninja-END after defer cleanup");
-    assert.ok(catalogAfter.includes("resource-ninja-catalog: skill"), "Resources Ninja catalog block should remain intact");
+    assert.ok(
+      !catalogAfter.includes(SHARED_MARKERS.start),
+      "catalog should not contain agent-ninja-START after defer cleanup",
+    );
+    assert.ok(
+      !catalogAfter.includes(SHARED_MARKERS.end),
+      "catalog should not contain agent-ninja-END after defer cleanup",
+    );
+    assert.ok(
+      catalogAfter.includes("resource-ninja-catalog: skill"),
+      "Resources Ninja catalog block should remain intact",
+    );
   } finally {
     cleanupTmp(tmp);
   }
@@ -1140,13 +1174,23 @@ test("Catalog cleanup: no-op when catalog has no agent-ninja block", async () =>
     const catalogAbsPath = path.join(tmp, catalogRelPath);
 
     fs.mkdirSync(path.dirname(catalogAbsPath), { recursive: true });
-    const cleanCatalog = "<!-- resource-ninja-catalog: skill -->\n# Agent Skills\n| Resource | Source |\n<!-- /resource-ninja-catalog: skill -->\n";
+    const cleanCatalog =
+      "<!-- resource-ninja-catalog: skill -->\n# Agent Skills\n| Resource | Source |\n<!-- /resource-ninja-catalog: skill -->\n";
     fs.writeFileSync(catalogAbsPath, cleanCatalog);
 
     const siblingBeacon = {
       extensionId: "yamapan.agent-resources-ninja",
       version: "0.2.11",
-      kinds: ["skill", "agent", "instruction", "prompt", "hook", "mcp", "plugin", "cursor-rule"],
+      kinds: [
+        "skill",
+        "agent",
+        "instruction",
+        "prompt",
+        "hook",
+        "mcp",
+        "plugin",
+        "cursor-rule",
+      ],
       capabilities: ["owner-handoff-v3"],
       protocolVersion: 3,
       updatedAt: new Date().toISOString(),
@@ -1168,7 +1212,11 @@ test("Catalog cleanup: no-op when catalog has no agent-ninja block", async () =>
     await instructionManager.updateInstructionFileForRoot(root, ctx);
 
     const catalogAfter = fs.readFileSync(catalogAbsPath, "utf8");
-    assert.strictEqual(catalogAfter, cleanCatalog, "catalog without agent-ninja block should be untouched");
+    assert.strictEqual(
+      catalogAfter,
+      cleanCatalog,
+      "catalog without agent-ninja block should be untouched",
+    );
   } finally {
     cleanupTmp(tmp);
   }
