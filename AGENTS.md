@@ -1,6 +1,7 @@
 # Agent Skills
 
 <!-- agent-ninja-START -->
+
 ## Agent Resources
 
 ### Skills
