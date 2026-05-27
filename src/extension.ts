@@ -29,6 +29,7 @@ import {
 } from "./instructionManager";
 import {
   BrowseSkillsProvider,
+  getSkillRootGroupLabel,
   SkillTreeItem,
   setViewRegistrationContext,
   UserGlobalSkillsProvider,
@@ -470,25 +471,6 @@ export function activate(
     );
   }
 
-  function getLocalizedRootLabel(root: SkillRoot): string {
-    switch (root.scope) {
-      case "workspace":
-        return isJapanese() ? "ワークスペース スキル" : "Workspace Skills";
-      case "userGlobal":
-        return isJapanese()
-          ? "ユーザー / グローバル スキル"
-          : "User / Global Skills";
-      case "extension":
-        return isJapanese()
-          ? "インストール済み拡張機能"
-          : "Installed Extensions";
-      case "builtIn":
-        return "Built-in Skills";
-      default:
-        return root.label;
-    }
-  }
-
   async function getManagedInstalledEntries(workspaceUri: vscode.Uri) {
     return getManagedInstalledSkillsWithMeta(workspaceUri);
   }
@@ -521,6 +503,22 @@ export function activate(
         rememberedPaths,
       );
     }
+  }
+
+  async function getReinstallableEntriesForRoot(root: SkillRoot) {
+    const wsFolder = vscode.workspace.workspaceFolders?.[0];
+    if (!wsFolder) {
+      return [];
+    }
+
+    const installedMeta = await getInstalledSkillsWithMeta(
+      wsFolder.uri,
+      root.rootUri,
+    );
+
+    return installedMeta
+      .map((meta) => ({ root, meta }))
+      .filter((entry) => shouldCheckManagedInstalledSkillAgainstIndex(entry));
   }
 
   if (workspaceFolder) {
@@ -556,7 +554,7 @@ export function activate(
 
     const selection = await vscode.window.showQuickPick(
       roots.map((root) => ({
-        label: getLocalizedRootLabel(root),
+        label: getSkillRootGroupLabel(root),
         description: root.displayPath,
         detail: root.instructionPath,
         root,
@@ -827,8 +825,8 @@ export function activate(
     return pickManagedRoot(
       workspaceUri,
       isJapanese()
-        ? "インストール先のスキルスコープを選択"
-        : "Select the target skill scope",
+        ? "インストール先のスキルルートを選択"
+        : "Select the target skill root",
     );
   }
 
@@ -1687,6 +1685,164 @@ export function activate(
                 : ""
             }`
           : `Reinstalled ${reinstallableEntries.length} skills${
+              skippedLocalCount > 0
+                ? ` (${skippedLocalCount} local skill(s) excluded)`
+                : ""
+            }`,
+      );
+    },
+  );
+
+  const reinstallRootCmd = vscode.commands.registerCommand(
+    "skillNinja.reinstallRoot",
+    async (item?: SkillTreeItem) => {
+      const wsFolder = vscode.workspace.workspaceFolders?.[0];
+      if (!wsFolder) {
+        vscode.window.showErrorMessage(messages.noWorkspace());
+        return;
+      }
+
+      const targetRoot = getSkillRootFromItem(item);
+      if (!targetRoot || targetRoot.isReadOnly) {
+        vscode.window.showInformationMessage(
+          isJapanese()
+            ? "このスキルルートでは再インストールできません。"
+            : "This skill root cannot reinstall remote skills.",
+        );
+        return;
+      }
+
+      const reinstallableEntries =
+        await getReinstallableEntriesForRoot(targetRoot);
+      const installedMeta = await getInstalledSkillsWithMeta(
+        wsFolder.uri,
+        targetRoot.rootUri,
+      );
+      const skippedLocalCount =
+        installedMeta.length - reinstallableEntries.length;
+
+      if (reinstallableEntries.length === 0) {
+        vscode.window.showInformationMessage(
+          isJapanese()
+            ? "このスキルルートには、インデックスから再インストールできるリモートスキルがありません。"
+            : "This skill root has no remote-index skills to reinstall.",
+        );
+        return;
+      }
+
+      const rootLabel = getSkillRootGroupLabel(targetRoot);
+      const confirm = await vscode.window.showWarningMessage(
+        isJapanese()
+          ? `${rootLabel} の ${reinstallableEntries.length} 個のリモートスキルを再インストールしますか？${
+              skippedLocalCount > 0
+                ? `（ローカルスキル ${skippedLocalCount} 個は対象外）`
+                : ""
+            }`
+          : `Reinstall ${reinstallableEntries.length} remote skill(s) in ${rootLabel}?${
+              skippedLocalCount > 0
+                ? ` (${skippedLocalCount} local skill(s) excluded)`
+                : ""
+            }`,
+        { modal: true },
+        isJapanese() ? "再インストール" : "Reinstall",
+      );
+
+      if (!confirm) {
+        return;
+      }
+
+      let index = await loadSkillIndex(context);
+      const missingSkills = reinstallableEntries
+        .filter(
+          ({ meta }) => !findIndexedSkillForInstalledMeta(index.skills, meta),
+        )
+        .map(({ meta }) => meta.name);
+
+      if (missingSkills.length > 0) {
+        const tryUpdate = await vscode.window.showWarningMessage(
+          isJapanese()
+            ? `${
+                missingSkills.length
+              } 個のスキルがインデックスに見つかりません（${missingSkills
+                .slice(0, 3)
+                .join(
+                  ", ",
+                )}${missingSkills.length > 3 ? "..." : ""}）。インデックスを更新しますか？`
+            : `${
+                missingSkills.length
+              } skill(s) not found in index (${missingSkills
+                .slice(0, 3)
+                .join(
+                  ", ",
+                )}${missingSkills.length > 3 ? "..." : ""}). Update index now?`,
+          isJapanese() ? "更新する" : "Update",
+          isJapanese() ? "スキップ" : "Skip",
+        );
+
+        if (tryUpdate === (isJapanese() ? "更新する" : "Update")) {
+          await vscode.window.withProgress(
+            {
+              location: vscode.ProgressLocation.Notification,
+              title: isJapanese()
+                ? "インデックスを更新中..."
+                : "Updating index...",
+            },
+            async (progress) => {
+              index = await updateIndexFromSources(context, index, progress);
+            },
+          );
+        }
+      }
+
+      await vscode.window.withProgress(
+        {
+          location: vscode.ProgressLocation.Notification,
+          title: isJapanese()
+            ? `${rootLabel} のリモートスキルを再インストール中...`
+            : `Reinstalling remote skills in ${rootLabel}...`,
+          cancellable: false,
+        },
+        async (progress) => {
+          let completed = 0;
+          for (const { root, meta } of reinstallableEntries) {
+            progress.report({
+              message: `${meta.name} (${completed + 1}/${reinstallableEntries.length})`,
+              increment: 100 / reinstallableEntries.length,
+            });
+
+            const skill = findIndexedSkillForInstalledMeta(index.skills, meta);
+            if (skill) {
+              try {
+                await uninstallSkillByPath(
+                  meta.relativePath || meta.name,
+                  wsFolder.uri,
+                  root.rootUri,
+                );
+                await installSkill(skill, wsFolder.uri, context, root);
+                markRecentlyInstalled(skill);
+              } catch (error) {
+                console.error(
+                  `Failed to reinstall ${meta.name} in ${root.rootPath}:`,
+                  error,
+                );
+              }
+            }
+
+            completed++;
+          }
+        },
+      );
+
+      await updateInstructionFilesForRoots([targetRoot]);
+      refreshAllViews();
+      vscode.window.showInformationMessage(
+        isJapanese()
+          ? `${rootLabel} の ${reinstallableEntries.length} 個のリモートスキルを再インストールしました${
+              skippedLocalCount > 0
+                ? `（ローカルスキル ${skippedLocalCount} 個は対象外）`
+                : ""
+            }`
+          : `Reinstalled ${reinstallableEntries.length} remote skill(s) in ${rootLabel}${
               skippedLocalCount > 0
                 ? ` (${skippedLocalCount} local skill(s) excluded)`
                 : ""
@@ -3116,24 +3272,33 @@ Add examples here
   // Command: Update instruction file manually
   const updateInstructionCmd = vscode.commands.registerCommand(
     "skillNinja.updateInstruction",
-    async () => {
+    async (item?: SkillTreeItem) => {
       if (!workspaceFolder) {
         vscode.window.showErrorMessage(messages.noWorkspace());
         return;
       }
 
       try {
-        await updateAllInstructionFiles(workspaceFolder.uri, context);
+        const targetRoot = getSkillRootFromItem(item);
+        if (targetRoot && !targetRoot.isReadOnly) {
+          await updateInstructionFileForRoot(targetRoot, context);
+        } else {
+          await updateAllInstructionFiles(workspaceFolder.uri, context);
+        }
         vscode.window.showInformationMessage(
           isJapanese()
-            ? "インストラクションファイルを更新しました"
-            : "Instruction file updated",
+            ? targetRoot
+              ? `${getSkillRootGroupLabel(targetRoot)} のスキル出力を更新しました`
+              : "スキル出力を更新しました"
+            : targetRoot
+              ? `Updated skill output for ${getSkillRootGroupLabel(targetRoot)}`
+              : "Updated skill output",
         );
       } catch (error) {
         vscode.window.showErrorMessage(
           isJapanese()
-            ? `更新に失敗しました: ${error}`
-            : `Failed to update: ${error}`,
+            ? `スキル出力の更新に失敗しました: ${error}`
+            : `Failed to update skill output: ${error}`,
         );
       }
     },
@@ -3151,8 +3316,8 @@ Add examples here
       const targetRoot = await pickManagedRoot(
         workspaceFolder.uri,
         isJapanese()
-          ? "開くスキル出力のスコープを選択"
-          : "Select the skill output scope to open",
+          ? "開くスキル出力のルートを選択"
+          : "Select the skill output root to open",
       );
 
       if (!targetRoot?.instructionUri || !targetRoot.instructionPath) {
@@ -3624,6 +3789,7 @@ Add examples here
     installCmd,
     uninstallCmd,
     reinstallAllCmd,
+    reinstallRootCmd,
     reinstallCmd,
     uninstallAllCmd,
     installBundleCmd,

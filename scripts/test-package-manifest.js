@@ -326,6 +326,7 @@ test("legacy local skill commands are hidden from command palette", () => {
   for (const command of [
     "skillNinja.openWorkspaceOutput",
     "skillNinja.openUserGlobalOutput",
+    "skillNinja.reinstallRoot",
     "skillNinja.registerLocalSkill",
     "skillNinja.unregisterLocalSkill",
   ]) {
@@ -518,7 +519,11 @@ test("open output wording matches ref-first UX", () => {
 
   assert.strictEqual(nls["command.openInstructionFile"], "Open Skill Output");
   assert.strictEqual(nlsJa["command.openInstructionFile"], "スキル出力を開く");
-  assert.ok(readme.includes("Toolbar: Skill Output / Update Instruction"));
+  assert.ok(
+    readme.includes(
+      "Toolbar: Skill Output / Update Skill Output / Create / Refresh View / Settings",
+    ),
+  );
   assert.ok(readme.includes("Open Skill Output quick links"));
   assert.ok(
     readme.includes(
@@ -530,7 +535,9 @@ test("open output wording matches ref-first UX", () => {
   );
   assert.ok(readme.includes("Agent Skills Ninja: Open Skill Output"));
   assert.ok(
-    readmeJa.includes("ツールバー: スキル出力 / インストラクション更新"),
+    readmeJa.includes(
+      "ツールバー: スキル出力 / スキル出力を更新 / 新規作成 / ビューを更新 / 設定",
+    ),
   );
   assert.ok(readmeJa.includes("空状態: 検索 / 新規作成 / スキル出力を開く"));
   assert.ok(
@@ -545,7 +552,7 @@ test("open output wording matches ref-first UX", () => {
   );
   assert.ok(readme.includes("Default priority: VS Code user customizations"));
   assert.ok(readmeJa.includes("既定優先順は VS Code ユーザーカスタマイズ"));
-  assert.ok(readmeJa.includes("Agent Skills Ninja: Open Skill Output"));
+  assert.ok(readmeJa.includes("Agent Skills Ninja: スキル出力を開く"));
 });
 
 test("extension keeps default double-click workspace install contract", () => {
@@ -594,6 +601,158 @@ test("view title bars use scope-specific output commands", () => {
   assert.ok(userGlobalCommands.includes("skillNinja.openUserGlobalOutput"));
   assert.strictEqual(
     userGlobalCommands.includes("skillNinja.openInstructionFile"),
+    false,
+  );
+});
+
+test("managed root groups expose inline output update and reinstall actions", () => {
+  const contextMenus = pkg.contributes.menus["view/item/context"] || [];
+
+  for (const [viewId, command] of [
+    ["skillNinja.installedView", "skillNinja.updateInstruction"],
+    ["skillNinja.installedView", "skillNinja.reinstallRoot"],
+    ["skillNinja.userGlobalView", "skillNinja.updateInstruction"],
+    ["skillNinja.userGlobalView", "skillNinja.reinstallRoot"],
+  ]) {
+    assert.ok(
+      contextMenus.some(
+        (item) =>
+          item.command === command &&
+          item.when === `view == ${viewId} && viewItem == skillRootGroup`,
+      ),
+      `${viewId} should expose ${command} on managed root groups`,
+    );
+  }
+});
+
+test("localized command labels distinguish view refresh from output update", () => {
+  assert.strictEqual(packageNls["command.refresh"], "Refresh View");
+  assert.strictEqual(
+    packageNls["command.updateInstruction"],
+    "Update Skill Output",
+  );
+  assert.strictEqual(packageNlsJa["command.refresh"], "ビューを更新");
+  assert.strictEqual(
+    packageNlsJa["command.updateInstruction"],
+    "スキル出力を更新",
+  );
+});
+
+test("README files document root inline maintenance actions and renamed labels", () => {
+  assert.ok(
+    readme.includes("Update Skill Output / Create / Refresh View / Settings"),
+  );
+  assert.ok(readme.includes("Reinstall Remote Skills in This Root"));
+  assert.ok(readme.includes("Agent Skills Ninja: Update Skill Output"));
+
+  assert.ok(
+    readmeJa.includes(
+      "スキル出力 / スキル出力を更新 / 新規作成 / ビューを更新 / 設定",
+    ),
+  );
+  assert.ok(readmeJa.includes("このルートのリモートスキルを再インストール"));
+  assert.ok(readmeJa.includes("Agent Skills Ninja: スキル出力を更新"));
+});
+
+test("README command palette labels stay aligned with actual command titles", () => {
+  for (const label of [
+    "Agent Skills Ninja: Reinstall All Skills",
+    "Agent Skills Ninja: Uninstall All Skills",
+    "Agent Skills Ninja: Uninstall Multiple Skills",
+    "Agent Skills Ninja: Reinstall Multiple Skills",
+  ]) {
+    assert.ok(
+      readme.includes(label),
+      `${label} should be documented in README`,
+    );
+  }
+
+  assert.ok(readme.includes("Choose a managed root"));
+  assert.ok(readme.includes("selected root"));
+  assert.ok(readmeJa.includes("managed root を選んで"));
+  assert.ok(readmeJa.includes("選択した root"));
+});
+
+test("README_ja command palette labels match localized command titles", () => {
+  for (const label of [
+    "Agent Skills Ninja: スキルを検索",
+    "Agent Skills Ninja: インデックスを更新",
+    "Agent Skills Ninja: GitHub で検索",
+    "Agent Skills Ninja: ソースリポジトリを追加",
+    "Agent Skills Ninja: ソースリポジトリを削除",
+    "Agent Skills Ninja: スキルをアンインストール",
+    "Agent Skills Ninja: インストール済みスキルを表示",
+    "Agent Skills Ninja: 新規スキル作成",
+    "Agent Skills Ninja: 全スキルを再インストール",
+    "Agent Skills Ninja: 全スキルを削除",
+    "Agent Skills Ninja: 複数スキルを削除",
+    "Agent Skills Ninja: 複数スキルを再インストール",
+    "Agent Skills Ninja: スキル出力を開く",
+    "Agent Skills Ninja: スキル出力を更新",
+    "Agent Skills Ninja: スキルフォルダを開く",
+  ]) {
+    assert.ok(
+      readmeJa.includes(label),
+      `${label} should be documented in README_ja`,
+    );
+  }
+
+  assert.strictEqual(
+    readmeJa.includes("Agent Skills Ninja: Search Skills"),
+    false,
+  );
+  assert.strictEqual(
+    readmeJa.includes("Agent Skills Ninja: Update Index"),
+    false,
+  );
+  assert.strictEqual(
+    readmeJa.includes("Agent Skills Ninja: Open Skill Output"),
+    false,
+  );
+  assert.ok(
+    readmeJa.includes(
+      "アクションを選択（インストール / プレビュー / お気に入りに追加 / GitHub で開く）",
+    ),
+  );
+  assert.strictEqual(
+    readmeJa.includes(
+      "アクションを選択（Install / Preview / Favorite / GitHub）",
+    ),
+    false,
+  );
+});
+
+test("README root-action docs avoid stale scope wording around root maintenance", () => {
+  assert.ok(readme.includes("roots such as Workspace Skills"));
+  assert.ok(readme.includes("workspace root"));
+  assert.ok(readme.includes("user/global root"));
+  assert.ok(readme.includes("root picker"));
+  assert.strictEqual(readme.includes("workspace scope"), false);
+  assert.strictEqual(readme.includes("user/global scope"), false);
+  assert.strictEqual(readme.includes("scope picker"), false);
+
+  assert.ok(readmeJa.includes("各ルートをその場で更新可能"));
+  assert.ok(readmeJa.includes("workspace root のスキルフォルダ / ファイル"));
+  assert.ok(
+    readmeJa.includes("user/global root でもスキルフォルダ / ファイル"),
+  );
+  assert.ok(readmeJa.includes("ルートを選びたい場合は inline の Install"));
+  assert.strictEqual(readmeJa.includes("workspace scope"), false);
+  assert.strictEqual(readmeJa.includes("user/global scope"), false);
+  assert.strictEqual(readmeJa.includes("スコープ選択したい場合"), false);
+});
+
+test("managed root pickers use root wording instead of scope wording", () => {
+  assert.ok(extensionSource.includes('"Select the target skill root"'));
+  assert.ok(extensionSource.includes('"Select the skill output root to open"'));
+  assert.ok(extensionSource.includes('"インストール先のスキルルートを選択"'));
+  assert.ok(extensionSource.includes('"開くスキル出力のルートを選択"'));
+  assert.strictEqual(
+    extensionSource.includes("Select the target skill scope"),
+    false,
+  );
+  assert.strictEqual(
+    extensionSource.includes("Select the skill output scope to open"),
     false,
   );
 });
@@ -890,8 +1049,8 @@ test("openInstructionFile is ref-catalog aware", () => {
     "open output flow should be centralized in helper",
   );
   assert.ok(
-    extensionSource.includes("Select the skill output scope to open"),
-    "openInstructionFile quick pick should use skill output wording",
+    extensionSource.includes("Select the skill output root to open"),
+    "openInstructionFile quick pick should use skill output root wording",
   );
   assert.ok(
     extensionSource.includes("openManagedOutputForPreferredScope"),

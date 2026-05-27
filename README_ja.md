@@ -130,6 +130,7 @@ workspace skills では `skillNinja.refCatalogPath` の相対パスは workspace
 - **説明を編集** - 右クリックでスキルの説明をカスタマイズ
 - アンインストール機能
 - **全て再インストール** - 最新ソースから一括再インストール（インデックス自動更新付き）
+- **ルート単位 inline アクション** - 書き込み可能な各 skill root 行の右端に **スキル出力を更新** と **このルートのリモートスキルを再インストール** を表示し、ワークスペース スキル、GitHub Copilot Home、Claude Home、Global Agent Home などの各ルートをその場で更新可能
 - **インストール通知** - NEW バッジ、ステータスバー表示、ツリービューで自動選択
 - **フォルダを開く** - インストール済みスキルのフォルダにクイックアクセス
 - **スキル状態を診断** - ツリー項目のコンテキストメニューから、登録ソース、metadata path、共存オーナー、instruction file の向き先を確認可能
@@ -219,11 +220,12 @@ ext install yamapan.agent-skill-ninja
 
 - **ワークスペース スキル**: `skillNinja.skillsDirectory`（既定: `.github/skills`）配下の managed skills
 - 新しくインストールしたスキル（一時的なバッジ）
-- ツールバー: スキル出力 / インストラクション更新 / 新規作成 / 更新 / 設定
+- ツールバー: スキル出力 / スキル出力を更新 / 新規作成 / ビューを更新 / 設定
+- 書き込み可能な各 root 行の右端にも **スキル出力を更新** / **このルートのリモートスキルを再インストール** が表示されます
 - workspace view の **スキル出力** は全 root の QuickPick を出さず、workspace root をそのまま開きます
 - `ref` モードでは **スキル出力** がリンク先 catalog を開き、`full` / `compact` / `legacy` では instruction file 自体を開きます
 - 空状態: 検索 / 新規作成 / スキル出力を開く
-- workspace scope のスキルフォルダ / ファイルを開けます
+- workspace root のスキルフォルダ / ファイルを開けます
 
 3. **ユーザー / グローバル スキル** - personal skills は skill root ごと、インストール済み拡張機能の読み取り専用スキルと Built-in Skills は別セクションで表示
 
@@ -231,19 +233,20 @@ ext install yamapan.agent-skill-ninja
 - **インストール済み拡張機能**: インストール済み VS Code 拡張に同梱された skill folder から見つかった読み取り専用スキル。拡張ごと、その下に variant/root ごとに表示します
 - **Built-in Skills**: Copilot / VS Code 同梱 skills を読み取り専用で表示するグループ。GitHub Copilot Chat、GitHub Copilot CLI、VS Code などの provider/origin で先にまとめ、その配下に Prompts、Skills、Package (Universal) などの variant/root を表示します。既定で表示され、設定から非表示にもできます
 - ルートノードは短い home / product 名で表示し、件数とフルパスは description / tooltip 側に寄せます
-- ツールバー: スキル出力 / インストラクション更新 / 新規作成 / 更新 / 設定
+- ツールバー: スキル出力 / スキル出力を更新 / 新規作成 / ビューを更新 / 設定
+- 書き込み可能な各 root 行の右端にも **スキル出力を更新** / **このルートのリモートスキルを再インストール** が表示され、GitHub Copilot Home / Claude Home / Global Agent Home などをコマンドパレットなしで更新できます
 - user/global view の **スキル出力** は全 root の QuickPick を出さず、既定の user/global root をそのまま開きます
   既定優先順は VS Code ユーザーカスタマイズ、Copilot home、Claude home、最後に global agent home です
 - `ref` モードでは **スキル出力** がリンク先 catalog を開き、`full` / `compact` / `legacy` では instruction file 自体を開きます
 - 空状態: 新規作成 / 設定 / スキル出力を開く
-- どの user/global scope でもスキルフォルダ / ファイルを開けます
+- どの user/global root でもスキルフォルダ / ファイルを開けます
 
 4. **Remote Skills** - ソース別にスキルを閲覧
    - **お気に入り** セクションが最上部に表示
    - ソース順: Official → Curated → Community
    - インストール済みは緑アイコンで表示
 
-- 行のダブルクリックで既定の workspace root にインストール。スコープ選択したい場合は inline の Install を利用
+- 行のダブルクリックで既定の workspace root にインストール。ルートを選びたい場合は inline の Install を利用
 
 - ツールバー: 検索 / Web Search / インデックス更新 / ソース追加 / 新規作成 / 設定
 - ソース追加では、リポジトリ root URL だけでなく GitHub 上のフォルダ / ファイル URL も受け付けます。保存時には自動でリポジトリ root を解決します。
@@ -261,30 +264,30 @@ ext install yamapan.agent-skill-ninja
 
 ### コマンドパレット
 
-| コマンド                                       | 説明                                                                                     |
-| ---------------------------------------------- | ---------------------------------------------------------------------------------------- |
-| `Agent Skills Ninja: Search Skills`            | スキルを検索してインストール                                                             |
-| `Agent Skills Ninja: Update Index`             | 全ソースからインデックスを更新                                                           |
-| `Agent Skills Ninja: Search on GitHub`         | GitHub でスキルを検索                                                                    |
-| `Agent Skills Ninja: Add Source Repository`    | 新しいソースリポジトリを追加                                                             |
-| `Agent Skills Ninja: Remove Source Repository` | ソースリポジトリを削除                                                                   |
-| `Agent Skills Ninja: Uninstall Skill`          | スキルをアンインストール                                                                 |
-| `Agent Skills Ninja: Show Installed Skills`    | インストール済みスキルを表示                                                             |
-| `Agent Skills Ninja: Create New Skill`         | 新規ワークスペーススキルを作成                                                           |
-| `Agent Skills Ninja: Reinstall All`            | 全スキルを最新ソースから再インストール                                                   |
-| `Agent Skills Ninja: Uninstall All`            | 全スキルを削除（確認ダイアログあり）                                                     |
-| `Agent Skills Ninja: Uninstall Multiple`       | 複数スキルを選択して削除                                                                 |
-| `Agent Skills Ninja: Reinstall Multiple`       | 複数スキルを選択して再インストール                                                       |
-| `Agent Skills Ninja: Open Skill Output`        | managed scope を選んで、`ref` ではリンク先 catalog、それ以外では instruction file を開く |
-| `Agent Skills Ninja: Update Instruction`       | instruction file を手動更新                                                              |
-| `Agent Skills Ninja: Open Skill Folder`        | インストール済みスキルのフォルダを開く                                                   |
+| コマンド                                           | 説明                                                                                    |
+| -------------------------------------------------- | --------------------------------------------------------------------------------------- |
+| `Agent Skills Ninja: スキルを検索`                 | スキルを検索してインストール                                                            |
+| `Agent Skills Ninja: インデックスを更新`           | 全ソースからインデックスを更新                                                          |
+| `Agent Skills Ninja: GitHub で検索`                | GitHub でスキルを検索                                                                   |
+| `Agent Skills Ninja: ソースリポジトリを追加`       | 新しいソースリポジトリを追加                                                            |
+| `Agent Skills Ninja: ソースリポジトリを削除`       | ソースリポジトリを削除                                                                  |
+| `Agent Skills Ninja: スキルをアンインストール`     | スキルをアンインストール                                                                |
+| `Agent Skills Ninja: インストール済みスキルを表示` | インストール済みスキルを表示                                                            |
+| `Agent Skills Ninja: 新規スキル作成`               | 新規ワークスペーススキルを作成                                                          |
+| `Agent Skills Ninja: 全スキルを再インストール`     | 全スキルを最新ソースから再インストール                                                  |
+| `Agent Skills Ninja: 全スキルを削除`               | 全スキルを削除（確認ダイアログあり）                                                    |
+| `Agent Skills Ninja: 複数スキルを削除`             | 複数スキルを選択して削除                                                                |
+| `Agent Skills Ninja: 複数スキルを再インストール`   | 複数スキルを選択して再インストール                                                      |
+| `Agent Skills Ninja: スキル出力を開く`             | managed root を選んで、`ref` ではリンク先 catalog、それ以外では instruction file を開く |
+| `Agent Skills Ninja: スキル出力を更新`             | 選択した root のスキル出力を手動で再生成                                                |
+| `Agent Skills Ninja: スキルフォルダを開く`         | インストール済みスキルのフォルダを開く                                                  |
 
 ### クイックスタート
 
 ```
-1. Ctrl+Shift+P → "Agent Skills Ninja: Search Skills"
+1. Ctrl+Shift+P → "Agent Skills Ninja: スキルを検索"
 2. キーワードを入力（例: "pdf", "azure", "git"）
-3. スキルを選択 → アクションを選択（Install / Preview / Favorite / GitHub）
+3. スキルを選択 → アクションを選択（インストール / プレビュー / お気に入りに追加 / GitHub で開く）
 4. 完了！instruction file に自動登録されます
 ```
 

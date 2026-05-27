@@ -7,6 +7,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.9.20] - 2026-05-27
+
+### Changed
+
+- 🎛️ **Root Inline Maintenance Actions** - Writable skill-root rows now expose inline skill-output regeneration and root-scoped remote reinstall actions, and the related UI labels were clarified from generic "Refresh" / "Update Instruction" wording to explicit "Refresh View" / "Update Skill Output" text / 書き込み可能な skill root 行の右端にスキル出力再生成とルート単位のリモート再インストール導線を追加し、関連 UI ラベルも曖昧な「更新」「インストラクション更新」から「ビューを更新」「スキル出力を更新」へ明確化
+
+### Fixed
+
+- 🧭 **Root Picker Label Clarity** - Managed-root QuickPick and maintenance notifications now use the same concise root labels shown in the tree (for example GitHub Copilot Home / Claude Home / Global Agent Home) instead of repeating generic scope names / managed root を選ぶ QuickPick と各メンテナンス通知で、汎用的な scope 名の繰り返しではなく、ツリー表示と同じ短い root 名（例: GitHub Copilot Home / Claude Home / Global Agent Home）を使うよう改善
+- 🌐 **Localized README Command Names** - Updated README_ja command-palette and quick-start examples to use the actual localized command/action labels, preventing Japanese guidance from drifting away from the extension UI / README_ja のコマンドパレット表とクイックスタート例を実際のローカライズ済み command/action 名に合わせ、日本語ガイダンスが拡張 UI からずれないよう修正
+
+### Added
+
+- 🧪 **Root Wording Contract Coverage** - Added README contract coverage for root-level maintenance wording and localized README command labels so future UI/docs drift is caught before release / ルート単位メンテナンスの wording とローカライズ済み README command 表記を守る契約テストを追加し、将来の UI/docs ずれを release 前に検知できるよう追加
+
 ## [0.9.19] - 2026-05-26
 
 ### Added
