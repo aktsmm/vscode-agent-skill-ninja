@@ -79,6 +79,32 @@ test("local installed skills are excluded from remote index checks", () => {
   );
 });
 
+test("local source with remotePath is treated as remote-backed metadata", () => {
+  const companionMeta = {
+    name: "excalidraw",
+    source: "local",
+    remotePath: "skills/excalidraw-diagram-generator",
+  };
+
+  assert.strictEqual(isLocalInstalledSkillMeta(companionMeta), false);
+  assert.strictEqual(
+    shouldCheckInstalledSkillAgainstIndex(companionMeta),
+    true,
+  );
+  assert.strictEqual(
+    shouldAutoUpdateInstalledSkillFromIndex(companionMeta),
+    true,
+  );
+  assert.deepStrictEqual(
+    findIndexedSkillForInstalledMeta(skills, companionMeta),
+    {
+      name: "excalidraw-diagram-generator",
+      source: "resource-source",
+      path: "skills/excalidraw-diagram-generator",
+    },
+  );
+});
+
 test("empty source metadata is treated as local and not remote-missing", () => {
   const localMeta = { name: "receipt-ocr", source: "" };
 

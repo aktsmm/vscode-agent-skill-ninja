@@ -134,7 +134,7 @@ Settings → **Output Format** → Select `ref`, `full`, `compact`, or `legacy`
 - **Edit Description** - Right-click to customize skill description
 - Uninstall functionality
 - **Reinstall All** - Batch reinstall from latest source (with auto index update)
-- **Root-level Inline Actions** - Each writable skill root row exposes inline **Update Skill Output** and **Reinstall Remote Skills in This Root** actions, so roots such as Workspace Skills, GitHub Copilot Home, Claude Home, and Global Agent Home can be refreshed in place
+- **Root-level Inline Actions** - Each writable skill root row exposes inline **Regenerate Skill Output** (regenerates AGENTS.md / copilot-instructions.md / CLAUDE.md or the linked `ref` catalog), and rows that contain at least one remote-backed skill also show **Reinstall Remote Skills in This Root**
 - **Install Feedback** - NEW badge, status bar notification, auto-select in tree view
 - **Open Folder** - Quick access to installed skill folder
 - **Explain Skill State** - Diagnose registration source, metadata path, coexistence owner, and instruction target from the tree item context menu
@@ -224,8 +224,8 @@ Preset index includes skills from official, curated, and community sources out o
 
 - **Workspace Skills**: managed under `skillNinja.skillsDirectory` (default: `.github/skills`)
 - Newly installed skills (temporary badge)
-- Toolbar: Skill Output / Update Skill Output / Create / Refresh View / Settings
-- Each writable root row also exposes inline **Update Skill Output** and **Reinstall Remote Skills in This Root** actions on the right edge
+- Toolbar: Skill Output / Regenerate Skill Output / Create / Refresh View / Settings
+- Each writable root row also exposes inline **Regenerate Skill Output** on the right edge, and roots with at least one remote-backed skill also show **Reinstall Remote Skills in This Root**
 - In the workspace view, **Skill Output** opens the workspace root directly without showing the all-roots picker
 - In `ref` mode, **Skill Output** opens the linked catalog; in `full` / `compact` / `legacy`, it opens the instruction file itself
 - Empty state: Search / Create / Open Skill Output quick links
@@ -237,8 +237,8 @@ Preset index includes skills from official, curated, and community sources out o
 - **Installed Extensions**: read-only skills discovered from skill folders bundled with installed VS Code extensions, grouped by extension first and then by variant/root
 - **Built-in Skills**: read-only group for Copilot / VS Code packaged skills, grouped first by provider/origin (for example GitHub Copilot Chat, GitHub Copilot CLI, VS Code) and then by variant/root (for example Prompts, Skills, Package (Universal)); this group is shown by default and can be hidden from Settings
 - Root nodes use concise home/product labels, while counts and full paths stay in the secondary description / tooltip
-- Toolbar: Skill Output / Update Skill Output / Create / Refresh View / Settings
-- Each writable root row also exposes inline **Update Skill Output** and **Reinstall Remote Skills in This Root** actions on the right edge, so GitHub Copilot Home / Claude Home / Global Agent Home can be refreshed without opening the command palette
+- Toolbar: Skill Output / Regenerate Skill Output / Create / Refresh View / Settings
+- Each writable root row also exposes inline **Regenerate Skill Output** on the right edge, and roots with at least one remote-backed skill also show **Reinstall Remote Skills in This Root**, so GitHub Copilot Home / Claude Home / Global Agent Home can be refreshed without opening the command palette
 - In the user/global view, **Skill Output** opens the default writable user/global root directly without showing the all-roots picker
   Default priority: VS Code user customizations, then Copilot home, Claude home, and finally the global agent home
 - In `ref` mode, **Skill Output** opens the linked catalog; in `full` / `compact` / `legacy`, it opens the instruction file itself
@@ -268,23 +268,23 @@ Preset index includes skills from official, curated, and community sources out o
 
 ### Command Palette
 
-| Command                                         | Description                                                                                            |
-| ----------------------------------------------- | ------------------------------------------------------------------------------------------------------ |
-| `Agent Skills Ninja: Search Skills`             | Search and install skills                                                                              |
-| `Agent Skills Ninja: Update Index`              | Update index from all sources                                                                          |
-| `Agent Skills Ninja: Search on GitHub`          | Search skills on GitHub                                                                                |
-| `Agent Skills Ninja: Add Source Repository`     | Add new source repository                                                                              |
-| `Agent Skills Ninja: Remove Source Repository`  | Remove source repository                                                                               |
-| `Agent Skills Ninja: Uninstall Skill`           | Uninstall a skill                                                                                      |
-| `Agent Skills Ninja: Show Installed Skills`     | Show installed skills                                                                                  |
-| `Agent Skills Ninja: Create New Skill`          | Create new workspace skill                                                                             |
-| `Agent Skills Ninja: Reinstall All Skills`      | Reinstall all skills from latest source                                                                |
-| `Agent Skills Ninja: Uninstall All Skills`      | Uninstall all skills (with confirmation)                                                               |
-| `Agent Skills Ninja: Uninstall Multiple Skills` | Select multiple skills to uninstall                                                                    |
-| `Agent Skills Ninja: Reinstall Multiple Skills` | Select multiple skills to reinstall                                                                    |
-| `Agent Skills Ninja: Open Skill Output`         | Choose a managed root, then open the linked catalog in `ref`, or the instruction file in other formats |
-| `Agent Skills Ninja: Update Skill Output`       | Regenerate skill output manually for the selected root                                                 |
-| `Agent Skills Ninja: Open Skill Folder`         | Open installed skill folder in OS                                                                      |
+| Command                                         | Description                                                                                                                                   |
+| ----------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------- |
+| `Agent Skills Ninja: Search Skills`             | Search and install skills                                                                                                                     |
+| `Agent Skills Ninja: Update Index`              | Update index from all sources                                                                                                                 |
+| `Agent Skills Ninja: Search on GitHub`          | Search skills on GitHub                                                                                                                       |
+| `Agent Skills Ninja: Add Source Repository`     | Add new source repository                                                                                                                     |
+| `Agent Skills Ninja: Remove Source Repository`  | Remove source repository                                                                                                                      |
+| `Agent Skills Ninja: Uninstall Skill`           | Uninstall a skill                                                                                                                             |
+| `Agent Skills Ninja: Show Installed Skills`     | Show installed skills                                                                                                                         |
+| `Agent Skills Ninja: Create New Skill`          | Create new workspace skill                                                                                                                    |
+| `Agent Skills Ninja: Reinstall All Skills`      | Reinstall all skills from latest source                                                                                                       |
+| `Agent Skills Ninja: Uninstall All Skills`      | Uninstall all skills (with confirmation)                                                                                                      |
+| `Agent Skills Ninja: Uninstall Multiple Skills` | Select multiple skills to uninstall                                                                                                           |
+| `Agent Skills Ninja: Reinstall Multiple Skills` | Select multiple skills to reinstall                                                                                                           |
+| `Agent Skills Ninja: Open Skill Output`         | Choose a managed root, then open the linked catalog in `ref`, or the instruction file in other formats                                        |
+| `Agent Skills Ninja: Regenerate Skill Output`   | Regenerate the selected root's skill output files manually (`AGENTS.md`, `copilot-instructions.md`, `CLAUDE.md`, or the linked `ref` catalog) |
+| `Agent Skills Ninja: Open Skill Folder`         | Open installed skill folder in OS                                                                                                             |
 
 ### Quick Start
 

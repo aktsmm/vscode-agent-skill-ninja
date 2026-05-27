@@ -12,21 +12,22 @@ function normalizeRemotePath(remotePath?: string): string | undefined {
 }
 
 export function isLocalInstalledSkillMeta(
-  meta: Pick<SkillMeta, "source">,
+  meta: Pick<SkillMeta, "source" | "remotePath">,
 ): boolean {
   const source = meta.source?.trim();
-  return !source || source === "local";
+  const hasRemotePath = !!normalizeRemotePath(meta.remotePath);
+  return (!source || source === "local") && !hasRemotePath;
 }
 
 export function shouldCheckInstalledSkillAgainstIndex(
-  meta: Pick<SkillMeta, "source">,
+  meta: Pick<SkillMeta, "source" | "remotePath">,
 ): boolean {
   return !isLocalInstalledSkillMeta(meta);
 }
 
 type ManagedInstalledSkillLike = {
   root: { isReadOnly: boolean };
-  meta: Pick<SkillMeta, "source">;
+  meta: Pick<SkillMeta, "source" | "remotePath">;
 };
 
 export function shouldCheckManagedInstalledSkillAgainstIndex(
@@ -43,17 +44,16 @@ export function shouldWarnManagedInstalledSkillMissingFromIndex(
   const source = entry.meta.source?.trim();
   return (
     !entry.root.isReadOnly &&
-    !!source &&
-    source !== "local" &&
+    shouldCheckInstalledSkillAgainstIndex(entry.meta) &&
     source !== "unknown"
   );
 }
 
 export function shouldAutoUpdateInstalledSkillFromIndex(
-  meta: Pick<SkillMeta, "source">,
+  meta: Pick<SkillMeta, "source" | "remotePath">,
 ): boolean {
   const source = meta.source?.trim();
-  return !!source && source !== "local" && source !== "unknown";
+  return shouldCheckInstalledSkillAgainstIndex(meta) && source !== "unknown";
 }
 
 export function shouldAutoUpdateManagedInstalledSkillFromIndex(

@@ -85,6 +85,15 @@ function loadTreeProviderExports(japanese = false) {
           },
         };
       }
+      if (request === "./installedSkillIndex") {
+        return {
+          shouldCheckInstalledSkillAgainstIndex(meta) {
+            return (
+              !!(meta.source && meta.source !== "local") || !!meta.remotePath
+            );
+          },
+        };
+      }
       return require(request);
     },
   };
@@ -103,6 +112,7 @@ const {
   buildExtensionProviderGroups,
   buildBuiltInProviderGroups,
   buildSkillRootGroups,
+  getSkillRootGroupContextValue,
   getBuiltInProviderLabel,
   getBuiltInVariantLabel,
   getExtensionProviderLabel,
@@ -203,6 +213,36 @@ test("groups skills by normalized root path", () => {
   assert.deepStrictEqual(
     groups[2].skills.map((skill) => skill.name),
     ["epsilon"],
+  );
+});
+
+test("root group context only exposes reinstall for remote-backed managed roots", () => {
+  const workspaceRoot = createSkill(
+    "remote-alpha",
+    "workspace",
+    "D:/repo/.github/skills",
+    "remote-alpha",
+  ).root;
+
+  assert.strictEqual(
+    getSkillRootGroupContextValue(workspaceRoot, [
+      { source: "local", remotePath: undefined },
+    ]),
+    "skillRootGroup",
+  );
+
+  assert.strictEqual(
+    getSkillRootGroupContextValue(workspaceRoot, [
+      { source: "sample-source", remotePath: "skills/remote-alpha" },
+    ]),
+    "skillRootGroupReinstallable",
+  );
+
+  assert.strictEqual(
+    getSkillRootGroupContextValue(workspaceRoot, [
+      { source: "local", remotePath: "skills/remote-alpha" },
+    ]),
+    "skillRootGroupReinstallable",
   );
 });
 

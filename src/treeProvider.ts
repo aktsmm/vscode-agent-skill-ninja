@@ -21,6 +21,7 @@ import {
   SkillRoot,
   SkillScope,
 } from "./skillLocations";
+import { shouldCheckInstalledSkillAgainstIndex } from "./installedSkillIndex";
 
 /**
  * ワークスペーススキル情報（統合型）
@@ -117,6 +118,37 @@ interface ExtensionProviderGroup {
   label: string;
   roots: WorkspaceSkillRootGroup[];
   skillCount: number;
+}
+
+export const MANAGED_ROOT_GROUP_CONTEXT_VALUE = "skillRootGroup";
+export const REINSTALLABLE_ROOT_GROUP_CONTEXT_VALUE =
+  "skillRootGroupReinstallable";
+
+export function isManagedRootGroupContextValue(
+  contextValue: string | undefined,
+): boolean {
+  return (
+    contextValue === MANAGED_ROOT_GROUP_CONTEXT_VALUE ||
+    contextValue === REINSTALLABLE_ROOT_GROUP_CONTEXT_VALUE
+  );
+}
+
+export function getSkillRootGroupContextValue(
+  root: SkillRoot,
+  skills: ReadonlyArray<Pick<WorkspaceSkill, "source" | "remotePath">>,
+): string {
+  if (root.isReadOnly) {
+    return MANAGED_ROOT_GROUP_CONTEXT_VALUE;
+  }
+
+  return skills.some((skill) =>
+    shouldCheckInstalledSkillAgainstIndex({
+      source: skill.source || "",
+      remotePath: skill.remotePath,
+    }),
+  )
+    ? REINSTALLABLE_ROOT_GROUP_CONTEXT_VALUE
+    : MANAGED_ROOT_GROUP_CONTEXT_VALUE;
 }
 
 function localizeRootLabel(english: string, japanese: string): string {
@@ -494,7 +526,7 @@ export function buildExtensionProviderGroups(
 function createSkillRootGroupItem(
   root: SkillRoot,
   skillCount: number,
-  contextValue: string = "skillRootGroup",
+  contextValue: string = MANAGED_ROOT_GROUP_CONTEXT_VALUE,
 ): SkillTreeItem {
   const item = new SkillTreeItem(
     getSkillRootGroupLabel(root),
@@ -713,7 +745,7 @@ export class WorkspaceSkillsProvider implements vscode.TreeDataProvider<SkillTre
   getParent(element: SkillTreeItem): SkillTreeItem | undefined {
     if (
       element.skillRoot &&
-      element.contextValue !== "skillRootGroup" &&
+      !isManagedRootGroupContextValue(element.contextValue) &&
       element.contextValue !== "placeholder"
     ) {
       return this.buildRootGroupItems().find(
@@ -753,7 +785,10 @@ export class WorkspaceSkillsProvider implements vscode.TreeDataProvider<SkillTre
       return this.buildRootGroupItems();
     }
 
-    if (element.contextValue === "skillRootGroup" && element.skillRoot) {
+    if (
+      isManagedRootGroupContextValue(element.contextValue) &&
+      element.skillRoot
+    ) {
       return this.workspaceSkills
         .filter(
           (skill) =>
@@ -768,7 +803,11 @@ export class WorkspaceSkillsProvider implements vscode.TreeDataProvider<SkillTre
 
   private buildRootGroupItems(): SkillTreeItem[] {
     return buildSkillRootGroups(this.workspaceSkills).map((group) =>
-      createSkillRootGroupItem(group.root, group.skills.length),
+      createSkillRootGroupItem(
+        group.root,
+        group.skills.length,
+        getSkillRootGroupContextValue(group.root, group.skills),
+      ),
     );
   }
 
@@ -859,7 +898,7 @@ export class UserGlobalSkillsProvider implements vscode.TreeDataProvider<SkillTr
 
     if (
       element.skillRoot &&
-      element.contextValue !== "skillRootGroup" &&
+      !isManagedRootGroupContextValue(element.contextValue) &&
       element.contextValue !== "builtInProviderGroup" &&
       element.contextValue !== "builtInSkillRootGroup" &&
       element.contextValue !== "extensionProviderGroup" &&
@@ -936,7 +975,10 @@ export class UserGlobalSkillsProvider implements vscode.TreeDataProvider<SkillTr
       return items;
     }
 
-    if (element.contextValue === "skillRootGroup" && element.skillRoot) {
+    if (
+      isManagedRootGroupContextValue(element.contextValue) &&
+      element.skillRoot
+    ) {
       return this.getSkillsForRoot(element.skillRoot.rootPath).map((skill) =>
         this.toSkillItem(skill),
       );
@@ -979,7 +1021,13 @@ export class UserGlobalSkillsProvider implements vscode.TreeDataProvider<SkillTr
   private buildUserRootItems(): SkillTreeItem[] {
     return buildSkillRootGroups(
       this.userGlobalSkills.filter((skill) => skill.scope === "userGlobal"),
-    ).map((group) => createSkillRootGroupItem(group.root, group.skills.length));
+    ).map((group) =>
+      createSkillRootGroupItem(
+        group.root,
+        group.skills.length,
+        getSkillRootGroupContextValue(group.root, group.skills),
+      ),
+    );
   }
 
   private buildExtensionSectionItem(): SkillTreeItem | undefined {
@@ -1595,7 +1643,7 @@ export class SkillTreeItem extends vscode.TreeItem {
           ? bundle.description_ja
           : bundle.description
       }\n${skillsLabel}: ${bundle.skills.join(", ")}`;
-    } else if (contextValue === "skillRootGroup" && skillRoot) {
+    } else if (isManagedRootGroupContextValue(contextValue) && skillRoot) {
       this.tooltip = skillRoot.displayPath;
     }
   }

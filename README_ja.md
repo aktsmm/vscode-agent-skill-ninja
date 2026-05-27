@@ -130,7 +130,7 @@ workspace skills では `skillNinja.refCatalogPath` の相対パスは workspace
 - **説明を編集** - 右クリックでスキルの説明をカスタマイズ
 - アンインストール機能
 - **全て再インストール** - 最新ソースから一括再インストール（インデックス自動更新付き）
-- **ルート単位 inline アクション** - 書き込み可能な各 skill root 行の右端に **スキル出力を更新** と **このルートのリモートスキルを再インストール** を表示し、ワークスペース スキル、GitHub Copilot Home、Claude Home、Global Agent Home などの各ルートをその場で更新可能
+- **ルート単位 inline アクション** - 書き込み可能な各 skill root 行の右端に **スキル出力を再生成** を表示します。これは `AGENTS.md` / `copilot-instructions.md` / `CLAUDE.md` または `ref` モードのリンク先 catalog を再生成する操作です。さらに、remote-backed skill を 1 件以上含む root にだけ **このルートのリモートスキルを再インストール** を表示します
 - **インストール通知** - NEW バッジ、ステータスバー表示、ツリービューで自動選択
 - **フォルダを開く** - インストール済みスキルのフォルダにクイックアクセス
 - **スキル状態を診断** - ツリー項目のコンテキストメニューから、登録ソース、metadata path、共存オーナー、instruction file の向き先を確認可能
@@ -220,8 +220,8 @@ ext install yamapan.agent-skill-ninja
 
 - **ワークスペース スキル**: `skillNinja.skillsDirectory`（既定: `.github/skills`）配下の managed skills
 - 新しくインストールしたスキル（一時的なバッジ）
-- ツールバー: スキル出力 / スキル出力を更新 / 新規作成 / ビューを更新 / 設定
-- 書き込み可能な各 root 行の右端にも **スキル出力を更新** / **このルートのリモートスキルを再インストール** が表示されます
+- ツールバー: スキル出力 / スキル出力を再生成 / 新規作成 / ビューを更新 / 設定
+- 書き込み可能な各 root 行の右端にも **スキル出力を再生成** が表示され、remote-backed skill を 1 件以上含む root にだけ **このルートのリモートスキルを再インストール** が表示されます
 - workspace view の **スキル出力** は全 root の QuickPick を出さず、workspace root をそのまま開きます
 - `ref` モードでは **スキル出力** がリンク先 catalog を開き、`full` / `compact` / `legacy` では instruction file 自体を開きます
 - 空状態: 検索 / 新規作成 / スキル出力を開く
@@ -233,8 +233,8 @@ ext install yamapan.agent-skill-ninja
 - **インストール済み拡張機能**: インストール済み VS Code 拡張に同梱された skill folder から見つかった読み取り専用スキル。拡張ごと、その下に variant/root ごとに表示します
 - **Built-in Skills**: Copilot / VS Code 同梱 skills を読み取り専用で表示するグループ。GitHub Copilot Chat、GitHub Copilot CLI、VS Code などの provider/origin で先にまとめ、その配下に Prompts、Skills、Package (Universal) などの variant/root を表示します。既定で表示され、設定から非表示にもできます
 - ルートノードは短い home / product 名で表示し、件数とフルパスは description / tooltip 側に寄せます
-- ツールバー: スキル出力 / スキル出力を更新 / 新規作成 / ビューを更新 / 設定
-- 書き込み可能な各 root 行の右端にも **スキル出力を更新** / **このルートのリモートスキルを再インストール** が表示され、GitHub Copilot Home / Claude Home / Global Agent Home などをコマンドパレットなしで更新できます
+- ツールバー: スキル出力 / スキル出力を再生成 / 新規作成 / ビューを更新 / 設定
+- 書き込み可能な各 root 行の右端にも **スキル出力を再生成** が表示され、remote-backed skill を 1 件以上含む root にだけ **このルートのリモートスキルを再インストール** が表示されます。これで GitHub Copilot Home / Claude Home / Global Agent Home などをコマンドパレットなしで更新できます
 - user/global view の **スキル出力** は全 root の QuickPick を出さず、既定の user/global root をそのまま開きます
   既定優先順は VS Code ユーザーカスタマイズ、Copilot home、Claude home、最後に global agent home です
 - `ref` モードでは **スキル出力** がリンク先 catalog を開き、`full` / `compact` / `legacy` では instruction file 自体を開きます
@@ -264,23 +264,23 @@ ext install yamapan.agent-skill-ninja
 
 ### コマンドパレット
 
-| コマンド                                           | 説明                                                                                    |
-| -------------------------------------------------- | --------------------------------------------------------------------------------------- |
-| `Agent Skills Ninja: スキルを検索`                 | スキルを検索してインストール                                                            |
-| `Agent Skills Ninja: インデックスを更新`           | 全ソースからインデックスを更新                                                          |
-| `Agent Skills Ninja: GitHub で検索`                | GitHub でスキルを検索                                                                   |
-| `Agent Skills Ninja: ソースリポジトリを追加`       | 新しいソースリポジトリを追加                                                            |
-| `Agent Skills Ninja: ソースリポジトリを削除`       | ソースリポジトリを削除                                                                  |
-| `Agent Skills Ninja: スキルをアンインストール`     | スキルをアンインストール                                                                |
-| `Agent Skills Ninja: インストール済みスキルを表示` | インストール済みスキルを表示                                                            |
-| `Agent Skills Ninja: 新規スキル作成`               | 新規ワークスペーススキルを作成                                                          |
-| `Agent Skills Ninja: 全スキルを再インストール`     | 全スキルを最新ソースから再インストール                                                  |
-| `Agent Skills Ninja: 全スキルを削除`               | 全スキルを削除（確認ダイアログあり）                                                    |
-| `Agent Skills Ninja: 複数スキルを削除`             | 複数スキルを選択して削除                                                                |
-| `Agent Skills Ninja: 複数スキルを再インストール`   | 複数スキルを選択して再インストール                                                      |
-| `Agent Skills Ninja: スキル出力を開く`             | managed root を選んで、`ref` ではリンク先 catalog、それ以外では instruction file を開く |
-| `Agent Skills Ninja: スキル出力を更新`             | 選択した root のスキル出力を手動で再生成                                                |
-| `Agent Skills Ninja: スキルフォルダを開く`         | インストール済みスキルのフォルダを開く                                                  |
+| コマンド                                           | 説明                                                                                                                          |
+| -------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------- |
+| `Agent Skills Ninja: スキルを検索`                 | スキルを検索してインストール                                                                                                  |
+| `Agent Skills Ninja: インデックスを更新`           | 全ソースからインデックスを更新                                                                                                |
+| `Agent Skills Ninja: GitHub で検索`                | GitHub でスキルを検索                                                                                                         |
+| `Agent Skills Ninja: ソースリポジトリを追加`       | 新しいソースリポジトリを追加                                                                                                  |
+| `Agent Skills Ninja: ソースリポジトリを削除`       | ソースリポジトリを削除                                                                                                        |
+| `Agent Skills Ninja: スキルをアンインストール`     | スキルをアンインストール                                                                                                      |
+| `Agent Skills Ninja: インストール済みスキルを表示` | インストール済みスキルを表示                                                                                                  |
+| `Agent Skills Ninja: 新規スキル作成`               | 新規ワークスペーススキルを作成                                                                                                |
+| `Agent Skills Ninja: 全スキルを再インストール`     | 全スキルを最新ソースから再インストール                                                                                        |
+| `Agent Skills Ninja: 全スキルを削除`               | 全スキルを削除（確認ダイアログあり）                                                                                          |
+| `Agent Skills Ninja: 複数スキルを削除`             | 複数スキルを選択して削除                                                                                                      |
+| `Agent Skills Ninja: 複数スキルを再インストール`   | 複数スキルを選択して再インストール                                                                                            |
+| `Agent Skills Ninja: スキル出力を開く`             | managed root を選んで、`ref` ではリンク先 catalog、それ以外では instruction file を開く                                       |
+| `Agent Skills Ninja: スキル出力を再生成`           | 選択した root のスキル出力ファイルを手動で再生成 (`AGENTS.md` / `copilot-instructions.md` / `CLAUDE.md` または `ref` catalog) |
+| `Agent Skills Ninja: スキルフォルダを開く`         | インストール済みスキルのフォルダを開く                                                                                        |
 
 ### クイックスタート
 
@@ -404,7 +404,7 @@ MCP ツールが不要な場合は、GitHub Copilot Chat のツール一覧か�
 
 どちらの拡張からインストールした remote skill でも、`.skill-meta.json` の契約は共通です。共存モードでは Skill Ninja もこの共有 metadata を登録状態の SSOT として扱うため、Resources Ninja から入れた skill でも Skill Ninja 側で managed skill として表示され、再インストールや登録解除の導線を維持します。
 
-Resources Ninja が管理するローカル workspace skill は `source: "local"` のメタデータを保持します。Skill Ninja はこれらをローカルスキルとして表示しますが、リモート skill index の欠落扱いにはせず、リモート index からの再インストール対象からも除外します。
+Resources Ninja が管理する workspace skill で、`.skill-meta.json` に `remotePath` などの remote 情報が残っているものは、Skill Ninja でも remote-backed skill として扱います。この場合、root 単位 / 個別 / 複数選択の再インストール対象に含まれます。`remotePath` が無い純粋なローカル skill だけは、従来どおりリモート index からの再インストール対象外です。
 
 姉妹拡張がアンインストールされた場合、`vscode.extensions.onDidChange` を契機に Skill Ninja が同じ共通ブロックの owner に昇格 — 並列ブロックも孤児マーカーも残らず、通常は手動掃除不要です。
 

@@ -535,7 +535,7 @@
         "command": "skillNinja.updateInstruction",
         "title": "%command.updateInstruction%",
         "category": "Agent Skills Ninja",
-        "icon": "$(sync)"
+        "icon": "$(edit)"
       },
       {
         "command": "skillNinja.openInstructionFile",
@@ -545,13 +545,13 @@
       },
       {
         "command": "skillNinja.openWorkspaceOutput",
-        "title": "%command.openInstructionFile%",
+        "title": "%command.openWorkspaceOutput%",
         "category": "Agent Skills Ninja",
         "icon": "$(file-text)"
       },
       {
         "command": "skillNinja.openUserGlobalOutput",
-        "title": "%command.openInstructionFile%",
+        "title": "%command.openUserGlobalOutput%",
         "category": "Agent Skills Ninja",
         "icon": "$(file-text)"
       },
@@ -769,22 +769,22 @@
         },
         {
           "command": "skillNinja.updateInstruction",
-          "when": "view == skillNinja.installedView && viewItem == skillRootGroup",
+          "when": "view == skillNinja.installedView && (viewItem == skillRootGroup || viewItem == skillRootGroupReinstallable)",
           "group": "inline@1"
         },
         {
           "command": "skillNinja.reinstallRoot",
-          "when": "view == skillNinja.installedView && viewItem == skillRootGroup",
+          "when": "view == skillNinja.installedView && viewItem == skillRootGroupReinstallable",
           "group": "inline@2"
         },
         {
           "command": "skillNinja.updateInstruction",
-          "when": "view == skillNinja.userGlobalView && viewItem == skillRootGroup",
+          "when": "view == skillNinja.userGlobalView && (viewItem == skillRootGroup || viewItem == skillRootGroupReinstallable)",
           "group": "inline@1"
         },
         {
           "command": "skillNinja.reinstallRoot",
-          "when": "view == skillNinja.userGlobalView && viewItem == skillRootGroup",
+          "when": "view == skillNinja.userGlobalView && viewItem == skillRootGroupReinstallable",
           "group": "inline@2"
         },
         {
