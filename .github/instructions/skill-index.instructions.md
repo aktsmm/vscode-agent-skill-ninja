@@ -1,4 +1,5 @@
 ---
+description: "Preset skill index curation rules for resources/skill-index.json"
 applyTo: "**/resources/skill-index.json"
 ---
 
@@ -29,8 +30,8 @@ applyTo: "**/resources/skill-index.json"
 ### 除外済みソース
 
 - `microsoft/skills` - 2026-03 にプリセット対象から除外
-   - 理由: 公開 compatibility path (`skills/...`) が upstream で broken state になっており、プリセット登録済みなのにインストール失敗する UX リスクがある
-   - 扱い: Related Projects での参照は可。ただし bundled preset source には戻さない
+  - 理由: 公開 compatibility path (`skills/...`) が upstream で broken state になっており、プリセット登録済みなのにインストール失敗する UX リスクがある
+  - 扱い: Related Projects での参照は可。ただし bundled preset source には戻さない
 
 ### ❌ 含めないソース
 

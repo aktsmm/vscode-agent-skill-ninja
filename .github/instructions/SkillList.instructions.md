@@ -1,4 +1,5 @@
 ---
+description: "Shared Skill List block coexistence contract for AGENTS.md and copilot-instructions.md"
 applyTo: "AGENTS.md,**/copilot-instructions.md,CLAUDE.md,**/CLAUDE.md"
 ---
 

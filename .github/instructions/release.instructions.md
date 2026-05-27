@@ -1,4 +1,5 @@
 ---
+description: "Release workflow rules for package metadata, changelog, and VSIX artifacts"
 applyTo: "**/package.json,**/CHANGELOG.md,**/*.vsix"
 ---
 
@@ -102,13 +103,16 @@ node scripts/audit-skill-installability.js --raw-only
 - 🐛 **Skill Install Fix** - Fixed issue / 問題を修正
 ```
 
-### 4. コミット & プッシュ
+### 4. コミット（必要時のみ push）
 
 ```bash
 git add .
 git commit -m "[Release] vX.X.X - 変更内容の要約"
+# 公開同期が明示的に必要な場合だけ push する
 git push origin master  # ⚠️ main ではなく master
 ```
+
+push や tag push は、ユーザーがリモート同期まで依頼した場合だけ実行する。ローカル release 準備だけなら commit までで止める。
 
 ### 5. パッケージ作成 & VSIX 収録物確認
 
@@ -218,7 +222,7 @@ New-Item -ItemType Directory -Force artifacts/vsix | Out-Null; npx vsce package 
 ## 注意事項
 
 - ⚠️ **同じバージョン番号で再公開不可** - エラーになったらバージョン番号を上げて再実行
-- ⚠️ **ブランチ名は `master`** - `git push origin main` ではエラー
+- ⚠️ **ブランチ名は `master`** - push が必要な場合は `git push origin master` を使う
 - ✅ **コード変更時は必ずテストを実行**
 - ✅ リリース前に `git status` で未コミットファイルがないことを確認
 - ✅ `npm run compile` が成功することを確認してから公開

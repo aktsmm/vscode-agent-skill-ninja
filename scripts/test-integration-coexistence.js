@@ -400,7 +400,7 @@ function makeContext() {
   };
 }
 
-function makeSampleSkill(name, description) {
+function makeSampleSkill(name, description, relativePath = name) {
   return {
     name,
     source: "local",
@@ -409,7 +409,7 @@ function makeSampleSkill(name, description) {
     customWhenToUse: "",
     categories: [],
     installedAt: new Date().toISOString(),
-    relativePath: name,
+    relativePath,
     license: "",
     author: "",
     version: "1.0.0",
@@ -636,6 +636,38 @@ test("Scenario A-ref-compact: ref catalog format can use compact index", async (
     assert.ok(
       catalog.includes("../skills/sample-alpha/SKILL.md"),
       `compact catalog should keep catalog-relative links; got:\n${catalog}`,
+    );
+  } finally {
+    cleanupTmp(tmp);
+  }
+});
+
+test("Scenario A: duplicate skill names are disambiguated in generated labels", async () => {
+  const tmp = setupTmpFixture("A-skill-solo");
+  try {
+    const wsUri = makeUri(tmp);
+    const stub = makeVscodeStub({
+      workspaceUri: wsUri,
+      settings: { "skillNinja.outputFormat": "full" },
+      siblingExports: undefined,
+    });
+    const skills = [
+      makeSampleSkill("Docx", "Primary docx skill", "docx"),
+      makeSampleSkill("Docx", "Nested documents docx skill", "documents/Docx"),
+    ];
+    const { instructionManager } = loadInstructionManager(stub, skills);
+    const ctx = makeContext();
+    const root = makeRoot(wsUri);
+
+    await instructionManager.updateInstructionFileForRoot(root, ctx);
+
+    const got = fs.readFileSync(path.join(tmp, "AGENTS.md"), "utf8");
+    assert.ok(got.includes("[Docx](.github/skills/docx/SKILL.md)"));
+    assert.ok(
+      got.includes(
+        "[Docx (Documents)](.github/skills/documents/Docx/SKILL.md)",
+      ),
+      `duplicate names should be disambiguated; got:\n${got}`,
     );
   } finally {
     cleanupTmp(tmp);

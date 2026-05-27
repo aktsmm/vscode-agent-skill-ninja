@@ -393,6 +393,54 @@ function generateSkillSectionForFormat(
   }
 }
 
+type SkillCatalogRow = {
+  name: string;
+  path: string;
+  description: string;
+};
+
+function formatDuplicateSkillQualifier(skillPath: string): string {
+  const segments = skillPath.split("/").filter(Boolean);
+  const qualifierSource =
+    segments.length > 1 ? segments.slice(0, -1).join("/") : skillPath;
+
+  return qualifierSource
+    .split("/")
+    .filter(Boolean)
+    .map((segment) => {
+      if (/^[a-z0-9-]+$/.test(segment)) {
+        return segment.charAt(0).toUpperCase() + segment.slice(1);
+      }
+      return segment;
+    })
+    .join("/");
+}
+
+function withDisplayNames<T extends SkillCatalogRow>(
+  rows: T[],
+): Array<T & { displayName: string }> {
+  const nameCounts = new Map<string, number>();
+  for (const row of rows) {
+    nameCounts.set(row.name, (nameCounts.get(row.name) || 0) + 1);
+  }
+
+  return rows.map((row) => {
+    const duplicateCount = nameCounts.get(row.name) || 0;
+    if (duplicateCount < 2) {
+      return { ...row, displayName: row.name };
+    }
+
+    const qualifier = formatDuplicateSkillQualifier(row.path);
+    return {
+      ...row,
+      displayName:
+        qualifier && qualifier !== row.name
+          ? `${row.name} (${qualifier})`
+          : row.name,
+    };
+  });
+}
+
 /**
  * ref モード用: instruction ファイルに書く参照リンクセクションを生成
  */
@@ -490,6 +538,30 @@ No skills installed yet. Use "Agent Skills Ninja: Search Skills" to install skil
 ${MARKER_END}`;
   }
 
+  const rows = withDisplayNames([
+    ...installedSkills.map((skill) => {
+      const desc = buildDescription(
+        skill.description,
+        skill.customWhenToUse || skill.whenToUse,
+      );
+      return {
+        name: skill.name,
+        path: skill.relativePath || skill.name,
+        description: desc.replace(/\|/g, "\\|"),
+      };
+    }),
+    ...localSkills.map((skill) => {
+      const desc = skill.description || "";
+      const truncatedDesc =
+        desc.length > 200 ? desc.substring(0, 197) + "..." : desc;
+      return {
+        name: skill.name,
+        path: skill.relativePath,
+        description: truncatedDesc.replace(/\|/g, "\\|"),
+      };
+    }),
+  ]);
+
   let content = `${MARKER_START}
 ## Agent Skills
 
@@ -497,39 +569,13 @@ ${MARKER_END}`;
 |-------|-------------|
 `;
 
-  // インストール済みスキル
-  if (hasInstalled) {
-    const installedRows = installedSkills
-      .map((skill) => {
-        // Description + When to Use を連結（合計最大200文字）
-        const desc = buildDescription(
-          skill.description,
-          skill.customWhenToUse || skill.whenToUse,
-        );
-        // テーブル内のパイプ文字をエスケープ
-        const safeDesc = desc.replace(/\|/g, "\\|");
-        // relativePath がある場合はそれを使用、なければ name を使用
-        const skillPath = skill.relativePath || skill.name;
-        return `| [${skill.name}](${skillsDir}/${skillPath}/SKILL.md) | ${safeDesc} |`;
-      })
-      .join("\n");
-    content += installedRows + "\n";
-  }
-
-  // ローカルスキル
-  if (hasLocal) {
-    const localRows = localSkills
-      .map((skill) => {
-        // LocalSkill は description のみ（whenToUse はない）
-        const desc = skill.description || "";
-        const truncatedDesc =
-          desc.length > 200 ? desc.substring(0, 197) + "..." : desc;
-        const safeDesc = truncatedDesc.replace(/\|/g, "\\|");
-        return `| [${skill.name}](${skill.relativePath}/SKILL.md) | ${safeDesc} |`;
-      })
-      .join("\n");
-    content += localRows + "\n";
-  }
+  content += rows
+    .map(
+      (row) =>
+        `| [${row.displayName}](${skillsDir}/${row.path}/SKILL.md) | ${row.description} |`,
+    )
+    .join("\n");
+  content += "\n";
 
   content += `\n${MARKER_END}`;
 
@@ -699,7 +745,7 @@ function generateCompactSection(
   localSkills: LocalSkill[],
   skillsDir: string,
 ): string {
-  const allSkills = [
+  const allSkills = withDisplayNames([
     ...installedSkills.map((s) => ({
       name: s.name,
       path: s.relativePath || s.name,
@@ -719,7 +765,7 @@ function generateCompactSection(
           : s.description
         : "",
     })),
-  ];
+  ]);
 
   if (allSkills.length === 0) {
     return `${MARKER_START}
@@ -747,7 +793,7 @@ ${MARKER_END}`;
   for (const skill of allSkills) {
     // パイプをエスケープ
     const safeDesc = skill.description.replace(/\|/g, "\\|");
-    content += `| [${skill.name}](${skillsDir}/${skill.path}/SKILL.md) | \`${skill.path}\` | ${safeDesc} |\n`;
+    content += `| [${skill.displayName}](${skillsDir}/${skill.path}/SKILL.md) | \`${skill.path}\` | ${safeDesc} |\n`;
   }
 
   content += `\n${MARKER_END}`;
@@ -763,7 +809,7 @@ function generateFullSection(
   localSkills: LocalSkill[],
   skillsDir: string,
 ): string {
-  const allSkills = [
+  const allSkills = withDisplayNames([
     ...installedSkills.map((s) => ({
       name: s.name,
       path: s.relativePath || s.name,
@@ -781,7 +827,7 @@ function generateFullSection(
           ? s.description.substring(0, 197) + "..."
           : s.description || "",
     })),
-  ];
+  ]);
 
   if (allSkills.length === 0) {
     return `${MARKER_START}
@@ -807,7 +853,7 @@ ${MARKER_END}`;
 
   for (const skill of allSkills) {
     const safeDesc = skill.description.replace(/\|/g, "\\|");
-    content += `| [${skill.name}](${skillsDir}/${skill.path}/SKILL.md) | ${safeDesc} |\n`;
+    content += `| [${skill.displayName}](${skillsDir}/${skill.path}/SKILL.md) | ${safeDesc} |\n`;
   }
 
   content += `\n${MARKER_END}`;
