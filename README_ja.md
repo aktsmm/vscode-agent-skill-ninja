@@ -130,6 +130,8 @@ workspace skills では `skillNinja.refCatalogPath` の相対パスは workspace
 - **説明を編集** - 右クリックでスキルの説明をカスタマイズ
 - アンインストール機能
 - **全て再インストール** - 最新ソースから一括再インストール（インデックス自動更新付き）
+- **source-aware な missing index 回復** - 再インストール時に index から見つからない skill が出た場合、affected source を特定できるときは全 source ではなくその source だけを更新します
+- **partial failure warning** - 一括再インストール系では、selection の一部だけ成功した場合に成功件数 / 失敗件数を warning で表示します
 - **ルート単位 inline アクション** - 書き込み可能な各 skill root 行の右端に **スキル出力を再生成** を表示します。これは `AGENTS.md` / `copilot-instructions.md` / `CLAUDE.md` または `ref` モードのリンク先 catalog を再生成する操作です。さらに、remote-backed skill を 1 件以上含む root にだけ **このルートのリモートスキルを再インストール** を表示します
 - **インストール通知** - NEW バッジ、ステータスバー表示、ツリービューで自動選択
 - **フォルダを開く** - インストール済みスキルのフォルダにクイックアクセス

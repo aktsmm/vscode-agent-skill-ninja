@@ -137,6 +137,18 @@ function loadModule() {
           resolveSymlinkTargetPath: () => "",
         };
       }
+      if (request === "./installedSkillIndex") {
+        return {
+          normalizeInstalledSkillSource(source, remotePath) {
+            const trimmedSource = source?.trim();
+            if (trimmedSource) {
+              return trimmedSource;
+            }
+
+            return remotePath ? "unknown" : "local";
+          },
+        };
+      }
       return require(request);
     },
   };

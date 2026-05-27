@@ -44,6 +44,9 @@ function test(name, fn) {
 const {
   findIndexedSkillForInstalledMeta,
   isLocalInstalledSkillMeta,
+  normalizeInstalledSkillSource,
+  resolveSingleAffectedSourceId,
+  summarizeBatchOutcome,
   shouldAutoUpdateInstalledSkillFromIndex,
   shouldAutoUpdateManagedInstalledSkillFromIndex,
   shouldCheckManagedInstalledSkillAgainstIndex,
@@ -111,6 +114,21 @@ test("empty source metadata is treated as local and not remote-missing", () => {
   assert.strictEqual(isLocalInstalledSkillMeta(localMeta), true);
   assert.strictEqual(shouldCheckInstalledSkillAgainstIndex(localMeta), false);
   assert.strictEqual(shouldAutoUpdateInstalledSkillFromIndex(localMeta), false);
+});
+
+test("missing remote-backed source is normalized to unknown", () => {
+  assert.strictEqual(
+    normalizeInstalledSkillSource(undefined, "skills/remote-alpha"),
+    "unknown",
+  );
+  assert.strictEqual(
+    normalizeInstalledSkillSource(undefined, undefined),
+    "local",
+  );
+  assert.strictEqual(
+    normalizeInstalledSkillSource(" sample-source ", "skills/remote-alpha"),
+    "sample-source",
+  );
 });
 
 test("unknown legacy metadata keeps name-only fallback", () => {
@@ -217,6 +235,61 @@ test("remote metadata requires the matching source", () => {
     }),
     undefined,
   );
+});
+
+test("resolveSingleAffectedSourceId returns one valid shared source only", () => {
+  assert.strictEqual(
+    resolveSingleAffectedSourceId(
+      [
+        { source: "sample-source", remotePath: "skills/remote-alpha" },
+        { source: "sample-source", remotePath: "skills/remote-beta" },
+      ],
+      [{ id: "sample-source" }, { id: "other-source" }],
+    ),
+    "sample-source",
+  );
+
+  assert.strictEqual(
+    resolveSingleAffectedSourceId(
+      [
+        { source: "sample-source", remotePath: "skills/remote-alpha" },
+        { source: "other-source", remotePath: "skills/remote-beta" },
+      ],
+      [{ id: "sample-source" }, { id: "other-source" }],
+    ),
+    undefined,
+  );
+
+  assert.strictEqual(
+    resolveSingleAffectedSourceId(
+      [{ source: "unknown", remotePath: "skills/remote-alpha" }],
+      [{ id: "sample-source" }],
+    ),
+    undefined,
+  );
+});
+
+test("summarizeBatchOutcome distinguishes full, partial, and failed batches", () => {
+  const success = summarizeBatchOutcome(4, 0);
+  assert.strictEqual(success.totalCount, 4);
+  assert.strictEqual(success.failedCount, 0);
+  assert.strictEqual(success.succeededCount, 4);
+  assert.strictEqual(success.isPartialFailure, false);
+  assert.strictEqual(success.isTotalFailure, false);
+
+  const partial = summarizeBatchOutcome(4, 1);
+  assert.strictEqual(partial.totalCount, 4);
+  assert.strictEqual(partial.failedCount, 1);
+  assert.strictEqual(partial.succeededCount, 3);
+  assert.strictEqual(partial.isPartialFailure, true);
+  assert.strictEqual(partial.isTotalFailure, false);
+
+  const failed = summarizeBatchOutcome(4, 4);
+  assert.strictEqual(failed.totalCount, 4);
+  assert.strictEqual(failed.failedCount, 4);
+  assert.strictEqual(failed.succeededCount, 0);
+  assert.strictEqual(failed.isPartialFailure, false);
+  assert.strictEqual(failed.isTotalFailure, true);
 });
 
 test("remotePath fallback matches cross-extension metadata when source differs", () => {

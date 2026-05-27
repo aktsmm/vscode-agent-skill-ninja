@@ -5,6 +5,7 @@ import * as vscode from "vscode";
 import { Skill, loadSkillIndex, Source, getSourceBranch } from "./skillIndex";
 import { isJapanese } from "./i18n";
 import { getGitHubToken } from "./githubAuth";
+import { normalizeInstalledSkillSource } from "./installedSkillIndex";
 import {
   getManagedSkillRoots,
   resolveWorkspaceSkillsRootUri,
@@ -248,6 +249,56 @@ function sanitizeSkillName(name: string): string {
 
 function normalizeRemoteSkillPath(skillPath: string): string {
   return skillPath.replace(/^\/+/, "").replace(/\/+$/, "");
+}
+
+function normalizeGitHubRepoRef(url: string | undefined): string | undefined {
+  if (!url) {
+    return undefined;
+  }
+
+  const normalizedUrl = url.trim();
+  const repoMatch = normalizedUrl.match(/github\.com\/([^/]+)\/([^/#?]+)/i);
+  if (repoMatch) {
+    return `${repoMatch[1]}/${repoMatch[2].replace(/\.git$/i, "")}`.toLowerCase();
+  }
+
+  const rawMatch = normalizedUrl.match(
+    /raw\.githubusercontent\.com\/([^/]+)\/([^/]+)/i,
+  );
+  if (rawMatch) {
+    return `${rawMatch[1]}/${rawMatch[2].replace(/\.git$/i, "")}`.toLowerCase();
+  }
+
+  return undefined;
+}
+
+function inferInstalledSkillSourceId(
+  skill: Skill,
+  source: Source | undefined,
+  sources: Source[],
+  downloadTarget:
+    | { owner: string; repo: string; branch: string; remotePath: string }
+    | undefined,
+): string {
+  if (source?.id) {
+    return source.id;
+  }
+
+  if (downloadTarget) {
+    const repoRef =
+      `${downloadTarget.owner}/${downloadTarget.repo}`.toLowerCase();
+    const matchedSource = sources.find(
+      (candidate) => normalizeGitHubRepoRef(candidate.url) === repoRef,
+    );
+    if (matchedSource?.id) {
+      return matchedSource.id;
+    }
+  }
+
+  return normalizeInstalledSkillSource(
+    skill.source,
+    downloadTarget?.remotePath || skill.path,
+  );
 }
 
 function buildGitHubPathSuffixCandidates(skillPath: string): string[] {
@@ -602,9 +653,17 @@ export async function installSkill(
     // 既存のメタデータがない場合は無視
   }
 
+  const normalizedRemotePath = downloadTarget?.remotePath || skill.path;
+  const normalizedSourceId = inferInstalledSkillSourceId(
+    skill,
+    source,
+    index.sources,
+    downloadTarget,
+  );
+
   const meta: SkillMeta = {
     name: skill.name,
-    source: skill.source,
+    source: normalizedSourceId,
     description: description,
     description_ja: skill.description_ja,
     whenToUse: whenToUse || undefined,
@@ -612,9 +671,9 @@ export async function installSkill(
     categories: skill.categories,
     installedAt: new Date().toISOString(),
     relativePath: safeName,
-    remotePath: skill.path,
+    remotePath: normalizedRemotePath,
     registrationDisabled: existingRegistrationDisabled,
-    ...derivePackageMetadata(skill.name, skill.path, safeName),
+    ...derivePackageMetadata(skill.name, normalizedRemotePath, safeName),
   };
   await vscode.workspace.fs.writeFile(
     metaPath,

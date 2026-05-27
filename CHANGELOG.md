@@ -7,6 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.9.21] - 2026-05-28
+
+### Fixed
+
+- 🧭 **Source-aware Reinstall Recovery** - Reinstall flows now normalize installed skill metadata at install time and prefer updating only the affected source when missing index entries can be tied to a single source, instead of always refreshing every source / install 時点で installed skill metadata を正規化するようにし、reinstall 中の missing index が単一 source に結びつく場合は全 source ではなくその source だけを更新するよう改善
+- ⚠️ **Partial Failure Reinstall Reporting** - Batch reinstall flows now surface succeeded/failed counts in warnings instead of ending with a full-success message after mixed outcomes / 一括再インストール系で mixed outcome の後に成功前提メッセージだけが残らないよう、成功件数 / 失敗件数を warning で表示するよう改善
+- 🧾 **Reinstall Docs Sync** - Updated README and README_ja to describe source-aware missing-index recovery, root-level regenerate/reinstall actions, and partial failure warnings consistently with the extension UI / source-aware な missing index 回復、ルート単位の再生成 / 再インストール導線、partial failure warning を README / README_ja へ反映し、実際の UI と説明を一致させるよう修正
+
+### Added
+
+- 🧪 **Installed Metadata Normalization Tests** - Added regression coverage for install-time source normalization, affected-source resolution, and batch outcome summaries used by reinstall flows / reinstall 系で使う install-time source 正規化、affected-source 判定、batch outcome 集計の回帰テストを追加
+
 ## [0.9.20] - 2026-05-27
 
 ### Changed

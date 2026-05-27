@@ -134,6 +134,8 @@ Settings → **Output Format** → Select `ref`, `full`, `compact`, or `legacy`
 - **Edit Description** - Right-click to customize skill description
 - Uninstall functionality
 - **Reinstall All** - Batch reinstall from latest source (with auto index update)
+- **Source-aware Missing Index Recovery** - When reinstall hits missing index entries, the extension now updates only the affected source when it can be identified, instead of always refreshing every source
+- **Partial Failure Warnings** - Batch reinstall flows now warn with succeeded/failed counts when only part of the selection could be reinstalled
 - **Root-level Inline Actions** - Each writable skill root row exposes inline **Regenerate Skill Output** (regenerates AGENTS.md / copilot-instructions.md / CLAUDE.md or the linked `ref` catalog), and rows that contain at least one remote-backed skill also show **Reinstall Remote Skills in This Root**
 - **Install Feedback** - NEW badge, status bar notification, auto-select in tree view
 - **Open Folder** - Quick access to installed skill folder
