@@ -1,6 +1,6 @@
 {
-  "version": "1.19.0",
-  "lastUpdated": "2026-05-26",
+  "version": "1.20.0",
+  "lastUpdated": "2026-06-10",
   "sources": [
     {
       "id": "anthropics-skills",
@@ -1193,14 +1193,6 @@
       "path": "skills/azure-backup",
       "categories": [],
       "description": "Expert knowledge for Azure Backup development including troubleshooting, best practices, decision making, architecture & design patterns, limits & quotas, security, configuration, integrations & coding patterns, and deployment. Use when building, debugging, or optimizing Azure Backup applications. Not for Azure Site Recovery (use azure-site-recovery).",
-      "description_ja": ""
-    },
-    {
-      "name": "azure-baremetal-infrastructure",
-      "source": "microsoftdocs-agent-skills",
-      "path": "skills/azure-baremetal-infrastructure",
-      "categories": [],
-      "description": "Expert knowledge for Azure Baremetal Infrastructure development including decision making, and architecture & design patterns. Use when building, debugging, or optimizing Azure Baremetal Infrastructure applications. Not for Azure Large Instances (use azure-large-instances), Azure Virtual Machines (use azure-virtual-machines), Azure VMware Solution (use azure-vmware-solution), SAP HANA on Azure Large Instances (use azure-sap).",
       "description_ja": ""
     },
     {

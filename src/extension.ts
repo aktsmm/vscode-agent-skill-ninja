@@ -29,6 +29,7 @@ import {
 } from "./instructionManager";
 import {
   BrowseSkillsProvider,
+  getSkillRootFromTreeItem,
   getSkillRootGroupLabel,
   SkillTreeItem,
   setViewRegistrationContext,
@@ -912,19 +913,7 @@ export function activate(
     return roots.find((root) => root.scope === "workspace") || roots[0];
   }
 
-  function getSkillRootFromItem(item?: SkillTreeItem): SkillRoot | undefined {
-    if (!item?.skill) {
-      return undefined;
-    }
-
-    const skillAny = item.skill as unknown as Record<string, unknown>;
-    const root = skillAny.root;
-    if (root && typeof root === "object") {
-      return root as SkillRoot;
-    }
-
-    return item.skillRoot;
-  }
+  const getSkillRootFromItem = getSkillRootFromTreeItem;
 
   const installedTreeView = vscode.window.createTreeView(
     "skillNinja.installedView",

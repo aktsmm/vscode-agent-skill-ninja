@@ -119,6 +119,7 @@ const {
   getExtensionVariantLabel,
   getSkillRootGroupLabel,
   getSkillRootGroupDescription,
+  getSkillRootFromTreeItem,
   getManagedSkillTreeItemLabel,
   getManagedSkillTreeItemDescription,
   setViewRegistrationContext,
@@ -244,6 +245,44 @@ test("root group context only exposes reinstall for remote-backed managed roots"
     ]),
     "skillRootGroupReinstallable",
   );
+});
+
+test("resolves skill roots from root group items without a skill payload", () => {
+  const root = createSkill(
+    "remote-alpha",
+    "workspace",
+    "D:/repo/.github/skills",
+    "remote-alpha",
+  ).root;
+
+  assert.strictEqual(getSkillRootFromTreeItem({ skillRoot: root }), root);
+});
+
+test("prefers embedded skill roots for skill items", () => {
+  const itemRoot = createSkill(
+    "remote-alpha",
+    "workspace",
+    "D:/repo/.github/skills",
+    "remote-alpha",
+  ).root;
+  const embeddedRoot = createSkill(
+    "remote-alpha",
+    "userGlobal",
+    "C:/Users/test/.copilot/skills",
+    "remote-alpha",
+  ).root;
+
+  assert.strictEqual(
+    getSkillRootFromTreeItem({
+      skill: { root: embeddedRoot },
+      skillRoot: itemRoot,
+    }),
+    embeddedRoot,
+  );
+});
+
+test("returns undefined when no tree item is available", () => {
+  assert.strictEqual(getSkillRootFromTreeItem(undefined), undefined);
 });
 
 console.log("\nWorkspace skill grouping tests passed.");

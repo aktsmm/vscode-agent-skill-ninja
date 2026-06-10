@@ -1648,3 +1648,21 @@ export class SkillTreeItem extends vscode.TreeItem {
     }
   }
 }
+
+export function getSkillRootFromTreeItem(item?: {
+  skill?: unknown;
+  skillRoot?: SkillRoot;
+}): SkillRoot | undefined {
+  if (!item) {
+    return undefined;
+  }
+
+  if (item.skill && typeof item.skill === "object") {
+    const root = (item.skill as Record<string, unknown>).root;
+    if (root && typeof root === "object") {
+      return root as SkillRoot;
+    }
+  }
+
+  return item.skillRoot;
+}

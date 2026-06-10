@@ -7,6 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.9.22] - 2026-06-11
+
+### Fixed
+
+- 🧭 **Root Reinstall Action Resolution** - Fixed root-scoped remote reinstall actions so writable skill-root rows pass their `skillRoot` even when the tree item has no skill payload / root 単位のリモート再インストールで、skill payload を持たない skill-root 行でも `skillRoot` を正しく渡すよう修正
+- 🧹 **Preset Skill Index Cleanup** - Pruned one stale MicrosoftDocs entry and refreshed the bundled skill index to `v1.20.0` with 1380 installable skills / MicrosoftDocs の stale entry を 1 件整理し、bundled skill index を `v1.20.0`・1380 件の installable な状態へ更新
+- 🔒 **Dependency Audit Fix** - Updated the lockfile to resolve the `shell-quote` npm audit finding through `npm audit fix` / `npm audit fix` により `shell-quote` の npm audit 指摘を解消するよう lockfile を更新
+
+### Added
+
+- 🧪 **Root Tree Item Resolution Tests** - Added regression coverage for resolving skill roots from root group tree items and skill item payloads / root group TreeItem と skill item payload からの skill root 解決を守る回帰テストを追加
+
 ## [0.9.21] - 2026-05-28
 
 ### Fixed
@@ -934,7 +946,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Basic skill search functionality
 - QuickPick-based UI
 
-[Unreleased]: https://github.com/aktsmm/vscode-agent-skill-ninja/compare/v0.9.8...HEAD
+[Unreleased]: https://github.com/aktsmm/vscode-agent-skill-ninja/compare/v0.9.22...HEAD
+[0.9.22]: https://github.com/aktsmm/vscode-agent-skill-ninja/releases/tag/v0.9.22
 [0.9.8]: https://github.com/aktsmm/vscode-agent-skill-ninja/releases/tag/v0.9.8
 [0.9.7]: https://github.com/aktsmm/vscode-agent-skill-ninja/releases/tag/v0.9.7
 [0.1.0]: https://github.com/aktsmm/vscode-agent-skill-ninja/releases/tag/v0.1.0
