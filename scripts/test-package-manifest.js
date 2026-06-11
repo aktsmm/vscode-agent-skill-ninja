@@ -677,6 +677,20 @@ test("managed root groups expose inline output update and reinstall actions", ()
   }
 });
 
+test("missing installed-skill recovery stays source-aware and can disable future reinstall checks", () => {
+  assert.ok(
+    extensionSource.includes("refreshIndexForInstalledMetas(") &&
+      extensionSource.includes("{ confirm: false }") &&
+      extensionSource.includes("offerDisableMissingReinstallChecks"),
+    "startup and reinstall missing-index recovery should use source-aware refresh and disable future checks",
+  );
+  assert.ok(
+    extensionSource.includes("Do Not Check Again") &&
+      extensionSource.includes("今後確認しない"),
+    "missing upstream skills should offer a future-suppression action",
+  );
+});
+
 test("localized command labels distinguish view refresh from output update", () => {
   assert.strictEqual(packageNls["command.refresh"], "Refresh View");
   assert.strictEqual(
@@ -697,6 +711,10 @@ test("README files document root inline maintenance actions and renamed labels",
     ),
   );
   assert.ok(readme.includes("Reinstall Remote Skills in This Root"));
+  assert.ok(readme.includes("disabled for future reinstall checks"));
+  assert.ok(
+    readme.includes("Legacy `source: unknown` skills without a `remotePath`"),
+  );
   assert.ok(readme.includes("Agent Skills Ninja: Regenerate Skill Output"));
 
   assert.ok(
@@ -705,6 +723,8 @@ test("README files document root inline maintenance actions and renamed labels",
     ),
   );
   assert.ok(readmeJa.includes("このルートのリモートスキルを再インストール"));
+  assert.ok(readmeJa.includes("今後確認しない"));
+  assert.ok(readmeJa.includes("`source: unknown` かつ `remotePath` が無い"));
   assert.ok(readmeJa.includes("Agent Skills Ninja: スキル出力を再生成"));
 });
 

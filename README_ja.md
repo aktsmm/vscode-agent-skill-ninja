@@ -224,6 +224,7 @@ ext install yamapan.agent-skill-ninja
 - 新しくインストールしたスキル（一時的なバッジ）
 - ツールバー: スキル出力 / スキル出力を再生成 / 新規作成 / ビューを更新 / 設定
 - 書き込み可能な各 root 行の右端にも **スキル出力を再生成** が表示され、remote-backed skill を 1 件以上含む root にだけ **このルートのリモートスキルを再インストール** が表示されます
+- remote-backed skill が上流から消えている場合、再インストール flow から「今後確認しない」に設定でき、一括操作をブロックし続けないようにできます
 - workspace view の **スキル出力** は全 root の QuickPick を出さず、workspace root をそのまま開きます
 - `ref` モードでは **スキル出力** がリンク先 catalog を開き、`full` / `compact` / `legacy` では instruction file 自体を開きます
 - 空状態: 検索 / 新規作成 / スキル出力を開く
@@ -237,6 +238,7 @@ ext install yamapan.agent-skill-ninja
 - ルートノードは短い home / product 名で表示し、件数とフルパスは description / tooltip 側に寄せます
 - ツールバー: スキル出力 / スキル出力を再生成 / 新規作成 / ビューを更新 / 設定
 - 書き込み可能な各 root 行の右端にも **スキル出力を再生成** が表示され、remote-backed skill を 1 件以上含む root にだけ **このルートのリモートスキルを再インストール** が表示されます。これで GitHub Copilot Home / Claude Home / Global Agent Home などをコマンドパレットなしで更新できます
+- `source: unknown` かつ `remotePath` が無い legacy skill は個別 lookup 候補としてだけ扱い、それ単体で一括再インストール導線を表示しないようにします
 - user/global view の **スキル出力** は全 root の QuickPick を出さず、既定の user/global root をそのまま開きます
   既定優先順は VS Code ユーザーカスタマイズ、Copilot home、Claude home、最後に global agent home です
 - `ref` モードでは **スキル出力** がリンク先 catalog を開き、`full` / `compact` / `legacy` では instruction file 自体を開きます

@@ -41,6 +41,9 @@ export interface LocalSkill extends Skill {
   isManaged: boolean;
   isReadOnly: boolean;
   remotePath?: string;
+  reinstallDisabled?: boolean;
+  reinstallDisabledReason?: string;
+  reinstallDisabledAt?: string;
   installedAt?: string;
   installedVia?: SkillMeta["installedVia"];
   packageParentName?: string;
@@ -409,6 +412,9 @@ async function parseLocalSkillFile(
     isManaged: root.isManaged,
     isReadOnly: root.isReadOnly,
     remotePath: meta?.remotePath,
+    reinstallDisabled: meta?.reinstallDisabled,
+    reinstallDisabledReason: meta?.reinstallDisabledReason,
+    reinstallDisabledAt: meta?.reinstallDisabledAt,
     installedAt: meta?.installedAt,
     installedVia: meta?.installedVia,
     packageParentName: meta?.packageParentName,

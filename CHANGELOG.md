@@ -7,6 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.9.23] - 2026-06-11
+
+### Fixed
+
+- 🧭 **Batch Reinstall Missing-Index Recovery** - Startup and batch reinstall recovery now update only the affected source when it can be resolved, skip still-missing skills instead of failing the whole batch, and allow upstream-removed skills to be disabled for future reinstall checks / 起動時と一括再インストールの missing-index 回復で、解決可能な場合は対象 source だけを更新し、更新後も見つからない skill は全体失敗ではなくスキップし、上流削除済み skill は今後の再インストール確認から除外できるよう改善
+- 🧩 **Legacy Unknown Metadata Handling** - Legacy `source: unknown` skills without `remotePath` no longer make batch reinstall roots look reinstallable by themselves while keeping individual name fallback lookup available / `remotePath` のない legacy `source: unknown` skill は、個別の名前 fallback lookup は維持しつつ、一括再インストール root を単独で reinstallable に見せないよう修正
+
+### Added
+
+- 🧪 **Reinstall Suppression Regression Tests** - Added regression coverage for `reinstallDisabled`, unknown legacy metadata, and root action visibility with disabled reinstall checks / `reinstallDisabled`、unknown legacy metadata、再インストール確認無効時の root action 表示を守る回帰テストを追加
+
 ## [0.9.22] - 2026-06-11
 
 ### Fixed
@@ -946,7 +957,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Basic skill search functionality
 - QuickPick-based UI
 
-[Unreleased]: https://github.com/aktsmm/vscode-agent-skill-ninja/compare/v0.9.22...HEAD
+[Unreleased]: https://github.com/aktsmm/vscode-agent-skill-ninja/compare/v0.9.23...HEAD
+[0.9.23]: https://github.com/aktsmm/vscode-agent-skill-ninja/releases/tag/v0.9.23
 [0.9.22]: https://github.com/aktsmm/vscode-agent-skill-ninja/releases/tag/v0.9.22
 [0.9.8]: https://github.com/aktsmm/vscode-agent-skill-ninja/releases/tag/v0.9.8
 [0.9.7]: https://github.com/aktsmm/vscode-agent-skill-ninja/releases/tag/v0.9.7

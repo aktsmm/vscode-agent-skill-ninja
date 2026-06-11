@@ -3,7 +3,7 @@ import type { SkillMeta } from "./skillInstaller";
 
 type InstalledSkillMetaIdentity = Pick<
   SkillMeta,
-  "name" | "source" | "remotePath"
+  "name" | "source" | "remotePath" | "reinstallDisabled"
 >;
 
 type SourceLike = { id: string };
@@ -77,15 +77,32 @@ export function isLocalInstalledSkillMeta(
   return (!source || source === "local") && !hasRemotePath;
 }
 
-export function shouldCheckInstalledSkillAgainstIndex(
+export function isUnknownLegacyInstalledSkillMeta(
   meta: Pick<SkillMeta, "source" | "remotePath">,
 ): boolean {
-  return !isLocalInstalledSkillMeta(meta);
+  const source = normalizeInstalledSkillSource(meta.source, meta.remotePath);
+  return source === "unknown" && !normalizeRemotePath(meta.remotePath);
+}
+
+export function isReinstallDisabledInstalledSkillMeta(
+  meta: Pick<SkillMeta, "reinstallDisabled">,
+): boolean {
+  return meta.reinstallDisabled === true;
+}
+
+export function shouldCheckInstalledSkillAgainstIndex(
+  meta: Pick<SkillMeta, "source" | "remotePath" | "reinstallDisabled">,
+): boolean {
+  return (
+    !isReinstallDisabledInstalledSkillMeta(meta) &&
+    !isLocalInstalledSkillMeta(meta) &&
+    !isUnknownLegacyInstalledSkillMeta(meta)
+  );
 }
 
 type ManagedInstalledSkillLike = {
   root: { isReadOnly: boolean };
-  meta: Pick<SkillMeta, "source" | "remotePath">;
+  meta: Pick<SkillMeta, "source" | "remotePath" | "reinstallDisabled">;
 };
 
 export function shouldCheckManagedInstalledSkillAgainstIndex(
@@ -130,7 +147,10 @@ export function findIndexedSkillForInstalledMeta(
   skills: Skill[],
   meta: InstalledSkillMetaIdentity,
 ): Skill | undefined {
-  if (isLocalInstalledSkillMeta(meta)) {
+  if (
+    isReinstallDisabledInstalledSkillMeta(meta) ||
+    isLocalInstalledSkillMeta(meta)
+  ) {
     return undefined;
   }
 

@@ -44,6 +44,8 @@ function test(name, fn) {
 const {
   findIndexedSkillForInstalledMeta,
   isLocalInstalledSkillMeta,
+  isReinstallDisabledInstalledSkillMeta,
+  isUnknownLegacyInstalledSkillMeta,
   normalizeInstalledSkillSource,
   resolveSingleAffectedSourceId,
   summarizeBatchOutcome,
@@ -131,10 +133,11 @@ test("missing remote-backed source is normalized to unknown", () => {
   );
 });
 
-test("unknown legacy metadata keeps name-only fallback", () => {
+test("unknown legacy metadata without remotePath is excluded from batch checks but keeps name-only lookup", () => {
   const unknownMeta = { name: "legacy-beta", source: "unknown" };
 
-  assert.strictEqual(shouldCheckInstalledSkillAgainstIndex(unknownMeta), true);
+  assert.strictEqual(isUnknownLegacyInstalledSkillMeta(unknownMeta), true);
+  assert.strictEqual(shouldCheckInstalledSkillAgainstIndex(unknownMeta), false);
   assert.strictEqual(
     shouldAutoUpdateInstalledSkillFromIndex(unknownMeta),
     false,
@@ -146,6 +149,54 @@ test("unknown legacy metadata keeps name-only fallback", () => {
       source: "renamed-source",
       path: "legacy/legacy-beta",
     },
+  );
+});
+
+test("unknown metadata with remotePath is still remote-backed", () => {
+  const unknownRemotePathMeta = {
+    name: "excalidraw",
+    source: "unknown",
+    remotePath: "skills/excalidraw-diagram-generator",
+  };
+
+  assert.strictEqual(
+    isUnknownLegacyInstalledSkillMeta(unknownRemotePathMeta),
+    false,
+  );
+  assert.strictEqual(
+    shouldCheckInstalledSkillAgainstIndex(unknownRemotePathMeta),
+    true,
+  );
+  assert.deepStrictEqual(
+    findIndexedSkillForInstalledMeta(skills, unknownRemotePathMeta),
+    {
+      name: "excalidraw-diagram-generator",
+      source: "resource-source",
+      path: "skills/excalidraw-diagram-generator",
+    },
+  );
+});
+
+test("reinstall disabled metadata is excluded from checks and lookup", () => {
+  const disabledMeta = {
+    name: "remote-alpha",
+    source: "sample-source",
+    remotePath: "skills/remote-alpha",
+    reinstallDisabled: true,
+  };
+
+  assert.strictEqual(isReinstallDisabledInstalledSkillMeta(disabledMeta), true);
+  assert.strictEqual(
+    shouldCheckInstalledSkillAgainstIndex(disabledMeta),
+    false,
+  );
+  assert.strictEqual(
+    shouldAutoUpdateInstalledSkillFromIndex(disabledMeta),
+    false,
+  );
+  assert.strictEqual(
+    findIndexedSkillForInstalledMeta(skills, disabledMeta),
+    undefined,
   );
 });
 

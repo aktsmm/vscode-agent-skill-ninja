@@ -88,8 +88,12 @@ function loadTreeProviderExports(japanese = false) {
       if (request === "./installedSkillIndex") {
         return {
           shouldCheckInstalledSkillAgainstIndex(meta) {
+            const hasRemotePath = !!meta.remotePath;
+            const source = meta.source || (hasRemotePath ? "unknown" : "local");
             return (
-              !!(meta.source && meta.source !== "local") || !!meta.remotePath
+              meta.reinstallDisabled !== true &&
+              !(source === "unknown" && !hasRemotePath) &&
+              ((source && source !== "local") || hasRemotePath)
             );
           },
         };
@@ -244,6 +248,24 @@ test("root group context only exposes reinstall for remote-backed managed roots"
       { source: "local", remotePath: "skills/remote-alpha" },
     ]),
     "skillRootGroupReinstallable",
+  );
+
+  assert.strictEqual(
+    getSkillRootGroupContextValue(workspaceRoot, [
+      { source: "unknown", remotePath: undefined },
+    ]),
+    "skillRootGroup",
+  );
+
+  assert.strictEqual(
+    getSkillRootGroupContextValue(workspaceRoot, [
+      {
+        source: "sample-source",
+        remotePath: "skills/remote-alpha",
+        reinstallDisabled: true,
+      },
+    ]),
+    "skillRootGroup",
   );
 });
 

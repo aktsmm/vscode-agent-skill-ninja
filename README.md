@@ -228,6 +228,7 @@ Preset index includes skills from official, curated, and community sources out o
 - Newly installed skills (temporary badge)
 - Toolbar: Skill Output / Regenerate Skill Output / Create / Refresh View / Settings
 - Each writable root row also exposes inline **Regenerate Skill Output** on the right edge, and roots with at least one remote-backed skill also show **Reinstall Remote Skills in This Root**
+- If a remote-backed skill is no longer present upstream, reinstall flows can mark it as disabled for future reinstall checks so it no longer blocks batch operations
 - In the workspace view, **Skill Output** opens the workspace root directly without showing the all-roots picker
 - In `ref` mode, **Skill Output** opens the linked catalog; in `full` / `compact` / `legacy`, it opens the instruction file itself
 - Empty state: Search / Create / Open Skill Output quick links
@@ -241,6 +242,7 @@ Preset index includes skills from official, curated, and community sources out o
 - Root nodes use concise home/product labels, while counts and full paths stay in the secondary description / tooltip
 - Toolbar: Skill Output / Regenerate Skill Output / Create / Refresh View / Settings
 - Each writable root row also exposes inline **Regenerate Skill Output** on the right edge, and roots with at least one remote-backed skill also show **Reinstall Remote Skills in This Root**, so GitHub Copilot Home / Claude Home / Global Agent Home can be refreshed without opening the command palette
+- Legacy `source: unknown` skills without a `remotePath` are treated as individual lookup candidates only; they no longer make batch reinstall actions look reinstallable by themselves
 - In the user/global view, **Skill Output** opens the default writable user/global root directly without showing the all-roots picker
   Default priority: VS Code user customizations, then Copilot home, Claude home, and finally the global agent home
 - In `ref` mode, **Skill Output** opens the linked catalog; in `full` / `compact` / `legacy`, it opens the instruction file itself

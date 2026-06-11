@@ -47,6 +47,9 @@ export interface WorkspaceSkill {
   source?: string; // インストール元ソース
   categories?: string[];
   remotePath?: string;
+  reinstallDisabled?: boolean;
+  reinstallDisabledReason?: string;
+  reinstallDisabledAt?: string;
   installedAt?: string;
   installedVia?: LocalSkill["installedVia"];
   packageParentName?: string;
@@ -135,7 +138,9 @@ export function isManagedRootGroupContextValue(
 
 export function getSkillRootGroupContextValue(
   root: SkillRoot,
-  skills: ReadonlyArray<Pick<WorkspaceSkill, "source" | "remotePath">>,
+  skills: ReadonlyArray<
+    Pick<WorkspaceSkill, "source" | "remotePath" | "reinstallDisabled">
+  >,
 ): string {
   if (root.isReadOnly) {
     return MANAGED_ROOT_GROUP_CONTEXT_VALUE;
@@ -145,6 +150,7 @@ export function getSkillRootGroupContextValue(
     shouldCheckInstalledSkillAgainstIndex({
       source: skill.source || "",
       remotePath: skill.remotePath,
+      reinstallDisabled: skill.reinstallDisabled,
     }),
   )
     ? REINSTALLABLE_ROOT_GROUP_CONTEXT_VALUE
@@ -427,6 +433,9 @@ function toWorkspaceSkill(skill: LocalSkill): WorkspaceSkill {
     source: skill.source,
     categories: skill.categories,
     remotePath: skill.remotePath,
+    reinstallDisabled: skill.reinstallDisabled,
+    reinstallDisabledReason: skill.reinstallDisabledReason,
+    reinstallDisabledAt: skill.reinstallDisabledAt,
     installedAt: skill.installedAt,
     installedVia: skill.installedVia,
     packageParentName: skill.packageParentName,
@@ -604,6 +613,9 @@ function createManagedSkillTreeItem(
       isManaged: skill.isManaged,
       isReadOnly: skill.isReadOnly,
       remotePath: skill.remotePath,
+      reinstallDisabled: skill.reinstallDisabled,
+      reinstallDisabledReason: skill.reinstallDisabledReason,
+      reinstallDisabledAt: skill.reinstallDisabledAt,
       installedAt: skill.installedAt,
       installedVia: skill.installedVia,
       packageParentName: skill.packageParentName,
@@ -663,6 +675,13 @@ function createManagedSkillTreeItem(
   if (skill.remotePath) {
     metaLines.push(
       `${isJapanese() ? "Remote Path" : "Remote Path"}: ${skill.remotePath}`,
+    );
+  }
+  if (skill.reinstallDisabled) {
+    metaLines.push(
+      isJapanese()
+        ? `再インストール確認: 無効${skill.reinstallDisabledReason ? ` (${skill.reinstallDisabledReason})` : ""}`
+        : `Reinstall Check: disabled${skill.reinstallDisabledReason ? ` (${skill.reinstallDisabledReason})` : ""}`,
     );
   }
   if (skill.installedAt) {

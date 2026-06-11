@@ -863,6 +863,9 @@ export interface SkillMeta {
   relativePath?: string; // ネストされたスキルのパス（例: "document-skills/docx"）
   remotePath?: string; // 配布元リポジトリでの相対パス
   registrationDisabled?: boolean;
+  reinstallDisabled?: boolean;
+  reinstallDisabledReason?: string;
+  reinstallDisabledAt?: string;
   metadataVersion?: 2;
   installedVia?: "direct" | "packageRoot" | "packageChild" | "legacy";
   packageParentName?: string;
