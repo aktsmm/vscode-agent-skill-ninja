@@ -751,6 +751,10 @@ export class WorkspaceSkillsProvider implements vscode.TreeDataProvider<SkillTre
     private recentlyInstalled?: Set<string>,
   ) {}
 
+  setWorkspaceUri(workspaceUri: vscode.Uri | undefined): void {
+    this.workspaceUri = workspaceUri;
+  }
+
   refresh(): void {
     this.workspaceSkills = [];
     this._onDidChangeTreeData.fire();
@@ -872,6 +876,10 @@ export class UserGlobalSkillsProvider implements vscode.TreeDataProvider<SkillTr
     private recentlyInstalled?: Set<string>,
   ) {}
 
+  setWorkspaceUri(workspaceUri: vscode.Uri | undefined): void {
+    this.workspaceUri = workspaceUri;
+  }
+
   refresh(): void {
     this.userGlobalSkills = [];
     this._onDidChangeTreeData.fire();
@@ -958,10 +966,6 @@ export class UserGlobalSkillsProvider implements vscode.TreeDataProvider<SkillTr
   }
 
   async getChildren(element?: SkillTreeItem): Promise<SkillTreeItem[]> {
-    if (!this.workspaceUri) {
-      return [];
-    }
-
     if (!element) {
       if (this.userGlobalSkills.length === 0) {
         await this.loadUserGlobalSkills();
@@ -1210,10 +1214,6 @@ export class UserGlobalSkillsProvider implements vscode.TreeDataProvider<SkillTr
   }
 
   private async loadUserGlobalSkills(): Promise<void> {
-    if (!this.workspaceUri) {
-      return;
-    }
-
     const visibleSkills = await scanVisibleSkills(this.workspaceUri);
     this.userGlobalSkills = visibleSkills
       .filter(

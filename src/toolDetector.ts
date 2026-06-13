@@ -377,7 +377,7 @@ function getToolDisplayName(tool: AITool): string {
  * 設定された出力フォーマットを取得（auto の場合は検出結果を使用）
  */
 export async function resolveOutputFormat(
-  _workspaceUri: vscode.Uri,
+  _workspaceUri?: vscode.Uri,
 ): Promise<{ format: OutputFormat; instructionFile: string }> {
   const config = vscode.workspace.getConfiguration("skillNinja");
   const outputFormat = normalizeOutputFormat(

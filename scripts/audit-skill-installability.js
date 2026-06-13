@@ -329,13 +329,24 @@ async function main() {
     ? new Map()
     : await fetchSourceTrees(sources, branchBySource);
 
+  const auditResults = [];
+  await mapWithConcurrency(
+    skills.map((skill, index) => ({ skill, index })),
+    MAX_CONCURRENCY,
+    async ({ skill, index }) => {
+      const result = RAW_ONLY
+        ? await auditSkillRaw(skill, sourceMap, branchBySource)
+        : auditSkill(skill, sourceMap, treeBySource);
+      auditResults.push({ skill, result, index });
+    },
+  );
+
+  auditResults.sort((left, right) => left.index - right.index);
+
   const failures = [];
   const summary = new Map();
 
-  for (const skill of skills) {
-    const result = RAW_ONLY
-      ? await auditSkillRaw(skill, sourceMap, branchBySource)
-      : auditSkill(skill, sourceMap, treeBySource);
+  for (const { skill, result } of auditResults) {
     const sourceSummary = summary.get(skill.source) || {
       total: 0,
       failed: 0,

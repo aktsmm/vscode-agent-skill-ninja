@@ -339,7 +339,10 @@ export function activate(
   const browseProvider = new BrowseSkillsProvider(context);
 
   function refreshInstalledViews(): void {
-    invalidateVisibleSkillsCache(workspaceFolder?.uri);
+    const activeWorkspaceUri = getActiveWorkspaceUri();
+    invalidateVisibleSkillsCache();
+    workspaceProvider.setWorkspaceUri(activeWorkspaceUri);
+    userGlobalProvider.setWorkspaceUri(activeWorkspaceUri);
     workspaceProvider.refresh();
     userGlobalProvider.refresh();
   }
@@ -386,8 +389,18 @@ export function activate(
   async function getManagedRootsForWorkspace(
     workspaceUri: vscode.Uri,
   ): Promise<SkillRoot[]> {
+    return getManagedRoots(workspaceUri);
+  }
+
+  async function getManagedRoots(
+    workspaceUri?: vscode.Uri,
+  ): Promise<SkillRoot[]> {
     const roots = await getManagedSkillRoots(workspaceUri);
     return roots.filter((root) => root.isManaged && !root.isReadOnly);
+  }
+
+  function getActiveWorkspaceUri(): vscode.Uri | undefined {
+    return vscode.workspace.workspaceFolders?.[0]?.uri;
   }
 
   function normalizeInstructionPathForSet(filePath: string): string {
@@ -778,10 +791,10 @@ export function activate(
   }
 
   async function resolvePreferredManagedRoot(
-    workspaceUri: vscode.Uri,
+    workspaceUri: vscode.Uri | undefined,
     preferredScope: "workspace" | "userGlobal",
   ): Promise<SkillRoot | undefined> {
-    const roots = await getManagedRootsForWorkspace(workspaceUri);
+    const roots = await getManagedRoots(workspaceUri);
     if (preferredScope === "workspace") {
       return roots.find((root) => root.scope === "workspace");
     }
@@ -874,7 +887,8 @@ export function activate(
           : "インストラクションファイル"
         : label;
 
-    const { format } = await resolveOutputFormat(workspaceFolder!.uri);
+    const activeWorkspaceUri = getActiveWorkspaceUri();
+    const { format } = await resolveOutputFormat(activeWorkspaceUri);
     if (format === "ref") {
       const config = vscode.workspace.getConfiguration("skillNinja");
       const configuredCatalogPath =
@@ -883,10 +897,10 @@ export function activate(
         path.dirname(instructionUri.fsPath),
       );
       const catalogUri =
-        (targetRoot.scope === "workspace"
+        (targetRoot.scope === "workspace" && activeWorkspaceUri
           ? resolveConfiguredPathToUri(
               configuredCatalogPath,
-              workspaceFolder!.uri,
+              activeWorkspaceUri,
             )
           : resolveConfiguredPathToUri(configuredCatalogPath)) ||
         vscode.Uri.joinPath(instructionDirUri, configuredCatalogPath);
@@ -1000,7 +1014,8 @@ export function activate(
     preferredScope: "workspace" | "userGlobal",
     selectedRoot?: SkillRoot,
   ): Promise<void> {
-    if (!workspaceFolder) {
+    const activeWorkspaceUri = getActiveWorkspaceUri();
+    if (preferredScope === "workspace" && !activeWorkspaceUri) {
       vscode.window.showErrorMessage(messages.noWorkspace());
       return;
     }
@@ -1011,7 +1026,7 @@ export function activate(
         : undefined;
     const targetRoot =
       scopedSelection ||
-      (await resolvePreferredManagedRoot(workspaceFolder.uri, preferredScope));
+      (await resolvePreferredManagedRoot(activeWorkspaceUri, preferredScope));
 
     if (!targetRoot) {
       vscode.window.showInformationMessage(
@@ -1230,11 +1245,6 @@ export function activate(
   const openSkillFileCmd = vscode.commands.registerCommand(
     "skillNinja.openSkillFile",
     async (item: SkillTreeItem) => {
-      if (!workspaceFolder) {
-        vscode.window.showErrorMessage(messages.noWorkspace());
-        return;
-      }
-
       const skill = item.skill as Skill & {
         fullPath?: string;
         isLocal?: boolean;
@@ -1251,10 +1261,16 @@ export function activate(
         }
       }
 
+      const activeWorkspaceUri = getActiveWorkspaceUri();
+      if (!activeWorkspaceUri) {
+        vscode.window.showErrorMessage(messages.noWorkspace());
+        return;
+      }
+
       const skillName = (item.label as string).replace(/^[✓○]\s*/, "");
       const skillRootUri =
         getSkillRootFromItem(item)?.rootUri ||
-        resolveWorkspaceSkillsRootUri(workspaceFolder.uri);
+        resolveWorkspaceSkillsRootUri(activeWorkspaceUri);
       const skillPath = vscode.Uri.joinPath(
         skillRootUri,
         skillName,
@@ -1277,11 +1293,6 @@ export function activate(
   const openSkillFolderCmd = vscode.commands.registerCommand(
     "skillNinja.openSkillFolder",
     async (item: SkillTreeItem) => {
-      if (!workspaceFolder) {
-        vscode.window.showErrorMessage(messages.noWorkspace());
-        return;
-      }
-
       // ローカルスキルの場合は fullPath からフォルダパスを取得
       const skill = item.skill as Skill & {
         fullPath?: string;
@@ -1296,12 +1307,18 @@ export function activate(
         return;
       }
 
+      const activeWorkspaceUri = getActiveWorkspaceUri();
+      if (!activeWorkspaceUri) {
+        vscode.window.showErrorMessage(messages.noWorkspace());
+        return;
+      }
+
       // インストール済みスキル（.github/skills 配下）の場合
       // ラベルからステータスアイコンを削除してスキル名を取得
       const skillName = (item.label as string).replace(/^[✓○]\s*/, "");
       const skillRootUri =
         getSkillRootFromItem(item)?.rootUri ||
-        resolveWorkspaceSkillsRootUri(workspaceFolder.uri);
+        resolveWorkspaceSkillsRootUri(activeWorkspaceUri);
 
       const folderPath = vscode.Uri.joinPath(skillRootUri, skillName);
 
@@ -4066,6 +4083,7 @@ Add examples here
   };
 
   context.subscriptions.push(
+    vscode.workspace.onDidChangeWorkspaceFolders(() => refreshAllViews()),
     vscode.workspace.onDidCreateFiles(() => refreshViews()),
     vscode.workspace.onDidDeleteFiles(() => refreshViews()),
   );

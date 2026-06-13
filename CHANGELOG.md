@@ -7,6 +7,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.9.24] - 2026-06-14
+
+### Fixed
+
+- 🧭 **No-workspace User/Global Skills View** - User/global, installed-extension, and built-in skills now remain visible and expandable even when no workspace folder is open / ワークスペースフォルダーを開いていない状態でも、user/global、インストール済み拡張機能、Built-in Skills のスキルを表示・展開できるよう修正
+- 📂 **No-workspace Skill Open Actions** - Read-only and user/global skills with known `SKILL.md` paths can now open their file or folder without requiring a workspace / 既知の `SKILL.md` パスを持つ read-only / user-global スキルは、ワークスペースなしでもファイルやフォルダーを開けるよう修正
+- 🔄 **Workspace Retargeting Refresh** - Skill views now retarget their workspace context when folders are opened or closed after activation, preventing stale empty views / 起動後にフォルダーを開閉した場合も skill view が現在の workspace context に追随し、古い空表示に固定されないよう修正
+- ⚙️ **Installability Audit Throughput** - The release installability audit now checks skills concurrently, keeping the raw-path release gate practical for the bundled preset index / release 用 installability audit が skill path を並列確認するようになり、bundled preset index の raw-path gate を現実的な時間で実行できるよう改善
+- 🧹 **Preset Skill Index Cleanup** - Pruned one stale Compound Engineering entry and refreshed the bundled skill index to `v1.21.0` with 1379 installable skills / Compound Engineering の stale entry を 1 件整理し、bundled skill index を `v1.21.0`・1379 件の installable な状態へ更新
+
+### Added
+
+- 🧪 **No-workspace Tree Regression Tests** - Added regression coverage for user/global, installed-extension, and built-in skill tree expansion without an open workspace / ワークスペース未オープン時の user/global、インストール済み拡張機能、Built-in Skills の tree 展開を守る回帰テストを追加
+
 ## [0.9.23] - 2026-06-11
 
 ### Fixed
@@ -957,7 +971,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Basic skill search functionality
 - QuickPick-based UI
 
-[Unreleased]: https://github.com/aktsmm/vscode-agent-skill-ninja/compare/v0.9.23...HEAD
+[Unreleased]: https://github.com/aktsmm/vscode-agent-skill-ninja/compare/v0.9.24...HEAD
+[0.9.24]: https://github.com/aktsmm/vscode-agent-skill-ninja/releases/tag/v0.9.24
 [0.9.23]: https://github.com/aktsmm/vscode-agent-skill-ninja/releases/tag/v0.9.23
 [0.9.22]: https://github.com/aktsmm/vscode-agent-skill-ninja/releases/tag/v0.9.22
 [0.9.8]: https://github.com/aktsmm/vscode-agent-skill-ninja/releases/tag/v0.9.8

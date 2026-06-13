@@ -2,7 +2,7 @@
   "name": "agent-skill-ninja",
   "displayName": "%displayName%",
   "description": "%description%",
-  "version": "0.9.23",
+  "version": "0.9.24",
   "publisher": "yamapan",
   "license": "CC-BY-NC-SA-4.0",
   "icon": "resources/icon.png",
@@ -1123,14 +1123,14 @@
     "package": "npm run check-types && npm run lint && node esbuild.js --production",
     "check-types": "tsc --noEmit",
     "lint": "eslint src",
-    "test": "node scripts/test-whenToUse.js && node scripts/test-search-logic.js && node scripts/test-search-ux.js && node scripts/test-skill-scan-paths.js && node scripts/test-skill-locations.js && node scripts/test-local-skill-scanner.js && node scripts/test-shared-sources-manifest.js && node scripts/test-installed-skill-index.js && node scripts/test-skill-installer-metadata-fallback.js && node scripts/test-workspace-skill-groups.js && node scripts/test-view-welcome-ux.js && node scripts/test-package-manifest.js && node scripts/test-audit-skill-installability.js && node scripts/test-coexistence.js && node scripts/test-marker-migration.js && node scripts/test-integration-coexistence.js"
+    "test": "node scripts/test-whenToUse.js && node scripts/test-search-logic.js && node scripts/test-search-ux.js && node scripts/test-skill-scan-paths.js && node scripts/test-skill-locations.js && node scripts/test-local-skill-scanner.js && node scripts/test-user-global-provider-no-workspace.js && node scripts/test-shared-sources-manifest.js && node scripts/test-installed-skill-index.js && node scripts/test-skill-installer-metadata-fallback.js && node scripts/test-workspace-skill-groups.js && node scripts/test-view-welcome-ux.js && node scripts/test-package-manifest.js && node scripts/test-audit-skill-installability.js && node scripts/test-coexistence.js && node scripts/test-marker-migration.js && node scripts/test-integration-coexistence.js"
   },
   "devDependencies": {
     "@types/node": "20.x",
     "@types/vscode": "^1.85.0",
     "@typescript-eslint/eslint-plugin": "^8.18.0",
     "@typescript-eslint/parser": "^8.18.0",
-    "esbuild": "^0.28.0",
+    "esbuild": "^0.28.1",
     "eslint": "^9.17.0",
     "npm-run-all": "^4.1.5",
     "typescript": "^5.7.2"
