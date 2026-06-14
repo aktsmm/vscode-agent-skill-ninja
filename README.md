@@ -205,6 +205,7 @@ Preset index includes skills from official, curated, and community sources out o
 | ----------------------------------------------------------------------------------------------------------------------------- | --------- | ------------------------------------- |
 | [anthropics/skills](https://github.com/anthropics/skills)                                                                     | Official  | Anthropic official Claude Skills      |
 | [openai/skills](https://github.com/openai/skills)                                                                             | Official  | OpenAI official Codex Skills (1.7k+)  |
+| [google/skills](https://github.com/google/skills)                                                                             | Official  | Google official product skills        |
 | [github/awesome-copilot](https://github.com/github/awesome-copilot)                                                           | Official  | GitHub official Copilot resources     |
 | [MicrosoftDocs/Agent-Skills](https://github.com/MicrosoftDocs/Agent-Skills)                                                   | Official  | Microsoft official Azure agent skills |
 | [ComposioHQ/awesome-claude-skills](https://github.com/ComposioHQ/awesome-claude-skills)                                       | Curated   | Curated Claude Skills list            |
@@ -553,6 +554,7 @@ npm run lint
 ## 🔗 Related Projects
 
 - [anthropics/skills](https://github.com/anthropics/skills) - Official Claude Skills
+- [google/skills](https://github.com/google/skills) - Official Google Skills (bundled in preset)
 - [github/awesome-copilot](https://github.com/github/awesome-copilot) - Official Copilot Resources
 - [microsoft/skills](https://github.com/microsoft/skills) - Upstream Microsoft Skills reference (not bundled in preset)
 - [MicrosoftDocs/Agent-Skills](https://github.com/MicrosoftDocs/Agent-Skills) - Official Azure Agent Skills (bundled in preset)

@@ -201,6 +201,7 @@ ext install yamapan.agent-skill-ninja
 | ----------------------------------------------------------------------------------------------------------------------------- | --------- | ---------------------------------- |
 | [anthropics/skills](https://github.com/anthropics/skills)                                                                     | Official  | Anthropic 公式 Claude Skills       |
 | [openai/skills](https://github.com/openai/skills)                                                                             | Official  | OpenAI 公式 Codex Skills (1.7k+)   |
+| [google/skills](https://github.com/google/skills)                                                                             | Official  | Google 公式プロダクト Skills       |
 | [github/awesome-copilot](https://github.com/github/awesome-copilot)                                                           | Official  | GitHub 公式 Copilot リソース       |
 | [MicrosoftDocs/Agent-Skills](https://github.com/MicrosoftDocs/Agent-Skills)                                                   | Official  | Microsoft 公式 Azure Agent Skills  |
 | [ComposioHQ/awesome-claude-skills](https://github.com/ComposioHQ/awesome-claude-skills)                                       | Curated   | Claude Skills キュレーションリスト |
@@ -549,6 +550,7 @@ npm run lint
 ## 🔗 Related Projects
 
 - [anthropics/skills](https://github.com/anthropics/skills) - Official Claude Skills
+- [google/skills](https://github.com/google/skills) - Official Google Skills（プリセット同梱）
 - [github/awesome-copilot](https://github.com/github/awesome-copilot) - Official Copilot Resources
 - [microsoft/skills](https://github.com/microsoft/skills) - 参考: Official Microsoft Skills（プリセット未同梱）
 - [MicrosoftDocs/Agent-Skills](https://github.com/MicrosoftDocs/Agent-Skills) - Official Azure Agent Skills（プリセット同梱）

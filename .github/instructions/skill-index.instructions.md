@@ -12,6 +12,7 @@ applyTo: "**/resources/skill-index.json"
 1. **Official リポジトリ**
    - `anthropics/skills` - Anthropic 公式
    - `openai/skills` - OpenAI 公式
+   - `google/skills` - Google 公式
    - `github/awesome-copilot` - GitHub 公式
    - `MicrosoftDocs/Agent-Skills` - Microsoft 公式 Azure Agent Skills
 

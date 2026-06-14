@@ -166,6 +166,24 @@ function loadModule() {
         });
       }
 
+      if (
+        url ===
+        "https://raw.githubusercontent.com/MicrosoftDocs/Agent-Skills/main/skills/microsoft-foundry/SKILL.md"
+      ) {
+        return createResponse({
+          text: [
+            "---",
+            "name: microsoft-foundry",
+            "description: Expert knowledge for Microsoft Foundry",
+            "---",
+            "",
+            "# Microsoft Foundry",
+            "",
+            "Full upstream skill content.",
+          ].join("\n"),
+        });
+      }
+
       return createResponse({
         ok: false,
         status: 404,
@@ -189,6 +207,9 @@ function loadModule() {
       }
       if (request === "./githubAuth") {
         return { getGitHubToken: async () => undefined };
+      }
+      if (request === "./installedSkillIndex") {
+        return { normalizeInstalledSkillSource: (source) => source };
       }
       if (request === "./skillLocations") {
         return {
@@ -218,6 +239,17 @@ function loadModule() {
                     download_url: null,
                   },
                 ],
+              });
+            }
+
+            if (
+              url ===
+              "https://api.github.com/repos/MicrosoftDocs/Agent-Skills/contents/skills/microsoft-foundry?ref=main"
+            ) {
+              return createResponse({
+                ok: false,
+                status: 403,
+                statusText: "Forbidden",
               });
             }
 
@@ -313,6 +345,56 @@ async function main() {
     );
 
     console.log("PASS installSkill resolves rawUrl/url when source is missing");
+
+    await installSkill(
+      {
+        name: "microsoft-foundry",
+        source: "MicrosoftDocs/Agent-Skills",
+        path: "skills/microsoft-foundry",
+        categories: [],
+        description: "Expert knowledge for Microsoft Foundry",
+        url: "https://github.com/MicrosoftDocs/Agent-Skills/tree/main/skills/microsoft-foundry",
+        rawUrl:
+          "https://raw.githubusercontent.com/MicrosoftDocs/Agent-Skills/main/skills/microsoft-foundry/SKILL.md",
+      },
+      makeUri(tmp),
+      {},
+    );
+
+    const foundrySkillMdPath = path.join(tmp, "microsoft-foundry", "SKILL.md");
+    assert.ok(
+      fs.existsSync(foundrySkillMdPath),
+      "SKILL.md should be recovered from the raw URL when contents API fails",
+    );
+
+    const foundrySkillMd = fs.readFileSync(foundrySkillMdPath, "utf8");
+    assert.ok(
+      foundrySkillMd.includes("# Microsoft Foundry"),
+      "raw SKILL.md content should be preserved after contents API failure",
+    );
+    assert.strictEqual(
+      foundrySkillMd.includes("Source: MicrosoftDocs/Agent-Skills"),
+      false,
+      "fallback template content should not overwrite recovered raw content",
+    );
+
+    const foundryMetaPath = path.join(
+      tmp,
+      "microsoft-foundry",
+      ".skill-meta.json",
+    );
+    assert.ok(
+      fs.existsSync(foundryMetaPath),
+      "metadata should be written after primary SKILL.md recovery",
+    );
+    const foundryMeta = JSON.parse(fs.readFileSync(foundryMetaPath, "utf8"));
+    assert.strictEqual(foundryMeta.name, "microsoft-foundry");
+    assert.strictEqual(foundryMeta.source, "MicrosoftDocs/Agent-Skills");
+    assert.strictEqual(foundryMeta.remotePath, "skills/microsoft-foundry");
+
+    console.log(
+      "PASS installSkill recovers primary SKILL.md when directory listing fails",
+    );
   } finally {
     fs.rmSync(tmp, { recursive: true, force: true });
   }

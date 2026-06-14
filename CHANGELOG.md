@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.9.25] - 2026-06-14
+
+### Added
+
+- 🌐 **Google Official Skill Source** - Added `google/skills` to the bundled preset index and refreshed the bundled skill index to `v1.22.0` with 1410 installable skills / プリセットインデックスに `google/skills` を追加し、bundled skill index を `v1.22.0`・1410 件の installable な状態へ更新
+
+### Fixed
+
+- 🛟 **Primary SKILL.md Install Recovery** - When GitHub Contents directory listing fails, the installer now falls back to the primary raw `SKILL.md` and still writes installed-skill metadata / GitHub Contents API のディレクトリ一覧取得に失敗した場合でも、primary raw `SKILL.md` を直接取得し、installed-skill metadata まで保存するよう修正
+
 ## [0.9.24] - 2026-06-14
 
 ### Fixed

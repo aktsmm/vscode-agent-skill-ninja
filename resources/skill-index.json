@@ -1,5 +1,5 @@
 {
-  "version": "1.21.0",
+  "version": "1.22.0",
   "lastUpdated": "2026-06-14",
   "sources": [
     {
@@ -91,6 +91,14 @@
       "type": "official",
       "description": "OpenAI Skills (Official)",
       "description_ja": "OpenAI Skills (Official)"
+    },
+    {
+      "id": "google-skills",
+      "name": "Google Skills (Official)",
+      "url": "https://github.com/google/skills",
+      "type": "official",
+      "description": "Google Skills (Official)",
+      "description_ja": "Google Skills (Official)"
     }
   ],
   "categories": [
@@ -430,6 +438,94 @@
       "description_ja": ""
     },
     {
+      "name": "agent-platform-deploy",
+      "source": "google-skills",
+      "path": "skills/cloud/agent-platform-deploy",
+      "categories": [],
+      "description": "Deploy open models or custom weights from Model Garden to Agent Platform endpoints, check deployment status, verify serving endpoints, or clean up resources by undeploying models and deleting endpoints. Use when asked to deploy models on Agent Platform, list available Model Garden models, check if a model is deployable, query deployment cost, troubleshoot deployment errors (like quota limits), or undeploy/clean up endpoints. Also use when copying and deploying a 1P Tuned Model. Don't use for public Vertex AI deployments (use the `vertex-deploy` skill) or for running model evaluations (use the `agent-platform-eval` skill).",
+      "description_ja": ""
+    },
+    {
+      "name": "agent-platform-endpoint-management",
+      "source": "google-skills",
+      "path": "skills/cloud/agent-platform-endpoint-management",
+      "categories": [],
+      "description": "Manages Agent Platform serving endpoints. Use when you need to create, list, describe, update, or delete serving endpoints for model deployment on Agent Platform. Also use when troubleshooting endpoint permission, quota, or resource busy errors. Don't use for deploying models to endpoints or for running model evaluations.",
+      "description_ja": ""
+    },
+    {
+      "name": "agent-platform-eval-flywheel",
+      "source": "google-skills",
+      "path": "skills/cloud/agent-platform-eval-flywheel",
+      "categories": [],
+      "description": "Measure and improve the quality of AI models and agents on Google Cloud using the Eval Quality Flywheel methodology. Use when evaluating an agent or model, building an eval dataset, picking or writing evaluation metrics, analyzing failures, comparing results before and after a fix, or when guidance is needed on Agent Platform eval methodology — including dataset schema, LLM-as-judge scoring, and common failure causes. For fine-tuning, use agent-platform-tuning. For deployment, use agent-platform-deploy.",
+      "description_ja": ""
+    },
+    {
+      "name": "agent-platform-inference",
+      "source": "google-skills",
+      "path": "skills/cloud/agent-platform-inference",
+      "categories": [],
+      "description": "Connects to and performs inference with Google Cloud Agent Platform GenAI models, including First-Party Gemini models and Third-Party OpenMaaS models (Llama, DeepSeek, Qwen, etc.). Use when you need to generate code for calling Gemini or OpenMaaS models, authenticate with GenAI SDK, OpenAI SDK, or legacy Agent Platform SDK, configure base URLs and global/regional endpoints, or troubleshoot 429 Resource Exhausted (DSQ), 400 User Validation, or 404 Not Found errors. Don't use for deploying models to endpoints or for running model evaluations.",
+      "description_ja": ""
+    },
+    {
+      "name": "agent-platform-migrate-from-ai-studio",
+      "source": "google-skills",
+      "path": "skills/cloud/agent-platform-migrate-from-ai-studio",
+      "categories": [],
+      "description": "Guides agents and users through migrating from Gemini API in Google AI Studio to Gemini Enterprise Agent Platform (formerly Vertex AI). Use this skill when moving applications to Google Cloud, to leverage Cloud credits, or to unify inferencing with other Cloud infrastructure (IAM, billing, telemetry).",
+      "description_ja": ""
+    },
+    {
+      "name": "agent-platform-model-registry",
+      "source": "google-skills",
+      "path": "skills/cloud/agent-platform-model-registry",
+      "categories": [],
+      "description": "Agent Platform Model Registry Management. Use when you need to upload, list, describe, update, or delete machine learning models (and their versions) in the Agent Platform Model Registry. Don't use for model training, model deployment to endpoints, or managing non-Agent Platform models.",
+      "description_ja": ""
+    },
+    {
+      "name": "agent-platform-prompt-management",
+      "source": "google-skills",
+      "path": "skills/cloud/agent-platform-prompt-management",
+      "categories": [],
+      "description": "Manages and orchestrates prompts in Agent Platform. Use when you need to create, list, retrieve, version, or delete managed prompts in Agent Platform. Don't use for model training, model deployment to endpoints, or managing non-Agent Platform prompts.",
+      "description_ja": ""
+    },
+    {
+      "name": "agent-platform-rag-engine-management",
+      "source": "google-skills",
+      "path": "skills/cloud/agent-platform-rag-engine-management",
+      "categories": [],
+      "description": "Manage and query Agent Platform RAG Engine Corpora and retrieve grounded contexts using the Google GenAI SDK. Use when listing RAG corpora or files, inspecting a corpus, retrieving contexts, or generating content grounded in a RAG corpus. Do not use for standard database queries (use SQL/Spanner skills), Google Workspace RAG, or other RAG products like gRAG.",
+      "description_ja": ""
+    },
+    {
+      "name": "agent-platform-skill-registry",
+      "source": "google-skills",
+      "path": "skills/cloud/agent-platform-skill-registry",
+      "categories": [],
+      "description": "Interact with the Gemini Enterprise Agent Platform Skill Registry to create and search for available skills. Use this skill to enable agents to register functionality or discover new capabilities.",
+      "description_ja": ""
+    },
+    {
+      "name": "agent-platform-tuning",
+      "source": "google-skills",
+      "path": "skills/cloud/agent-platform-tuning",
+      "categories": [],
+      "description": "Agent Platform Model Tuning. Use when you need to fine-tune open models or Gemini models using Agent Platform infrastructure. Don't use for model training outside Agent Platform, model deployment to endpoints (use `agent-platform-deploy`), or managing serving endpoints (use `agent-platform-endpoint-management`).",
+      "description_ja": ""
+    },
+    {
+      "name": "agent-platform-tuning-management",
+      "source": "google-skills",
+      "path": "skills/cloud/agent-platform-tuning-management",
+      "categories": [],
+      "description": "Manages GenAI tuning jobs in Agent Platform. Use this to list, get, or cancel ongoing model tuning jobs. Don't use for fine-tuning models (use `agent-platform-tuning`), deploying models to endpoints (use `agent-platform-deploy`), or managing serving endpoints (use `agent-platform-endpoint-management`).",
+      "description_ja": ""
+    },
+    {
       "name": "agentic-eval",
       "source": "github-awesome-copilot",
       "path": "skills/agentic-eval",
@@ -547,6 +643,14 @@
       "path": "composio-skills/all-images-ai-automation",
       "categories": [],
       "description": "Automate All Images AI tasks via Rube MCP (Composio). Always search tools first for current schemas.",
+      "description_ja": ""
+    },
+    {
+      "name": "alloydb-basics",
+      "source": "google-skills",
+      "path": "skills/cloud/alloydb-basics",
+      "categories": [],
+      "description": "Manages clusters, instances, and backups for AlloyDB for PostgreSQL, and integrates with AlloyDB model context protocol (MCP) tools for automated database operations.",
       "description_ja": ""
     },
     {
@@ -2766,6 +2870,14 @@
       "description_ja": ""
     },
     {
+      "name": "bigquery-basics",
+      "source": "google-skills",
+      "path": "skills/cloud/bigquery-basics",
+      "categories": [],
+      "description": "Manages datasets, tables, and jobs in BigQuery, and integrates with BigQuery ML and Gemini for advanced data analytics and AI-driven insights. Use when you need to interact with BigQuery, run SQL queries, manage BigQuery resources, or leverage BigQuery's built-in ML capabilities. Also use when performing data analysis, ingesting data into BigQuery, or developing AI applications on BigQuery.",
+      "description_ja": ""
+    },
+    {
       "name": "bigquery-pipeline-audit",
       "source": "github-awesome-copilot",
       "path": "skills/bigquery-pipeline-audit",
@@ -3507,6 +3619,22 @@
       "path": "composio-skills/clockify-automation",
       "categories": [],
       "description": "Automate time tracking workflows in Clockify -- create and manage time entries, workspaces, and users through natural language commands.",
+      "description_ja": ""
+    },
+    {
+      "name": "cloud-run-basics",
+      "source": "google-skills",
+      "path": "skills/cloud/cloud-run-basics",
+      "categories": [],
+      "description": "Manages Cloud Run services, jobs, and worker pools. Use when you need to deploy applications responding to HTTP requests (services), run event-triggered or scheduled tasks (jobs), or handle always-on pull-based background processing (worker pools).",
+      "description_ja": ""
+    },
+    {
+      "name": "cloud-sql-basics",
+      "source": "google-skills",
+      "path": "skills/cloud/cloud-sql-basics",
+      "categories": [],
+      "description": "This file generates or explains Cloud SQL resources. Use this file when the user asks to create a Cloud SQL instance or database for MySQL, PostgreSQL, or SQL Server.  Cloud SQL manages third-party MySQL, PostgreSQL, and SQL Server instances as resources in Cloud SQL. For example, when Cloud SQL creates an open-source MySQL instance, the resulting resource is a Cloud SQL for MySQL instance that Google Cloud manages.  Cloud SQL handles backups, high availability, and secure connectivity for relational database workloads.",
       "description_ja": ""
     },
     {
@@ -5310,6 +5438,14 @@
       "description_ja": ""
     },
     {
+      "name": "firebase-basics",
+      "source": "google-skills",
+      "path": "skills/cloud/firebase-basics",
+      "categories": [],
+      "description": "Use this skill whenever you are working on a project that uses Firebase products or services, especially for mobile or web apps.",
+      "description_ja": ""
+    },
+    {
       "name": "fireberry-automation",
       "source": "composio-awesome",
       "path": "composio-skills/fireberry-automation",
@@ -5598,11 +5734,43 @@
       "description_ja": ""
     },
     {
+      "name": "gcloud",
+      "source": "google-skills",
+      "path": "skills/cloud/gcloud",
+      "categories": [],
+      "description": "Interacts with Google Cloud services using the gcloud CLI safely and efficiently. Covers command validation, data reduction, safety guardrails with a denylist, and workflows for discovery and investigation. You MUST read this skill before invoking any gcloud command. Use when managing cloud resources, querying configurations, or troubleshooting issues via gcloud. Don't use when writing or debugging Google Cloud client library code or raw REST/gRPC API interactions.",
+      "description_ja": ""
+    },
+    {
+      "name": "gemini-agents-api",
+      "source": "google-skills",
+      "path": "skills/cloud/gemini-agents-api",
+      "categories": [],
+      "description": "Manages custom Agent resources on Gemini Enterprise Agent Platform. Use when the user wants to programmatically create, configure, list, update, or delete stateful, server-managed Agent resources (including mounting files, skills, and tools) before executing conversations.",
+      "description_ja": ""
+    },
+    {
+      "name": "gemini-api",
+      "source": "google-skills",
+      "path": "skills/cloud/gemini-api",
+      "categories": [],
+      "description": "Use when the user asks about using Gemini in an enterprise environment or explicitly mentions Vertex AI, Google Cloud, or Agent Platform. Guides the usage of the Gemini API on Agent Platform with the Google Gen AI SDK. Covers SDK usage (Python, JS/TS, Go, Java, C#), capabilities like multimodal inputs, tools, media generation, caching, batch prediction, and Live API.",
+      "description_ja": ""
+    },
+    {
       "name": "gemini-automation",
       "source": "composio-awesome",
       "path": "composio-skills/gemini-automation",
       "categories": [],
       "description": "Automate Gemini tasks via Rube MCP (Composio). Always search tools first for current schemas.",
+      "description_ja": ""
+    },
+    {
+      "name": "gemini-interactions-api",
+      "source": "google-skills",
+      "path": "skills/cloud/gemini-interactions-api",
+      "categories": [],
+      "description": "Guides the usage of Gemini Interactions API on Gemini Enterprise Agent Platform. Use when the user wants to use the stateful, server-managed Interactions API for multi-turn conversations, background execution, streaming, structured output, and function calling on the Agent Platform.",
       "description_ja": ""
     },
     {
@@ -5766,6 +5934,14 @@
       "description_ja": ""
     },
     {
+      "name": "gke-basics",
+      "source": "google-skills",
+      "path": "skills/cloud/gke-basics",
+      "categories": [],
+      "description": "Plan, create, and configure production-ready Google Kubernetes Engine (GKE) clusters using the golden path Autopilot configuration. Covers Day-0 checklist, Autopilot vs Standard, networking (private clusters, VPC-native, Gateway API), security (Workload Identity, Secret Manager, RBAC hardening), observability, scaling, cost optimization, and AI/ML inference. WHEN: create GKE cluster, provision GKE environment, design GKE networking, secure GKE, optimize GKE cost, GKE autoscaling, GKE inference, GKE upgrade, GKE observability, GKE multi-tenancy, GKE batch, GKE HPC, GKE compute class.",
+      "description_ja": ""
+    },
+    {
       "name": "gladia-automation",
       "source": "composio-awesome",
       "path": "composio-skills/gladia-automation",
@@ -5894,11 +6070,83 @@
       "description_ja": ""
     },
     {
+      "name": "google-cloud-networking-observability",
+      "source": "google-skills",
+      "path": "skills/cloud/google-cloud-networking-observability",
+      "categories": [],
+      "description": "Investigates Google Cloud networking issues by analyzing logs, metrics, and diagnostics. Use when investigating VPC Flow Logs (including cost estimation), NAT, firewall, or threat logs, querying latency and throughput metrics, or running Connectivity Tests for path diagnostics. Don't use for generic VM management or non-observability tasks.",
+      "description_ja": ""
+    },
+    {
+      "name": "google-cloud-recipe-auth",
+      "source": "google-skills",
+      "path": "skills/cloud/google-cloud-recipe-auth",
+      "categories": [],
+      "description": "Provides expert guidance on authenticating and authorizing to Google Cloud services and APIs, covering human users, service identities, Application Default Credentials (ADC), and best practices for secure access.",
+      "description_ja": ""
+    },
+    {
+      "name": "google-cloud-recipe-onboarding",
+      "source": "google-skills",
+      "path": "skills/cloud/google-cloud-recipe-onboarding",
+      "categories": [],
+      "description": "Guides a developer's first steps on Google Cloud, covering account creation, billing setup, project management, and deploying a first resource. Use when a new developer wants to initialize their first Google Cloud project, configure billing, and verify deployment. Don't use for enterprise organization setup (use Google Cloud Setup guided flow for that instead). Don't use for complex multi-project architectures.",
+      "description_ja": ""
+    },
+    {
       "name": "google-cloud-vision-automation",
       "source": "composio-awesome",
       "path": "composio-skills/google-cloud-vision-automation",
       "categories": [],
       "description": "Automate Google Cloud Vision tasks via Rube MCP (Composio). Always search tools first for current schemas.",
+      "description_ja": ""
+    },
+    {
+      "name": "google-cloud-waf-cost-optimization",
+      "source": "google-skills",
+      "path": "skills/cloud/google-cloud-waf-cost-optimization",
+      "categories": [],
+      "description": "Generates cost optimization guidance for Google Cloud workloads based on the Google Cloud Well-Architected Framework (WAF). Use this skill to evaluate a workload, identify cost requirements and constraints, and provide actionable recommendations for build, deploy, and manage the workload cost-efficiently in Google Cloud.",
+      "description_ja": ""
+    },
+    {
+      "name": "google-cloud-waf-operational-excellence",
+      "source": "google-skills",
+      "path": "skills/cloud/google-cloud-waf-operational-excellence",
+      "categories": [],
+      "description": "Generates operations-focused guidance for Google Cloud workloads based on the design principles and recommendations in the Operational Excellence pillar of the Google Cloud Well-Architected Framework (WAF). Use this skill to evaluate a workload, identify operational requirements, and provide actionable recommendations for deployment, monitoring, and incident management.",
+      "description_ja": ""
+    },
+    {
+      "name": "google-cloud-waf-performance-optimization",
+      "source": "google-skills",
+      "path": "skills/cloud/google-cloud-waf-performance-optimization",
+      "categories": [],
+      "description": "Generates performance-focused guidance for Google Cloud workloads based on the design principles and recommendations in the Performance Optimization pillar of the Google Cloud Well-Architected Framework (WAF). Use this skill to evaluate a workload, identify performance requirements, and provide actionable recommendations for resource allocation, modular design, and elasticity.",
+      "description_ja": ""
+    },
+    {
+      "name": "google-cloud-waf-reliability",
+      "source": "google-skills",
+      "path": "skills/cloud/google-cloud-waf-reliability",
+      "categories": [],
+      "description": "Generates reliability-focused guidance for Google Cloud workloads based on the design principles and recommendations in the Google Cloud Well-Architected Framework. Use this skill to evaluate a workload, identify reliability requirements, and provide actionable recommendations for build, deploy, and manage the workload reliably in Google Cloud.",
+      "description_ja": ""
+    },
+    {
+      "name": "google-cloud-waf-security",
+      "source": "google-skills",
+      "path": "skills/cloud/google-cloud-waf-security",
+      "categories": [],
+      "description": "Generates security-focused guidance for Google Cloud workloads based on the design principles and recommendations in the Google Cloud Well-Architected Framework (WAF). Use this skill to evaluate a workload, identify security requirements, and provide actionable recommendations for IAM, network security, data protection, and operational security.",
+      "description_ja": ""
+    },
+    {
+      "name": "google-cloud-waf-sustainability",
+      "source": "google-skills",
+      "path": "skills/cloud/google-cloud-waf-sustainability",
+      "categories": [],
+      "description": "Generates sustainability-focused guidance for Google Cloud workloads based on the design principles and recommendations in the Google Cloud Well-Architected Framework (WAF). Use this skill to evaluate a workload, identify environmental impact requirements, and provide actionable recommendations to build, deploy, and manage the workload sustainably in Google Cloud.",
       "description_ja": ""
     },
     {
@@ -10987,6 +11235,14 @@
       "path": "skills/workiq-copilot",
       "categories": [],
       "description": "Guides the Copilot CLI on how to use the WorkIQ CLI/MCP server to query Microsoft 365 Copilot data (emails, meetings, docs, Teams, people) for live context, summaries, and recommendations.",
+      "description_ja": ""
+    },
+    {
+      "name": "workload-manager-basics",
+      "source": "google-skills",
+      "path": "skills/cloud/workload-manager-basics",
+      "categories": [],
+      "description": "Use this skill to manage Google Cloud Workload Manager evaluations, rules, scanned resources, and validation results by using public client libraries and the REST API. Use when you need to inspect workload best-practice rules, create and run evaluations for Google Cloud general best practices, SAP, SQL Server, or custom organizational rules, review violations, export results to BigQuery, or automate Workload Manager through client libraries because no service-specific public CLI or MCP server is available. Don't use for general Google Compute Engine instance management, VPC configuration, or standard IAM auditing.",
       "description_ja": ""
     },
     {

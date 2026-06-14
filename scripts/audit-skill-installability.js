@@ -66,7 +66,26 @@ function normalizeSkillPath(skillPath) {
     .replace(/\/+$/, "");
 }
 
-function buildHeaders(extraAccept) {
+function shouldAttachGitHubToken(url, token) {
+  return Boolean(token) && !url.includes("raw.githubusercontent.com");
+}
+
+function shouldRetryWithoutToken(status, bodyText, token) {
+  return (
+    status === 403 &&
+    Boolean(token) &&
+    (bodyText.includes(
+      "forbids access via a personal access tokens (classic)",
+    ) ||
+      bodyText.includes("Resource protected by organization SAML enforcement"))
+  );
+}
+
+function buildHeaders(
+  url,
+  extraAccept,
+  token = process.env.GITHUB_TOKEN || process.env.GH_TOKEN,
+) {
   const headers = {
     "User-Agent": USER_AGENT,
   };
@@ -75,8 +94,7 @@ function buildHeaders(extraAccept) {
     headers.Accept = extraAccept;
   }
 
-  const token = process.env.GITHUB_TOKEN || process.env.GH_TOKEN;
-  if (token) {
+  if (shouldAttachGitHubToken(url, token)) {
     headers.Authorization = `token ${token}`;
   }
 
@@ -84,9 +102,22 @@ function buildHeaders(extraAccept) {
 }
 
 async function fetchJson(url) {
-  const response = await fetchWithTimeout(url, {
-    headers: buildHeaders("application/vnd.github+json"),
+  const token = process.env.GITHUB_TOKEN || process.env.GH_TOKEN;
+  let response = await fetchWithTimeout(url, {
+    headers: buildHeaders(url, "application/vnd.github+json", token),
   });
+
+  if (!response.ok) {
+    const bodyText = await response.clone().text();
+    if (shouldRetryWithoutToken(response.status, bodyText, token)) {
+      console.warn(
+        `[audit] Retrying without token because the repository rejects this classic PAT policy: ${url}`,
+      );
+      response = await fetchWithTimeout(url, {
+        headers: buildHeaders(url, "application/vnd.github+json", null),
+      });
+    }
+  }
 
   if (!response.ok) {
     throw new Error(`HTTP ${response.status} for ${url}`);
@@ -98,7 +129,7 @@ async function fetchJson(url) {
 async function fetchOk(url) {
   const response = await fetchWithTimeout(url, {
     method: "HEAD",
-    headers: buildHeaders(),
+    headers: buildHeaders(url),
   });
 
   if (response.ok) {
@@ -107,7 +138,7 @@ async function fetchOk(url) {
 
   if (response.status === 405) {
     const fallback = await fetchWithTimeout(url, {
-      headers: buildHeaders(),
+      headers: buildHeaders(url),
     });
     return fallback.ok;
   }
@@ -325,16 +356,25 @@ async function main() {
     (skill) => SOURCE_FILTER.size === 0 || SOURCE_FILTER.has(skill.source),
   );
   const branchBySource = await resolveSourceBranches(sources);
-  const treeBySource = RAW_ONLY
-    ? new Map()
-    : await fetchSourceTrees(sources, branchBySource);
+  let forceRawOnly = RAW_ONLY;
+  let treeBySource = new Map();
+  if (!RAW_ONLY) {
+    try {
+      treeBySource = await fetchSourceTrees(sources, branchBySource);
+    } catch (error) {
+      forceRawOnly = true;
+      console.warn(
+        `[audit] Falling back to raw-only mode because source tree audit failed: ${error instanceof Error ? error.message : String(error)}`,
+      );
+    }
+  }
 
   const auditResults = [];
   await mapWithConcurrency(
     skills.map((skill, index) => ({ skill, index })),
     MAX_CONCURRENCY,
     async ({ skill, index }) => {
-      const result = RAW_ONLY
+      const result = forceRawOnly
         ? await auditSkillRaw(skill, sourceMap, branchBySource)
         : auditSkill(skill, sourceMap, treeBySource);
       auditResults.push({ skill, result, index });
@@ -365,7 +405,7 @@ async function main() {
   }
 
   console.log(
-    `Audited ${skills.length} skills across ${sources.length} sources.${RAW_ONLY ? " (raw-only mode)" : ""}`,
+    `Audited ${skills.length} skills across ${sources.length} sources.${forceRawOnly ? " (raw-only mode)" : ""}`,
   );
 
   for (const source of sources) {
@@ -417,6 +457,8 @@ module.exports = {
   normalizeRepoUrl,
   getRepoParts,
   normalizeSkillPath,
+  shouldAttachGitHubToken,
+  shouldRetryWithoutToken,
   auditSkill,
   buildPrunedIndex,
 };

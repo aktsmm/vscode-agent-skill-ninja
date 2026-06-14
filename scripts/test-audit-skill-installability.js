@@ -7,6 +7,8 @@ const {
   normalizeRepoUrl,
   getRepoParts,
   normalizeSkillPath,
+  shouldAttachGitHubToken,
+  shouldRetryWithoutToken,
   auditSkill,
   buildPrunedIndex,
 } = require(path.join(__dirname, "audit-skill-installability.js"));
@@ -51,6 +53,43 @@ test("getRepoParts resolves normalized owner/repo", () => {
 
 test("normalizeSkillPath trims surrounding slashes", () => {
   assert.strictEqual(normalizeSkillPath("/skills/example/"), "skills/example");
+});
+
+test("GitHub audit auth avoids raw URLs and retries classic PAT policy blocks", () => {
+  assert.strictEqual(
+    shouldAttachGitHubToken(
+      "https://raw.githubusercontent.com/owner/repo/main/skills/demo/SKILL.md",
+      "token",
+    ),
+    false,
+  );
+  assert.strictEqual(
+    shouldAttachGitHubToken(
+      "https://api.github.com/repos/owner/repo/git/trees/main?recursive=1",
+      "token",
+    ),
+    true,
+  );
+  assert.strictEqual(
+    shouldRetryWithoutToken(
+      403,
+      "Resource protected by organization SAML enforcement. This organization forbids access via a personal access tokens (classic).",
+      "token",
+    ),
+    true,
+  );
+  assert.strictEqual(
+    shouldRetryWithoutToken(403, "API rate limit exceeded", "token"),
+    false,
+  );
+  assert.strictEqual(
+    shouldRetryWithoutToken(
+      403,
+      "Resource protected by organization SAML enforcement. You must grant your OAuth token access to this organization.",
+      "token",
+    ),
+    true,
+  );
 });
 
 test("auditSkill accepts markdown file paths and directory SKILL.md paths", () => {
