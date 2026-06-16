@@ -154,9 +154,12 @@ const {
   getDefaultUserGlobalSkillLocationPaths,
   getExtensionSkillRoots,
   getPackagedBuiltInSkillLocationPaths,
+  getManagedSkillRoots,
+  parseAdditionalWorkspaceSkillRootPaths,
   parseAgentSkillLocationConfig,
   pathToDisplayPath,
   resolveConfiguredPath,
+  resolveWorkspaceSkillRootUris,
   resolveUserGlobalInstructionPath,
   resolveWorkspaceSkillsDirectory,
   resolveWorkspaceSkillsRootUri,
@@ -418,6 +421,23 @@ function makeConfigStub(values) {
     );
   });
 
+  await test("parseAdditionalWorkspaceSkillRootPaths keeps non-empty unique string entries", () => {
+    assert.deepStrictEqual(
+      JSON.parse(
+        JSON.stringify(
+          parseAdditionalWorkspaceSkillRootPaths([
+            "copilot-skills/skills",
+            " ",
+            "copilot-skills/m-skills",
+            "copilot-skills/skills",
+            123,
+          ]),
+        ),
+      ),
+      ["copilot-skills/skills", "copilot-skills/m-skills"],
+    );
+  });
+
   await test("resolveWorkspaceSkillsRootUri: keeps relative workspace paths under workspace", () => {
     const workspaceUri = vscodeStub.Uri.file(
       path.join(path.sep, "workspace", "repo"),
@@ -429,6 +449,136 @@ function makeConfigStub(values) {
       resolved.fsPath,
       path.join(workspaceUri.fsPath, "custom", "skills"),
     );
+  });
+
+  await test("resolveWorkspaceSkillRootUris: includes additional workspace roots", () => {
+    const workspaceUri = vscodeStub.Uri.file(
+      path.join(path.sep, "workspace", "repo"),
+    );
+    const own = makeConfigStub({
+      skillsDirectory: ".github/skills",
+      additionalSkillRoots: [
+        "copilot-skills/skills",
+        "copilot-skills/m-skills",
+        ".github/skills",
+      ],
+    });
+    const roots = resolveWorkspaceSkillRootUris(workspaceUri, own);
+
+    assert.deepStrictEqual(
+      JSON.parse(JSON.stringify(roots.map((root) => root.fsPath))),
+      [
+        path.join(workspaceUri.fsPath, ".github", "skills"),
+        path.join(workspaceUri.fsPath, "copilot-skills", "skills"),
+        path.join(workspaceUri.fsPath, "copilot-skills", "m-skills"),
+      ],
+    );
+  });
+
+  await test("resolveWorkspaceSkillRootUris: deduplicates slash variants after resolution", () => {
+    const workspaceUri = vscodeStub.Uri.file(
+      path.join(path.sep, "workspace", "repo"),
+    );
+    const own = makeConfigStub({
+      skillsDirectory: ".github/skills",
+      additionalSkillRoots: ["copilot-skills/skills", "copilot-skills\\skills"],
+    });
+    const roots = resolveWorkspaceSkillRootUris(workspaceUri, own);
+
+    assert.deepStrictEqual(
+      JSON.parse(JSON.stringify(roots.map((root) => root.fsPath))),
+      [
+        path.join(workspaceUri.fsPath, ".github", "skills"),
+        path.join(workspaceUri.fsPath, "copilot-skills", "skills"),
+      ],
+    );
+  });
+
+  await test("resolveWorkspaceSkillRootUris: resolves mixed slash additional roots", () => {
+    const workspaceUri = vscodeStub.Uri.file(
+      path.join(path.sep, "workspace", "repo"),
+    );
+    const own = makeConfigStub({
+      skillsDirectory: ".github/skills",
+      additionalSkillRoots: ["custom\\mixed/path"],
+    });
+    const roots = resolveWorkspaceSkillRootUris(workspaceUri, own);
+
+    assert.deepStrictEqual(
+      JSON.parse(JSON.stringify(roots.map((root) => root.fsPath))),
+      [
+        path.join(workspaceUri.fsPath, ".github", "skills"),
+        path.join(workspaceUri.fsPath, "custom", "mixed", "path"),
+      ],
+    );
+  });
+
+  await test("getManagedSkillRoots: exposes additional roots as writable workspace roots", async () => {
+    const workspaceUri = vscodeStub.Uri.file(
+      path.join(path.sep, "workspace", "repo"),
+    );
+    vscodeStub.__configBySection.skillNinja = {
+      skillsDirectory: ".github/skills",
+      additionalSkillRoots: [
+        "copilot-skills/skills",
+        "copilot-skills/m-skills",
+      ],
+      useVsCodeAgentSkillLocations: false,
+    };
+
+    try {
+      const roots = await getManagedSkillRoots(workspaceUri);
+      assert.deepStrictEqual(
+        JSON.parse(
+          JSON.stringify(
+            roots.map((root) => ({
+              scope: root.scope,
+              rootPath: root.rootPath,
+              displayPath: root.displayPath,
+              isManaged: root.isManaged,
+              isReadOnly: root.isReadOnly,
+              linkPathFromInstruction: root.linkPathFromInstruction,
+            })),
+          ),
+        ),
+        [
+          {
+            scope: "workspace",
+            rootPath: path.join(workspaceUri.fsPath, ".github", "skills"),
+            displayPath: ".github/skills",
+            isManaged: true,
+            isReadOnly: false,
+            linkPathFromInstruction: ".github/skills",
+          },
+          {
+            scope: "workspace",
+            rootPath: path.join(
+              workspaceUri.fsPath,
+              "copilot-skills",
+              "skills",
+            ),
+            displayPath: "copilot-skills/skills",
+            isManaged: true,
+            isReadOnly: false,
+            linkPathFromInstruction: "copilot-skills/skills",
+          },
+          {
+            scope: "workspace",
+            rootPath: path.join(
+              workspaceUri.fsPath,
+              "copilot-skills",
+              "m-skills",
+            ),
+            displayPath: "copilot-skills/m-skills",
+            isManaged: true,
+            isReadOnly: false,
+            linkPathFromInstruction: "copilot-skills/m-skills",
+          },
+        ],
+      );
+    } finally {
+      vscodeStub.__configBySection.skillNinja = {};
+    }
   });
 
   await test("resolveWorkspaceSkillsRootUri: preserves absolute sibling overrides", () => {

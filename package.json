@@ -2,7 +2,7 @@
   "name": "agent-skill-ninja",
   "displayName": "%displayName%",
   "description": "%description%",
-  "version": "0.9.25",
+  "version": "0.9.26",
   "publisher": "yamapan",
   "license": "CC-BY-NC-SA-4.0",
   "icon": "resources/icon.png",
@@ -941,7 +941,7 @@
         "skillNinja.autoUpdateSkillsOnUpgrade": {
           "type": "string",
           "default": "prompt",
-          "order": 11,
+          "order": 12,
           "enum": [
             "always",
             "prompt",
@@ -998,30 +998,40 @@
           "order": 4,
           "description": "%config.skillsDirectory.description%"
         },
+        "skillNinja.additionalSkillRoots": {
+          "type": "array",
+          "default": [],
+          "order": 5,
+          "items": {
+            "type": "string"
+          },
+          "description": "%config.additionalSkillRoots.description%",
+          "markdownDescription": "%config.additionalSkillRoots.markdownDescription%"
+        },
         "skillNinja.useVsCodeAgentSkillLocations": {
           "type": "boolean",
           "default": true,
-          "order": 5,
+          "order": 6,
           "description": "%config.useVsCodeAgentSkillLocations.description%",
           "markdownDescription": "%config.useVsCodeAgentSkillLocations.markdownDescription%"
         },
         "skillNinja.showBuiltInSkills": {
           "type": "boolean",
           "default": true,
-          "order": 6,
+          "order": 7,
           "description": "%config.showBuiltInSkills.description%",
           "markdownDescription": "%config.showBuiltInSkills.markdownDescription%"
         },
         "skillNinja.githubToken": {
           "type": "string",
           "default": "",
-          "order": 12,
+          "order": 13,
           "markdownDescription": "%config.githubToken.markdownDescription%"
         },
         "skillNinja.language": {
           "type": "string",
           "default": "auto",
-          "order": 10,
+          "order": 11,
           "enum": [
             "auto",
             "en",
@@ -1037,7 +1047,7 @@
         "skillNinja.outputFormat": {
           "type": "string",
           "default": "ref",
-          "order": 7,
+          "order": 8,
           "enum": [
             "ref",
             "full",
@@ -1055,13 +1065,13 @@
         "skillNinja.refCatalogPath": {
           "type": "string",
           "default": ".github/skills/README.md",
-          "order": 8,
+          "order": 9,
           "markdownDescription": "%config.refCatalogPath.markdownDescription%"
         },
         "skillNinja.refCatalogFormat": {
           "type": "string",
           "default": "full",
-          "order": 9,
+          "order": 10,
           "enum": [
             "full",
             "compact",
@@ -1077,14 +1087,14 @@
         "skillNinja.singleClickInstall": {
           "type": "boolean",
           "default": false,
-          "order": 13,
+          "order": 14,
           "description": "%config.singleClickInstall.description%",
           "markdownDescription": "%config.singleClickInstall.markdownDescription%"
         },
         "skillNinja.coexistenceMode": {
           "type": "string",
           "default": "auto",
-          "order": 14,
+          "order": 15,
           "enum": [
             "auto",
             "independent"
@@ -1098,7 +1108,7 @@
         "skillNinja.useSharedSourcesManifest": {
           "type": "boolean",
           "default": false,
-          "order": 15,
+          "order": 16,
           "markdownDescription": "%config.useSharedSourcesManifest.markdownDescription%"
         },
         "skillNinja.versionInfo": {

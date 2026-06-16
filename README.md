@@ -109,7 +109,7 @@ Settings → **Output Format** → Select `ref`, `full`, `compact`, or `legacy`
 ### 📁 Workspace Skill Management
 
 - Manage **SKILL.md** files across four scopes: workspace, user/global, read-only installed extensions, and optional built-in
-- Use `skillNinja.skillsDirectory` as the managed workspace root and auto-discover extra user/global roots from VS Code Agent Skill Locations
+- Use `skillNinja.skillsDirectory` as the primary managed workspace root, add repo-local roots with `skillNinja.additionalSkillRoots`, and auto-discover extra user/global roots from VS Code Agent Skill Locations
 - Automatically sync managed skills to the closest instruction file for each writable root
 - Create new skill from template
 
@@ -225,7 +225,7 @@ Preset index includes skills from official, curated, and community sources out o
 1. Click the **spiral shuriken icon** in the Activity Bar
 2. **Installed Skills** - Workspace managed skills grouped by skill root
 
-- **Workspace Skills**: managed under `skillNinja.skillsDirectory` (default: `.github/skills`)
+- **Workspace Skills**: managed under `skillNinja.skillsDirectory` (default: `.github/skills`) plus any `skillNinja.additionalSkillRoots`
 - Newly installed skills (temporary badge)
 - Toolbar: Skill Output / Regenerate Skill Output / Create / Refresh View / Settings
 - Each writable root row also exposes inline **Regenerate Skill Output** on the right edge, and roots with at least one remote-backed skill also show **Reinstall Remote Skills in This Root**
@@ -390,22 +390,23 @@ If you don't need MCP tools, you can disable them from GitHub Copilot Chat:
 |   1   | `skillNinja.autoUpdateInstruction`        | `true`                     | **Auto-update instruction file on install**                                         |
 |   2   | `skillNinja.instructionFile`              | `AGENTS.md`                | Instruction file format _(requires Auto Update)_                                    |
 |   3   | `skillNinja.customInstructionPath`        | `""`                       | Custom path _(only when 'custom' selected)_                                         |
-|   4   | `skillNinja.skillsDirectory`              | `.github/skills`           | Directory to install and manage workspace skills                                    |
-|   5   | `skillNinja.useVsCodeAgentSkillLocations` | `true`                     | Discover standard personal roots and extra user/global skill roots                  |
-|   6   | `skillNinja.showBuiltInSkills`            | `true`                     | Show read-only built-in skills                                                      |
-|   7   | `skillNinja.outputFormat`                 | `ref`                      | Output format (ref / full / compact / legacy)                                       |
-|   8   | `skillNinja.refCatalogPath`               | `.github/skills/README.md` | Catalog file path used by the `ref` format                                          |
-|   9   | `skillNinja.refCatalogFormat`             | `full`                     | Catalog detail format used when `outputFormat` is `ref`                             |
-|  10   | `skillNinja.language`                     | `auto`                     | UI language (auto / en / ja)                                                        |
-|  11   | `skillNinja.autoUpdateSkillsOnUpgrade`    | `prompt`                   | Update installed skills after extension upgrade                                     |
-|  12   | `skillNinja.githubToken`                  | `""`                       | GitHub Token (for API rate limit)                                                   |
-|  13   | `skillNinja.singleClickInstall`           | `false`                    | Install remote skills with single click                                             |
-|  14   | `skillNinja.coexistenceMode`              | `auto`                     | Coexistence with Agent Resources Ninja (`auto` / `independent`)                     |
-|  15   | `skillNinja.useSharedSourcesManifest`     | `false`                    | Share source-list SSOT with Agent Resources Ninja via `~/.agent-ninja/sources.json` |
+|   4   | `skillNinja.skillsDirectory`              | `.github/skills`           | Primary directory to install and manage workspace skills                            |
+|   5   | `skillNinja.additionalSkillRoots`         | `[]`                       | Additional workspace skill roots, for example `copilot-skills/skills`               |
+|   6   | `skillNinja.useVsCodeAgentSkillLocations` | `true`                     | Discover standard personal roots and extra user/global skill roots                  |
+|   7   | `skillNinja.showBuiltInSkills`            | `true`                     | Show read-only built-in skills                                                      |
+|   8   | `skillNinja.outputFormat`                 | `ref`                      | Output format (ref / full / compact / legacy)                                       |
+|   9   | `skillNinja.refCatalogPath`               | `.github/skills/README.md` | Catalog file path used by the `ref` format                                          |
+|  10   | `skillNinja.refCatalogFormat`             | `full`                     | Catalog detail format used when `outputFormat` is `ref`                             |
+|  11   | `skillNinja.language`                     | `auto`                     | UI language (auto / en / ja)                                                        |
+|  12   | `skillNinja.autoUpdateSkillsOnUpgrade`    | `prompt`                   | Update installed skills after extension upgrade                                     |
+|  13   | `skillNinja.githubToken`                  | `""`                       | GitHub Token (for API rate limit)                                                   |
+|  14   | `skillNinja.singleClickInstall`           | `false`                    | Install remote skills with single click                                             |
+|  15   | `skillNinja.coexistenceMode`              | `auto`                     | Coexistence with Agent Resources Ninja (`auto` / `independent`)                     |
+|  16   | `skillNinja.useSharedSourcesManifest`     | `false`                    | Share source-list SSOT with Agent Resources Ninja via `~/.agent-ninja/sources.json` |
 
 > Settings are displayed in the order above
 
-Legacy compatibility setting: `skillNinja.includeLocalSkills` is deprecated. Workspace skills stay scoped to `skillNinja.skillsDirectory`, while personal roots and additional user/global roots are discovered from `skillNinja.useVsCodeAgentSkillLocations`. Configured locations support `${workspaceFolder}`, `${userHome}`, `${env:APPDATA}`, and `%APPDATA%`. Built-in read-only skills are controlled by `skillNinja.showBuiltInSkills` and are shown by default.
+Legacy compatibility setting: `skillNinja.includeLocalSkills` is deprecated. Workspace skills stay scoped to `skillNinja.skillsDirectory` and `skillNinja.additionalSkillRoots`, while personal roots and additional user/global roots are discovered from `skillNinja.useVsCodeAgentSkillLocations`. Configured locations support `${workspaceFolder}`, `${userHome}`, `${env:APPDATA}`, and `%APPDATA%`. Built-in read-only skills are controlled by `skillNinja.showBuiltInSkills` and are shown by default.
 
 ### Coexistence with Agent Resources Ninja
 

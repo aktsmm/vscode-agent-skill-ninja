@@ -555,6 +555,42 @@ export function resolveUserGlobalInstructionPath(
 
 export const DEFAULT_WORKSPACE_SKILLS_DIRECTORY = ".github/skills";
 
+export function parseAdditionalWorkspaceSkillRootPaths(
+  rawValue: unknown,
+): string[] {
+  if (typeof rawValue === "string") {
+    const trimmed = rawValue.trim();
+    return trimmed ? [trimmed] : [];
+  }
+
+  if (!Array.isArray(rawValue)) {
+    return [];
+  }
+
+  const paths: string[] = [];
+  const seen = new Set<string>();
+  for (const entry of rawValue) {
+    if (typeof entry !== "string") {
+      continue;
+    }
+
+    const trimmed = entry.trim();
+    if (!trimmed) {
+      continue;
+    }
+
+    const normalized = trimmed.replace(/\\/g, "/");
+    if (seen.has(normalized)) {
+      continue;
+    }
+
+    seen.add(normalized);
+    paths.push(trimmed);
+  }
+
+  return paths;
+}
+
 /**
  * Resolve the workspace skills directory for the workspace scope. Honors the
  * Skill NINJA setting first; if Skill NINJA is left at its default value but
@@ -600,15 +636,69 @@ export function resolveWorkspaceSkillsRootUri(
     "resourceNinja",
   ),
 ): vscode.Uri {
+  return resolveWorkspaceSkillRootUris(
+    workspaceUri,
+    skillNinjaConfig,
+    resourceNinjaConfig,
+  )[0];
+}
+
+function resolveWorkspaceSkillRootPathToUri(
+  configuredPath: string,
+  workspaceUri: vscode.Uri,
+): vscode.Uri | undefined {
+  const trimmed = configuredPath.trim();
+  if (!trimmed) {
+    return undefined;
+  }
+
+  return (
+    resolveConfiguredPathToUri(trimmed, workspaceUri) ||
+    vscode.Uri.joinPath(workspaceUri, trimmed)
+  );
+}
+
+export function resolveWorkspaceSkillRootUris(
+  workspaceUri: vscode.Uri,
+  skillNinjaConfig: vscode.WorkspaceConfiguration = vscode.workspace.getConfiguration(
+    "skillNinja",
+  ),
+  resourceNinjaConfig: vscode.WorkspaceConfiguration = vscode.workspace.getConfiguration(
+    "resourceNinja",
+  ),
+): vscode.Uri[] {
   const skillsDirectory = resolveWorkspaceSkillsDirectory(
     skillNinjaConfig,
     resourceNinjaConfig,
   );
+  const configuredPaths = [
+    skillsDirectory,
+    ...parseAdditionalWorkspaceSkillRootPaths(
+      skillNinjaConfig.get<unknown>("additionalSkillRoots"),
+    ),
+  ];
+  const roots: vscode.Uri[] = [];
+  const seen = new Set<string>();
 
-  return (
-    resolveConfiguredPathToUri(skillsDirectory, workspaceUri) ||
-    vscode.Uri.joinPath(workspaceUri, skillsDirectory)
-  );
+  for (const configuredPath of configuredPaths) {
+    const rootUri = resolveWorkspaceSkillRootPathToUri(
+      configuredPath,
+      workspaceUri,
+    );
+    if (!rootUri) {
+      continue;
+    }
+
+    const normalizedRootPath = normalizeFileSystemPath(rootUri.fsPath);
+    if (seen.has(normalizedRootPath)) {
+      continue;
+    }
+
+    seen.add(normalizedRootPath);
+    roots.push(rootUri);
+  }
+
+  return roots;
 }
 
 function getWorkspaceSkillsDisplayPath(
@@ -669,18 +759,20 @@ export async function getManagedSkillRoots(
     seen.add(normalizedRootPath);
   };
 
-  if (workspaceUri) {
-    const workspaceRootUri = resolveWorkspaceSkillsRootUri(
-      workspaceUri,
-      skillNinjaConfig,
-    );
-    const { instructionFile } = await resolveOutputFormat(workspaceUri);
-    const instructionUri =
-      resolveConfiguredPathToUri(instructionFile, workspaceUri) ||
-      vscode.Uri.joinPath(workspaceUri, instructionFile);
+  const addWorkspaceRoot = (
+    workspaceRootUri: vscode.Uri,
+    instructionUri: vscode.Uri,
+  ): void => {
+    if (!workspaceUri) {
+      return;
+    }
+
     const normalizedWorkspaceRoot = normalizeFileSystemPath(
       workspaceRootUri.fsPath,
     );
+    if (seen.has(normalizedWorkspaceRoot)) {
+      return;
+    }
 
     roots.push({
       scope: "workspace",
@@ -701,6 +793,21 @@ export async function getManagedSkillRoots(
       ),
     });
     seen.add(normalizedWorkspaceRoot);
+  };
+
+  if (workspaceUri) {
+    const workspaceRootUris = resolveWorkspaceSkillRootUris(
+      workspaceUri,
+      skillNinjaConfig,
+    );
+    const { instructionFile } = await resolveOutputFormat(workspaceUri);
+    const instructionUri =
+      resolveConfiguredPathToUri(instructionFile, workspaceUri) ||
+      vscode.Uri.joinPath(workspaceUri, instructionFile);
+
+    for (const workspaceRootUri of workspaceRootUris) {
+      addWorkspaceRoot(workspaceRootUri, instructionUri);
+    }
   }
 
   const useVsCodeAgentSkillLocations =

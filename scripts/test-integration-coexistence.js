@@ -275,7 +275,9 @@ function transpileTs(srcPath) {
  *
  * Returns the loaded `instructionManager` module exports.
  */
-function loadInstructionManager(vscodeStub, injectedSkills) {
+function loadInstructionManager(vscodeStub, injectedSkills, options = {}) {
+  const skillsByRootPath = options.skillsByRootPath || new Map();
+  const managedRoots = options.managedRoots || [];
   // Coexistence sandbox
   const coexExports = {};
   const coexSandbox = {
@@ -321,7 +323,8 @@ function loadInstructionManager(vscodeStub, injectedSkills) {
       if (req === "./coexistence") return coexistenceModule;
       if (req === "./skillInstaller") {
         return {
-          getInstalledSkillsWithMeta: async () => injectedSkills,
+          getInstalledSkillsWithMeta: async (rootUri) =>
+            skillsByRootPath.get(rootUri.fsPath) || injectedSkills,
         };
       }
       if (req === "./localSkillScanner") {
@@ -358,7 +361,7 @@ function loadInstructionManager(vscodeStub, injectedSkills) {
             const r = path.relative(path.dirname(from), to).replace(/\\/g, "/");
             return r || ".";
           },
-          getManagedSkillRoots: async () => [],
+          getManagedSkillRoots: async () => managedRoots,
           resolveConfiguredPathToUri: (configuredPath, rootUri) => {
             if (!configuredPath) {
               return undefined;
@@ -815,6 +818,86 @@ test("Scenario D: Custom skillsDirectory honored when Skill NINJA does write (si
     assert.ok(
       got.includes("custom/skills/custom-gamma/SKILL.md"),
       `link should point at custom path; got:\n${got}`,
+    );
+  } finally {
+    cleanupTmp(tmp);
+  }
+});
+
+test("Scenario D2: additional workspace roots share one instruction block", async () => {
+  const tmp = setupTmpFixture("D-both-custom-paths");
+  try {
+    const wsUri = makeUri(tmp);
+    const rootA = makeRoot(wsUri, ".github/skills");
+    const rootB = makeRoot(wsUri, "copilot-skills/skills");
+    const skillsByRootPath = new Map([
+      [rootA.rootPath, [makeSampleSkill("sample-alpha", "First")]],
+      [rootB.rootPath, [makeSampleSkill("copilot-beta", "Second")]],
+    ]);
+    const stub = makeVscodeStub({
+      workspaceUri: wsUri,
+      settings: {
+        "skillNinja.outputFormat": "full",
+        "skillNinja.skillsDirectory": ".github/skills",
+        "skillNinja.additionalSkillRoots": ["copilot-skills/skills"],
+        "skillNinja.coexistenceMode": "auto",
+      },
+      siblingExports: undefined,
+    });
+    const { instructionManager } = loadInstructionManager(stub, [], {
+      managedRoots: [rootA, rootB],
+      skillsByRootPath,
+    });
+    const ctx = makeContext();
+
+    await instructionManager.updateInstructionFileForRoot(rootA, ctx);
+
+    const got = fs.readFileSync(path.join(tmp, "AGENTS.md"), "utf8");
+    assert.ok(got.includes(".github/skills/sample-alpha/SKILL.md"));
+    assert.ok(got.includes("copilot-skills/skills/copilot-beta/SKILL.md"));
+  } finally {
+    cleanupTmp(tmp);
+  }
+});
+
+test("Scenario D3: additional workspace roots share one ref catalog", async () => {
+  const tmp = setupTmpFixture("D-both-custom-paths");
+  try {
+    const wsUri = makeUri(tmp);
+    const rootA = makeRoot(wsUri, ".github/skills");
+    const rootB = makeRoot(wsUri, "copilot-skills/skills");
+    const skillsByRootPath = new Map([
+      [rootA.rootPath, [makeSampleSkill("sample-alpha", "First")]],
+      [rootB.rootPath, [makeSampleSkill("copilot-beta", "Second")]],
+    ]);
+    const stub = makeVscodeStub({
+      workspaceUri: wsUri,
+      settings: {
+        "skillNinja.outputFormat": "ref",
+        "skillNinja.refCatalogPath": ".github/skills/README.md",
+        "skillNinja.skillsDirectory": ".github/skills",
+        "skillNinja.additionalSkillRoots": ["copilot-skills/skills"],
+        "skillNinja.coexistenceMode": "auto",
+      },
+      siblingExports: undefined,
+    });
+    const { instructionManager } = loadInstructionManager(stub, [], {
+      managedRoots: [rootA, rootB],
+      skillsByRootPath,
+    });
+    const ctx = makeContext();
+
+    await instructionManager.updateInstructionFileForRoot(rootA, ctx);
+
+    const instruction = fs.readFileSync(path.join(tmp, "AGENTS.md"), "utf8");
+    const catalog = fs.readFileSync(
+      path.join(tmp, ".github", "skills", "README.md"),
+      "utf8",
+    );
+    assert.ok(instruction.includes(".github/skills/README.md"));
+    assert.ok(catalog.includes("sample-alpha/SKILL.md"));
+    assert.ok(
+      catalog.includes("../../copilot-skills/skills/copilot-beta/SKILL.md"),
     );
   } finally {
     cleanupTmp(tmp);

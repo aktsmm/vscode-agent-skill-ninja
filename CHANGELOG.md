@@ -7,6 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.9.26] - 2026-06-16
+
+### Added
+
+- 🧩 **Additional Workspace Skill Roots** - Added `skillNinja.additionalSkillRoots` so repo-local skill folders such as `copilot-skills/skills` and `copilot-skills/m-skills` can be discovered alongside `.github/skills` / `skillNinja.additionalSkillRoots` を追加し、`copilot-skills/skills` や `copilot-skills/m-skills` のような repo-local skill folder を `.github/skills` と並べて検出できるよう追加
+- 🧪 **Multi-root Workspace Output Coverage** - Added regression coverage for multiple workspace skill roots sharing one instruction block and ref catalog, including mixed slash/backslash path handling / 複数 workspace skill root が 1 つの instruction block と ref catalog を共有するケース、および slash/backslash 混在パスを守る回帰テストを追加
+
+### Fixed
+
+- 🔄 **Workspace Skill Root Refresh** - Changing workspace skill root settings now refreshes views, recreates `SKILL.md` file watchers, and regenerates the shared skill output without requiring a reload / workspace skill root 設定を変更したときに、reload なしで view refresh、`SKILL.md` watcher の再作成、共有 skill output の再生成が走るよう修正
+- 🧭 **Multi-root Instruction Output** - Workspace roots that share the same instruction file now aggregate their skills into the same generated block instead of overwriting each other root-by-root / 同じ instruction file を共有する workspace root は、root ごとの上書きではなく同じ生成ブロックへ skill を集約するよう修正
+
 ## [0.9.25] - 2026-06-14
 
 ### Added

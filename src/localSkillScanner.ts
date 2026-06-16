@@ -591,12 +591,17 @@ export async function scanLocalSkills(
   }
 
   const managedRoots = await getManagedSkillRoots(workspaceUri);
-  const workspaceRoot = managedRoots.find((root) => root.scope === "workspace");
-  if (!workspaceRoot) {
+  const workspaceRoots = managedRoots.filter(
+    (root) => root.scope === "workspace",
+  );
+  if (workspaceRoots.length === 0) {
     return [];
   }
 
-  return scanSkillsForRoot(workspaceRoot);
+  const skills = await Promise.all(
+    workspaceRoots.map((root) => scanSkillsForRoot(root)),
+  );
+  return skills.flat();
 }
 
 export async function scanVisibleSkills(

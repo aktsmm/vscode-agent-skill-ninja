@@ -146,6 +146,7 @@ test("settings order matches the documented primary flow", () => {
       "skillNinja.instructionFile",
       "skillNinja.customInstructionPath",
       "skillNinja.skillsDirectory",
+      "skillNinja.additionalSkillRoots",
       "skillNinja.useVsCodeAgentSkillLocations",
       "skillNinja.showBuiltInSkills",
       "skillNinja.outputFormat",
@@ -164,17 +165,18 @@ test("settings order matches the documented primary flow", () => {
       ["skillNinja.instructionFile", 2],
       ["skillNinja.customInstructionPath", 3],
       ["skillNinja.skillsDirectory", 4],
-      ["skillNinja.useVsCodeAgentSkillLocations", 5],
-      ["skillNinja.showBuiltInSkills", 6],
-      ["skillNinja.outputFormat", 7],
-      ["skillNinja.refCatalogPath", 8],
-      ["skillNinja.refCatalogFormat", 9],
-      ["skillNinja.language", 10],
-      ["skillNinja.autoUpdateSkillsOnUpgrade", 11],
-      ["skillNinja.githubToken", 12],
-      ["skillNinja.singleClickInstall", 13],
-      ["skillNinja.coexistenceMode", 14],
-      ["skillNinja.useSharedSourcesManifest", 15],
+      ["skillNinja.additionalSkillRoots", 5],
+      ["skillNinja.useVsCodeAgentSkillLocations", 6],
+      ["skillNinja.showBuiltInSkills", 7],
+      ["skillNinja.outputFormat", 8],
+      ["skillNinja.refCatalogPath", 9],
+      ["skillNinja.refCatalogFormat", 10],
+      ["skillNinja.language", 11],
+      ["skillNinja.autoUpdateSkillsOnUpgrade", 12],
+      ["skillNinja.githubToken", 13],
+      ["skillNinja.singleClickInstall", 14],
+      ["skillNinja.coexistenceMode", 15],
+      ["skillNinja.useSharedSourcesManifest", 16],
       ["skillNinja.includeLocalSkills", 90],
     ],
   );
@@ -372,6 +374,7 @@ test("README files do not document removed or misleading settings", () => {
 
 test("README files describe workspace, user/global, and built-in skill scopes", () => {
   assert.ok(readme.includes("skillNinja.skillsDirectory"));
+  assert.ok(readme.includes("skillNinja.additionalSkillRoots"));
   assert.ok(readme.includes("Installed Skills"));
   assert.ok(readme.includes("skillNinja.useVsCodeAgentSkillLocations"));
   assert.ok(readme.includes("skillNinja.showBuiltInSkills"));
@@ -380,6 +383,7 @@ test("README files describe workspace, user/global, and built-in skill scopes", 
   assert.ok(readme.includes("Built-in Skills"));
   assert.ok(readme.includes("provider/origin"));
   assert.ok(readmeJa.includes("skillNinja.skillsDirectory"));
+  assert.ok(readmeJa.includes("skillNinja.additionalSkillRoots"));
   assert.ok(readmeJa.includes("インストール済みスキル"));
   assert.ok(readmeJa.includes("skillNinja.useVsCodeAgentSkillLocations"));
   assert.ok(readmeJa.includes("skillNinja.showBuiltInSkills"));
@@ -450,6 +454,23 @@ test("single-click install setting defaults to double-click behavior", () => {
     setting.markdownDescription,
     "singleClickInstall should have markdownDescription",
   );
+});
+
+test("additional workspace root setting has settings UI fallback text", () => {
+  const setting =
+    pkg.contributes.configuration.properties["skillNinja.additionalSkillRoots"];
+  assert.ok(setting);
+  assert.strictEqual(setting.default.length, 0);
+  assert.strictEqual(
+    setting.description,
+    "%config.additionalSkillRoots.description%",
+  );
+  assert.strictEqual(
+    setting.markdownDescription,
+    "%config.additionalSkillRoots.markdownDescription%",
+  );
+  assert.ok(packageNls["config.additionalSkillRoots.description"]);
+  assert.ok(packageNlsJa["config.additionalSkillRoots.description"]);
 });
 
 test("outputFormat markdownDescription surfaces ref-catalog sub-settings", () => {
@@ -1100,10 +1121,20 @@ test("outputFormat migration covers all configuration scopes", () => {
   );
 });
 
-test("configWatcher watches refCatalogPath and refCatalogFormat", () => {
+test("configWatcher watches root and ref catalog settings", () => {
   const extensionSource = fs.readFileSync(
     path.join(root, "src", "extension.ts"),
     "utf8",
+  );
+  assert.ok(
+    extensionSource.includes(
+      'affectsConfiguration("skillNinja.additionalSkillRoots")',
+    ),
+    "configWatcher must watch additionalSkillRoots",
+  );
+  assert.ok(
+    extensionSource.includes("resetSkillMdWatchers();"),
+    "root setting changes must recreate SKILL.md watchers",
   );
   assert.ok(
     extensionSource.includes(

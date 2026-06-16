@@ -67,6 +67,7 @@ import {
   getManagedSkillRoots,
   isInsidePath,
   resolveConfiguredPathToUri,
+  resolveWorkspaceSkillRootUris,
   resolveWorkspaceSkillsRootUri,
   SkillRoot,
 } from "./skillLocations";
@@ -1125,6 +1126,8 @@ export function activate(
     },
   );
 
+  let resetSkillMdWatchers: () => void = () => undefined;
+
   // 設定変更を監視してビューをリフレッシュ
   const configWatcher = vscode.workspace.onDidChangeConfiguration(async (e) => {
     if (e.affectsConfiguration("skillNinja.language")) {
@@ -1141,10 +1144,45 @@ export function activate(
 
     if (
       e.affectsConfiguration("skillNinja.skillsDirectory") ||
+      e.affectsConfiguration("skillNinja.additionalSkillRoots") ||
       e.affectsConfiguration("skillNinja.useVsCodeAgentSkillLocations") ||
       e.affectsConfiguration("skillNinja.showBuiltInSkills")
     ) {
       refreshAllViews();
+    }
+
+    if (
+      e.affectsConfiguration("skillNinja.skillsDirectory") ||
+      e.affectsConfiguration("skillNinja.additionalSkillRoots")
+    ) {
+      resetSkillMdWatchers();
+      const workspaceFolders = vscode.workspace.workspaceFolders;
+      const autoUpdate = vscode.workspace
+        .getConfiguration("skillNinja")
+        .get<boolean>("autoUpdateInstruction", true);
+      if (workspaceFolders && autoUpdate) {
+        for (const folder of workspaceFolders) {
+          const roots = (await getManagedRoots(folder.uri)).filter(
+            (root) => root.scope === "workspace",
+          );
+          const seenInstructionPaths = new Set<string>();
+          for (const root of roots) {
+            const instructionPath = root.instructionPath || root.rootPath;
+            const normalizedInstructionPath =
+              normalizeInstructionPathForSet(instructionPath);
+            if (seenInstructionPaths.has(normalizedInstructionPath)) {
+              continue;
+            }
+
+            seenInstructionPaths.add(normalizedInstructionPath);
+            if (initialSyncSettled) {
+              await updateInstructionFileForRoot(root, context);
+            } else {
+              deferredInstructionRoots.add(root.rootPath);
+            }
+          }
+        }
+      }
     }
 
     // インストラクションファイルまたは出力フォーマット関連設定が変更されたら自動更新
@@ -4088,16 +4126,6 @@ Add examples here
     vscode.workspace.onDidDeleteFiles(() => refreshViews()),
   );
 
-  // SKILL.md の変更を監視してメタデータを自動更新
-  const skillMdWatcher = vscode.workspace.createFileSystemWatcher(
-    workspaceFolder
-      ? new vscode.RelativePattern(
-          resolveWorkspaceSkillsRootUri(workspaceFolder.uri),
-          "**/SKILL.md",
-        )
-      : new vscode.RelativePattern("", ".github/skills/**/SKILL.md"),
-  );
-
   // デバウンス用の Map（同じファイルへの連続保存を1回にまとめる）
   const pendingUpdates = new Map<string, NodeJS.Timeout>();
 
@@ -4151,7 +4179,34 @@ Add examples here
     );
   };
 
-  skillMdWatcher.onDidChange(handleSkillMdChange);
+  let skillMdWatchers: vscode.FileSystemWatcher[] = [];
+  const createSkillMdWatchers = (): vscode.FileSystemWatcher[] =>
+    workspaceFolder
+      ? resolveWorkspaceSkillRootUris(workspaceFolder.uri).map((rootUri) =>
+          vscode.workspace.createFileSystemWatcher(
+            new vscode.RelativePattern(rootUri, "**/SKILL.md"),
+          ),
+        )
+      : [
+          vscode.workspace.createFileSystemWatcher(
+            new vscode.RelativePattern("", ".github/skills/**/SKILL.md"),
+          ),
+        ];
+
+  resetSkillMdWatchers = () => {
+    for (const watcher of skillMdWatchers) {
+      watcher.dispose();
+    }
+
+    skillMdWatchers = createSkillMdWatchers();
+    for (const watcher of skillMdWatchers) {
+      watcher.onDidChange(handleSkillMdChange);
+    }
+    context.subscriptions.push(...skillMdWatchers);
+  };
+
+  // SKILL.md の変更を監視してメタデータを自動更新
+  resetSkillMdWatchers();
   const skillMdSaveWatcher = vscode.workspace.onDidSaveTextDocument(
     async (document) => {
       if (/[/\\]SKILL\.md$/i.test(document.uri.fsPath)) {
@@ -4159,7 +4214,7 @@ Add examples here
       }
     },
   );
-  context.subscriptions.push(skillMdWatcher, skillMdSaveWatcher);
+  context.subscriptions.push(skillMdSaveWatcher);
 
   // Expose the coexistence beacon to the sibling extension via
   // `vscode.extensions.getExtension(...).activate()`. globalState is

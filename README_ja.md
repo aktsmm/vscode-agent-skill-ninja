@@ -105,7 +105,7 @@ workspace skills では `skillNinja.refCatalogPath` の相対パスは workspace
 ### 📁 ワークスペーススキル管理
 
 - **SKILL.md** を workspace / user-global / インストール済み拡張機能 / built-in の 4 scope で管理
-- `skillNinja.skillsDirectory` を managed な workspace root として使い、VS Code の Agent Skill Locations から user/global root も自動検出
+- `skillNinja.skillsDirectory` を primary managed workspace root として使い、`skillNinja.additionalSkillRoots` で repo-local root を追加し、VS Code の Agent Skill Locations から user/global root も自動検出
 - 書き込み可能な各 root ごとに、最寄りの instruction file へ managed skills を自動同期
 - テンプレートから新規スキル作成
 
@@ -221,7 +221,7 @@ ext install yamapan.agent-skill-ninja
 1. アクティビティバーの **螺旋手裏剣アイコン** をクリック
 2. **インストール済みスキル** - workspace managed skills を skill root ごとに表示
 
-- **ワークスペース スキル**: `skillNinja.skillsDirectory`（既定: `.github/skills`）配下の managed skills
+- **ワークスペース スキル**: `skillNinja.skillsDirectory`（既定: `.github/skills`）と `skillNinja.additionalSkillRoots` 配下の managed skills
 - 新しくインストールしたスキル（一時的なバッジ）
 - ツールバー: スキル出力 / スキル出力を再生成 / 新規作成 / ビューを更新 / 設定
 - 書き込み可能な各 root 行の右端にも **スキル出力を再生成** が表示され、remote-backed skill を 1 件以上含む root にだけ **このルートのリモートスキルを再インストール** が表示されます
@@ -386,22 +386,23 @@ MCP ツールが不要な場合は、GitHub Copilot Chat のツール一覧か�
 |  1   | `skillNinja.autoUpdateInstruction`        | `true`                     | **インストール時に instruction file を自動更新**                                      |
 |  2   | `skillNinja.instructionFile`              | `AGENTS.md`                | スキルを登録するファイル形式 _(要: Auto Update)_                                      |
 |  3   | `skillNinja.customInstructionPath`        | `""`                       | カスタムパス _(instructionFile が 'custom' の時のみ)_                                 |
-|  4   | `skillNinja.skillsDirectory`              | `.github/skills`           | ワークスペーススキルをインストール・管理するディレクトリ                              |
-|  5   | `skillNinja.useVsCodeAgentSkillLocations` | `true`                     | 標準 personal root と追加の user/global skill root を検出して管理する                 |
-|  6   | `skillNinja.showBuiltInSkills`            | `true`                     | 読み取り専用の Built-in Skills を表示する                                             |
-|  7   | `skillNinja.outputFormat`                 | `ref`                      | 出力形式（ref / full / compact / legacy）                                             |
-|  8   | `skillNinja.refCatalogPath`               | `.github/skills/README.md` | `ref` 形式で使う catalog file path                                                    |
-|  9   | `skillNinja.refCatalogFormat`             | `full`                     | `outputFormat` が `ref` のときの catalog 詳細形式                                     |
-|  10  | `skillNinja.language`                     | `auto`                     | UI 言語（auto / en / ja）                                                             |
-|  11  | `skillNinja.autoUpdateSkillsOnUpgrade`    | `prompt`                   | 拡張機能アップグレード後のスキル更新                                                  |
-|  12  | `skillNinja.githubToken`                  | `""`                       | GitHub Token（API 制限緩和用）                                                        |
-|  13  | `skillNinja.singleClickInstall`           | `false`                    | リモートスキルをシングルクリックでインストール                                        |
-|  14  | `skillNinja.coexistenceMode`              | `auto`                     | Agent Resources Ninja との共存モード（`auto` / `independent`）                        |
-|  15  | `skillNinja.useSharedSourcesManifest`     | `false`                    | `~/.agent-ninja/sources.json` 経由で Agent Resources Ninja と source list SSOT を共有 |
+|  4   | `skillNinja.skillsDirectory`              | `.github/skills`           | ワークスペーススキルをインストール・管理する primary ディレクトリ                     |
+|  5   | `skillNinja.additionalSkillRoots`         | `[]`                       | 追加の workspace skill root。例: `copilot-skills/skills`                              |
+|  6   | `skillNinja.useVsCodeAgentSkillLocations` | `true`                     | 標準 personal root と追加の user/global skill root を検出して管理する                 |
+|  7   | `skillNinja.showBuiltInSkills`            | `true`                     | 読み取り専用の Built-in Skills を表示する                                             |
+|  8   | `skillNinja.outputFormat`                 | `ref`                      | 出力形式（ref / full / compact / legacy）                                             |
+|  9   | `skillNinja.refCatalogPath`               | `.github/skills/README.md` | `ref` 形式で使う catalog file path                                                    |
+|  10  | `skillNinja.refCatalogFormat`             | `full`                     | `outputFormat` が `ref` のときの catalog 詳細形式                                     |
+|  11  | `skillNinja.language`                     | `auto`                     | UI 言語（auto / en / ja）                                                             |
+|  12  | `skillNinja.autoUpdateSkillsOnUpgrade`    | `prompt`                   | 拡張機能アップグレード後のスキル更新                                                  |
+|  13  | `skillNinja.githubToken`                  | `""`                       | GitHub Token（API 制限緩和用）                                                        |
+|  14  | `skillNinja.singleClickInstall`           | `false`                    | リモートスキルをシングルクリックでインストール                                        |
+|  15  | `skillNinja.coexistenceMode`              | `auto`                     | Agent Resources Ninja との共存モード（`auto` / `independent`）                        |
+|  16  | `skillNinja.useSharedSourcesManifest`     | `false`                    | `~/.agent-ninja/sources.json` 経由で Agent Resources Ninja と source list SSOT を共有 |
 
 > 設定画面では上記の順序で表示されます
 
-互換用設定: `skillNinja.includeLocalSkills` は非推奨です。ワークスペーススキルは `skillNinja.skillsDirectory` 配下を管理対象にし、personal root と追加の user/global root は `skillNinja.useVsCodeAgentSkillLocations` から検出します。設定された location では `${workspaceFolder}`, `${userHome}`, `${env:APPDATA}`, `%APPDATA%` を使えます。Built-in Skills は `skillNinja.showBuiltInSkills` で制御され、既定で表示されます。
+互換用設定: `skillNinja.includeLocalSkills` は非推奨です。ワークスペーススキルは `skillNinja.skillsDirectory` と `skillNinja.additionalSkillRoots` 配下を管理対象にし、personal root と追加の user/global root は `skillNinja.useVsCodeAgentSkillLocations` から検出します。設定された location では `${workspaceFolder}`, `${userHome}`, `${env:APPDATA}`, `%APPDATA%` を使えます。Built-in Skills は `skillNinja.showBuiltInSkills` で制御され、既定で表示されます。
 
 ### Agent Resources Ninja との共存
 

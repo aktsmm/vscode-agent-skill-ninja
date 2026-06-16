@@ -222,6 +222,71 @@ function getInstructionDirectoryUri(root: SkillRoot): vscode.Uri | undefined {
   return vscode.Uri.file(path.dirname(root.instructionUri.fsPath));
 }
 
+async function getRootsForInstructionUpdate(
+  root: SkillRoot,
+): Promise<SkillRoot[]> {
+  if (root.scope !== "workspace") {
+    return [root];
+  }
+
+  const workspaceUri = getWorkspaceFolderUriForRoot(root);
+  if (!workspaceUri || !root.instructionPath) {
+    return [root];
+  }
+
+  const roots = await getManagedSkillRoots(workspaceUri);
+  const normalizedInstructionPath = normalizeFsPath(root.instructionPath);
+  const matchingRoots = roots.filter(
+    (candidate) =>
+      candidate.scope === "workspace" &&
+      candidate.instructionPath &&
+      normalizeFsPath(candidate.instructionPath) === normalizedInstructionPath,
+  );
+  return matchingRoots.length > 0 ? matchingRoots : [root];
+}
+
+function joinSkillLinkPath(basePath: string, relativePath: string): string {
+  const normalizedBase = basePath.replace(/\\/g, "/").replace(/\/+$/, "");
+  const normalizedRelative = relativePath
+    .replace(/\\/g, "/")
+    .replace(/^\/+/, "");
+  if (!normalizedBase || normalizedBase === ".") {
+    return normalizedRelative;
+  }
+  return `${normalizedBase}/${normalizedRelative}`;
+}
+
+async function getInstalledSkillsWithLinkPaths(
+  roots: SkillRoot[],
+  fromFilePath: string,
+): Promise<SkillMeta[]> {
+  const skillsByRoot = await Promise.all(
+    roots.map(async (candidateRoot) => {
+      const relativeSkillsDir =
+        candidateRoot.linkPathFromInstruction &&
+        normalizeFsPath(candidateRoot.instructionPath || "") ===
+          normalizeFsPath(fromFilePath)
+          ? candidateRoot.linkPathFromInstruction
+          : computeRelativeDirectoryPath(fromFilePath, candidateRoot.rootPath);
+      const installedSkills = await getInstalledSkillsWithMeta(
+        candidateRoot.rootUri,
+        candidateRoot.rootUri,
+      );
+      return installedSkills
+        .filter((skill) => !skill.registrationDisabled)
+        .map((skill) => ({
+          ...skill,
+          relativePath: joinSkillLinkPath(
+            relativeSkillsDir,
+            skill.relativePath || skill.name,
+          ),
+        }));
+    }),
+  );
+
+  return skillsByRoot.flat();
+}
+
 function resolveCatalogUriForRoot(
   root: SkillRoot,
   configuredPath: string,
@@ -291,6 +356,7 @@ export async function updateInstructionFileForRoot(
   }
 
   const format = await resolveInstructionFormatForRoot(root);
+  const rootsForInstruction = await getRootsForInstructionUpdate(root);
   const relativeSkillsDir =
     root.linkPathFromInstruction ||
     computeRelativeDirectoryPath(root.instructionPath, root.rootPath);
@@ -300,9 +366,15 @@ export async function updateInstructionFileForRoot(
       `(mode=${mode}, owner=${ownership.owner}, reason=${ownership.reason})`,
   );
 
-  const installedSkills = (
-    await getInstalledSkillsWithMeta(root.rootUri, root.rootUri)
-  ).filter((skill) => !skill.registrationDisabled);
+  const installedSkills =
+    rootsForInstruction.length === 1
+      ? (await getInstalledSkillsWithMeta(root.rootUri, root.rootUri)).filter(
+          (skill) => !skill.registrationDisabled,
+        )
+      : await getInstalledSkillsWithLinkPaths(
+          rootsForInstruction,
+          root.instructionPath,
+        );
   const localSkills: LocalSkill[] = [];
 
   // generator は SHARED_MARKERS で出力する。independent モードでは旧 skill-ninja マーカーへ swap。
@@ -316,6 +388,7 @@ export async function updateInstructionFileForRoot(
       root,
       installedSkills,
       localSkills,
+      rootsForInstruction.length > 1 ? rootsForInstruction : undefined,
     );
     skillSection = swapMarkers(
       generateRefSection(catalogLink),
@@ -327,7 +400,7 @@ export async function updateInstructionFileForRoot(
       generateSkillSectionForFormat(
         installedSkills,
         localSkills,
-        relativeSkillsDir,
+        rootsForInstruction.length === 1 ? relativeSkillsDir : "",
         format,
       ),
       SHARED_MARKERS,
@@ -391,6 +464,12 @@ function generateSkillSectionForFormat(
     default:
       return generateFullSection(installedSkills, localSkills, skillsDir);
   }
+}
+
+function buildSkillMarkdownPath(skillsDir: string, skillPath: string): string {
+  return skillsDir
+    ? `${skillsDir}/${skillPath}/SKILL.md`
+    : `${skillPath}/SKILL.md`;
 }
 
 type SkillCatalogRow = {
@@ -462,6 +541,7 @@ async function writeCatalogFile(
   root: SkillRoot,
   installedSkills: SkillMeta[],
   localSkills: LocalSkill[],
+  rootsForInstruction?: SkillRoot[],
 ): Promise<string> {
   const config = vscode.workspace.getConfiguration("skillNinja");
   const catalogRelPath =
@@ -481,12 +561,15 @@ async function writeCatalogFile(
     catalogAbsPath,
     root.rootPath,
   );
+  const catalogInstalledSkills = rootsForInstruction
+    ? await getInstalledSkillsWithLinkPaths(rootsForInstruction, catalogAbsPath)
+    : installedSkills;
 
   // catalog ファイルには ref 入口とは別に選択された詳細フォーマットを書き出す
   const catalogSection = generateSkillSectionForFormat(
-    installedSkills,
+    catalogInstalledSkills,
     localSkills,
-    relativeSkillsDirFromCatalog,
+    rootsForInstruction ? "" : relativeSkillsDirFromCatalog,
     catalogFormat,
   );
 
@@ -572,7 +655,7 @@ ${MARKER_END}`;
   content += rows
     .map(
       (row) =>
-        `| [${row.displayName}](${skillsDir}/${row.path}/SKILL.md) | ${row.description} |`,
+        `| [${row.displayName}](${buildSkillMarkdownPath(skillsDir, row.path)}) | ${row.description} |`,
     )
     .join("\n");
   content += "\n";
@@ -793,7 +876,7 @@ ${MARKER_END}`;
   for (const skill of allSkills) {
     // パイプをエスケープ
     const safeDesc = skill.description.replace(/\|/g, "\\|");
-    content += `| [${skill.displayName}](${skillsDir}/${skill.path}/SKILL.md) | \`${skill.path}\` | ${safeDesc} |\n`;
+    content += `| [${skill.displayName}](${buildSkillMarkdownPath(skillsDir, skill.path)}) | \`${skill.path}\` | ${safeDesc} |\n`;
   }
 
   content += `\n${MARKER_END}`;
@@ -853,7 +936,7 @@ ${MARKER_END}`;
 
   for (const skill of allSkills) {
     const safeDesc = skill.description.replace(/\|/g, "\\|");
-    content += `| [${skill.displayName}](${skillsDir}/${skill.path}/SKILL.md) | ${safeDesc} |\n`;
+    content += `| [${skill.displayName}](${buildSkillMarkdownPath(skillsDir, skill.path)}) | ${safeDesc} |\n`;
   }
 
   content += `\n${MARKER_END}`;
