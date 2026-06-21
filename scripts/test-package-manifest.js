@@ -1037,6 +1037,11 @@ test("release instructions include the maintained npm test path", () => {
   );
   assert.ok(releaseInstructions.includes("code --install-extension"));
   assert.ok(releaseInstructions.includes("docs/**"));
+  assert.ok(releaseInstructions.includes("VSCE の `pack` API"));
+  assert.ok(releaseInstructions.includes("fallback 用 script / task"));
+  assert.ok(releaseInstructions.includes("%TEMP%"));
+  assert.ok(releaseInstructions.includes("DONE Published"));
+  assert.ok(releaseInstructions.includes("追加 version bump しない"));
 });
 
 test("VSIX ignore rules keep demo docs out of the package", () => {

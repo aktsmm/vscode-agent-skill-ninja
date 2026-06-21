@@ -155,6 +155,8 @@ npx vsce ls              # VSIX 収録物確認
 
 `npm run package` / `vsce package` が prepublish ログ途中で戻る場合は、同じコマンドを繰り返さず、`tsc --noEmit`、`eslint src` 相当、`node esbuild.js --production` を構成要素ごとに確認し、VSIX の存在・サイズ・zip 展開結果を正本にする。
 
+`vsce package` が prepublish / lint 付近で止まり VSIX が出ないが、`npm run compile`、`npm test`、audit、`node esbuild.js --production` が通る場合は、通常 CLI の反復をやめ、VSIX 作成だけを隔離する。一時 `%TEMP%` 配下に `@vscode/vsce` を置き、品質 gate 通過後に VSCE の `pack` API で `artifacts/vsix/` へ出す fallback を使ってよい。ただし fallback で作った VSIX も、サイズ、zip 収録物、`code --install-extension` を必ず確認し、fallback 用 script / task / 一時 install は公開完了前に削除する（2026-06-21 / GitHub Copilot）。
+
 ### 5.1 VSIX install 検証（publish 前に必須）
 
 `vsce ls` だけでは VSIX 作成中の zip 破損（`End of central directory record` エラー等）を検出できない。生成後は必ずローカル VS Code へ install テストを走らせてセルフチェックする（2026-05-12 / GitHub Copilot）。
@@ -181,6 +183,8 @@ npx vsce publish --packagePath artifacts/vsix/agent-skill-ninja-X.X.X.vsix  # Ma
 Marketplace の public HTML ページ（`items?itemName=...`）も publish 直後は stale な version 表示のまま残ることがある。HTML が旧版を出していても、`vsce publish` 成功出力、`gh release view vX.Y.Z`、`git ls-remote --tags origin vX.Y.Z` が揃っていれば、即座に version bump や再 publish を行わず、反映待ちとして扱う（2026-05-17 / GitHub Copilot）。
 
 `vsce show --json` も publish 直後は旧版を返すことがある。publish 成功出力と GitHub Release / remote tag が揃っている場合は stale として記録し、再 publish ではなく時間を置いて再確認する。
+
+v0.9.28 では `vsce show --json` が 0.9.28 publish 成功直後に古い version 一覧を返した。`DONE Published ... v0.9.28`、GitHub Release asset、remote tag が揃っていれば Marketplace 側は反映遅延として扱い、追加 version bump しない（2026-06-21 / GitHub Copilot）。
 
 ### 7. GitHub Release 作成
 
@@ -242,6 +246,7 @@ New-Item -ItemType Directory -Force artifacts/vsix | Out-Null; npx vsce package 
 - ✅ `npx vsce ls` で不要な開発用ファイルが VSIX に入っていないことを確認してから公開
 - ✅ **`code --install-extension <vsix>` でローカル install が通ることを確認してから publish**（VSIX truncate / zip 破損は `vsce ls` で見逃しやすい，2026-05-12 / GitHub Copilot）
 - ✅ 一時的な VS Code task を使った場合は、公開完了前に `.vscode/tasks.json` から release / verify 用 task を削除し、watch task だけの状態に戻す
+- ✅ 一時 script（例: publish / release / verify / VSCE fallback）や `%TEMP%` 配下の一時 VSCE install は、公開完了前に削除する
 - ✅ `git status --short` と `git rev-parse HEAD` / `git rev-parse origin/master` で、作業ツリーと push 状態を最後に確認
 
 ## 公開後の確認
