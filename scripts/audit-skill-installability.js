@@ -2,6 +2,11 @@
 
 const fs = require("fs");
 const path = require("path");
+const {
+  normalizePathPrefix,
+  pathMatchesPrefix,
+  isSkillPathAllowed,
+} = require("./update-preset-index.js");
 
 const root = path.join(__dirname, "..");
 const indexPath = path.join(root, "resources", "skill-index.json");
@@ -17,6 +22,9 @@ const SOURCE_FILTER = new Set(
 );
 
 const USER_AGENT = "Agent-Skill-Ninja-Audit";
+// Tuning note: large sources such as composio-awesome can stay silent for
+// several minutes. Use --sources=<source-id> for release triage before changing
+// this default; 4 balances GitHub rate limits and local network stability.
 const MAX_CONCURRENCY = 4;
 const FETCH_TIMEOUT = 15000;
 
@@ -224,6 +232,13 @@ async function auditSkillRaw(skill, sourceMap, branchBySource) {
     };
   }
 
+  if (!isSkillPathAllowed(remotePath, source)) {
+    return {
+      ok: false,
+      reason: `path outside source filters: ${remotePath}`,
+    };
+  }
+
   const parts = getRepoParts(source.url);
   if (!parts) {
     return {
@@ -281,6 +296,13 @@ function auditSkill(skill, sourceMap, treeBySource) {
     return {
       ok: false,
       reason: `missing source: ${skill.source}`,
+    };
+  }
+
+  if (!isSkillPathAllowed(remotePath, source)) {
+    return {
+      ok: false,
+      reason: `path outside source filters: ${remotePath}`,
     };
   }
 
@@ -457,6 +479,9 @@ module.exports = {
   normalizeRepoUrl,
   getRepoParts,
   normalizeSkillPath,
+  normalizePathPrefix,
+  pathMatchesPrefix,
+  isSkillPathAllowed,
   shouldAttachGitHubToken,
   shouldRetryWithoutToken,
   auditSkill,

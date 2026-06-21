@@ -7,6 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.9.27] - 2026-06-21
+
+### Added
+
+- 🧭 **OMX Skill Source** - Added `Yeachan-Heo/oh-my-codex` as a community preset source and refreshed the bundled skill index to `v1.23.0` with 1456 installable skills / `Yeachan-Heo/oh-my-codex` を community preset source として追加し、bundled skill index を `v1.23.0`・1456 件の installable な状態へ更新
+- 🧪 **Preset Path Filter Guard** - Added regression coverage for preset source `includePaths` / `excludePaths` and bundled OMX skill paths / preset source の `includePaths` / `excludePaths` と bundled OMX skill path を守る回帰テストを追加
+
+### Fixed
+
+- 🧰 **Preset Source Path Filters** - Preset index updates now honor `includePaths` and `excludePaths`, keeping scoped sources limited to their intended skill folders / preset index 更新時に `includePaths` と `excludePaths` を尊重し、scoped source が意図した skill folder だけを取り込むよう修正
+- 🛡️ **Installability Filter Audit** - Installability audits now reject skills outside their source path filters and reuse the preset updater filter logic / installability audit が source path filter 外の skill を検出し、preset updater と同じ filter logic を再利用するよう修正
+
 ## [0.9.26] - 2026-06-16
 
 ### Added

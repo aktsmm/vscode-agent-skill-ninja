@@ -9,6 +9,12 @@ applyTo: "**/package.json,**/CHANGELOG.md,**/*.vsix"
 
 **コードを変更したら、ビルド・リリース前に必ずテストを実行すること！**
 
+### Release Sequence Guardrail
+
+- `release` 明示時は、品質 gate → VSIX 作成/検査 → Marketplace publish → GitHub Release → tag/公開状態確認まで進める。commit/push だけで release 完了扱いにしない。
+- version bump 後に publish へ進めない blocker が出たら、`Version / VSIX / Publish / GitHub Release / Tag` の状態を分けて報告し、同じ version を再利用してよい状態か確認する。
+- `npm audit fix` で `package-lock.json` が変わった場合は、`npm test` と package metadata 同期を再確認し、dirty tree のまま tag / publish へ進まない。
+
 ### テスト実行（必須）
 
 ```bash
@@ -76,6 +82,8 @@ node scripts/audit-skill-installability.js --raw-only
 ```
 
 **テストが全て PASS していることを確認してからリリースに進む。**
+
+`audit-skill-installability.js --raw-only` は source ごとの件数差が大きく、`composio-awesome` のような大規模 source では silent に数分かかることがある。3 分以上無出力で不安定なら、`--sources=<source-id>` で分割実行し、ログを `artifacts/` に逃がして PASS/FAIL を source 単位で判定する。
 
 新しい回帰テスト script を追加した場合は、存在確認だけで満足せず、同じ変更で `package.json` の `npm test` に組み込むこと（2026-05-11 / GitHub Copilot）。
 
@@ -145,6 +153,8 @@ npx vsce ls              # VSIX 収録物確認
 
 `vsce package` の完了出力が見えないケース（terminal 出力タイミングのバグ）でも、`Get-ChildItem artifacts/vsix/<file>.vsix` で生成サイズを見て完了を判定する。期待サイズより著しく小さければビルド中断、著しく大きければ不要ファイル混入の準拠とする（2026-05-12 / GitHub Copilot）。
 
+`npm run package` / `vsce package` が prepublish ログ途中で戻る場合は、同じコマンドを繰り返さず、`tsc --noEmit`、`eslint src` 相当、`node esbuild.js --production` を構成要素ごとに確認し、VSIX の存在・サイズ・zip 展開結果を正本にする。
+
 ### 5.1 VSIX install 検証（publish 前に必須）
 
 `vsce ls` だけでは VSIX 作成中の zip 破損（`End of central directory record` エラー等）を検出できない。生成後は必ずローカル VS Code へ install テストを走らせてセルフチェックする（2026-05-12 / GitHub Copilot）。
@@ -169,6 +179,8 @@ npx vsce publish --packagePath artifacts/vsix/agent-skill-ninja-X.X.X.vsix  # Ma
 対象バージョンの publish が `already exists` を返した場合、そのバージョンは Marketplace 側で公開済みと扱ってよい。ただし Marketplace metadata は反映遅延することがあるため、GitHub Release、VSIX asset、必要なら後続の `vsce show` で別経路確認を続ける（2026-05-11 / GitHub Copilot）。
 
 Marketplace の public HTML ページ（`items?itemName=...`）も publish 直後は stale な version 表示のまま残ることがある。HTML が旧版を出していても、`vsce publish` 成功出力、`gh release view vX.Y.Z`、`git ls-remote --tags origin vX.Y.Z` が揃っていれば、即座に version bump や再 publish を行わず、反映待ちとして扱う（2026-05-17 / GitHub Copilot）。
+
+`vsce show --json` も publish 直後は旧版を返すことがある。publish 成功出力と GitHub Release / remote tag が揃っている場合は stale として記録し、再 publish ではなく時間を置いて再確認する。
 
 ### 7. GitHub Release 作成
 

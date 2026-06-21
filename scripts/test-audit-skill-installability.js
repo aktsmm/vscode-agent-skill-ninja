@@ -7,6 +7,7 @@ const {
   normalizeRepoUrl,
   getRepoParts,
   normalizeSkillPath,
+  isSkillPathAllowed,
   shouldAttachGitHubToken,
   shouldRetryWithoutToken,
   auditSkill,
@@ -139,6 +140,57 @@ test("auditSkill reports missing directory SKILL.md", () => {
       treeBySource,
     ),
     { ok: false, reason: "missing SKILL.md: skills/broken/SKILL.md" },
+  );
+});
+
+test("auditSkill rejects paths outside source filters", () => {
+  const sourceMap = new Map([
+    [
+      "sample",
+      {
+        id: "sample",
+        url: "https://github.com/owner/repo",
+        includePaths: ["skills"],
+      },
+    ],
+  ]);
+  const treeBySource = new Map([
+    [
+      "sample",
+      {
+        blobs: new Set(["plugins/demo/skills/example/SKILL.md"]),
+      },
+    ],
+  ]);
+
+  assert.deepStrictEqual(
+    auditSkill(
+      {
+        source: "sample",
+        name: "example",
+        path: "plugins/demo/skills/example",
+      },
+      sourceMap,
+      treeBySource,
+    ),
+    {
+      ok: false,
+      reason: "path outside source filters: plugins/demo/skills/example",
+    },
+  );
+});
+
+test("isSkillPathAllowed applies include and exclude filters", () => {
+  assert.strictEqual(
+    isSkillPathAllowed("skills/alpha", { includePaths: ["skills"] }),
+    true,
+  );
+  assert.strictEqual(
+    isSkillPathAllowed("skills/archive/alpha", {
+      includePaths: ["skills"],
+      excludePaths: ["skills/archive"],
+    }),
+    false,
   );
 });
 

@@ -1,6 +1,6 @@
 {
-  "version": "1.22.0",
-  "lastUpdated": "2026-06-14",
+  "version": "1.23.0",
+  "lastUpdated": "2026-06-21",
   "sources": [
     {
       "id": "anthropics-skills",
@@ -83,6 +83,16 @@
       "type": "community",
       "description": "Claude Command Suite",
       "description_ja": "Claude Command Suite"
+    },
+    {
+      "id": "oh-my-codex",
+      "name": "oh-my-codex (OMX)",
+      "url": "https://github.com/Yeachan-Heo/oh-my-codex",
+      "type": "community",
+      "branch": "main",
+      "description": "oh-my-codex (OMX) Codex workflow skills",
+      "description_ja": "oh-my-codex (OMX) Codex workflow skills",
+      "includePaths": ["skills"]
     },
     {
       "id": "openai-skills",
@@ -598,6 +608,14 @@
       "description_ja": ""
     },
     {
+      "name": "ai-slop-cleaner",
+      "source": "oh-my-codex",
+      "path": "skills/ai-slop-cleaner",
+      "categories": [],
+      "description": "Run an anti-slop cleanup/refactor/deslop workflow",
+      "description_ja": ""
+    },
+    {
       "name": "aivoov-automation",
       "source": "composio-awesome",
       "path": "composio-skills/aivoov-automation",
@@ -715,6 +733,14 @@
       "path": "composio-skills/amcards-automation",
       "categories": [],
       "description": "Automate Amcards tasks via Rube MCP (Composio). Always search tools first for current schemas.",
+      "description_ja": ""
+    },
+    {
+      "name": "analyze",
+      "source": "oh-my-codex",
+      "path": "skills/analyze",
+      "categories": [],
+      "description": "Run read-only deep repository analysis and return a ranked synthesis with explicit confidence, concrete file references, and clear evidence-vs-inference boundaries. Use when a user says 'analyze', 'investigate', 'why does', 'what's causing', or needs grounded cross-file explanation before any changes are proposed.",
       "description_ja": ""
     },
     {
@@ -1006,6 +1032,30 @@
       "description_ja": ""
     },
     {
+      "name": "ask",
+      "source": "oh-my-codex",
+      "path": "skills/ask",
+      "categories": [],
+      "description": "Ask a local external advisor CLI (Claude or Gemini) and capture a reusable artifact",
+      "description_ja": ""
+    },
+    {
+      "name": "ask-claude",
+      "source": "oh-my-codex",
+      "path": "skills/ask-claude",
+      "categories": [],
+      "description": "Deprecated compatibility shim for Claude advisor requests",
+      "description_ja": ""
+    },
+    {
+      "name": "ask-gemini",
+      "source": "oh-my-codex",
+      "path": "skills/ask-gemini",
+      "categories": [],
+      "description": "Deprecated compatibility shim for Gemini advisor requests",
+      "description_ja": ""
+    },
+    {
       "name": "aspire",
       "source": "github-awesome-copilot",
       "path": "skills/aspire",
@@ -1107,6 +1157,30 @@
       "path": "plugins/automate-this/skills/automate-this",
       "categories": [],
       "description": "Analyze a screen recording of a manual process and produce targeted, working automation scripts. Extracts frames and audio narration from video files, reconstructs the step-by-step workflow, and proposes automation at multiple complexity levels using tools already installed on the user machine.",
+      "description_ja": ""
+    },
+    {
+      "name": "autopilot",
+      "source": "oh-my-codex",
+      "path": "skills/autopilot",
+      "categories": [],
+      "description": "[OMX] Strict autonomous loop: $deep-interview -> $ralplan -> $ultragoal (+ $team if needed) -> $code-review -> $ultraqa",
+      "description_ja": ""
+    },
+    {
+      "name": "autoresearch",
+      "source": "oh-my-codex",
+      "path": "skills/autoresearch",
+      "categories": [],
+      "description": "Stateful validator-gated research loop with native-hook persistence",
+      "description_ja": ""
+    },
+    {
+      "name": "autoresearch-goal",
+      "source": "oh-my-codex",
+      "path": "skills/autoresearch-goal",
+      "categories": [],
+      "description": "Durable professor-critic research workflow over Codex goal mode without reviving deprecated omx autoresearch",
       "description_ja": ""
     },
     {
@@ -2798,6 +2872,14 @@
       "description_ja": ""
     },
     {
+      "name": "best-practice-research",
+      "source": "oh-my-codex",
+      "path": "skills/best-practice-research",
+      "categories": [],
+      "description": "[OMX] Bounded best-practice research wrapper using official/upstream evidence first",
+      "description_ja": ""
+    },
+    {
       "name": "bestbuy-automation",
       "source": "composio-awesome",
       "path": "composio-skills/bestbuy-automation",
@@ -3286,6 +3368,14 @@
       "description_ja": ""
     },
     {
+      "name": "build-fix",
+      "source": "oh-my-codex",
+      "path": "skills/build-fix",
+      "categories": [],
+      "description": "Build Fix deprecated shim",
+      "description_ja": ""
+    },
+    {
       "name": "buildkite-automation",
       "source": "composio-awesome",
       "path": "composio-skills/buildkite-automation",
@@ -3379,6 +3469,14 @@
       "path": "composio-skills/campayn-automation",
       "categories": [],
       "description": "Automate Campayn tasks via Rube MCP (Composio). Always search tools first for current schemas.",
+      "description_ja": ""
+    },
+    {
+      "name": "cancel",
+      "source": "oh-my-codex",
+      "path": "skills/cancel",
+      "categories": [],
+      "description": "Cancel any active OMX mode (autopilot, ralph, ultrawork, ecomode, ultraqa, swarm, ultrapilot, pipeline, team)",
       "description_ja": ""
     },
     {
@@ -3750,6 +3848,14 @@
       "description_ja": ""
     },
     {
+      "name": "code-review",
+      "source": "oh-my-codex",
+      "path": "skills/code-review",
+      "categories": [],
+      "description": "Run a comprehensive code review",
+      "description_ja": ""
+    },
+    {
       "name": "codeinterpreter-automation",
       "source": "composio-awesome",
       "path": "composio-skills/codeinterpreter-automation",
@@ -3844,6 +3950,14 @@
       "categories": [],
       "description": "Ensure thorough validation, error recovery, and transparent reasoning in research tasks with multiple tool calls",
       "description_ja": "Comprehensive Research Agent"
+    },
+    {
+      "name": "configure-notifications",
+      "source": "oh-my-codex",
+      "path": "skills/configure-notifications",
+      "categories": [],
+      "description": "Configure OMX notifications - unified entry point for all platforms",
+      "description_ja": ""
     },
     {
       "name": "connect",
@@ -4486,11 +4600,27 @@
       "description_ja": ""
     },
     {
+      "name": "deep-interview",
+      "source": "oh-my-codex",
+      "path": "skills/deep-interview",
+      "categories": [],
+      "description": "Socratic deep interview with mathematical ambiguity gating before execution",
+      "description_ja": ""
+    },
+    {
       "name": "deepgram-automation",
       "source": "composio-awesome",
       "path": "composio-skills/deepgram-automation",
       "categories": [],
       "description": "Automate Deepgram tasks via Rube MCP (Composio). Always search tools first for current schemas.",
+      "description_ja": ""
+    },
+    {
+      "name": "deepsearch",
+      "source": "oh-my-codex",
+      "path": "skills/deepsearch",
+      "categories": [],
+      "description": "Deepsearch deprecated shim",
       "description_ja": ""
     },
     {
@@ -4515,6 +4645,14 @@
       "path": "composio-skills/demio-automation",
       "categories": [],
       "description": "Automate Demio tasks via Rube MCP (Composio). Always search tools first for current schemas.",
+      "description_ja": ""
+    },
+    {
+      "name": "design",
+      "source": "oh-my-codex",
+      "path": "skills/design",
+      "categories": [],
+      "description": "Canonical repo-local DESIGN.md workflow for product, UI/UX, and frontend decision source of truth",
       "description_ja": ""
     },
     {
@@ -4699,6 +4837,14 @@
       "path": "composio-skills/docsumo-automation",
       "categories": [],
       "description": "Automate Docsumo tasks via Rube MCP (Composio). Always search tools first for current schemas.",
+      "description_ja": ""
+    },
+    {
+      "name": "doctor",
+      "source": "oh-my-codex",
+      "path": "skills/doctor",
+      "categories": [],
+      "description": "Diagnose and fix oh-my-codex installation issues",
       "description_ja": ""
     },
     {
@@ -4923,6 +5069,14 @@
       "path": "composio-skills/echtpost-automation",
       "categories": [],
       "description": "Automate Echtpost tasks via Rube MCP (Composio). Always search tools first for current schemas.",
+      "description_ja": ""
+    },
+    {
+      "name": "ecomode",
+      "source": "oh-my-codex",
+      "path": "skills/ecomode",
+      "categories": [],
+      "description": "Ecomode deprecated shim",
       "description_ja": ""
     },
     {
@@ -5686,6 +5840,14 @@
       "description_ja": "Create frontend designs and UI layouts"
     },
     {
+      "name": "frontend-ui-ux",
+      "source": "oh-my-codex",
+      "path": "skills/frontend-ui-ux",
+      "categories": [],
+      "description": "Deprecated compatibility shim for frontend UI/UX work; use $design or $visual-ralph",
+      "description_ja": ""
+    },
+    {
       "name": "fullenrich-automation",
       "source": "composio-awesome",
       "path": "composio-skills/fullenrich-automation",
@@ -5907,6 +6069,14 @@
       "path": "skills/git-flow-branch-creator",
       "categories": [],
       "description": "Intelligent Git Flow branch creator that analyzes git status/diff and creates appropriate branches following the nvie Git Flow branching model.",
+      "description_ja": ""
+    },
+    {
+      "name": "git-master",
+      "source": "oh-my-codex",
+      "path": "skills/git-master",
+      "categories": [],
+      "description": "Git expert for atomic commits, rebasing, and history management",
       "description_ja": ""
     },
     {
@@ -6374,6 +6544,14 @@
       "description_ja": ""
     },
     {
+      "name": "help",
+      "source": "oh-my-codex",
+      "path": "skills/help",
+      "categories": [],
+      "description": "Help deprecated skill",
+      "description_ja": ""
+    },
+    {
       "name": "helpwise-automation",
       "source": "composio-awesome",
       "path": "composio-skills/helpwise-automation",
@@ -6475,6 +6653,14 @@
       "path": "composio-skills/html-to-image-automation",
       "categories": [],
       "description": "Automate Html To Image tasks via Rube MCP (Composio). Always search tools first for current schemas.",
+      "description_ja": ""
+    },
+    {
+      "name": "hud",
+      "source": "oh-my-codex",
+      "path": "skills/hud",
+      "categories": [],
+      "description": "Show or configure the OMX HUD (two-layer statusline)",
       "description_ja": ""
     },
     {
@@ -7966,6 +8152,14 @@
       "description_ja": ""
     },
     {
+      "name": "note",
+      "source": "oh-my-codex",
+      "path": "skills/note",
+      "categories": [],
+      "description": "Note deprecated shim",
+      "description_ja": ""
+    },
+    {
       "name": "notion-knowledge-capture",
       "source": "openai-skills",
       "path": "skills/.curated/notion-knowledge-capture",
@@ -8035,6 +8229,14 @@
       "path": "composio-skills/omnisend-automation",
       "categories": [],
       "description": "Automate ecommerce marketing workflows including contact management, bulk operations, and subscriber segmentation through Omnisend via Composio",
+      "description_ja": ""
+    },
+    {
+      "name": "omx-setup",
+      "source": "oh-my-codex",
+      "path": "skills/omx-setup",
+      "categories": [],
+      "description": "Setup and configure oh-my-codex using current CLI behavior",
       "description_ja": ""
     },
     {
@@ -8366,6 +8568,14 @@
       "description_ja": ""
     },
     {
+      "name": "performance-goal",
+      "source": "oh-my-codex",
+      "path": "skills/performance-goal",
+      "categories": [],
+      "description": "Run an evaluator-gated performance optimization workflow over Codex goal mode with durable OMX artifacts and safe goal handoffs.",
+      "description_ja": ""
+    },
+    {
       "name": "perigon-automation",
       "source": "composio-awesome",
       "path": "composio-skills/perigon-automation",
@@ -8446,6 +8656,14 @@
       "description_ja": ""
     },
     {
+      "name": "pipeline",
+      "source": "oh-my-codex",
+      "path": "skills/pipeline",
+      "categories": [],
+      "description": "Configurable pipeline orchestrator for sequencing stages",
+      "description_ja": ""
+    },
+    {
       "name": "pipeline-crm-automation",
       "source": "composio-awesome",
       "path": "composio-skills/pipeline-crm-automation",
@@ -8475,6 +8693,14 @@
       "path": "composio-skills/plain-automation",
       "categories": [],
       "description": "Automate Plain tasks via Rube MCP (Composio). Always search tools first for current schemas.",
+      "description_ja": ""
+    },
+    {
+      "name": "plan",
+      "source": "oh-my-codex",
+      "path": "skills/plan",
+      "categories": [],
+      "description": "Strategic planning with optional interview workflow",
       "description_ja": ""
     },
     {
@@ -8782,6 +9008,14 @@
       "description_ja": ""
     },
     {
+      "name": "prometheus-strict",
+      "source": "oh-my-codex",
+      "path": "skills/prometheus-strict",
+      "categories": [],
+      "description": "[OMX] Clean-room interview-driven planner: Metis clarifies, Momus challenges, Oracle synthesizes, then hands off to $ultragoal/$team.",
+      "description_ja": ""
+    },
+    {
       "name": "Prompting",
       "source": "pai-packs",
       "path": "Releases/v2.3/.claude/skills/Prompting",
@@ -8931,6 +9165,30 @@
       "path": "composio-skills/raisely-automation",
       "categories": [],
       "description": "Automate Raisely tasks via Rube MCP (Composio). Always search tools first for current schemas.",
+      "description_ja": ""
+    },
+    {
+      "name": "ralph",
+      "source": "oh-my-codex",
+      "path": "skills/ralph",
+      "categories": [],
+      "description": "Self-referential loop until task completion with architect verification",
+      "description_ja": ""
+    },
+    {
+      "name": "ralph-init",
+      "source": "oh-my-codex",
+      "path": "skills/ralph-init",
+      "categories": [],
+      "description": "Ralph Init deprecated skill",
+      "description_ja": ""
+    },
+    {
+      "name": "ralplan",
+      "source": "oh-my-codex",
+      "path": "skills/ralplan",
+      "categories": [],
+      "description": "Alias for $plan --consensus",
       "description_ja": ""
     },
     {
@@ -9230,6 +9488,14 @@
       "description_ja": ""
     },
     {
+      "name": "review",
+      "source": "oh-my-codex",
+      "path": "skills/review",
+      "categories": [],
+      "description": "Deprecated standalone review skill",
+      "description_ja": ""
+    },
+    {
       "name": "review-and-refactor",
       "source": "github-awesome-copilot",
       "path": "skills/review-and-refactor",
@@ -9523,6 +9789,14 @@
       "path": "skills/.curated/security-ownership-map",
       "categories": [],
       "description": "Analyze git repositories to build a security ownership topology (people-to-file), compute bus factor and sensitive-code ownership, and export CSV/JSON for graph databases and visualization. Trigger only when the user explicitly wants a security-oriented ownership or bus-factor analysis grounded in git history (for example: orphaned sensitive code, security maintainers, CODEOWNERS reality checks for risk, sensitive hotspots, or ownership clusters). Do not trigger for general maintainer lists or non-security ownership questions.",
+      "description_ja": ""
+    },
+    {
+      "name": "security-review",
+      "source": "oh-my-codex",
+      "path": "skills/security-review",
+      "categories": [],
+      "description": "Deprecated standalone security review skill",
       "description_ja": ""
     },
     {
@@ -9859,6 +10133,14 @@
       "path": "composio-skills/sitespeakai-automation",
       "categories": [],
       "description": "Automate Sitespeakai tasks via Rube MCP (Composio). Always search tools first for current schemas.",
+      "description_ja": ""
+    },
+    {
+      "name": "skill",
+      "source": "oh-my-codex",
+      "path": "skills/skill",
+      "categories": [],
+      "description": "Manage local skills - list, add, remove, search, edit, setup wizard",
       "description_ja": ""
     },
     {
@@ -10254,6 +10536,14 @@
       "description_ja": ""
     },
     {
+      "name": "swarm",
+      "source": "oh-my-codex",
+      "path": "skills/swarm",
+      "categories": [],
+      "description": "Deprecated compatibility shim for team execution",
+      "description_ja": ""
+    },
+    {
       "name": "swift-mcp-server-generator",
       "source": "github-awesome-copilot",
       "path": "plugins/swift-mcp-development/skills/swift-mcp-server-generator",
@@ -10355,6 +10645,22 @@
       "path": "composio-skills/taxjar-automation",
       "categories": [],
       "description": "Automate Taxjar tasks via Rube MCP (Composio). Always search tools first for current schemas.",
+      "description_ja": ""
+    },
+    {
+      "name": "tdd",
+      "source": "oh-my-codex",
+      "path": "skills/tdd",
+      "categories": [],
+      "description": "TDD deprecated shim",
+      "description_ja": ""
+    },
+    {
+      "name": "team",
+      "source": "oh-my-codex",
+      "path": "skills/team",
+      "categories": [],
+      "description": "N coordinated agents on shared task list using tmux-based orchestration",
       "description_ja": ""
     },
     {
@@ -10646,6 +10952,14 @@
       "description_ja": ""
     },
     {
+      "name": "trace",
+      "source": "oh-my-codex",
+      "path": "skills/trace",
+      "categories": [],
+      "description": "Trace deprecated shim",
+      "description_ja": ""
+    },
+    {
       "name": "transcribe",
       "source": "openai-skills",
       "path": "skills/.curated/transcribe",
@@ -10779,6 +11093,30 @@
       "path": "composio-skills/u301-automation",
       "categories": [],
       "description": "Automate U301 tasks via Rube MCP (Composio). Always search tools first for current schemas.",
+      "description_ja": ""
+    },
+    {
+      "name": "ultragoal",
+      "source": "oh-my-codex",
+      "path": "skills/ultragoal",
+      "categories": [],
+      "description": "Create and execute durable repo-native multi-goal plans over Codex goal mode artifacts.",
+      "description_ja": ""
+    },
+    {
+      "name": "ultraqa",
+      "source": "oh-my-codex",
+      "path": "skills/ultraqa",
+      "categories": [],
+      "description": "Adversarial dynamic e2e QA workflow - generate hostile scenarios, test, verify, fix, report, and clean up",
+      "description_ja": ""
+    },
+    {
+      "name": "ultrawork",
+      "source": "oh-my-codex",
+      "path": "skills/ultrawork",
+      "categories": [],
+      "description": "Parallel execution engine for high-throughput task completion",
       "description_ja": ""
     },
     {
@@ -10982,6 +11320,22 @@
       "description_ja": ""
     },
     {
+      "name": "visual-ralph",
+      "source": "oh-my-codex",
+      "path": "skills/visual-ralph",
+      "categories": [],
+      "description": "Visual Ralph orchestration for frontend UI from generated references, static references, or live URL targets, using $ralph with built-in visual verdict and pixel-diff evidence until the implementation matches and leaves a reproducible design system.",
+      "description_ja": ""
+    },
+    {
+      "name": "visual-verdict",
+      "source": "oh-my-codex",
+      "path": "skills/visual-verdict",
+      "categories": [],
+      "description": "Visual Verdict deprecated skill",
+      "description_ja": ""
+    },
+    {
       "name": "VoiceServer",
       "source": "pai-packs",
       "path": "Releases/v2.4/.claude/skills/VoiceServer",
@@ -11078,6 +11432,14 @@
       "description_ja": "Build web artifacts and components"
     },
     {
+      "name": "web-clone",
+      "source": "oh-my-codex",
+      "path": "skills/web-clone",
+      "categories": [],
+      "description": "Web Clone deprecated shim",
+      "description_ja": ""
+    },
+    {
       "name": "web-design-reviewer",
       "source": "github-awesome-copilot",
       "path": "skills/web-design-reviewer",
@@ -11150,6 +11512,14 @@
       "description_ja": ""
     },
     {
+      "name": "wiki",
+      "source": "oh-my-codex",
+      "path": "skills/wiki",
+      "categories": [],
+      "description": "Persistent markdown project wiki stored under repository omx_wiki with keyword search and lifecycle capture",
+      "description_ja": ""
+    },
+    {
       "name": "winmd-api-search",
       "source": "github-awesome-copilot",
       "path": "skills/winmd-api-search",
@@ -11219,6 +11589,14 @@
       "path": "composio-skills/workday-automation",
       "categories": [],
       "description": "Automate HR operations in Workday -- manage workers, time off requests, absence balances, and employee data through natural language commands.",
+      "description_ja": ""
+    },
+    {
+      "name": "worker",
+      "source": "oh-my-codex",
+      "path": "skills/worker",
+      "categories": [],
+      "description": "Team worker protocol (ACK, mailbox, task lifecycle) for tmux-based OMX teams",
       "description_ja": ""
     },
     {

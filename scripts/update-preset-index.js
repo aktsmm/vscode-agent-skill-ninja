@@ -21,6 +21,35 @@ const SOURCE_FILTER = (process.env.SKILL_NINJA_SOURCES || "")
 // GitHub API トークン（環境変数から取得）
 const GITHUB_TOKEN = process.env.GITHUB_TOKEN || process.env.GH_TOKEN;
 
+function normalizePathPrefix(prefix) {
+  return String(prefix || "")
+    .replace(/\\/g, "/")
+    .replace(/^\/+/, "")
+    .replace(/\/+$/, "")
+    .toLowerCase();
+}
+
+function pathMatchesPrefix(filePath, prefix) {
+  return filePath === prefix || filePath.startsWith(`${prefix}/`);
+}
+
+function isSkillPathAllowed(filePath, source) {
+  const normalizedPath = normalizePathPrefix(filePath);
+  const includePaths = (source.includePaths || []).map(normalizePathPrefix);
+  const excludePaths = (source.excludePaths || []).map(normalizePathPrefix);
+
+  if (
+    includePaths.length > 0 &&
+    !includePaths.some((prefix) => pathMatchesPrefix(normalizedPath, prefix))
+  ) {
+    return false;
+  }
+
+  return !excludePaths.some((prefix) =>
+    pathMatchesPrefix(normalizedPath, prefix),
+  );
+}
+
 /**
  * タイムアウト付き fetch
  */
@@ -251,7 +280,10 @@ async function processTree(data, owner, repoName, branch, source) {
   const skillFiles = data.tree.filter((item) => {
     if (item.type !== "blob") return false;
     const lowerPath = item.path.toLowerCase();
-    return lowerPath === "skill.md" || lowerPath.endsWith("/skill.md");
+    return (
+      (lowerPath === "skill.md" || lowerPath.endsWith("/skill.md")) &&
+      isSkillPathAllowed(item.path, source)
+    );
   });
 
   console.log(`  📄 Found ${skillFiles.length} SKILL.md files`);
@@ -570,7 +602,15 @@ async function main() {
   console.log(`📁 Saved to: ${INDEX_PATH}`);
 }
 
-main().catch((error) => {
-  console.error("❌ Fatal error:", error);
-  process.exit(1);
-});
+if (require.main === module) {
+  main().catch((error) => {
+    console.error("❌ Fatal error:", error);
+    process.exit(1);
+  });
+}
+
+module.exports = {
+  normalizePathPrefix,
+  pathMatchesPrefix,
+  isSkillPathAllowed,
+};
