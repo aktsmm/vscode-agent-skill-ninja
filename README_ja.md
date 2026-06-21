@@ -158,7 +158,7 @@ workspace skills では `skillNinja.refCatalogPath` の相対パスは workspace
 ### 🤖 MCP ツール連携
 
 - **Agent Mode** で自動的にツールとして利用可能
-- **8 ツール**: `#searchSkills`, `#installSkill`, `#uninstallSkill`, `#listSkills`, `#recommendSkills`, `#updateSkillIndex`, `#webSearchSkills`, `#addSkillSource`
+- **10 ツール**: `#searchSkills`, `#installSkill`, `#uninstallSkill`, `#listSkills`, `#recommendSkills`, `#updateSkillIndex`, `#webSearchSkills`, `#addSkillSource`, `#removeSkillSource`, `#localizeSkill`
 - 信頼度バッジ（Official / Curated / Community）
 - インストール時に instruction file 自動更新
 
@@ -256,6 +256,7 @@ ext install yamapan.agent-skill-ninja
 
 - ツールバー: 検索 / Web Search / インデックス更新 / ソース追加 / 新規作成 / 設定
 - ソース追加では、リポジトリ root URL だけでなく GitHub 上のフォルダ / ファイル URL も受け付けます。保存時には自動でリポジトリ root を解決します。
+- Private source repository は、その repository の contents を読める GitHub 認証がある場合に追加できます。
 
 ### アイコン凡例
 
@@ -338,16 +339,18 @@ GitHub Copilot の **Agent Mode** では、自動的に MCP ツールとして�
 
 ### ツール一覧
 
-| Tool Reference      | 説明                       |
-| ------------------- | -------------------------- |
-| `#searchSkills`     | キーワードでスキル検索     |
-| `#installSkill`     | スキルをインストール       |
-| `#uninstallSkill`   | スキルをアンインストール   |
-| `#listSkills`       | インストール済みスキル一覧 |
-| `#recommendSkills`  | プロジェクトに合った推奨   |
-| `#updateSkillIndex` | スキルインデックスを更新   |
-| `#webSearchSkills`  | GitHub でスキルを Web 検索 |
-| `#addSkillSource`   | 新しいスキルソースを追加   |
+| Tool Reference       | 説明                       |
+| -------------------- | -------------------------- |
+| `#searchSkills`      | キーワードでスキル検索     |
+| `#installSkill`      | スキルをインストール       |
+| `#uninstallSkill`    | スキルをアンインストール   |
+| `#listSkills`        | インストール済みスキル一覧 |
+| `#recommendSkills`   | プロジェクトに合った推奨   |
+| `#updateSkillIndex`  | スキルインデックスを更新   |
+| `#webSearchSkills`   | GitHub でスキルを Web 検索 |
+| `#addSkillSource`    | 新しいスキルソースを追加   |
+| `#removeSkillSource` | スキルソースを削除         |
+| `#localizeSkill`     | スキル説明をローカライズ   |
 
 ### 使用例
 
@@ -482,9 +485,9 @@ instruction file には **IMPORTANT プロンプト** と **Description 列** �
 
 ## 🔑 GitHub Token 設定
 
-> **重要**: GitHub 検索を使用するには GitHub Token が**必須**です。未設定の場合、API レート制限（60 リクエスト/時間）により検索がすぐに失敗します。
+> **重要**: Private source repository を使う場合は GitHub 認証が必要です。GitHub 検索でも認証を強く推奨します。未設定の場合、API レート制限（60 リクエスト/時間）により検索が失敗しやすくなります。
 
-検索機能を有効にするには GitHub Token を設定してください：
+検索機能と Private source repository を有効にするには GitHub 認証を設定してください：
 
 ### 方法 1: VS Code 設定
 
@@ -496,7 +499,9 @@ instruction file には **IMPORTANT プロンプト** と **Description 列** �
 }
 ```
 
-👉 [GitHub Token を作成する](https://github.com/settings/tokens/new?description=Agent%20Skill%20Ninja&scopes=repo,read:org)（必要なスコープ: `repo`, `read:org`）
+Private repository を読む場合は、対象 repository だけに限定した fine-grained personal access token に `Contents: read` を付与する構成を推奨します。classic personal access token では `repo` scope が必要です。
+
+👉 [Fine-grained GitHub Token を作成する](https://github.com/settings/personal-access-tokens/new?name=Agent%20Skill%20Ninja&description=Read%20skill%20source%20repositories&contents=read)
 
 ### 方法 2: GitHub CLI（推奨）
 

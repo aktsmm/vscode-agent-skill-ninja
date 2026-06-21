@@ -2,7 +2,7 @@
   "name": "agent-skill-ninja",
   "displayName": "%displayName%",
   "description": "%description%",
-  "version": "0.9.27",
+  "version": "0.9.28",
   "publisher": "yamapan",
   "license": "CC-BY-NC-SA-4.0",
   "icon": "resources/icon.png",
@@ -274,6 +274,43 @@
           "required": [
             "repoUrl"
           ]
+        }
+      },
+      {
+        "name": "skillNinja_removeSource",
+        "tags": [
+          "skills",
+          "agent",
+          "skill-ninja",
+          "source",
+          "repository",
+          "remove",
+          "delete",
+          "ソース",
+          "リポジトリ",
+          "削除"
+        ],
+        "toolReferenceName": "removeSkillSource",
+        "displayName": "Remove Skill Source",
+        "icon": "$(trash)",
+        "modelDescription": "Remove a GitHub repository from skill sources / スキルソースからリポジトリを削除 / NINJA. Removes the source, skills, and bundles from the local index.",
+        "canBeReferencedInPrompt": true,
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "sourceId": {
+              "type": "string",
+              "description": "Source ID to remove (preferred when known, e.g., 'owner-repo')"
+            },
+            "repoUrl": {
+              "type": "string",
+              "description": "GitHub repository URL or owner/repo for the source to remove"
+            },
+            "sourceName": {
+              "type": "string",
+              "description": "Display name of the source to remove"
+            }
+          }
         }
       },
       {
@@ -1026,6 +1063,7 @@
           "type": "string",
           "default": "",
           "order": 13,
+          "description": "%config.githubToken.description%",
           "markdownDescription": "%config.githubToken.markdownDescription%"
         },
         "skillNinja.language": {

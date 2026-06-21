@@ -968,6 +968,62 @@ test("MCP tool responses do not contain corrupted markdown fragments", () => {
   assert.strictEqual(mcpToolsSource.includes("\uFFFD"), false);
 });
 
+test("MCP source tools support private add and source removal flows", () => {
+  const toolsByReference = new Map(
+    pkg.contributes.languageModelTools.map((tool) => [
+      tool.toolReferenceName,
+      tool,
+    ]),
+  );
+
+  assert.ok(toolsByReference.has("addSkillSource"));
+  assert.ok(toolsByReference.has("removeSkillSource"));
+  assert.ok(
+    mcpToolsSource.includes('["skillNinja_removeSource", "removeSkillSource"]'),
+  );
+  assert.ok(mcpToolsSource.includes("class RemoveSourceTool"));
+  assert.strictEqual(
+    mcpToolsSource.includes("Repository must be public"),
+    false,
+  );
+
+  const removeTool = toolsByReference.get("removeSkillSource");
+  assert.ok(removeTool.modelDescription.includes("Remove a GitHub repository"));
+  assert.ok(removeTool.inputSchema.properties.sourceId);
+  assert.ok(removeTool.inputSchema.properties.repoUrl);
+  assert.ok(removeTool.inputSchema.properties.sourceName);
+
+  assert.ok(readme.includes("#removeSkillSource"));
+  assert.ok(readmeJa.includes("#removeSkillSource"));
+  assert.ok(readme.includes("#localizeSkill"));
+  assert.ok(readmeJa.includes("#localizeSkill"));
+  assert.ok(readme.includes("**10 Tools**"));
+  assert.ok(readmeJa.includes("**10 ツール**"));
+  assert.ok(readme.includes("Private source repositories are supported"));
+  assert.ok(readmeJa.includes("Private source repository"));
+});
+
+test("GitHub token docs mention private repository read permissions", () => {
+  assert.ok(packageNls["config.githubToken.description"].includes("private"));
+  assert.ok(
+    packageNls["config.githubToken.markdownDescription"].includes(
+      "Contents: read",
+    ),
+  );
+  assert.ok(
+    packageNls["config.githubToken.markdownDescription"].includes("repo"),
+  );
+  assert.ok(
+    packageNlsJa["config.githubToken.markdownDescription"].includes(
+      "Contents: read",
+    ),
+  );
+  assert.ok(readme.includes("Contents: read"));
+  assert.ok(readme.includes("repo` scope"));
+  assert.ok(readmeJa.includes("Contents: read"));
+  assert.ok(readmeJa.includes("repo` scope"));
+});
+
 test("release instructions include the maintained npm test path", () => {
   assert.ok(releaseInstructions.includes("npm test"));
   assert.ok(releaseInstructions.includes("scripts/test-skill-scan-paths.js"));

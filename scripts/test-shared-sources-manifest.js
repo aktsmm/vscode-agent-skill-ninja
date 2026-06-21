@@ -104,6 +104,8 @@ function compileTsModule(entryPath, stubs = {}) {
       process,
       console,
       Buffer,
+      AbortController,
+      fetch: stubs.fetch || global.fetch,
       setTimeout,
       clearTimeout,
       require(request) {
@@ -128,6 +130,22 @@ function compileTsModule(entryPath, stubs = {}) {
   }
 
   return loadModule(entryPath);
+}
+
+function createResponse({ status = 200, body = "" } = {}) {
+  return {
+    ok: status >= 200 && status < 300,
+    status,
+    async text() {
+      return body;
+    },
+    async json() {
+      return JSON.parse(body);
+    },
+    clone() {
+      return createResponse({ status, body });
+    },
+  };
 }
 
 async function test(name, fn) {
@@ -391,6 +409,12 @@ async function run() {
         indexUpdaterSource,
         /canUseLegacyFallbackScanner = skillFiles\.length === 0/,
       );
+      assert.match(indexUpdaterSource, /function fetchRepositoryTextFile\(/);
+      assert.match(indexUpdaterSource, /application\/vnd\.github\.raw\+json/);
+      assert.ok(indexUpdaterSource.includes("Contents: read"));
+      assert.ok(
+        indexUpdaterSource.includes("GitHub tree response was truncated"),
+      );
       assert.match(
         extensionSource,
         /function isSharedSourcesManifestEnabled\(/,
@@ -400,6 +424,145 @@ async function run() {
         extensionSource,
         /skillIndex = await getRemoteSourceIndex\(\);/,
       );
+    });
+
+    await test("private source scan uses authenticated contents API for file reads", async () => {
+      const requests = [];
+      const indexUpdaterExports = compileTsModule(indexUpdaterPath, {
+        "./githubAuth": {
+          getGitHubToken: async () => "test-token",
+          checkGitHubAuth: async () => ({
+            authenticated: true,
+            method: "config",
+            message: "ok",
+          }),
+        },
+        fetch: async (url, options = {}) => {
+          requests.push({ url, headers: options.headers || {} });
+          if (
+            url === "https://api.github.com/repos/private-owner/private-repo"
+          ) {
+            return createResponse({
+              body: JSON.stringify({ default_branch: "main" }),
+            });
+          }
+          if (
+            url ===
+            "https://api.github.com/repos/private-owner/private-repo/git/trees/main?recursive=1"
+          ) {
+            return createResponse({
+              body: JSON.stringify({
+                tree: [
+                  { path: "skills/demo/SKILL.md", type: "blob" },
+                  { path: "skills/demo/bundle.json", type: "blob" },
+                ],
+              }),
+            });
+          }
+          if (
+            url ===
+            "https://api.github.com/repos/private-owner/private-repo/contents/skills/demo/SKILL.md?ref=main"
+          ) {
+            return createResponse({
+              body: [
+                "---",
+                "name: demo-private",
+                "description: Private demo skill",
+                "license: MIT",
+                "---",
+                "# Demo",
+              ].join("\n"),
+            });
+          }
+          if (
+            url ===
+            "https://api.github.com/repos/private-owner/private-repo/contents/skills/demo/bundle.json?ref=main"
+          ) {
+            return createResponse({
+              body: JSON.stringify({
+                id: "demo-bundle",
+                name: "Demo Bundle",
+                skills: ["demo-private"],
+              }),
+            });
+          }
+          return createResponse({ status: 404, body: "not found" });
+        },
+      });
+
+      const result = await indexUpdaterExports.scanRepositoryForSkills(
+        "https://github.com/private-owner/private-repo",
+      );
+      assert.strictEqual(result.source.id, "private-owner-private-repo");
+      assert.strictEqual(result.skills.length, 1);
+      assert.strictEqual(result.skills[0].name, "demo-private");
+      assert.strictEqual(result.bundles.length, 1);
+
+      const contentRequest = requests.find((request) =>
+        request.url.includes("/contents/skills/demo/SKILL.md"),
+      );
+      assert.ok(contentRequest);
+      assert.strictEqual(
+        contentRequest.headers.Authorization,
+        "token test-token",
+      );
+      assert.strictEqual(
+        contentRequest.headers.Accept,
+        "application/vnd.github.raw+json",
+      );
+    });
+
+    await test("removeSource prunes source skills and bundles", async () => {
+      const indexUpdaterExports = compileTsModule(indexUpdaterPath, {
+        "./githubAuth": {
+          getGitHubToken: async () => undefined,
+          checkGitHubAuth: async () => ({
+            authenticated: false,
+            method: "none",
+            message: "none",
+          }),
+        },
+      });
+      const removalContext = {
+        globalStorageUri: vscodeStub.Uri.file(
+          path.join(tempRoot, "remove-source-storage"),
+        ),
+        extensionUri: context.extensionUri,
+      };
+      const result = await indexUpdaterExports.removeSource(
+        removalContext,
+        {
+          version: "1.0.0",
+          lastUpdated: "2026-06-21",
+          sources: [bundledIndex.sources[0], bundledIndex.sources[1]],
+          skills: [
+            { name: "keep", source: "alpha", path: "keep", categories: [] },
+            { name: "drop", source: "beta", path: "drop", categories: [] },
+          ],
+          categories: [],
+          bundles: [
+            {
+              id: "drop-bundle",
+              name: "Drop Bundle",
+              source: "beta",
+              description: "",
+              skills: ["drop"],
+            },
+          ],
+        },
+        "beta",
+      );
+
+      assert.strictEqual(result.removedSkills, 1);
+      assert.deepStrictEqual(
+        result.index.sources.map((source) => source.id),
+        ["alpha"],
+      );
+      assert.deepStrictEqual(
+        result.index.skills.map((skill) => skill.source),
+        ["alpha"],
+      );
+      assert.strictEqual(result.index.bundles, undefined);
     });
 
     console.log("Shared sources manifest tests passed.");

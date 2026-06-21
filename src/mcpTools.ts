@@ -18,7 +18,7 @@ import {
   uninstallSkillByPath,
 } from "./skillInstaller";
 import { updateInstructionFileForRoot } from "./instructionManager";
-import { searchGitHub, addSource } from "./indexUpdater";
+import { searchGitHub, addSource, removeSource } from "./indexUpdater";
 import { isJapanese } from "./i18n";
 import { getGitHubToken } from "./githubAuth";
 import { getManagedSkillRoots, type SkillRoot } from "./skillLocations";
@@ -200,6 +200,15 @@ export function registerMcpTools(context: vscode.ExtensionContext): void {
       ["skillNinja_addSource", "addSkillSource"],
       () => {
         return new AddSourceTool();
+      },
+    );
+
+    // ソース削除ツール
+    registerToolAliases(
+      context,
+      ["skillNinja_removeSource", "removeSkillSource"],
+      () => {
+        return new RemoveSourceTool();
       },
     );
 
@@ -1126,9 +1135,134 @@ ${nextStepTable}`,
 ---
 **📋 Troubleshooting:**
 1. Check the repository URL format (https://github.com/owner/repo or owner/repo)
-2. Repository must be public
+2. Private repositories require a GitHub token with Contents: read access, or gh CLI authentication
 3. Repository should contain SKILL.md files
 4. GitHub API rate limit may be exceeded`,
+        ),
+      ]);
+    }
+  }
+}
+
+interface RemoveSourceInput {
+  sourceId?: string;
+  repoUrl?: string;
+  sourceName?: string;
+}
+
+function normalizeSourceRepoUrl(value: string): string {
+  const trimmed = value.trim();
+  const url = trimmed.startsWith("http")
+    ? trimmed
+    : `https://github.com/${trimmed}`;
+  return url
+    .replace(/[?#].*$/, "")
+    .replace(/\.git$/i, "")
+    .replace(/\/+$/, "")
+    .toLowerCase();
+}
+
+function resolveSourceToRemove(
+  index: SkillIndex,
+  input: RemoveSourceInput,
+): { source?: SkillIndex["sources"][number]; error?: string } {
+  const sourceId = input.sourceId?.trim();
+  const repoUrl = input.repoUrl?.trim();
+  const sourceName = input.sourceName?.trim();
+
+  if (!sourceId && !repoUrl && !sourceName) {
+    return {
+      error: "sourceId, repoUrl, or sourceName is required to remove a source.",
+    };
+  }
+
+  const normalizedRepoUrl = repoUrl
+    ? normalizeSourceRepoUrl(repoUrl)
+    : undefined;
+  const normalizedSourceName = sourceName?.toLowerCase();
+  const matches = index.sources.filter((source) => {
+    if (sourceId && source.id === sourceId) return true;
+    if (
+      normalizedRepoUrl &&
+      normalizeSourceRepoUrl(source.url) === normalizedRepoUrl
+    ) {
+      return true;
+    }
+    return Boolean(
+      normalizedSourceName &&
+      source.name.toLowerCase() === normalizedSourceName,
+    );
+  });
+
+  if (matches.length === 1) {
+    return { source: matches[0] };
+  }
+
+  if (matches.length > 1) {
+    return {
+      error: `Multiple sources matched. Use sourceId instead: ${matches
+        .map((source) => source.id)
+        .join(", ")}`,
+    };
+  }
+
+  const availableSources = index.sources
+    .slice(0, 10)
+    .map((source) => `${source.id} (${source.name})`)
+    .join(", ");
+  return {
+    error: `Source not found. Available sources: ${availableSources || "none"}`,
+  };
+}
+
+/**
+ * ソース削除ツール
+ */
+class RemoveSourceTool implements vscode.LanguageModelTool<RemoveSourceInput> {
+  async invoke(
+    options: vscode.LanguageModelToolInvocationOptions<RemoveSourceInput>,
+    _token: vscode.CancellationToken,
+  ): Promise<vscode.LanguageModelToolResult> {
+    if (!extContext) {
+      return new vscode.LanguageModelToolResult([
+        new vscode.LanguageModelTextPart(`❌ Extension context not available.`),
+      ]);
+    }
+
+    try {
+      const currentIndex = await getSkillIndex();
+      const resolved = resolveSourceToRemove(currentIndex, options.input || {});
+      if (!resolved.source) {
+        return new vscode.LanguageModelToolResult([
+          new vscode.LanguageModelTextPart(`❌ ${resolved.error}`),
+        ]);
+      }
+
+      const removedSource = resolved.source;
+      const result = await removeSource(
+        extContext,
+        currentIndex,
+        removedSource.id,
+      );
+      const summaryTable = renderMarkdownTable(
+        ["項目", "内容"],
+        [
+          ["ソース", `${removedSource.name} (${removedSource.id})`],
+          ["リポジトリ", removedSource.url],
+          ["削除スキル数", String(result.removedSkills)],
+          ["ステータス", "削除完了"],
+        ],
+      );
+
+      return new vscode.LanguageModelToolResult([
+        new vscode.LanguageModelTextPart(
+          `✅ ソースリポジトリを削除しました。\n\n${summaryTable}`,
+        ),
+      ]);
+    } catch (error) {
+      return new vscode.LanguageModelToolResult([
+        new vscode.LanguageModelTextPart(
+          `❌ Failed to remove source: ${error}`,
         ),
       ]);
     }

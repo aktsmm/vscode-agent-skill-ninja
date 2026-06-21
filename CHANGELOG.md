@@ -7,6 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.9.28] - 2026-06-21
+
+### Added
+
+- 🔒 **Private Source Repositories** - Source repositories can now be added from private GitHub repositories. File reads (`SKILL.md`, `bundle.json`, `LICENSE*`, `registry.json`, `docs/search-index.json`, `.claude/commands`) go through the authenticated GitHub Contents API, using `skillNinja.githubToken`, `GITHUB_TOKEN` / `GH_TOKEN`, or `gh` CLI auth / Private な GitHub repository を source として追加できるよう対応。ファイル取得を認証付き GitHub Contents API 経由にし、`skillNinja.githubToken`・`GITHUB_TOKEN` / `GH_TOKEN`・`gh` CLI 認証を利用
+- 🗑️ **Remove Skill Source Tool** - Added the `#removeSkillSource` language model tool to remove a source repository (resolved by `sourceId`, `repoUrl`, or `sourceName`) and prune its skills and bundles from the index / source repository を index から削除する `#removeSkillSource` ツールを追加（`sourceId` / `repoUrl` / `sourceName` で対象を解決し、skills と bundles を整理）
+
+### Fixed
+
+- 🛡️ **Truncated Tree Guard** - Repository scans now fail explicitly when the GitHub Git Trees API response is truncated, avoiding silent partial indexing of large repositories / GitHub Git Trees API のレスポンスが truncated の場合は明示エラーにして、大規模 repository の部分 index 化を防止
+- 🔑 **Private Repo Auth Errors** - `404` / `403` responses while scanning a source now explain that GitHub authentication or `Contents: read` access may be required / source scan 中の `404` / `403` で、GitHub 認証や `Contents: read` 権限が必要な可能性を示す文言に改善
+
 ## [0.9.27] - 2026-06-21
 
 ### Added

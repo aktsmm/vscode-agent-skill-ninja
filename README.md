@@ -162,7 +162,7 @@ Settings → **Output Format** → Select `ref`, `full`, `compact`, or `legacy`
 ### 🤖 MCP Tools Integration
 
 - Automatically available as tools in **Agent Mode**
-- **8 Tools**: `#searchSkills`, `#installSkill`, `#uninstallSkill`, `#listSkills`, `#recommendSkills`, `#updateSkillIndex`, `#webSearchSkills`, `#addSkillSource`
+- **10 Tools**: `#searchSkills`, `#installSkill`, `#uninstallSkill`, `#listSkills`, `#recommendSkills`, `#updateSkillIndex`, `#webSearchSkills`, `#addSkillSource`, `#removeSkillSource`, `#localizeSkill`
 - Trust badges (Official / Curated / Community)
 - Auto-update instruction file on install
 
@@ -260,6 +260,7 @@ Preset index includes skills from official, curated, and community sources out o
 
 - Toolbar: Search / Web Search / Update Index / Add Source / Create / Settings
 - Add Source accepts a repository root URL or a GitHub folder/file URL inside that repository. The repository root is detected automatically.
+- Private source repositories are supported when GitHub authentication has access to read that repository's contents.
 
 ### Icon Legend
 
@@ -342,16 +343,18 @@ In GitHub Copilot's **Agent Mode**, tools are automatically available.
 
 ### Tool List
 
-| Tool Reference      | Description                       |
-| ------------------- | --------------------------------- |
-| `#searchSkills`     | Search skills by keyword          |
-| `#installSkill`     | Install a skill                   |
-| `#uninstallSkill`   | Uninstall a skill                 |
-| `#listSkills`       | List installed skills             |
-| `#recommendSkills`  | Get project-based recommendations |
-| `#updateSkillIndex` | Update skill index                |
-| `#webSearchSkills`  | Web search skills on GitHub       |
-| `#addSkillSource`   | Add new skill source              |
+| Tool Reference       | Description                       |
+| -------------------- | --------------------------------- |
+| `#searchSkills`      | Search skills by keyword          |
+| `#installSkill`      | Install a skill                   |
+| `#uninstallSkill`    | Uninstall a skill                 |
+| `#listSkills`        | List installed skills             |
+| `#recommendSkills`   | Get project-based recommendations |
+| `#updateSkillIndex`  | Update skill index                |
+| `#webSearchSkills`   | Web search skills on GitHub       |
+| `#addSkillSource`    | Add new skill source              |
+| `#removeSkillSource` | Remove a skill source             |
+| `#localizeSkill`     | Localize skill descriptions       |
 
 ### Usage Examples
 
@@ -486,9 +489,9 @@ The instruction file contains a managed section with **IMPORTANT prompt** and **
 
 ## 🔑 GitHub Token Setup
 
-> **Important**: GitHub Token is **required** for GitHub Search. Without it, API rate limits (60 requests/hour) will be exhausted quickly and searches will fail.
+> **Important**: GitHub authentication is required for private source repositories and strongly recommended for GitHub Search. Without it, API rate limits (60 requests/hour) will be exhausted quickly and searches may fail.
 
-Set up a GitHub Token to enable full search functionality:
+Set up GitHub authentication to enable full search functionality and private source repositories:
 
 ### Option 1: VS Code Settings
 
@@ -500,7 +503,9 @@ Find `Agent Skills Ninja: GitHub Token` in settings and enter your token:
 }
 ```
 
-👉 [Create a GitHub Token](https://github.com/settings/tokens/new?description=Agent%20Skill%20Ninja&scopes=repo,read:org) (Required scopes: `repo`, `read:org`)
+For private repositories, prefer a fine-grained personal access token limited to the selected repositories with `Contents: read`. Classic personal access tokens need the `repo` scope to read private repositories.
+
+👉 [Create a fine-grained GitHub Token](https://github.com/settings/personal-access-tokens/new?name=Agent%20Skill%20Ninja&description=Read%20skill%20source%20repositories&contents=read)
 
 ### Option 2: GitHub CLI (Recommended)
 
