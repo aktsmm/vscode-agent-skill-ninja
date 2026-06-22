@@ -9,6 +9,7 @@
 [![Installs](https://badgen.net/vs-marketplace/i/yamapan.agent-skill-ninja)](https://marketplace.visualstudio.com/items?itemName=yamapan.agent-skill-ninja)
 [![License](https://badgen.net/badge/License/CC%20BY-NC-SA%204.0/gray)](LICENSE)
 [![GitHub](https://badgen.net/badge/GitHub/Source/black)](https://github.com/aktsmm/vscode-agent-skill-ninja)
+[![Stars](https://badgen.net/github/stars/aktsmm/vscode-agent-skill-ninja)](https://github.com/aktsmm/vscode-agent-skill-ninja)
 
 <p align="center">
   <b>GitHub Copilot • Claude Code • Cursor • Windsurf • Cline</b>
