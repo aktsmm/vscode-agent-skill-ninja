@@ -21,7 +21,7 @@
   <a href="#usage">Usage</a> •
   <a href="#copilot-chat">Copilot Chat</a> •
   <a href="#settings">Settings</a> •
-  <a href="#development">Development</a>
+  <a href="#-development">Development</a>
 </p>
 
 <p align="center">
@@ -92,6 +92,8 @@ For workspace skills, relative `skillNinja.refCatalogPath` values are resolved f
 Settings → **Output Format** → Select `ref`, `full`, `compact`, or `legacy`
 
 ---
+
+<a id="features"></a>
 
 ## 🥷 Features
 
@@ -165,6 +167,8 @@ Settings → **Output Format** → Select `ref`, `full`, `compact`, or `legacy`
 
 ![Demo](docs/screenshots/demo.gif)
 
+<a id="installation"></a>
+
 ## 📥 Installation
 
 ### VS Code Marketplace
@@ -207,6 +211,8 @@ Preset index includes skills from official, curated, and community sources out o
 | [Yeachan-Heo/oh-my-codex](https://github.com/Yeachan-Heo/oh-my-codex)                                                         | Community | OMX Codex workflow skills             |
 
 > Use `Update Index` to refresh the latest skills and metadata from these sources.
+
+<a id="usage"></a>
 
 ## 🥷 Usage
 
@@ -303,6 +309,8 @@ Preset index includes skills from official, curated, and community sources out o
 
 > If no results found, keywords are automatically reduced and retried.
 
+<a id="copilot-chat"></a>
+
 ## 💬 Copilot Chat
 
 Use `@skill` in GitHub Copilot Chat for skill operations:
@@ -375,6 +383,8 @@ If you don't need MCP tools, you can disable them from GitHub Copilot Chat:
 
 1. Copilot Chat panel → Settings → Tools
 2. Toggle off "Agent Skills Ninja" tools
+
+<a id="settings"></a>
 
 ## ⚙️ Settings
 
@@ -503,6 +513,8 @@ gh auth login
 ```
 
 > If GitHub CLI is installed, the token is automatically retrieved (no configuration needed)
+
+<a id="development" name="development"></a>
 
 ## 🛠️ Development
 

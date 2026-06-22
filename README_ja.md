@@ -21,7 +21,7 @@
   <a href="#usage">Usage</a> •
   <a href="#copilot-chat">Copilot Chat</a> •
   <a href="#settings">Settings</a> •
-  <a href="#development">Development</a>
+  <a href="#-development">Development</a>
 </p>
 
 ---
@@ -88,6 +88,8 @@ workspace skills では `skillNinja.refCatalogPath` の相対パスは workspace
 設定 → **Output Format (出力フォーマット)** → `ref`, `full`, `compact`, `legacy` から選択
 
 ---
+
+<a id="features"></a>
 
 ## 🥷 Features
 
@@ -161,6 +163,8 @@ workspace skills では `skillNinja.refCatalogPath` の相対パスは workspace
 
 ![Demo](docs/screenshots/demo.gif)
 
+<a id="installation"></a>
+
 ## 📥 Installation
 
 ### VS Code Marketplace
@@ -203,6 +207,8 @@ ext install yamapan.agent-skill-ninja
 | [Yeachan-Heo/oh-my-codex](https://github.com/Yeachan-Heo/oh-my-codex)                                                         | Community | OMX Codex ワークフロースキル       |
 
 > `Update Index` コマンドで、これらのソースから最新のスキルとメタデータを再取得できます
+
+<a id="usage"></a>
 
 ## 🥷 Usage
 
@@ -299,6 +305,8 @@ ext install yamapan.agent-skill-ninja
 
 > 結果が 0 件の場合、キーワードを減らして自動リトライします。
 
+<a id="copilot-chat"></a>
+
 ## 💬 Copilot Chat
 
 GitHub Copilot Chat から `@skill` でスキル操作が可能です：
@@ -371,6 +379,8 @@ MCP ツールが不要な場合は、GitHub Copilot Chat のツール一覧か�
 
 1. Copilot Chat パネル → Settings → Tools
 2. 「Agent Skills Ninja」のツールをトグルオフ
+
+<a id="settings"></a>
 
 ## ⚙️ Settings
 
@@ -500,6 +510,8 @@ gh auth login
 
 > GitHub CLI がインストールされていれば自動でトークンを取得します（設定不要）
 
+<a id="development" name="development"></a>
+
 ## 🛠️ Development
 
 ```bash
@@ -535,7 +547,7 @@ npm run lint
 
 ## 📄 License
 
-[CC BY-NC 4.0](https://creativecommons.org/licenses/by-nc/4.0/) © [yamapan](https://github.com/aktsmm)
+[CC BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/) © [yamapan](https://github.com/aktsmm)
 
 - 非営利目的での利用・改変・再配布が可能
 - 商用利用は要相談
