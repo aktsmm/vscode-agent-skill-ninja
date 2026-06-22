@@ -4,23 +4,11 @@
   <strong>Search, Install, and Manage Agent Skills for AI Coding Assistants</strong>
 </p>
 
-<p align="center">
-  <a href="https://marketplace.visualstudio.com/items?itemName=yamapan.agent-skill-ninja">
-    <img src="https://img.shields.io/badge/VS%20Code-Marketplace-007ACC?style=for-the-badge&logo=visual-studio-code&logoColor=white" alt="VS Code Marketplace">
-  </a>
-  <a href="https://github.com/aktsmm/vscode-agent-skill-ninja/blob/master/LICENSE">
-    <img src="https://img.shields.io/badge/License-CC%20BY--NC--SA%204.0-lightgrey?style=for-the-badge" alt="License CC BY-NC-SA 4.0">
-  </a>
-  <a href="https://github.com/aktsmm/vscode-agent-skill-ninja">
-    <img src="https://img.shields.io/badge/GitHub-Source-181717?style=for-the-badge&logo=github&logoColor=white" alt="GitHub">
-  </a>
-</p>
-
-<p align="center">
-  <a href="https://marketplace.visualstudio.com/items?itemName=yamapan.agent-skill-ninja">
-    <img src="https://img.shields.io/badge/Install%20Now-VS%20Code%20Marketplace-007ACC?style=for-the-badge&logo=visual-studio-code&logoColor=white" alt="Install from VS Code Marketplace">
-  </a>
-</p>
+[![Status](https://badgen.net/badge/Status/Stable/green)](https://marketplace.visualstudio.com/items?itemName=yamapan.agent-skill-ninja)
+[![VS Marketplace](https://badgen.net/vs-marketplace/v/yamapan.agent-skill-ninja)](https://marketplace.visualstudio.com/items?itemName=yamapan.agent-skill-ninja)
+[![Installs](https://badgen.net/vs-marketplace/i/yamapan.agent-skill-ninja)](https://marketplace.visualstudio.com/items?itemName=yamapan.agent-skill-ninja)
+[![License](https://badgen.net/badge/License/CC%20BY-NC-SA%204.0/gray)](LICENSE)
+[![GitHub](https://badgen.net/badge/GitHub/Source/black)](https://github.com/aktsmm/vscode-agent-skill-ninja)
 
 <p align="center">
   <b>GitHub Copilot • Claude Code • Cursor • Windsurf • Cline</b>
