@@ -26,6 +26,52 @@ const jaMessages = {
   updatingSource: "{0} を更新中...",
   indexUpdated: "✅ インデックスを更新しました ({0} → {1} スキル, {2})",
   updateFailed: "更新失敗: {0}",
+  staleSourceIndexPrompt:
+    "30日以上更新されていない source index が {0} 件あります（{1}）。更新しますか？",
+  staleSourceIndexUpdating: "古い source index を更新中...",
+  staleSourceIndexUpdated:
+    "✅ 古い source index を更新しました ({0}/{1} source)",
+  staleSourceIndexPartialFailed:
+    "一部の source index を更新できませんでした ({0}/{1} source 失敗): {2}",
+  actionUpdateNow: "今すぐ更新",
+  actionLater: "後で",
+  chatFollowupSearchSkills: "スキルを検索",
+  chatFollowupListInstalled: "インストール済み一覧",
+  chatFollowupRecommend: "おすすめ",
+  chatError: "❌ エラー: {0}",
+  chatSearchMissingQuery:
+    "🔍 **検索キーワードを入力してください**\n\n例: `/search MCP server` または `/search github tools`",
+  chatSearchNoResults:
+    '🔍 "{0}" に一致するスキルが見つかりませんでした\n\n別のキーワードで検索してください。',
+  chatSearchResults: '## 🔍 "{1}" の検索結果: {0} 件\n\n',
+  chatNoDescription: "説明はありません",
+  chatInstallMissingSkillName:
+    "📦 **インストールするスキル名を入力してください**\n\n例: `/install github-mcp`",
+  chatInstallSkillNotFound:
+    '❓ スキル "{0}" が見つかりませんでした。\n\n`/search {0}` で利用可能なスキルを検索してください。',
+  chatNoWorkspaceFolderOpen:
+    "❌ ワークスペースフォルダーが開かれていません。先にフォルダーを開いてください。",
+  chatNoManagedSkillRoot:
+    "❌ このワークスペースで利用できる managed skill root がありません。",
+  chatInstallingSkill: "## 📦 {0} をインストール中\n\n",
+  chatInstallSuccess: "✅ **{0}** をインストールしました。\n\n",
+  chatInstallCheckFolder: "📂 スキル設定は {0} を確認してください。",
+  chatNoInstalledSkillsUsage:
+    "📋 **インストール済みスキルはまだありません**\n\n`/search` でスキルを探すか、`/recommend` でおすすめを確認してください。",
+  chatInstalledSkillsHeader: "## 📋 インストール済みスキル ({0})\n\n",
+  chatRecommendedSkillsHeader: "## 💡 おすすめスキル\n\n",
+  chatNoWorkspacePopular:
+    "ワークスペースが開かれていません。人気スキルを表示します。\n\n",
+  chatReasonTypeScript: "TypeScript ファイルを検出しました",
+  chatReasonNode: "Node.js プロジェクトを検出しました",
+  chatReasonPython: "Python ファイルを検出しました",
+  chatReasonGithub: "GitHub workflow を検出しました",
+  chatReasonDocker: "Docker 設定を検出しました",
+  chatNoSpecificRecommendations:
+    "このプロジェクトに固有のおすすめは見つかりませんでした。\n\n",
+  chatPopularSkillsHeader: "### ⭐ 人気スキル\n\n",
+  chatIntroBody:
+    "GitHub Copilot 用の Agent Skills を探したり管理したりできます。\n\n## コマンド\n\n- `/search <query>` - スキルを検索\n- `/install <name>` - スキルをインストール\n- `/list` - インストール済みスキルを一覧\n- `/recommend` - おすすめスキルを表示\n\n必要なことをそのまま書いても、関連するスキルを探します。\n",
   updating: "{0} を更新中...",
   updateSourceSelectRequired:
     "Remote Skills ビューから更新するソースを選択してください。",
@@ -148,6 +194,52 @@ const enMessages: MessageDictionary = {
   updatingSource: "Updating {0}...",
   indexUpdated: "✅ Index updated ({0} → {1} skills, {2})",
   updateFailed: "Update failed: {0}",
+  staleSourceIndexPrompt:
+    "{0} source index(es) have not been updated for more than 30 days ({1}). Update now?",
+  staleSourceIndexUpdating: "Updating stale source indexes...",
+  staleSourceIndexUpdated:
+    "✅ Updated stale source indexes ({0}/{1} source(s))",
+  staleSourceIndexPartialFailed:
+    "Some source indexes could not be updated ({0}/{1} source(s) failed): {2}",
+  actionUpdateNow: "Update Now",
+  actionLater: "Later",
+  chatFollowupSearchSkills: "Search Skills",
+  chatFollowupListInstalled: "List Installed",
+  chatFollowupRecommend: "Recommend",
+  chatError: "❌ Error: {0}",
+  chatSearchMissingQuery:
+    "🔍 **Please provide a search query**\n\nExample: `/search MCP server` or `/search github tools`",
+  chatSearchNoResults:
+    '🔍 No skills found for "{0}"\n\nTry a different search term.',
+  chatSearchResults: '## 🔍 Found {0} skill(s) for "{1}"\n\n',
+  chatNoDescription: "No description",
+  chatInstallMissingSkillName:
+    "📦 **Please provide a skill name to install**\n\nExample: `/install github-mcp`",
+  chatInstallSkillNotFound:
+    '❓ Skill "{0}" not found.\n\nUse `/search {0}` to find available skills.',
+  chatNoWorkspaceFolderOpen:
+    "❌ No workspace folder open. Please open a folder first.",
+  chatNoManagedSkillRoot:
+    "❌ No managed skill root is available for this workspace.",
+  chatInstallingSkill: "## 📦 Installing {0}\n\n",
+  chatInstallSuccess: "✅ **{0}** has been installed successfully!\n\n",
+  chatInstallCheckFolder: "📂 Check {0} for the skill configuration.",
+  chatNoInstalledSkillsUsage:
+    "📋 **No skills installed yet**\n\nUse `/search` to find skills or `/recommend` for suggestions.",
+  chatInstalledSkillsHeader: "## 📋 Installed Skills ({0})\n\n",
+  chatRecommendedSkillsHeader: "## 💡 Recommended Skills\n\n",
+  chatNoWorkspacePopular:
+    "No workspace open. Here are some popular skills:\n\n",
+  chatReasonTypeScript: "TypeScript files detected",
+  chatReasonNode: "Node.js project detected",
+  chatReasonPython: "Python files detected",
+  chatReasonGithub: "GitHub workflow detected",
+  chatReasonDocker: "Docker configuration detected",
+  chatNoSpecificRecommendations:
+    "No specific recommendations based on your project.\n\n",
+  chatPopularSkillsHeader: "### ⭐ Popular Skills\n\n",
+  chatIntroBody:
+    "I can help you find and manage Agent Skills for GitHub Copilot.\n\n## Commands\n\n- `/search <query>` - Search for skills\n- `/install <name>` - Install a skill\n- `/list` - List installed skills\n- `/recommend` - Get skill recommendations\n\nOr just describe what you need, and I'll find relevant skills!\n",
   updating: "Updating {0}...",
   updateSourceSelectRequired:
     "Please select a source to update from the Remote Skills view.",
@@ -320,6 +412,51 @@ export const messages = {
   indexUpdated: (oldCount: number, newCount: number, diff: string) =>
     localize("indexUpdated", oldCount, newCount, diff),
   updateFailed: (error: string) => localize("updateFailed", error),
+  staleSourceIndexPrompt: (count: number, sources: string) =>
+    localize("staleSourceIndexPrompt", count, sources),
+  staleSourceIndexUpdating: () => localize("staleSourceIndexUpdating"),
+  staleSourceIndexUpdated: (updated: number, total: number) =>
+    localize("staleSourceIndexUpdated", updated, total),
+  staleSourceIndexPartialFailed: (
+    failed: number,
+    total: number,
+    sources: string,
+  ) => localize("staleSourceIndexPartialFailed", failed, total, sources),
+  actionUpdateNow: () => localize("actionUpdateNow"),
+  actionLater: () => localize("actionLater"),
+  chatFollowupSearchSkills: () => localize("chatFollowupSearchSkills"),
+  chatFollowupListInstalled: () => localize("chatFollowupListInstalled"),
+  chatFollowupRecommend: () => localize("chatFollowupRecommend"),
+  chatError: (error: string) => localize("chatError", error),
+  chatSearchMissingQuery: () => localize("chatSearchMissingQuery"),
+  chatSearchNoResults: (query: string) =>
+    localize("chatSearchNoResults", query),
+  chatSearchResults: (count: number, query: string) =>
+    localize("chatSearchResults", count, query),
+  chatNoDescription: () => localize("chatNoDescription"),
+  chatInstallMissingSkillName: () => localize("chatInstallMissingSkillName"),
+  chatInstallSkillNotFound: (name: string) =>
+    localize("chatInstallSkillNotFound", name),
+  chatNoWorkspaceFolderOpen: () => localize("chatNoWorkspaceFolderOpen"),
+  chatNoManagedSkillRoot: () => localize("chatNoManagedSkillRoot"),
+  chatInstallingSkill: (name: string) => localize("chatInstallingSkill", name),
+  chatInstallSuccess: (name: string) => localize("chatInstallSuccess", name),
+  chatInstallCheckFolder: (folder: string) =>
+    localize("chatInstallCheckFolder", folder),
+  chatNoInstalledSkillsUsage: () => localize("chatNoInstalledSkillsUsage"),
+  chatInstalledSkillsHeader: (count: number) =>
+    localize("chatInstalledSkillsHeader", count),
+  chatRecommendedSkillsHeader: () => localize("chatRecommendedSkillsHeader"),
+  chatNoWorkspacePopular: () => localize("chatNoWorkspacePopular"),
+  chatReasonTypeScript: () => localize("chatReasonTypeScript"),
+  chatReasonNode: () => localize("chatReasonNode"),
+  chatReasonPython: () => localize("chatReasonPython"),
+  chatReasonGithub: () => localize("chatReasonGithub"),
+  chatReasonDocker: () => localize("chatReasonDocker"),
+  chatNoSpecificRecommendations: () =>
+    localize("chatNoSpecificRecommendations"),
+  chatPopularSkillsHeader: () => localize("chatPopularSkillsHeader"),
+  chatIntroBody: () => localize("chatIntroBody"),
   updating: (name: string) => localize("updating", name),
   updateSourceSelectRequired: () => localize("updateSourceSelectRequired"),
   sourceIdNotFound: () => localize("sourceIdNotFound"),

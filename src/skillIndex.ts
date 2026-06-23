@@ -76,6 +76,7 @@ export interface Source {
   url: string;
   type: string;
   branch?: string; // デフォルトブランチ（省略時は"main"）
+  lastIndexedAt?: string; // 最後にこのソースをスキャンしてインデックス化した日時（ISO 8601）
   description: string;
   description_ja?: string; // 日本語説明（オプション）
   includePaths?: string[]; // 取り込むパス prefix の限定

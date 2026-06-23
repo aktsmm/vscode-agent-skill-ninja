@@ -2,7 +2,7 @@
   "name": "agent-skill-ninja",
   "displayName": "%displayName%",
   "description": "%description%",
-  "version": "0.9.28",
+  "version": "0.9.29",
   "publisher": "yamapan",
   "license": "CC-BY-NC-SA-4.0",
   "icon": "resources/icon.png",
@@ -991,6 +991,22 @@
           ],
           "markdownDescription": "%config.autoUpdateSkillsOnUpgrade.markdownDescription%"
         },
+        "skillNinja.staleSourceIndexUpdateMode": {
+          "type": "string",
+          "default": "prompt",
+          "order": 13,
+          "enum": [
+            "always",
+            "prompt",
+            "never"
+          ],
+          "enumDescriptions": [
+            "%config.staleSourceIndexUpdateMode.always%",
+            "%config.staleSourceIndexUpdateMode.prompt%",
+            "%config.staleSourceIndexUpdateMode.never%"
+          ],
+          "markdownDescription": "%config.staleSourceIndexUpdateMode.markdownDescription%"
+        },
         "skillNinja.instructionFile": {
           "type": "string",
           "default": "AGENTS.md",
@@ -1062,7 +1078,7 @@
         "skillNinja.githubToken": {
           "type": "string",
           "default": "",
-          "order": 13,
+          "order": 14,
           "description": "%config.githubToken.description%",
           "markdownDescription": "%config.githubToken.markdownDescription%"
         },
@@ -1125,14 +1141,14 @@
         "skillNinja.singleClickInstall": {
           "type": "boolean",
           "default": false,
-          "order": 14,
+          "order": 15,
           "description": "%config.singleClickInstall.description%",
           "markdownDescription": "%config.singleClickInstall.markdownDescription%"
         },
         "skillNinja.coexistenceMode": {
           "type": "string",
           "default": "auto",
-          "order": 15,
+          "order": 16,
           "enum": [
             "auto",
             "independent"
@@ -1146,7 +1162,7 @@
         "skillNinja.useSharedSourcesManifest": {
           "type": "boolean",
           "default": false,
-          "order": 16,
+          "order": 17,
           "markdownDescription": "%config.useSharedSourcesManifest.markdownDescription%"
         },
         "skillNinja.versionInfo": {
@@ -1171,7 +1187,7 @@
     "package": "npm run check-types && npm run lint && node esbuild.js --production",
     "check-types": "tsc --noEmit",
     "lint": "eslint src",
-    "test": "node scripts/test-whenToUse.js && node scripts/test-search-logic.js && node scripts/test-search-ux.js && node scripts/test-skill-scan-paths.js && node scripts/test-skill-locations.js && node scripts/test-local-skill-scanner.js && node scripts/test-user-global-provider-no-workspace.js && node scripts/test-shared-sources-manifest.js && node scripts/test-update-preset-index.js && node scripts/test-installed-skill-index.js && node scripts/test-skill-installer-metadata-fallback.js && node scripts/test-skill-installer-remote-fallback.js && node scripts/test-workspace-skill-groups.js && node scripts/test-view-welcome-ux.js && node scripts/test-package-manifest.js && node scripts/test-audit-skill-installability.js && node scripts/test-coexistence.js && node scripts/test-marker-migration.js && node scripts/test-integration-coexistence.js"
+    "test": "node scripts/test-whenToUse.js && node scripts/test-search-logic.js && node scripts/test-search-ux.js && node scripts/test-skill-scan-paths.js && node scripts/test-skill-locations.js && node scripts/test-local-skill-scanner.js && node scripts/test-user-global-provider-no-workspace.js && node scripts/test-shared-sources-manifest.js && node scripts/test-source-index-freshness.js && node scripts/test-update-preset-index.js && node scripts/test-installed-skill-index.js && node scripts/test-skill-installer-metadata-fallback.js && node scripts/test-skill-installer-remote-fallback.js && node scripts/test-workspace-skill-groups.js && node scripts/test-view-welcome-ux.js && node scripts/test-package-manifest.js && node scripts/test-audit-skill-installability.js && node scripts/test-coexistence.js && node scripts/test-marker-migration.js && node scripts/test-integration-coexistence.js"
   },
   "devDependencies": {
     "@types/node": "20.x",

@@ -208,6 +208,7 @@ async function run() {
           name: "Alpha",
           url: "https://github.com/example/alpha",
           type: "preset",
+          lastIndexedAt: "2026-05-16T00:00:00.000Z",
           description: "Alpha source",
         },
         {
@@ -290,6 +291,7 @@ async function run() {
                 name: "Alpha",
                 url: "https://github.com/example/alpha",
                 type: "preset",
+                lastIndexedAt: "2026-05-20T00:00:00.000Z",
                 description: "Alpha source",
                 includePaths: ["skills/alpha"],
                 excludePaths: ["skills/alpha/tests"],
@@ -303,6 +305,10 @@ async function run() {
       );
 
       const index = await loadSkillIndex(context);
+      assert.deepStrictEqual(
+        JSON.parse(JSON.stringify(index.sources[0].lastIndexedAt)),
+        "2026-05-20T00:00:00.000Z",
+      );
       assert.deepStrictEqual(
         JSON.parse(JSON.stringify(index.sources[0].includePaths)),
         ["skills/alpha"],
@@ -333,6 +339,7 @@ async function run() {
             url: "https://github.com/example/gamma",
             type: "user-added",
             branch: "main",
+            lastIndexedAt: "2026-06-24T00:00:00.000Z",
             description: "Gamma source",
             includePaths: ["skills/gamma"],
             excludePaths: ["skills/gamma/archive"],

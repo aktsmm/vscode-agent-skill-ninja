@@ -76,6 +76,7 @@ import { MAX_SEARCH_RESULTS } from "./skillSearch";
 import { createChatParticipant } from "./chatParticipant";
 import { registerMcpTools } from "./mcpTools";
 import { getGitHubToken } from "./githubAuth";
+import { getStaleSources, type StaleSourceInfo } from "./sourceIndexFreshness";
 import {
   publishBeacon,
   clearBeacon,
@@ -101,6 +102,10 @@ let extensionShuttingDown = false;
 
 const LAST_MANAGED_INSTRUCTION_PATHS_KEY =
   "skillNinja.lastManagedInstructionPaths";
+const LAST_STALE_SOURCE_INDEX_PROMPT_DATE_KEY =
+  "skillNinja.lastStaleSourceIndexPromptDate";
+
+type StaleSourceIndexUpdateMode = "always" | "prompt" | "never";
 
 async function resolveSkillGitHubUrl(
   skill: Skill,
@@ -123,6 +128,36 @@ function getSearchResultGitHubUrl(result: {
     result.defaultBranch || "main",
     result.path,
   );
+}
+
+function normalizeStaleSourceIndexUpdateMode(
+  value: unknown,
+): StaleSourceIndexUpdateMode {
+  switch (value) {
+    case "always":
+    case "prompt":
+    case "never":
+      return value;
+    default:
+      return "prompt";
+  }
+}
+
+function getUtcDateKey(date: Date = new Date()): string {
+  return date.toISOString().split("T")[0];
+}
+
+function getSourceDisplayName(source: Source): string {
+  return source.name || source.id;
+}
+
+function formatStaleSourceSummary(staleSources: StaleSourceInfo[]): string {
+  const labels = staleSources.slice(0, 3).map((entry) => {
+    const suffix = Number.isFinite(entry.daysOld) ? `, ${entry.daysOld}d` : "";
+    return `${getSourceDisplayName(entry.source)}${suffix}`;
+  });
+
+  return `${labels.join(", ")}${staleSources.length > 3 ? "..." : ""}`;
 }
 
 export function activate(
@@ -179,6 +214,7 @@ export function activate(
   let initialSyncSettled = false;
   let initialSyncTimer: ReturnType<typeof setTimeout> | undefined;
   const deferredInstructionRoots = new Set<string>();
+  let staleSourceIndexCheckCompletedThisSession = false;
 
   function isContextActive(): boolean {
     return activeContext === context && !extensionShuttingDown;
@@ -326,6 +362,8 @@ export function activate(
         }
       }
     }
+
+    skillIndex = await checkStaleSourceIndexesOnStartup(skillIndex || index);
   });
 
   // 統合ワークスペーススキルビュー
@@ -367,6 +405,132 @@ export function activate(
     }
 
     return skillIndex!;
+  }
+
+  async function checkStaleSourceIndexesOnStartup(
+    index: SkillIndex,
+  ): Promise<SkillIndex> {
+    if (staleSourceIndexCheckCompletedThisSession) {
+      return index;
+    }
+
+    staleSourceIndexCheckCompletedThisSession = true;
+
+    try {
+      const config = vscode.workspace.getConfiguration("skillNinja");
+      const mode = normalizeStaleSourceIndexUpdateMode(
+        config.get<string>("staleSourceIndexUpdateMode"),
+      );
+      if (mode === "never") {
+        return index;
+      }
+
+      const staleSources = getStaleSources(index);
+      if (staleSources.length === 0) {
+        return index;
+      }
+
+      if (mode === "prompt") {
+        const today = getUtcDateKey();
+        const lastPromptDate = context.globalState.get<string>(
+          LAST_STALE_SOURCE_INDEX_PROMPT_DATE_KEY,
+        );
+        if (lastPromptDate === today) {
+          return index;
+        }
+
+        await context.globalState.update(
+          LAST_STALE_SOURCE_INDEX_PROMPT_DATE_KEY,
+          today,
+        );
+
+        const action = await vscode.window.showWarningMessage(
+          messages.staleSourceIndexPrompt(
+            staleSources.length,
+            formatStaleSourceSummary(staleSources),
+          ),
+          messages.actionUpdateNow(),
+          messages.actionLater(),
+        );
+        if (action !== messages.actionUpdateNow()) {
+          return index;
+        }
+      }
+
+      return await updateStaleSourceIndexes(index, staleSources);
+    } catch (error) {
+      console.warn("[Skill Ninja] Stale source index check failed:", error);
+      return index;
+    }
+  }
+
+  async function updateStaleSourceIndexes(
+    index: SkillIndex,
+    staleSources: StaleSourceInfo[],
+  ): Promise<SkillIndex> {
+    let nextIndex = index;
+    const failedSources: string[] = [];
+    const failedMessages: string[] = [];
+
+    await vscode.window.withProgress(
+      {
+        location: vscode.ProgressLocation.Notification,
+        title: messages.staleSourceIndexUpdating(),
+        cancellable: false,
+      },
+      async (progress) => {
+        for (const entry of staleSources) {
+          try {
+            nextIndex = await updateIndexFromSingleSource(
+              context,
+              nextIndex,
+              entry.source.id,
+              progress,
+            );
+          } catch (error) {
+            const errorMessage =
+              error instanceof Error ? error.message : String(error);
+            failedSources.push(getSourceDisplayName(entry.source));
+            failedMessages.push(errorMessage);
+            console.warn(
+              `[Skill Ninja] Failed to update stale source ${entry.source.id}:`,
+              error,
+            );
+          }
+        }
+      },
+    );
+
+    const updatedCount = staleSources.length - failedSources.length;
+    browseProvider.refresh();
+
+    if (updatedCount > 0) {
+      skillIndex = nextIndex;
+      vscode.window.showInformationMessage(
+        messages.staleSourceIndexUpdated(updatedCount, staleSources.length),
+      );
+    }
+
+    if (failedSources.length > 0) {
+      vscode.window.showWarningMessage(
+        messages.staleSourceIndexPartialFailed(
+          failedSources.length,
+          staleSources.length,
+          failedSources.slice(0, 3).join(", "),
+        ),
+      );
+      if (
+        failedMessages.some(
+          (message) =>
+            message.includes("rate limit") ||
+            message.includes("authentication"),
+        )
+      ) {
+        await showAuthHelp();
+      }
+    }
+
+    return nextIndex;
   }
 
   function markRecentlyInstalled(skill: Skill): void {

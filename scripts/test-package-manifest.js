@@ -154,6 +154,7 @@ test("settings order matches the documented primary flow", () => {
       "skillNinja.refCatalogFormat",
       "skillNinja.language",
       "skillNinja.autoUpdateSkillsOnUpgrade",
+      "skillNinja.staleSourceIndexUpdateMode",
       "skillNinja.githubToken",
       "skillNinja.singleClickInstall",
       "skillNinja.coexistenceMode",
@@ -173,12 +174,80 @@ test("settings order matches the documented primary flow", () => {
       ["skillNinja.refCatalogFormat", 10],
       ["skillNinja.language", 11],
       ["skillNinja.autoUpdateSkillsOnUpgrade", 12],
-      ["skillNinja.githubToken", 13],
-      ["skillNinja.singleClickInstall", 14],
-      ["skillNinja.coexistenceMode", 15],
-      ["skillNinja.useSharedSourcesManifest", 16],
+      ["skillNinja.staleSourceIndexUpdateMode", 13],
+      ["skillNinja.githubToken", 14],
+      ["skillNinja.singleClickInstall", 15],
+      ["skillNinja.coexistenceMode", 16],
+      ["skillNinja.useSharedSourcesManifest", 17],
       ["skillNinja.includeLocalSkills", 90],
     ],
+  );
+});
+
+test("stale source index update setting is localized and scoped", () => {
+  const setting =
+    pkg.contributes.configuration.properties[
+      "skillNinja.staleSourceIndexUpdateMode"
+    ];
+  assert.ok(setting);
+  assert.strictEqual(setting.default, "prompt");
+  assert.deepStrictEqual(setting.enum, ["always", "prompt", "never"]);
+  assert.deepStrictEqual(setting.enumDescriptions, [
+    "%config.staleSourceIndexUpdateMode.always%",
+    "%config.staleSourceIndexUpdateMode.prompt%",
+    "%config.staleSourceIndexUpdateMode.never%",
+  ]);
+  assert.strictEqual(
+    setting.markdownDescription,
+    "%config.staleSourceIndexUpdateMode.markdownDescription%",
+  );
+
+  for (const key of [
+    "config.staleSourceIndexUpdateMode.markdownDescription",
+    "config.staleSourceIndexUpdateMode.always",
+    "config.staleSourceIndexUpdateMode.prompt",
+    "config.staleSourceIndexUpdateMode.never",
+  ]) {
+    assert.ok(packageNls[key], `${key} should exist in package.nls.json`);
+    assert.ok(packageNlsJa[key], `${key} should exist in package.nls.ja.json`);
+  }
+
+  assert.ok(
+    packageNls[
+      "config.staleSourceIndexUpdateMode.markdownDescription"
+    ].includes("30 days"),
+  );
+  assert.ok(
+    packageNls[
+      "config.staleSourceIndexUpdateMode.markdownDescription"
+    ].includes("does not affect extension-upgrade"),
+  );
+});
+
+test("stale source startup prompt flow is guarded in extension runtime", () => {
+  for (const expected of [
+    "LAST_STALE_SOURCE_INDEX_PROMPT_DATE_KEY",
+    "normalizeStaleSourceIndexUpdateMode",
+    'config.get<string>("staleSourceIndexUpdateMode")',
+    "messages.staleSourceIndexPrompt(",
+    "messages.actionUpdateNow()",
+    "messages.actionLater()",
+    "updateIndexFromSingleSource(",
+    "messages.staleSourceIndexPartialFailed(",
+  ]) {
+    assert.ok(
+      extensionSource.includes(expected),
+      `extension should include stale source startup flow piece: ${expected}`,
+    );
+  }
+
+  assert.ok(
+    extensionSource.includes('return "prompt";'),
+    "invalid stale source update mode should fall back to prompt",
+  );
+  assert.ok(
+    extensionSource.includes("lastPromptDate === today"),
+    "prompt mode should avoid repeated daily prompts",
   );
 });
 
@@ -296,6 +365,138 @@ test("chat participant and MCP tools always reload the latest skill index", () =
     mcpToolsSource.includes("return loadSkillIndex(context);"),
     "mcpTools should reload the index for each invocation",
   );
+});
+
+test("chat participant user-facing copy goes through runtime i18n", () => {
+  assert.ok(
+    chatParticipantSource.includes('import { messages } from "./i18n";'),
+    "chat participant should use the shared runtime i18n messages",
+  );
+
+  for (const forbidden of [
+    "Please provide a search query",
+    "Please provide a skill name",
+    "No workspace folder open",
+    "No skills installed yet",
+    "Recommended Skills",
+    "Popular Skills",
+  ]) {
+    assert.strictEqual(
+      chatParticipantSource.includes(forbidden),
+      false,
+      `chat participant should not hardcode: ${forbidden}`,
+    );
+  }
+
+  for (const expected of [
+    "chatSearchMissingQuery",
+    "chatInstallMissingSkillName",
+    "chatNoWorkspaceFolderOpen",
+    "chatNoInstalledSkillsUsage",
+    "chatRecommendedSkillsHeader",
+    "chatPopularSkillsHeader",
+  ]) {
+    assert.ok(i18nSource.includes(expected), `i18n should expose ${expected}`);
+  }
+});
+
+test("MCP workspace errors use runtime i18n", () => {
+  assert.ok(
+    mcpToolsSource.includes('import { isJapanese, messages } from "./i18n";'),
+    "MCP tools should import runtime i18n messages",
+  );
+
+  for (const forbidden of [
+    "No workspace folder open",
+    "No workspace open. Cannot analyze project",
+    "No managed skill root is available",
+  ]) {
+    assert.strictEqual(
+      mcpToolsSource.includes(forbidden),
+      false,
+      `MCP tools should not hardcode workspace error: ${forbidden}`,
+    );
+  }
+
+  assert.ok(
+    mcpToolsSource.includes("messages.chatNoWorkspaceFolderOpen()"),
+    "MCP tools should use localized no-workspace message",
+  );
+  assert.ok(
+    mcpToolsSource.includes("messages.chatNoManagedSkillRoot()"),
+    "MCP tools should use localized managed-root message",
+  );
+});
+
+test("MCP short error responses use localizable helpers", () => {
+  assert.ok(
+    mcpToolsSource.includes("function localizeMcpText("),
+    "MCP tools should have a scoped localization helper for short tool errors",
+  );
+  assert.ok(
+    mcpToolsSource.includes("function formatMcpError("),
+    "MCP tools should have a scoped error formatter",
+  );
+  assert.ok(
+    mcpToolsSource.includes("function mcpContextUnavailableMessage("),
+    "MCP tools should localize missing extension context errors",
+  );
+  assert.ok(
+    mcpToolsSource.includes("function formatSourceRemoveError("),
+    "MCP tools should localize remove-source resolution errors",
+  );
+
+  for (const expected of [
+    "Failed to install",
+    "Failed to uninstall",
+    "Failed to update index",
+    "GitHub search failed",
+    "Failed to add source",
+    "Failed to remove source",
+    "Failed to localize skill",
+    "skillName is required",
+    "not found in index",
+  ]) {
+    assert.ok(
+      mcpToolsSource.includes(expected),
+      `MCP source should still contain the English fallback text: ${expected}`,
+    );
+  }
+
+  for (const expected of [
+    "インストールに失敗しました",
+    "アンインストールに失敗しました",
+    "インデックス更新に失敗しました",
+    "GitHub 検索に失敗しました",
+    "ソース追加に失敗しました",
+    "ソース削除に失敗しました",
+    "skillName は必須です",
+    "拡張機能の context を利用できません",
+    "ソースを削除するには",
+    "複数のソースが一致しました",
+    "ソースが見つかりません",
+  ]) {
+    assert.ok(
+      mcpToolsSource.includes(expected),
+      `MCP source should include Japanese fallback text: ${expected}`,
+    );
+  }
+
+  for (const forbidden of [
+    "`❌ GitHub search failed:",
+    "`❌ Failed to update index:",
+    "`❌ Failed to add source:",
+    "`❌ Failed to remove source:",
+    "`❌ Failed to localize skill:",
+    "`❌ Extension context not available.",
+    "`❌ ${resolved.error}`",
+  ]) {
+    assert.strictEqual(
+      mcpToolsSource.includes(forbidden),
+      false,
+      `MCP tools should not use raw English error template: ${forbidden}`,
+    );
+  }
 });
 
 test("open managed output reports open failures instead of silently swallowing them", () => {

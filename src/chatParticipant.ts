@@ -11,6 +11,7 @@ import {
 } from "./skillInstaller";
 import { updateInstructionFileForRoot } from "./instructionManager";
 import { getManagedSkillRoots, type SkillRoot } from "./skillLocations";
+import { messages } from "./i18n";
 
 let indexContext: vscode.ExtensionContext | undefined;
 
@@ -54,9 +55,18 @@ export function createChatParticipant(
   participant.followupProvider = {
     provideFollowups: () => {
       return [
-        { prompt: "/search MCP server", label: "$(search) Search Skills" },
-        { prompt: "/list", label: "$(list-tree) List Installed" },
-        { prompt: "/recommend", label: "$(lightbulb) Recommend" },
+        {
+          prompt: "/search MCP server",
+          label: `$(search) ${messages.chatFollowupSearchSkills()}`,
+        },
+        {
+          prompt: "/list",
+          label: `$(list-tree) ${messages.chatFollowupListInstalled()}`,
+        },
+        {
+          prompt: "/recommend",
+          label: `$(lightbulb) ${messages.chatFollowupRecommend()}`,
+        },
       ];
     },
   };
@@ -90,9 +100,8 @@ async function handleChatRequest(
         return await handleSmartQuery(query, stream, token);
     }
   } catch (error) {
-    stream.markdown(
-      `❌ Error: ${error instanceof Error ? error.message : String(error)}`,
-    );
+    const message = error instanceof Error ? error.message : String(error);
+    stream.markdown(messages.chatError(message));
     return { errorDetails: { message: String(error) } };
   }
 }
@@ -104,9 +113,7 @@ async function handleSearch(
   _token: vscode.CancellationToken,
 ): Promise<vscode.ChatResult> {
   if (!query) {
-    stream.markdown(
-      "🔍 **Please provide a search query**\n\nExample: `/search MCP server` or `/search github tools`",
-    );
+    stream.markdown(messages.chatSearchMissingQuery());
     return {};
   }
 
@@ -127,13 +134,11 @@ async function handleSearch(
     .slice(0, 10);
 
   if (results.length === 0) {
-    stream.markdown(
-      `🔍 No skills found for "${query}"\n\nTry a different search term.`,
-    );
+    stream.markdown(messages.chatSearchNoResults(query));
     return {};
   }
 
-  stream.markdown(`## 🔍 Found ${results.length} skill(s) for "${query}"\n\n`);
+  stream.markdown(messages.chatSearchResults(results.length, query));
 
   for (const skill of results) {
     const stars = skill.stars ? ` ⭐ ${skill.stars}` : "";
@@ -141,8 +146,10 @@ async function handleSearch(
       skill.categories?.map((c: string) => `\`${c}\``).join(" ") || "";
 
     stream.markdown(`### $(package) ${skill.name}${stars}\n`);
-    stream.markdown(`${skill.description || "No description"}\n`);
-    stream.markdown(`📦 **Source:** ${skill.source} | ${categories}\n`);
+    stream.markdown(`${skill.description || messages.chatNoDescription()}\n`);
+    stream.markdown(
+      `📦 **${messages.sourceLabel()}:** ${skill.source} | ${categories}\n`,
+    );
     if (skill.url) {
       stream.markdown(`🔗 [GitHub](${skill.url})\n\n`);
     }
@@ -151,7 +158,7 @@ async function handleSearch(
     stream.button({
       command: "skillNinja.installSkill",
       arguments: [skill],
-      title: `$(cloud-download) Install ${skill.name}`,
+      title: `$(cloud-download) ${messages.actionInstall()} ${skill.name}`,
     });
     stream.markdown("\n\n---\n\n");
   }
@@ -166,9 +173,7 @@ async function handleInstall(
   _token: vscode.CancellationToken,
 ): Promise<vscode.ChatResult> {
   if (!query) {
-    stream.markdown(
-      "📦 **Please provide a skill name to install**\n\nExample: `/install github-mcp`",
-    );
+    stream.markdown(messages.chatInstallMissingSkillName());
     return {};
   }
 
@@ -182,33 +187,29 @@ async function handleInstall(
     skills.find((s: Skill) => s.name.toLowerCase().includes(lowerQuery));
 
   if (!skill) {
-    stream.markdown(
-      `❓ Skill "${query}" not found.\n\nUse \`/search ${query}\` to find available skills.`,
-    );
+    stream.markdown(messages.chatInstallSkillNotFound(query));
     return {};
   }
 
   const workspaceFolder = vscode.workspace.workspaceFolders?.[0];
   if (!workspaceFolder) {
-    stream.markdown("❌ No workspace folder open. Please open a folder first.");
+    stream.markdown(messages.chatNoWorkspaceFolderOpen());
     return {};
   }
 
   const targetRoot = await getDefaultManagedRoot(workspaceFolder.uri);
   if (!targetRoot) {
-    stream.markdown(
-      "❌ No managed skill root is available for this workspace.",
-    );
+    stream.markdown(messages.chatNoManagedSkillRoot());
     return {};
   }
 
-  stream.markdown(`## 📦 Installing ${skill.name}\n\n`);
-  stream.markdown(`- **Source:** ${skill.source}\n`);
+  stream.markdown(messages.chatInstallingSkill(skill.name));
+  stream.markdown(`- **${messages.sourceLabel()}:** ${skill.source}\n`);
   if (skill.url) {
     stream.markdown(`- **URL:** ${skill.url}\n\n`);
   }
 
-  stream.progress("Installing...");
+  stream.progress(messages.installing(skill.name));
 
   // インストール実行
   await installSkill(
@@ -226,10 +227,8 @@ async function handleInstall(
     await updateInstructionFileForRoot(targetRoot, requireIndexContext());
   }
 
-  stream.markdown(`✅ **${skill.name}** has been installed successfully!\n\n`);
-  stream.markdown(
-    `📂 Check ${targetRoot.displayPath} for the skill configuration.`,
-  );
+  stream.markdown(messages.chatInstallSuccess(skill.name));
+  stream.markdown(messages.chatInstallCheckFolder(targetRoot.displayPath));
 
   return { metadata: { command: "install", skill: skill.name } };
 }
@@ -240,7 +239,7 @@ async function handleList(
 ): Promise<vscode.ChatResult> {
   const workspaceFolder = vscode.workspace.workspaceFolders?.[0];
   if (!workspaceFolder) {
-    stream.markdown("❌ No workspace folder open. Please open a folder first.");
+    stream.markdown(messages.chatNoWorkspaceFolderOpen());
     return {};
   }
 
@@ -249,13 +248,11 @@ async function handleList(
   );
 
   if (installedEntries.length === 0) {
-    stream.markdown(
-      "📋 **No skills installed yet**\n\nUse `/search` to find skills or `/recommend` for suggestions.",
-    );
+    stream.markdown(messages.chatNoInstalledSkillsUsage());
     return {};
   }
 
-  stream.markdown(`## 📋 Installed Skills (${installedEntries.length})\n\n`);
+  stream.markdown(messages.chatInstalledSkillsHeader(installedEntries.length));
 
   for (const { root, meta } of installedEntries) {
     stream.markdown(`- **${meta.name}** (${root.displayPath})\n`);
@@ -269,12 +266,12 @@ async function handleRecommend(
   stream: vscode.ChatResponseStream,
   _token: vscode.CancellationToken,
 ): Promise<vscode.ChatResult> {
-  stream.markdown("## 💡 Recommended Skills\n\n");
+  stream.markdown(messages.chatRecommendedSkillsHeader());
 
   // ワークスペースのファイルを分析
   const workspaceFolders = vscode.workspace.workspaceFolders;
   if (!workspaceFolders) {
-    stream.markdown("No workspace open. Here are some popular skills:\n\n");
+    stream.markdown(messages.chatNoWorkspacePopular());
     return await showPopularSkills(stream);
   }
 
@@ -285,23 +282,27 @@ async function handleRecommend(
     {
       glob: "**/*.ts",
       category: "typescript",
-      reason: "TypeScript files detected",
+      reason: messages.chatReasonTypeScript(),
     },
     {
       glob: "**/package.json",
       category: "npm",
-      reason: "Node.js project detected",
+      reason: messages.chatReasonNode(),
     },
-    { glob: "**/*.py", category: "python", reason: "Python files detected" },
+    {
+      glob: "**/*.py",
+      category: "python",
+      reason: messages.chatReasonPython(),
+    },
     {
       glob: "**/.github/**",
       category: "github",
-      reason: "GitHub workflow detected",
+      reason: messages.chatReasonGithub(),
     },
     {
       glob: "**/Dockerfile",
       category: "docker",
-      reason: "Docker configuration detected",
+      reason: messages.chatReasonDocker(),
     },
   ];
 
@@ -334,19 +335,21 @@ async function handleRecommend(
   }
 
   if (recommendations.length === 0) {
-    stream.markdown("No specific recommendations based on your project.\n\n");
+    stream.markdown(messages.chatNoSpecificRecommendations());
     return await showPopularSkills(stream);
   }
 
   for (const rec of recommendations.slice(0, 5)) {
     stream.markdown(`### $(lightbulb) ${rec.skill.name}\n`);
     stream.markdown(`*${rec.reason}*\n\n`);
-    stream.markdown(`${rec.skill.description || "No description"}\n\n`);
+    stream.markdown(
+      `${rec.skill.description || messages.chatNoDescription()}\n\n`,
+    );
 
     stream.button({
       command: "skillNinja.installSkill",
       arguments: [rec.skill],
-      title: `$(cloud-download) Install`,
+      title: `$(cloud-download) ${messages.actionInstall()}`,
     });
     stream.markdown("\n\n");
   }
@@ -366,12 +369,12 @@ async function showPopularSkills(
     .sort((a: Skill, b: Skill) => (b.stars || 0) - (a.stars || 0))
     .slice(0, 5);
 
-  stream.markdown("### ⭐ Popular Skills\n\n");
+  stream.markdown(messages.chatPopularSkillsHeader());
 
   for (const skill of popular) {
     stream.markdown(
       `- **${skill.name}** ⭐ ${skill.stars} - ${
-        skill.description || "No description"
+        skill.description || messages.chatNoDescription()
       }\n`,
     );
   }
@@ -387,17 +390,7 @@ async function handleSmartQuery(
 ): Promise<vscode.ChatResult> {
   if (!query) {
     stream.markdown(`# 🥷 Agent Skills Ninja\n\n`);
-    stream.markdown(
-      `I can help you find and manage Agent Skills for GitHub Copilot.\n\n`,
-    );
-    stream.markdown(`## Commands\n\n`);
-    stream.markdown(`- \`/search <query>\` - Search for skills\n`);
-    stream.markdown(`- \`/install <name>\` - Install a skill\n`);
-    stream.markdown(`- \`/list\` - List installed skills\n`);
-    stream.markdown(`- \`/recommend\` - Get skill recommendations\n\n`);
-    stream.markdown(
-      `Or just describe what you need, and I'll find relevant skills!\n`,
-    );
+    stream.markdown(messages.chatIntroBody());
     return {};
   }
 

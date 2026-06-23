@@ -18,6 +18,24 @@ const REQUEST_TIMEOUT_MS = 15000;
 const FETCH_CONCURRENCY = 8;
 const GITHUB_API_VERSION = "2022-11-28";
 
+function getIndexDateStamp(): string {
+  return new Date().toISOString().split("T")[0];
+}
+
+function getSourceIndexedStamp(): string {
+  return new Date().toISOString();
+}
+
+function stampSourceIndexedAt(
+  sources: Source[],
+  sourceId: string,
+  indexedAt: string,
+): Source[] {
+  return sources.map((source) =>
+    source.id === sourceId ? { ...source, lastIndexedAt: indexedAt } : source,
+  );
+}
+
 class GitHubFileContentError extends Error {
   constructor(
     public readonly status: number,
@@ -1405,8 +1423,13 @@ export async function updateSingleSource(
 
     const newIndex: SkillIndex = {
       ...currentIndex,
+      sources: stampSourceIndexedAt(
+        currentIndex.sources,
+        sourceId,
+        getSourceIndexedStamp(),
+      ),
       skills: [...otherSkills, ...updatedSkills],
-      lastUpdated: new Date().toISOString().split("T")[0],
+      lastUpdated: getIndexDateStamp(),
     };
 
     // バンドル更新も処理
@@ -1459,6 +1482,7 @@ export async function updateIndexFromSources(
 
   const updatedSkills: Skill[] = [];
   const updatedBundles: Bundle[] = [];
+  const updatedSourceIds = new Set<string>();
   const totalSources = currentIndex.sources.length;
 
   for (const source of currentIndex.sources) {
@@ -1473,8 +1497,10 @@ export async function updateIndexFromSources(
         source.url,
         token,
         source.branch,
+        source,
       );
       if (result) {
+        updatedSourceIds.add(source.id);
         // 既存の説明があれば保持、なければGitHubから取得した説明を使用
         // source ID は既存の source.id を使用（GitHub から生成された ID ではなく）
         for (const skill of result.skills) {
@@ -1520,10 +1546,16 @@ export async function updateIndexFromSources(
   const preservedBundles = (currentIndex.bundles || []).filter(
     (b) => !existingBundleIds.has(b.id),
   );
+  const indexedAt = getSourceIndexedStamp();
 
   const updatedIndex: SkillIndex = {
     ...currentIndex,
-    lastUpdated: new Date().toISOString().split("T")[0],
+    lastUpdated: getIndexDateStamp(),
+    sources: currentIndex.sources.map((source) =>
+      updatedSourceIds.has(source.id)
+        ? { ...source, lastIndexedAt: indexedAt }
+        : source,
+    ),
     skills: updatedSkills,
     bundles: [...preservedBundles, ...updatedBundles],
   };
@@ -1609,7 +1641,12 @@ export async function updateIndexFromSingleSource(
 
   const updatedIndex: SkillIndex = {
     ...currentIndex,
-    lastUpdated: new Date().toISOString().split("T")[0],
+    lastUpdated: getIndexDateStamp(),
+    sources: stampSourceIndexedAt(
+      currentIndex.sources,
+      sourceId,
+      getSourceIndexedStamp(),
+    ),
     skills: [...otherSkills, ...newSkills],
     bundles: [...otherBundles, ...newBundles],
   };
@@ -1646,13 +1683,20 @@ export async function addSource(
   );
 
   let updatedSources: Source[];
+  const indexedAt = getSourceIndexedStamp();
   if (existingSourceIndex >= 0) {
     // 既存ソースを更新
     updatedSources = [...currentIndex.sources];
-    updatedSources[existingSourceIndex] = result.source;
+    updatedSources[existingSourceIndex] = {
+      ...result.source,
+      lastIndexedAt: indexedAt,
+    };
   } else {
     // 新規ソースを追加
-    updatedSources = [...currentIndex.sources, result.source];
+    updatedSources = [
+      ...currentIndex.sources,
+      { ...result.source, lastIndexedAt: indexedAt },
+    ];
   }
 
   // 既存のスキルを除外して新しいスキルを追加
@@ -1669,7 +1713,7 @@ export async function addSource(
 
   const updatedIndex: SkillIndex = {
     ...currentIndex,
-    lastUpdated: new Date().toISOString().split("T")[0],
+    lastUpdated: getIndexDateStamp(),
     sources: updatedSources,
     skills: updatedSkills,
     bundles: updatedBundles.length > 0 ? updatedBundles : currentIndex.bundles,

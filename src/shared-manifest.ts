@@ -10,6 +10,7 @@ export type SourceEntry = Pick<
   | "url"
   | "type"
   | "branch"
+  | "lastIndexedAt"
   | "description"
   | "description_ja"
   | "includePaths"

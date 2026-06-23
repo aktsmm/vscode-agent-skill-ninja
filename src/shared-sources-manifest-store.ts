@@ -39,6 +39,10 @@ function normalizeSourceEntry(source: SourceEntry): SourceEntry {
     url: source.url,
     type: source.type,
     branch: source.branch,
+    lastIndexedAt:
+      typeof source.lastIndexedAt === "string"
+        ? source.lastIndexedAt
+        : undefined,
     description: source.description,
     description_ja: source.description_ja,
     includePaths: normalizePathList(source.includePaths),

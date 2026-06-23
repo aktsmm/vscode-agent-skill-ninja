@@ -7,6 +7,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.9.29] - 2026-06-24
+
+### Added
+
+- 🔄 **Stale Source Index Updates** - Source repositories now track per-source index timestamps and can prompt, auto-update, or skip startup updates when a source index is older than 30 days via `skillNinja.staleSourceIndexUpdateMode` / source repository ごとの index 更新日時を保持し、30 日を超えて古い source index を起動時に確認・自動更新・無効化できる `skillNinja.staleSourceIndexUpdateMode` を追加
+- 🧪 **Source Index Freshness Tests** - Added regression coverage for stale source detection and shared manifest timestamp preservation / 古い source index の判定と shared manifest での timestamp 保持を守る回帰テストを追加
+
+### Fixed
+
+- 🌐 **Chat Participant Localization** - Routed chat participant followups and response text through runtime i18n and added a guard against hardcoded English chat copy / Chat Participant の followup と応答文を runtime i18n 経由にし、英語固定文言の再発を防ぐ guard を追加
+- 🌐 **MCP Error Localization** - Routed MCP tool workspace/root availability and short failure responses through localized helpers, with guards against hardcoded English workspace errors / MCP tool の workspace/root 利用不可エラーと短い失敗応答をローカライズ helper 経由にし、英語固定の workspace error を防ぐ guard を追加
+- 🔁 **Stale Source Refresh Feedback** - Refresh the remote skill view after stale source update attempts even when all sources fail, so the UI stays in sync with the attempted recovery path / stale source 更新試行後は全 source が失敗した場合も Remote Skills view を更新し、復旧試行後の UI 同期を保つよう修正
+
 ## [0.9.28] - 2026-06-21
 
 ### Added
@@ -1017,7 +1030,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Basic skill search functionality
 - QuickPick-based UI
 
-[Unreleased]: https://github.com/aktsmm/vscode-agent-skill-ninja/compare/v0.9.24...HEAD
+[Unreleased]: https://github.com/aktsmm/vscode-agent-skill-ninja/compare/v0.9.29...HEAD
+[0.9.29]: https://github.com/aktsmm/vscode-agent-skill-ninja/releases/tag/v0.9.29
 [0.9.24]: https://github.com/aktsmm/vscode-agent-skill-ninja/releases/tag/v0.9.24
 [0.9.23]: https://github.com/aktsmm/vscode-agent-skill-ninja/releases/tag/v0.9.23
 [0.9.22]: https://github.com/aktsmm/vscode-agent-skill-ninja/releases/tag/v0.9.22
