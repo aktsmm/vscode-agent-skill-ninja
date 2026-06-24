@@ -392,7 +392,7 @@ If you don't need MCP tools, you can disable them from GitHub Copilot Chat:
 |  10   | `skillNinja.refCatalogFormat`             | `full`                     | Catalog detail format used when `outputFormat` is `ref`                             |
 |  11   | `skillNinja.language`                     | `auto`                     | UI language (auto / en / ja)                                                        |
 |  12   | `skillNinja.autoUpdateSkillsOnUpgrade`    | `prompt`                   | Update installed skills after extension upgrade                                     |
-|  13   | `skillNinja.githubToken`                  | `""`                       | GitHub Token (for API rate limit)                                                   |
+|  13   | `skillNinja.githubToken`                  | `""`                       | Legacy GitHub Token setting; copied to SecretStorage when present                    |
 |  14   | `skillNinja.singleClickInstall`           | `false`                    | Install remote skills with single click                                             |
 |  15   | `skillNinja.coexistenceMode`              | `auto`                     | Coexistence with Agent Resources Ninja (`auto` / `independent`)                     |
 |  16   | `skillNinja.useSharedSourcesManifest`     | `false`                    | Share source-list SSOT with Agent Resources Ninja via `~/.agent-ninja/sources.json` |
@@ -480,29 +480,35 @@ The instruction file contains a managed section with **IMPORTANT prompt** and **
 
 > **Important**: GitHub authentication is required for private source repositories and strongly recommended for GitHub Search. Without it, API rate limits (60 requests/hour) will be exhausted quickly and searches may fail.
 
-Set up GitHub authentication to enable full search functionality and private source repositories:
+Set up GitHub authentication to enable full search functionality and private source repositories. Agent Skills Ninja resolves tokens in this order: VS Code SecretStorage, `GITHUB_TOKEN` / `GH_TOKEN`, `gh` CLI, then the legacy `skillNinja.githubToken` setting.
 
-### Option 1: VS Code Settings
-
-Find `Agent Skills Ninja: GitHub Token` in settings and enter your token:
-
-```json
-{
-  "skillNinja.githubToken": "ghp_xxxxxxxxxxxx"
-}
-```
-
-For private repositories, prefer a fine-grained personal access token limited to the selected repositories with `Contents: read`. Classic personal access tokens need the `repo` scope to read private repositories.
-
-👉 [Create a fine-grained GitHub Token](https://github.com/settings/personal-access-tokens/new?name=Agent%20Skill%20Ninja&description=Read%20skill%20source%20repositories&contents=read)
-
-### Option 2: GitHub CLI (Recommended)
+### Option 1: GitHub CLI (Recommended)
 
 ```bash
 gh auth login
 ```
 
-> If GitHub CLI is installed, the token is automatically retrieved (no configuration needed)
+If GitHub CLI is installed, the token is automatically retrieved and no extension setting is required.
+
+### Option 2: Environment Variable
+
+Set `GITHUB_TOKEN` or `GH_TOKEN` in your shell or OS environment. This avoids storing credentials in VS Code settings.
+
+### Option 3: Legacy VS Code Setting
+
+Find `Agent Skills Ninja: GitHub Token` in settings and enter your token:
+
+```json
+{
+  "skillNinja.githubToken": "<github-token>"
+}
+```
+
+When this legacy setting is present, Agent Skills Ninja copies the value into VS Code SecretStorage and uses the secure copy first. The setting is retained for backward compatibility and reset workflows.
+
+For private repositories, prefer a fine-grained personal access token limited to the selected repositories with `Contents: read`. Classic personal access tokens need the `repo` scope to read private repositories.
+
+👉 [Create a fine-grained GitHub Token](https://github.com/settings/personal-access-tokens/new?name=Agent%20Skill%20Ninja&description=Read%20skill%20source%20repositories&contents=read)
 
 ## 🛠️ Development
 

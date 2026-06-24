@@ -75,7 +75,12 @@ import { resolveOutputFormat } from "./toolDetector";
 import { MAX_SEARCH_RESULTS } from "./skillSearch";
 import { createChatParticipant } from "./chatParticipant";
 import { registerMcpTools } from "./mcpTools";
-import { getGitHubToken } from "./githubAuth";
+import {
+  deleteStoredGitHubToken,
+  getGitHubToken,
+  initializeGitHubAuth,
+  migrateConfiguredGitHubTokenToSecretStorage,
+} from "./githubAuth";
 import { getStaleSources, type StaleSourceInfo } from "./sourceIndexFreshness";
 import {
   publishBeacon,
@@ -166,6 +171,10 @@ export function activate(
   console.log("Agent Skills Ninja is now active!");
   activeContext = context;
   extensionShuttingDown = false;
+  initializeGitHubAuth(context);
+  migrateConfiguredGitHubTokenToSecretStorage().catch((err) => {
+    console.warn("[Skill Ninja] Failed to migrate GitHub token to SecretStorage:", err);
+  });
 
   // Coexistence beacon を publish。Resource NINJA とのオーナー判定で使われる。
   publishBeacon(context).catch((err) => {
@@ -344,14 +353,15 @@ export function activate(
         );
 
         if (action === (isJapanese() ? "インデックスを更新" : "Update Index")) {
-          skillIndex = await refreshIndexForInstalledMetas(
+          const refreshedIndex = await refreshIndexForInstalledMetas(
             index,
             missingEntries.map((entry) => entry.meta),
             { confirm: false },
           );
+          skillIndex = refreshedIndex;
           const stillMissing = missingEntries.filter(
             ({ meta }) =>
-              !findIndexedSkillForInstalledMeta(skillIndex!.skills, meta),
+              !findIndexedSkillForInstalledMeta(refreshedIndex.skills, meta),
           );
           const disabledCount =
             await offerDisableMissingReinstallChecks(stillMissing);
@@ -404,7 +414,11 @@ export function activate(
       skillIndex = await loadSkillIndex(context);
     }
 
-    return skillIndex!;
+    if (!skillIndex) {
+      throw new Error("Skill index is not available.");
+    }
+
+    return skillIndex;
   }
 
   async function checkStaleSourceIndexesOnStartup(
@@ -1687,7 +1701,7 @@ export function activate(
       quickPick.matchOnDetail = true;
 
       const updateSearchQuickPick = (value: string): void => {
-        const result = searchSkills(skillIndex!, value);
+        const result = searchSkills(skillIndex, value);
         quickPick.items = result.items;
         quickPick.placeholder = result.truncated
           ? value.trim()
@@ -1818,31 +1832,38 @@ export function activate(
         refreshAllViews();
 
         // ツリービューでスキルを選択状態にする
-        const targetProvider =
-          targetRoot.scope === "workspace"
-            ? workspaceProvider
-            : userGlobalProvider;
-        const targetTreeView =
-          targetRoot.scope === "workspace"
-            ? installedTreeView
-            : userGlobalTreeView;
-        const groups = await targetProvider.getChildren();
-        for (const group of groups) {
-          const items = await targetProvider.getChildren(group);
-          const installedItem = items.find((treeItem) => {
-            const root = getSkillRootFromItem(treeItem);
-            return (
-              treeItem.skill?.name === skill.name &&
-              root?.rootPath === targetRoot.rootPath
-            );
-          });
-          if (installedItem) {
-            await targetTreeView.reveal(installedItem, {
-              select: true,
-              focus: true,
+        try {
+          const targetProvider =
+            targetRoot.scope === "workspace"
+              ? workspaceProvider
+              : userGlobalProvider;
+          const targetTreeView =
+            targetRoot.scope === "workspace"
+              ? installedTreeView
+              : userGlobalTreeView;
+          const groups = await targetProvider.getChildren();
+          for (const group of groups) {
+            const items = await targetProvider.getChildren(group);
+            const installedItem = items.find((treeItem) => {
+              const root = getSkillRootFromItem(treeItem);
+              return (
+                treeItem.skill?.name === skill.name &&
+                root?.rootPath === targetRoot.rootPath
+              );
             });
-            break;
+            if (installedItem) {
+              await targetTreeView.reveal(installedItem, {
+                select: true,
+                focus: true,
+              });
+              break;
+            }
           }
+        } catch (error) {
+          console.warn(
+            `[Skill Ninja] Failed to reveal installed skill: ${skill.name}`,
+            error,
+          );
         }
       } catch (error) {
         const errorMessage =
@@ -2896,9 +2917,10 @@ export function activate(
             cancellable: false,
           },
           async (progress) => {
+            const currentIndex = await getRemoteSourceIndex();
             skillIndex = await updateIndexFromSources(
               context,
-              skillIndex!,
+              currentIndex,
               progress,
             );
           },
@@ -2954,9 +2976,10 @@ export function activate(
             cancellable: false,
           },
           async (progress) => {
+            const currentIndex = await getRemoteSourceIndex();
             skillIndex = await updateIndexFromSingleSource(
               context,
-              skillIndex!,
+              currentIndex,
               sourceId,
               progress,
             );
@@ -3046,7 +3069,8 @@ export function activate(
             cancellable: false,
           },
           async () => {
-            return await addSource(context, skillIndex!, repoUrl);
+            const currentIndex = await getRemoteSourceIndex();
+            return await addSource(context, currentIndex, repoUrl);
           },
         );
 
@@ -3079,8 +3103,7 @@ export function activate(
   const webSearchCmd = vscode.commands.registerCommand(
     "skillNinja.webSearch",
     async () => {
-      const config = vscode.workspace.getConfiguration("skillNinja");
-      const token = config.get<string>("githubToken");
+      const token = await getGitHubToken();
 
       // 連続検索のためのループ
       let continueSearch = true;
@@ -3333,7 +3356,8 @@ export function activate(
   const removeSourceCmd = vscode.commands.registerCommand(
     "skillNinja.removeSource",
     async (item?: SkillTreeItem) => {
-      skillIndex = await getRemoteSourceIndex();
+      const currentIndex = await getRemoteSourceIndex();
+      skillIndex = currentIndex;
 
       let sourceId: string | undefined;
       let sourceName: string | undefined;
@@ -3346,12 +3370,12 @@ export function activate(
           sourceId: string;
         }
 
-        const sources: SourceQuickPickItem[] = skillIndex.sources.map(
+        const sources: SourceQuickPickItem[] = currentIndex.sources.map(
           (s: Source) => ({
             label: s.name,
             description: s.url,
             detail: `${
-              skillIndex!.skills.filter((sk: Skill) => sk.source === s.id)
+              currentIndex.skills.filter((sk: Skill) => sk.source === s.id)
                 .length
             } skills`,
             sourceId: s.id,
@@ -3870,6 +3894,7 @@ Add examples here
 
       // トークンもリセット
       if (selected.value === "all") {
+        await deleteStoredGitHubToken();
         await config.update(
           "githubToken",
           undefined,

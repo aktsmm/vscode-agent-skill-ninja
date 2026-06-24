@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.9.30] - 2026-06-25
+
+### Added
+
+- 🔐 **SecretStorage GitHub Auth** - GitHub tokens are now resolved from VS Code SecretStorage first, with legacy `skillNinja.githubToken` values copied into secure storage for backward compatibility / GitHub token は VS Code SecretStorage を最優先で解決し、互換用 `skillNinja.githubToken` の値は安全な保存先へコピーするよう変更
+- 🧪 **GitHub Auth Regression Tests** - Added coverage for SecretStorage precedence, legacy token migration, reset deletion, and symlink installer traversal / SecretStorage の優先順位、legacy token migration、reset 時削除、symlink installer traversal の回帰テストを追加
+
 ## [0.9.29] - 2026-06-24
 
 ### Added
@@ -1030,7 +1037,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Basic skill search functionality
 - QuickPick-based UI
 
-[Unreleased]: https://github.com/aktsmm/vscode-agent-skill-ninja/compare/v0.9.29...HEAD
+[Unreleased]: https://github.com/aktsmm/vscode-agent-skill-ninja/compare/v0.9.30...HEAD
+[0.9.30]: https://github.com/aktsmm/vscode-agent-skill-ninja/compare/v0.9.29...v0.9.30
 [0.9.29]: https://github.com/aktsmm/vscode-agent-skill-ninja/releases/tag/v0.9.29
 [0.9.24]: https://github.com/aktsmm/vscode-agent-skill-ninja/releases/tag/v0.9.24
 [0.9.23]: https://github.com/aktsmm/vscode-agent-skill-ninja/releases/tag/v0.9.23

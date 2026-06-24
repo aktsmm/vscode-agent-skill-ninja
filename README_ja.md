@@ -388,7 +388,7 @@ MCP ツールが不要な場合は、GitHub Copilot Chat のツール一覧か�
 |  10  | `skillNinja.refCatalogFormat`             | `full`                     | `outputFormat` が `ref` のときの catalog 詳細形式                                     |
 |  11  | `skillNinja.language`                     | `auto`                     | UI 言語（auto / en / ja）                                                             |
 |  12  | `skillNinja.autoUpdateSkillsOnUpgrade`    | `prompt`                   | 拡張機能アップグレード後のスキル更新                                                  |
-|  13  | `skillNinja.githubToken`                  | `""`                       | GitHub Token（API 制限緩和用）                                                        |
+|  13  | `skillNinja.githubToken`                  | `""`                       | 互換用 GitHub Token 設定。設定時は SecretStorage にコピーして利用                     |
 |  14  | `skillNinja.singleClickInstall`           | `false`                    | リモートスキルをシングルクリックでインストール                                        |
 |  15  | `skillNinja.coexistenceMode`              | `auto`                     | Agent Resources Ninja との共存モード（`auto` / `independent`）                        |
 |  16  | `skillNinja.useSharedSourcesManifest`     | `false`                    | `~/.agent-ninja/sources.json` 経由で Agent Resources Ninja と source list SSOT を共有 |
@@ -476,27 +476,35 @@ instruction file には **IMPORTANT プロンプト** と **Description 列** �
 
 > **重要**: Private source repository を使う場合は GitHub 認証が必要です。GitHub 検索でも認証を強く推奨します。未設定の場合、API レート制限（60 リクエスト/時間）により検索が失敗しやすくなります。
 
-検索機能と Private source repository を有効にするには GitHub 認証を設定してください：
+検索機能と Private source repository を有効にするには GitHub 認証を設定してください。Agent Skills Ninja は VS Code SecretStorage、`GITHUB_TOKEN` / `GH_TOKEN`、`gh` CLI、互換用 `skillNinja.githubToken` 設定の順に token を解決します。
 
-### 方法 1: VS Code 設定
+### 方法 1: GitHub CLI（推奨）
+
+```bash
+gh auth login
+```
+
+GitHub CLI が入っていれば token は自動取得され、拡張機能側の設定は不要です。
+
+### 方法 2: 環境変数
+
+`GITHUB_TOKEN` または `GH_TOKEN` を shell や OS の環境変数に設定します。VS Code settings に credential を保存せずに済みます。
+
+### 方法 3: 互換用 VS Code 設定
 
 設定画面から `Agent Skills Ninja: GitHub Token` を探し、トークンを入力：
 
 ```json
 {
-  "skillNinja.githubToken": "ghp_xxxxxxxxxxxx"
+  "skillNinja.githubToken": "<github-token>"
 }
 ```
+
+この互換用設定がある場合、Agent Skills Ninja は値を VS Code SecretStorage にコピーし、安全な保存先を優先して使います。この設定は後方互換と reset workflow のために残しています。
 
 Private repository を読む場合は、対象 repository だけに限定した fine-grained personal access token に `Contents: read` を付与する構成を推奨します。classic personal access token では `repo` scope が必要です。
 
 👉 [Fine-grained GitHub Token を作成する](https://github.com/settings/personal-access-tokens/new?name=Agent%20Skill%20Ninja&description=Read%20skill%20source%20repositories&contents=read)
-
-### 方法 2: GitHub CLI（推奨）
-
-```bash
-gh auth login
-```
 
 > GitHub CLI がインストールされていれば自動でトークンを取得します（設定不要）
 

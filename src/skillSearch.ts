@@ -83,16 +83,18 @@ function calculateSearchScore(skill: Skill, keywords: string[]): number {
  * スキルを検索してQuickPickアイテムに変換
  */
 export function searchSkills(
-  index: SkillIndex,
+  index: SkillIndex | undefined,
   query: string,
 ): SearchSkillsResult {
+  const skills = Array.isArray(index?.skills) ? index.skills : [];
+  const sources = Array.isArray(index?.sources) ? index.sources : [];
   const lowerQuery = query.toLowerCase().trim();
 
   // クエリが空の場合はソースタイプ順でソートして返す
   if (!lowerQuery) {
-    const sorted = [...index.skills].sort((a, b) => {
-      const priorityA = getSourceTypePriority(a.source, index.sources);
-      const priorityB = getSourceTypePriority(b.source, index.sources);
+    const sorted = [...skills].sort((a, b) => {
+      const priorityA = getSourceTypePriority(a.source, sources);
+      const priorityB = getSourceTypePriority(b.source, sources);
       if (priorityA !== priorityB) return priorityA - priorityB;
       return a.name.localeCompare(b.name);
     });
@@ -109,7 +111,7 @@ export function searchSkills(
   const keywords = lowerQuery.split(/\s+/).filter((k) => k.length > 0);
 
   // スコア付きでフィルタリング
-  const scoredSkills = index.skills
+  const scoredSkills = skills
     .map((skill) => ({
       skill,
       score: calculateSearchScore(skill, keywords),
@@ -119,8 +121,8 @@ export function searchSkills(
   // ソート: ソースタイプ優先 → スコア順 → 名前順
   scoredSkills.sort((a, b) => {
     // まずソースタイプで比較
-    const priorityA = getSourceTypePriority(a.skill.source, index.sources);
-    const priorityB = getSourceTypePriority(b.skill.source, index.sources);
+    const priorityA = getSourceTypePriority(a.skill.source, sources);
+    const priorityB = getSourceTypePriority(b.skill.source, sources);
     if (priorityA !== priorityB) return priorityA - priorityB;
 
     // 次にスコアで比較（高い順）
