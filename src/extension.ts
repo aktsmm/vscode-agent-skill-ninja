@@ -173,7 +173,10 @@ export function activate(
   extensionShuttingDown = false;
   initializeGitHubAuth(context);
   migrateConfiguredGitHubTokenToSecretStorage().catch((err) => {
-    console.warn("[Skill Ninja] Failed to migrate GitHub token to SecretStorage:", err);
+    console.warn(
+      "[Skill Ninja] Failed to migrate GitHub token to SecretStorage:",
+      err,
+    );
   });
 
   // Coexistence beacon を publish。Resource NINJA とのオーナー判定で使われる。

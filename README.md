@@ -392,7 +392,7 @@ If you don't need MCP tools, you can disable them from GitHub Copilot Chat:
 |  10   | `skillNinja.refCatalogFormat`             | `full`                     | Catalog detail format used when `outputFormat` is `ref`                             |
 |  11   | `skillNinja.language`                     | `auto`                     | UI language (auto / en / ja)                                                        |
 |  12   | `skillNinja.autoUpdateSkillsOnUpgrade`    | `prompt`                   | Update installed skills after extension upgrade                                     |
-|  13   | `skillNinja.githubToken`                  | `""`                       | Legacy GitHub Token setting; copied to SecretStorage when present                    |
+|  13   | `skillNinja.githubToken`                  | `""`                       | Legacy GitHub Token setting; copied to SecretStorage when present                   |
 |  14   | `skillNinja.singleClickInstall`           | `false`                    | Install remote skills with single click                                             |
 |  15   | `skillNinja.coexistenceMode`              | `auto`                     | Coexistence with Agent Resources Ninja (`auto` / `independent`)                     |
 |  16   | `skillNinja.useSharedSourcesManifest`     | `false`                    | Share source-list SSOT with Agent Resources Ninja via `~/.agent-ninja/sources.json` |

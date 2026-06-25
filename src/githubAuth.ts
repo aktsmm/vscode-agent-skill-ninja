@@ -7,9 +7,7 @@ const GITHUB_TOKEN_SECRET_KEY = "skillNinja.githubToken";
 
 let secretStorage: vscode.SecretStorage | undefined;
 
-export function initializeGitHubAuth(
-  context: vscode.ExtensionContext,
-): void {
+export function initializeGitHubAuth(context: vscode.ExtensionContext): void {
   secretStorage = context.secrets;
 }
 

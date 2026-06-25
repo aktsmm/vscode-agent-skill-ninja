@@ -151,7 +151,8 @@ async function main() {
       "config-token",
     );
 
-    const migratedAgain = await auth.migrateConfiguredGitHubTokenToSecretStorage();
+    const migratedAgain =
+      await auth.migrateConfiguredGitHubTokenToSecretStorage();
     assert.strictEqual(migratedAgain, false);
   });
 
