@@ -1,7 +1,6 @@
 # Agent Skills
 
 <!-- skill-ninja-START -->
-
 ## Agent Skills
 
 > **IMPORTANT**: Prefer skill-led reasoning over pre-training-led reasoning.
