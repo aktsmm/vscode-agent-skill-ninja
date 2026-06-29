@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.9.31] - 2026-06-30
+
+### Fixed
+
+- 🛡️ **Skill Index Resilience** - Browse view, Chat participant, and MCP tools now tolerate malformed runtime skill index objects without crashing on missing `skills` arrays / Browse view、Chat participant、MCP tools が runtime の skill index で `skills` 配列が欠損していてもクラッシュしないよう改善
+- 🧪 **Malformed Index Regression Guards** - Added regression and contract coverage to prevent direct `index.skills` dereferences from returning to user-facing paths / ユーザー向け経路に直接 `index.skills` 参照が戻らないよう、回帰テストと contract guard を追加
+- 🧹 **Preset Skill Index Cleanup** - Pruned stale uninstallable entries and refreshed the bundled skill index to `v1.24.0` with 1375 installable skills / インストールできない stale entry を整理し、bundled skill index を `v1.24.0`・1375 件の installable な状態へ更新
+
 ## [0.9.30] - 2026-06-25
 
 ### Added

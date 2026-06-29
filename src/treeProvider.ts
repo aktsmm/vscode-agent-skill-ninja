@@ -1271,6 +1271,17 @@ export class BrowseSkillsProvider implements vscode.TreeDataProvider<SkillTreeIt
       this.skillIndex = await loadSkillIndex(this.context);
     }
 
+    const index = this.skillIndex;
+    if (!index) {
+      console.warn("[Skill Ninja] Skill index is unavailable for Browse view.");
+      return [];
+    }
+
+    const skills = Array.isArray(index.skills) ? index.skills : [];
+    const sources = Array.isArray(index.sources) ? index.sources : [];
+    const bundles = Array.isArray(index.bundles) ? index.bundles : [];
+    const categories = Array.isArray(index.categories) ? index.categories : [];
+
     // インストール済みスキルを取得（メタデータの name を使用）
     if (this.installedSkillNames.size === 0) {
       const wsFolder = vscode.workspace.workspaceFolders?.[0];
@@ -1296,7 +1307,7 @@ export class BrowseSkillsProvider implements vscode.TreeDataProvider<SkillTreeIt
       const favorites = this.context.globalState.get<string[]>("favorites", []);
       if (favorites.length > 0) {
         // 実際にインデックスに存在するお気に入りスキルの数をカウント
-        const favoriteSkillCount = this.skillIndex.skills.filter((skill) =>
+        const favoriteSkillCount = skills.filter((skill) =>
           favorites.includes(getSkillId(skill)),
         ).length;
 
@@ -1316,13 +1327,9 @@ export class BrowseSkillsProvider implements vscode.TreeDataProvider<SkillTreeIt
       }
 
       // ソースをタイプ別に分類
-      const officialSources = this.skillIndex.sources.filter(
-        (s) => s.type === "official",
-      );
-      const awesomeSources = this.skillIndex.sources.filter(
-        (s) => s.type === "awesome-list",
-      );
-      const communitySources = this.skillIndex.sources.filter(
+      const officialSources = sources.filter((s) => s.type === "official");
+      const awesomeSources = sources.filter((s) => s.type === "awesome-list");
+      const communitySources = sources.filter(
         (s) => s.type === "community" || s.type === "user-added" || !s.type,
       );
 
@@ -1368,10 +1375,10 @@ export class BrowseSkillsProvider implements vscode.TreeDataProvider<SkillTreeIt
       }
 
       // 3. バンドル（スターとその他の間）
-      if (this.skillIndex.bundles && this.skillIndex.bundles.length > 0) {
+      if (bundles.length > 0) {
         const bundleItem = new SkillTreeItem(
           isJapanese() ? "バンドル" : "Bundles",
-          `${this.skillIndex.bundles.length} bundles`,
+          `${bundles.length} bundles`,
           vscode.TreeItemCollapsibleState.Collapsed,
           "bundleSection",
         );
@@ -1393,7 +1400,7 @@ export class BrowseSkillsProvider implements vscode.TreeDataProvider<SkillTreeIt
     // Bundleセクション配下: Bundle一覧
     if (element.contextValue === "bundleSection") {
       const isJa = isJapanese();
-      return (this.skillIndex.bundles || []).map((bundle) => {
+      return bundles.map((bundle) => {
         const item = new SkillTreeItem(
           bundle.name,
           isJa && bundle.description_ja
@@ -1418,7 +1425,7 @@ export class BrowseSkillsProvider implements vscode.TreeDataProvider<SkillTreeIt
       const isJa = isJapanese();
       // bundle.skills 配列にあるスキル名でマッチング
       const bundleSkillNames = element.bundle.skills || [];
-      let bundleSkills = this.skillIndex.skills.filter(
+      let bundleSkills = skills.filter(
         (skill) =>
           bundleSkillNames.includes(skill.name) ||
           bundleSkillNames.includes(skill.path) ||
@@ -1431,7 +1438,7 @@ export class BrowseSkillsProvider implements vscode.TreeDataProvider<SkillTreeIt
 
       // マッチするスキルがない場合、同じソースのスキルを表示
       if (bundleSkills.length === 0 && element.bundle.source) {
-        bundleSkills = this.skillIndex.skills.filter(
+        bundleSkills = skills.filter(
           (skill) => skill.source === element.bundle!.source,
         );
       }
@@ -1465,7 +1472,7 @@ export class BrowseSkillsProvider implements vscode.TreeDataProvider<SkillTreeIt
           skill,
           undefined,
           undefined,
-          this.skillIndex?.categories,
+          categories,
         );
 
         if (isInstalled) {
@@ -1501,7 +1508,7 @@ export class BrowseSkillsProvider implements vscode.TreeDataProvider<SkillTreeIt
     if (element.contextValue === "favorites") {
       const favorites = this.context.globalState.get<string[]>("favorites", []);
       const isJa = isJapanese();
-      const favoriteSkills = this.skillIndex.skills.filter((skill) =>
+      const favoriteSkills = skills.filter((skill) =>
         favorites.includes(getSkillId(skill)),
       );
 
@@ -1517,7 +1524,7 @@ export class BrowseSkillsProvider implements vscode.TreeDataProvider<SkillTreeIt
           skill,
           undefined,
           undefined,
-          this.skillIndex?.categories,
+          categories,
         );
         if (isInstalled) {
           item.iconPath = new vscode.ThemeIcon(
@@ -1544,11 +1551,11 @@ export class BrowseSkillsProvider implements vscode.TreeDataProvider<SkillTreeIt
 
     if (element.contextValue === "source" && element.source) {
       // ソース配下: そのソースのスキル一覧
-      const skills = this.skillIndex.skills.filter(
+      const sourceSkills = skills.filter(
         (s) => s.source === element.source!.id,
       );
       const isJa = isJapanese();
-      return skills.map((skill) => {
+      return sourceSkills.map((skill) => {
         const isInstalled = this.installedSkillNames.has(
           skill.name.toLowerCase(),
         );
@@ -1560,7 +1567,7 @@ export class BrowseSkillsProvider implements vscode.TreeDataProvider<SkillTreeIt
           skill,
           undefined,
           undefined,
-          this.skillIndex?.categories,
+          categories,
         );
         // インストール済みは緑色アイコン
         if (isInstalled) {
@@ -1590,10 +1597,13 @@ export class BrowseSkillsProvider implements vscode.TreeDataProvider<SkillTreeIt
   }
 
   private getSkillCountForSource(sourceId: string): number {
-    if (!this.skillIndex) {
+    const skills = Array.isArray(this.skillIndex?.skills)
+      ? this.skillIndex.skills
+      : [];
+    if (skills.length === 0) {
       return 0;
     }
-    return this.skillIndex.skills.filter((s) => s.source === sourceId).length;
+    return skills.filter((s) => s.source === sourceId).length;
   }
 }
 

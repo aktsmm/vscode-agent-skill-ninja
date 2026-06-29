@@ -28,6 +28,10 @@ async function getSkillIndex(): Promise<SkillIndex> {
   return loadSkillIndex(context);
 }
 
+function getIndexSkills(index: SkillIndex): Skill[] {
+  return Array.isArray(index.skills) ? index.skills : [];
+}
+
 async function getDefaultManagedRoot(
   workspaceUri: vscode.Uri,
 ): Promise<SkillRoot | undefined> {
@@ -118,7 +122,7 @@ async function handleSearch(
   }
 
   const index = await getSkillIndex();
-  const skills = index.skills;
+  const skills = getIndexSkills(index);
   const lowerQuery = query.toLowerCase();
 
   // スキルをフィルタリング
@@ -178,7 +182,7 @@ async function handleInstall(
   }
 
   const index = await getSkillIndex();
-  const skills = index.skills;
+  const skills = getIndexSkills(index);
   const lowerQuery = query.toLowerCase();
 
   // 完全一致または部分一致
@@ -307,7 +311,7 @@ async function handleRecommend(
   ];
 
   const index = await getSkillIndex();
-  const skills = index.skills;
+  const skills = getIndexSkills(index);
 
   for (const pattern of patterns) {
     const files = await vscode.workspace.findFiles(
@@ -362,7 +366,7 @@ async function showPopularSkills(
   stream: vscode.ChatResponseStream,
 ): Promise<vscode.ChatResult> {
   const index = await getSkillIndex();
-  const skills = index.skills;
+  const skills = getIndexSkills(index);
   // スター数でソート
   const popular = skills
     .filter((s: Skill) => s.stars && s.stars > 0)

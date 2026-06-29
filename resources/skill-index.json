@@ -1,6 +1,6 @@
 {
-  "version": "1.23.0",
-  "lastUpdated": "2026-06-21",
+  "version": "1.24.0",
+  "lastUpdated": "2026-06-30",
   "sources": [
     {
       "id": "anthropics-skills",
@@ -92,7 +92,9 @@
       "branch": "main",
       "description": "oh-my-codex (OMX) Codex workflow skills",
       "description_ja": "oh-my-codex (OMX) Codex workflow skills",
-      "includePaths": ["skills"]
+      "includePaths": [
+        "skills"
+      ]
     },
     {
       "id": "openai-skills",
@@ -232,8 +234,20 @@
       "source": "pai-packs",
       "description": "Complete PAI infrastructure - Core, Agents, Art, Prompting",
       "description_ja": "PAI完全セット - コア・エージェント・アート・プロンプティング",
-      "skills": ["CORE", "Agents", "Art", "CreateSkill", "Prompting"],
-      "installOrder": ["CORE", "Agents", "Art", "CreateSkill", "Prompting"],
+      "skills": [
+        "CORE",
+        "Agents",
+        "Art",
+        "CreateSkill",
+        "Prompting"
+      ],
+      "installOrder": [
+        "CORE",
+        "Agents",
+        "Art",
+        "CreateSkill",
+        "Prompting"
+      ],
       "coreSkill": "CORE"
     },
     {
@@ -597,14 +611,6 @@
       "path": "composio-skills/ai-ml-api-automation",
       "categories": [],
       "description": "Automate AI ML API tasks via Rube MCP (Composio). Always search tools first for current schemas.",
-      "description_ja": ""
-    },
-    {
-      "name": "ai-prompt-engineering-safety-review",
-      "source": "github-awesome-copilot",
-      "path": "plugins/security-best-practices/skills/ai-prompt-engineering-safety-review",
-      "categories": [],
-      "description": "Comprehensive AI prompt engineering safety review and improvement prompt. Analyzes prompts for safety, bias, security vulnerabilities, and effectiveness while providing detailed improvement recommendations with extensive frameworks, testing methodologies, and educational content.",
       "description_ja": ""
     },
     {
@@ -995,7 +1001,9 @@
       "name": "artifacts-builder",
       "source": "composio-awesome",
       "path": "artifacts-builder",
-      "categories": ["community"],
+      "categories": [
+        "community"
+      ],
       "description": "Suite of tools for creating elaborate, multi-component claude.ai HTML artifacts using modern frontend web technologies (React, Tailwind CSS, shadcn/ui). Use for complex artifacts requiring state management, routing, or shadcn/ui components - not for simple single-file HTML/JSX artifacts.",
       "description_ja": "Artifacts Builder"
     },
@@ -1072,14 +1080,6 @@
       "description_ja": ""
     },
     {
-      "name": "aspnet-minimal-api-openapi",
-      "source": "github-awesome-copilot",
-      "path": "plugins/csharp-dotnet-development/skills/aspnet-minimal-api-openapi",
-      "categories": [],
-      "description": "Create ASP.NET Minimal API endpoints with proper OpenAPI documentation",
-      "description_ja": ""
-    },
-    {
       "name": "astica-ai-automation",
       "source": "composio-awesome",
       "path": "composio-skills/astica-ai-automation",
@@ -1152,14 +1152,6 @@
       "description_ja": ""
     },
     {
-      "name": "automate-this",
-      "source": "github-awesome-copilot",
-      "path": "plugins/automate-this/skills/automate-this",
-      "categories": [],
-      "description": "Analyze a screen recording of a manual process and produce targeted, working automation scripts. Extracts frames and audio narration from video files, reconstructs the step-by-step workflow, and proposes automation at multiple complexity levels using tools already installed on the user machine.",
-      "description_ja": ""
-    },
-    {
       "name": "autopilot",
       "source": "oh-my-codex",
       "path": "skills/autopilot",
@@ -1197,14 +1189,6 @@
       "path": "composio-skills/ayrshare-automation",
       "categories": [],
       "description": "Automate Ayrshare tasks via Rube MCP (Composio). Always search tools first for current schemas.",
-      "description_ja": ""
-    },
-    {
-      "name": "az-cost-optimize",
-      "source": "github-awesome-copilot",
-      "path": "plugins/azure-cloud-development/skills/az-cost-optimize",
-      "categories": [],
-      "description": "Analyze Azure resources used in the app (IaC files and/or resources in a target rg) and optimize costs - creating GitHub issues for identified optimizations.",
       "description_ja": ""
     },
     {
@@ -2312,14 +2296,6 @@
       "description_ja": ""
     },
     {
-      "name": "azure-pricing",
-      "source": "github-awesome-copilot",
-      "path": "plugins/azure-cloud-development/skills/azure-pricing",
-      "categories": [],
-      "description": "Fetches real-time Azure retail pricing using the Azure Retail Prices API (prices.azure.com) and estimates Copilot Studio agent credit consumption. Use when the user asks about the cost of any Azure service, wants to compare SKU prices, needs pricing data for a cost estimate, mentions Azure pricing, Azure costs, Azure billing, or asks about Copilot Studio pricing, Copilot Credits, or agent usage estimation. Covers compute, storage, networking, databases, AI, Copilot Studio, and all other Azure service families.",
-      "description_ja": ""
-    },
-    {
       "name": "azure-private-link",
       "source": "microsoftdocs-agent-skills",
       "path": "skills/azure-private-link",
@@ -2405,14 +2381,6 @@
       "path": "skills/azure-resource-graph",
       "categories": [],
       "description": "Expert knowledge for Azure Resource Graph development including troubleshooting, best practices, decision making, limits & quotas, configuration, and integrations & coding patterns. Use when building, debugging, or optimizing Azure Resource Graph applications. Not for Azure Monitor (use azure-monitor), Azure Policy (use azure-policy), Azure Resource Manager (use azure-resource-manager), Azure Cost Management (use azure-cost-management).",
-      "description_ja": ""
-    },
-    {
-      "name": "azure-resource-health-diagnose",
-      "source": "github-awesome-copilot",
-      "path": "plugins/azure-cloud-development/skills/azure-resource-health-diagnose",
-      "categories": [],
-      "description": "Analyze Azure resource health, diagnose issues from logs and telemetry, and create a remediation plan for identified problems.",
       "description_ja": ""
     },
     {
@@ -3168,38 +3136,6 @@
       "description_ja": ""
     },
     {
-      "name": "breakdown-epic-arch",
-      "source": "github-awesome-copilot",
-      "path": "plugins/project-planning/skills/breakdown-epic-arch",
-      "categories": [],
-      "description": "Prompt for creating the high-level technical architecture for an Epic, based on a Product Requirements Document.",
-      "description_ja": ""
-    },
-    {
-      "name": "breakdown-epic-pm",
-      "source": "github-awesome-copilot",
-      "path": "plugins/project-planning/skills/breakdown-epic-pm",
-      "categories": [],
-      "description": "Prompt for creating an Epic Product Requirements Document (PRD) for a new epic. This PRD will be used as input for generating a technical architecture specification.",
-      "description_ja": ""
-    },
-    {
-      "name": "breakdown-feature-implementation",
-      "source": "github-awesome-copilot",
-      "path": "plugins/project-planning/skills/breakdown-feature-implementation",
-      "categories": [],
-      "description": "Prompt for creating detailed feature implementation plans, following Epoch monorepo structure.",
-      "description_ja": ""
-    },
-    {
-      "name": "breakdown-feature-prd",
-      "source": "github-awesome-copilot",
-      "path": "plugins/project-planning/skills/breakdown-feature-prd",
-      "categories": [],
-      "description": "Prompt for creating Product Requirements Documents (PRDs) for new features, based on an Epic.",
-      "description_ja": ""
-    },
-    {
       "name": "breakdown-plan",
       "source": "github-awesome-copilot",
       "path": "skills/breakdown-plan",
@@ -3595,7 +3531,9 @@
       "name": "changelog-generator",
       "source": "composio-awesome",
       "path": "changelog-generator",
-      "categories": ["community"],
+      "categories": [
+        "community"
+      ],
       "description": "Automatically creates user-facing changelogs from git commits by analyzing commit history, categorizing changes, and transforming technical commits into clear, customer-friendly release notes. Turns hours of manual changelog writing into minutes of automated generation.",
       "description_ja": "Changelog Generator"
     },
@@ -3923,7 +3861,9 @@
       "name": "competitive-ads-extractor",
       "source": "composio-awesome",
       "path": "competitive-ads-extractor",
-      "categories": ["community"],
+      "categories": [
+        "community"
+      ],
       "description": "Extracts and analyzes competitors' ads from ad libraries (Facebook, LinkedIn, etc.) to understand what messaging, problems, and creative approaches are working. Helps inspire and improve your own ad campaigns.",
       "description_ja": "Extract competitive advertising data"
     },
@@ -3963,7 +3903,9 @@
       "name": "connect",
       "source": "composio-awesome",
       "path": "connect",
-      "categories": ["community"],
+      "categories": [
+        "community"
+      ],
       "description": "Connect Claude to any app. Send emails, create issues, post messages, update databases - take real actions across Gmail, Slack, GitHub, Notion, and 1000+ services.",
       "description_ja": "Connect"
     },
@@ -3971,7 +3913,9 @@
       "name": "connect-apps",
       "source": "composio-awesome",
       "path": "connect-apps",
-      "categories": ["community"],
+      "categories": [
+        "community"
+      ],
       "description": "Connect Claude to external apps like Gmail, Slack, GitHub. Use this skill when the user wants to send emails, create issues, post messages, or take actions in external services.",
       "description_ja": "Connect Apps"
     },
@@ -4003,7 +3947,9 @@
       "name": "content-research-writer",
       "source": "composio-awesome",
       "path": "content-research-writer",
-      "categories": ["community"],
+      "categories": [
+        "community"
+      ],
       "description": "Assists in writing high-quality content by conducting research, adding citations, improving hooks, iterating on outlines, and providing real-time feedback on each section. Transforms your writing process from solo effort to collaborative partnership.",
       "description_ja": "Content Research Writer"
     },
@@ -4054,14 +4000,6 @@
       "categories": [],
       "description": "This skill should be used when the user asks to \"understand context\", \"explain context windows\", \"design agent architecture\", \"debug context issues\", \"optimize context usage\", or discusses context components, attention mechanics, progressive disclosure, or context budgeting. Provides foundational understanding of context engineering for AI agent systems.",
       "description_ja": "Context engineering fundamentals"
-    },
-    {
-      "name": "context-map",
-      "source": "github-awesome-copilot",
-      "path": "plugins/context-engineering/skills/context-map",
-      "categories": [],
-      "description": "Generate a map of all files relevant to a task before making changes",
-      "description_ja": ""
     },
     {
       "name": "context-optimization",
@@ -4141,14 +4079,6 @@
       "path": "skills/copilot-instructions-blueprint-generator",
       "categories": [],
       "description": "Technology-agnostic blueprint generator for creating comprehensive copilot-instructions.md files that guide GitHub Copilot to produce code consistent with project standards, architecture patterns, and exact technology versions by analyzing existing codebase patterns and avoiding assumptions.",
-      "description_ja": ""
-    },
-    {
-      "name": "copilot-sdk",
-      "source": "github-awesome-copilot",
-      "path": "plugins/copilot-sdk/skills/copilot-sdk",
-      "categories": [],
-      "description": "Build agentic applications with GitHub Copilot SDK. Use when embedding AI agents in apps, creating custom tools, implementing streaming responses, managing sessions, connecting to MCP servers, or creating custom agents. Triggers on Copilot SDK, GitHub SDK, agentic app, embed Copilot, programmable agent, MCP server, custom agent.",
       "description_ja": ""
     },
     {
@@ -4256,27 +4186,11 @@
       "description_ja": ""
     },
     {
-      "name": "create-github-issues-feature-from-implementation-plan",
-      "source": "github-awesome-copilot",
-      "path": "plugins/project-planning/skills/create-github-issues-feature-from-implementation-plan",
-      "categories": [],
-      "description": "Create GitHub Issues from implementation plan phases using feature_request.yml or chore_request.yml templates.",
-      "description_ja": ""
-    },
-    {
       "name": "create-github-issues-for-unmet-specification-requirements",
       "source": "github-awesome-copilot",
       "path": "skills/create-github-issues-for-unmet-specification-requirements",
       "categories": [],
       "description": "Create GitHub Issues for unimplemented requirements from specification files using feature_request.yml template.",
-      "description_ja": ""
-    },
-    {
-      "name": "create-implementation-plan",
-      "source": "github-awesome-copilot",
-      "path": "plugins/project-planning/skills/create-implementation-plan",
-      "categories": [],
-      "description": "Create a new implementation plan file for new features, refactoring existing code or upgrading packages, design, architecture or infrastructure.",
       "description_ja": ""
     },
     {
@@ -4304,27 +4218,11 @@
       "description_ja": ""
     },
     {
-      "name": "create-spring-boot-java-project",
-      "source": "github-awesome-copilot",
-      "path": "plugins/java-development/skills/create-spring-boot-java-project",
-      "categories": [],
-      "description": "Create Spring Boot Java Project Skeleton",
-      "description_ja": ""
-    },
-    {
       "name": "create-spring-boot-kotlin-project",
       "source": "github-awesome-copilot",
       "path": "skills/create-spring-boot-kotlin-project",
       "categories": [],
       "description": "Create Spring Boot Kotlin Project Skeleton",
-      "description_ja": ""
-    },
-    {
-      "name": "create-technical-spike",
-      "source": "github-awesome-copilot",
-      "path": "plugins/project-planning/skills/create-technical-spike",
-      "categories": [],
-      "description": "Create time-boxed technical spike documents for researching and resolving critical development decisions before implementation.",
       "description_ja": ""
     },
     {
@@ -4368,51 +4266,11 @@
       "description_ja": ""
     },
     {
-      "name": "csharp-async",
-      "source": "github-awesome-copilot",
-      "path": "plugins/csharp-dotnet-development/skills/csharp-async",
-      "categories": [],
-      "description": "Get best practices for C# async programming",
-      "description_ja": ""
-    },
-    {
       "name": "csharp-docs",
       "source": "github-awesome-copilot",
       "path": "skills/csharp-docs",
       "categories": [],
       "description": "Ensure that C# types are documented with XML comments and follow best practices for documentation.",
-      "description_ja": ""
-    },
-    {
-      "name": "csharp-mstest",
-      "source": "github-awesome-copilot",
-      "path": "plugins/csharp-dotnet-development/skills/csharp-mstest",
-      "categories": [],
-      "description": "Get best practices for MSTest 3.x/4.x unit testing, including modern assertion APIs and data-driven tests",
-      "description_ja": ""
-    },
-    {
-      "name": "csharp-nunit",
-      "source": "github-awesome-copilot",
-      "path": "plugins/csharp-dotnet-development/skills/csharp-nunit",
-      "categories": [],
-      "description": "Get best practices for NUnit unit testing, including data-driven tests",
-      "description_ja": ""
-    },
-    {
-      "name": "csharp-tunit",
-      "source": "github-awesome-copilot",
-      "path": "plugins/csharp-dotnet-development/skills/csharp-tunit",
-      "categories": [],
-      "description": "Get best practices for TUnit unit testing, including data-driven tests",
-      "description_ja": ""
-    },
-    {
-      "name": "csharp-xunit",
-      "source": "github-awesome-copilot",
-      "path": "plugins/csharp-dotnet-development/skills/csharp-xunit",
-      "categories": [],
-      "description": "Get best practices for XUnit unit testing, including data-driven tests",
       "description_ja": ""
     },
     {
@@ -4536,38 +4394,6 @@
       "description_ja": ""
     },
     {
-      "name": "dataverse-python-advanced-patterns",
-      "source": "github-awesome-copilot",
-      "path": "plugins/dataverse-sdk-for-python/skills/dataverse-python-advanced-patterns",
-      "categories": [],
-      "description": "Generate production code for Dataverse SDK using advanced patterns, error handling, and optimization techniques.",
-      "description_ja": ""
-    },
-    {
-      "name": "dataverse-python-production-code",
-      "source": "github-awesome-copilot",
-      "path": "plugins/dataverse-sdk-for-python/skills/dataverse-python-production-code",
-      "categories": [],
-      "description": "Generate production-ready Python code using Dataverse SDK with error handling, optimization, and best practices",
-      "description_ja": ""
-    },
-    {
-      "name": "dataverse-python-quickstart",
-      "source": "github-awesome-copilot",
-      "path": "plugins/dataverse-sdk-for-python/skills/dataverse-python-quickstart",
-      "categories": [],
-      "description": "Generate Python SDK setup + CRUD + bulk + paging snippets using official patterns.",
-      "description_ja": ""
-    },
-    {
-      "name": "dataverse-python-usecase-builder",
-      "source": "github-awesome-copilot",
-      "path": "plugins/dataverse-sdk-for-python/skills/dataverse-python-usecase-builder",
-      "categories": [],
-      "description": "Generate complete solutions for specific Dataverse SDK use cases with architecture recommendations",
-      "description_ja": ""
-    },
-    {
       "name": "deadline-funnel-automation",
       "source": "composio-awesome",
       "path": "composio-skills/deadline-funnel-automation",
@@ -4675,7 +4501,9 @@
       "name": "developer-growth-analysis",
       "source": "composio-awesome",
       "path": "developer-growth-analysis",
-      "categories": ["community"],
+      "categories": [
+        "community"
+      ],
       "description": "Analyzes your recent Claude Code chat history to identify coding patterns, development gaps, and areas for improvement, curates relevant learning resources from HackerNews, and automatically sends a personalized growth report to your Slack DMs.",
       "description_ja": "Developer Growth Analysis"
     },
@@ -4923,7 +4751,9 @@
       "name": "domain-name-brainstormer",
       "source": "composio-awesome",
       "path": "domain-name-brainstormer",
-      "categories": ["community"],
+      "categories": [
+        "community"
+      ],
       "description": "Generates creative domain name ideas for your project and checks availability across multiple TLDs (.com, .io, .dev, .ai, etc.). Saves hours of brainstorming and manual checking.",
       "description_ja": "Brainstorm domain names"
     },
@@ -4944,27 +4774,11 @@
       "description_ja": ""
     },
     {
-      "name": "dotnet-best-practices",
-      "source": "github-awesome-copilot",
-      "path": "plugins/csharp-dotnet-development/skills/dotnet-best-practices",
-      "categories": [],
-      "description": "Ensure .NET/C# code meets best practices for the solution/project.",
-      "description_ja": ""
-    },
-    {
       "name": "dotnet-design-pattern-review",
       "source": "github-awesome-copilot",
       "path": "skills/dotnet-design-pattern-review",
       "categories": [],
       "description": "Review the C#/.NET code for design pattern implementation and suggest improvements.",
-      "description_ja": ""
-    },
-    {
-      "name": "dotnet-upgrade",
-      "source": "github-awesome-copilot",
-      "path": "plugins/csharp-dotnet-development/skills/dotnet-upgrade",
-      "categories": [],
-      "description": "Ready-to-use prompts for comprehensive .NET framework upgrade analysis and execution",
       "description_ja": ""
     },
     {
@@ -5483,7 +5297,9 @@
       "name": "file-organizer",
       "source": "composio-awesome",
       "path": "file-organizer",
-      "categories": ["community"],
+      "categories": [
+        "community"
+      ],
       "description": "Intelligently organizes your files and folders across your computer by understanding context, finding duplicates, suggesting better structures, and automating cleanup tasks. Reduces cognitive load and keeps your digital workspace tidy without manual effort.",
       "description_ja": "Organize files and directories"
     },
@@ -5685,30 +5501,6 @@
       "path": "composio-skills/flowiseai-automation",
       "categories": [],
       "description": "Automate Flowiseai tasks via Rube MCP (Composio). Always search tools first for current schemas.",
-      "description_ja": ""
-    },
-    {
-      "name": "flowstudio-power-automate-build",
-      "source": "github-awesome-copilot",
-      "path": "plugins/flowstudio-power-automate/skills/flowstudio-power-automate-build",
-      "categories": [],
-      "description": ">-",
-      "description_ja": ""
-    },
-    {
-      "name": "flowstudio-power-automate-debug",
-      "source": "github-awesome-copilot",
-      "path": "plugins/flowstudio-power-automate/skills/flowstudio-power-automate-debug",
-      "categories": [],
-      "description": ">-",
-      "description_ja": ""
-    },
-    {
-      "name": "flowstudio-power-automate-mcp",
-      "source": "github-awesome-copilot",
-      "path": "plugins/flowstudio-power-automate/skills/flowstudio-power-automate-mcp",
-      "categories": [],
-      "description": ">-",
       "description_ja": ""
     },
     {
@@ -6133,14 +5925,6 @@
       "path": "composio-skills/globalping-automation",
       "categories": [],
       "description": "Automate Globalping tasks via Rube MCP (Composio). Always search tools first for current schemas.",
-      "description_ja": ""
-    },
-    {
-      "name": "go-mcp-server-generator",
-      "source": "github-awesome-copilot",
-      "path": "plugins/go-mcp-development/skills/go-mcp-server-generator",
-      "categories": [],
-      "description": "Generate a complete Go MCP server project with proper structure, dependencies, and implementation using the official github.com/modelcontextprotocol/go-sdk.",
       "description_ja": ""
     },
     {
@@ -6763,7 +6547,9 @@
       "name": "image-enhancer",
       "source": "composio-awesome",
       "path": "image-enhancer",
-      "categories": ["community"],
+      "categories": [
+        "community"
+      ],
       "description": "Improves the quality of images, especially screenshots, by enhancing resolution, sharpness, and clarity. Perfect for preparing images for presentations, documentation, or social media posts.",
       "description_ja": "Enhance and edit images"
     },
@@ -6797,14 +6583,6 @@
       "path": "composio-skills/imgix-automation",
       "categories": [],
       "description": "Automate Imgix tasks via Rube MCP (Composio). Always search tools first for current schemas.",
-      "description_ja": ""
-    },
-    {
-      "name": "import-infrastructure-as-code",
-      "source": "github-awesome-copilot",
-      "path": "plugins/azure-cloud-development/skills/import-infrastructure-as-code",
-      "categories": [],
-      "description": "Import existing Azure resources into Terraform using Azure CLI discovery and Azure Verified Modules (AVM). Use when asked to reverse-engineer live Azure infrastructure, generate Infrastructure as Code from existing subscriptions/resource groups/resource IDs, map dependencies, derive exact import addresses from downloaded module source, prevent configuration drift, and produce AVM-based Terraform files ready for validation and planning across any Azure resource type.",
       "description_ja": ""
     },
     {
@@ -6875,7 +6653,9 @@
       "name": "invoice-organizer",
       "source": "composio-awesome",
       "path": "invoice-organizer",
-      "categories": ["community"],
+      "categories": [
+        "community"
+      ],
       "description": "Automatically organizes invoices and receipts for tax preparation by reading messy files, extracting key information, renaming them consistently, and sorting them into logical folders. Turns hours of manual bookkeeping into minutes of automated organization.",
       "description_ja": "Organize and manage invoices"
     },
@@ -6952,30 +6732,6 @@
       "description_ja": ""
     },
     {
-      "name": "java-docs",
-      "source": "github-awesome-copilot",
-      "path": "plugins/java-development/skills/java-docs",
-      "categories": [],
-      "description": "Ensure that Java types are documented with Javadoc comments and follow best practices for documentation.",
-      "description_ja": ""
-    },
-    {
-      "name": "java-junit",
-      "source": "github-awesome-copilot",
-      "path": "plugins/java-development/skills/java-junit",
-      "categories": [],
-      "description": "Get best practices for JUnit 5 unit testing, including data-driven tests",
-      "description_ja": ""
-    },
-    {
-      "name": "java-mcp-server-generator",
-      "source": "github-awesome-copilot",
-      "path": "plugins/java-mcp-development/skills/java-mcp-server-generator",
-      "categories": [],
-      "description": "Generate a complete Model Context Protocol server project in Java using the official MCP Java SDK with reactive streams and optional Spring Boot integration.",
-      "description_ja": ""
-    },
-    {
       "name": "java-refactoring-extract-method",
       "source": "github-awesome-copilot",
       "path": "skills/java-refactoring-extract-method",
@@ -6989,14 +6745,6 @@
       "path": "skills/java-refactoring-remove-parameter",
       "categories": [],
       "description": "Refactoring using Remove Parameter in Java Language",
-      "description_ja": ""
-    },
-    {
-      "name": "java-springboot",
-      "source": "github-awesome-copilot",
-      "path": "plugins/java-development/skills/java-springboot",
-      "categories": [],
-      "description": "Get best practices for developing applications with Spring Boot.",
       "description_ja": ""
     },
     {
@@ -7144,14 +6892,6 @@
       "description_ja": ""
     },
     {
-      "name": "kotlin-mcp-server-generator",
-      "source": "github-awesome-copilot",
-      "path": "plugins/kotlin-mcp-development/skills/kotlin-mcp-server-generator",
-      "categories": [],
-      "description": "Generate a complete Kotlin MCP server project with proper structure, dependencies, and implementation using the official io.modelcontextprotocol:kotlin-sdk library.",
-      "description_ja": ""
-    },
-    {
       "name": "kotlin-springboot",
       "source": "github-awesome-copilot",
       "path": "skills/kotlin-springboot",
@@ -7203,7 +6943,9 @@
       "name": "langsmith-fetch",
       "source": "composio-awesome",
       "path": "langsmith-fetch",
-      "categories": ["community"],
+      "categories": [
+        "community"
+      ],
       "description": "Debug LangChain and LangGraph agents by fetching execution traces from LangSmith Studio. Use when debugging agent behavior, investigating errors, analyzing tool calls, checking memory operations, or examining agent performance. Automatically fetches recent traces and analyzes execution patterns. Requires langsmith-fetch CLI installed.",
       "description_ja": "Langsmith Fetch"
     },
@@ -7235,7 +6977,9 @@
       "name": "lead-research-assistant",
       "source": "composio-awesome",
       "path": "lead-research-assistant",
-      "categories": ["community"],
+      "categories": [
+        "community"
+      ],
       "description": "Identifies high-quality leads for your product or service by analyzing your business, searching for target companies, and providing actionable contact strategies. Perfect for sales, business development, and marketing professionals.",
       "description_ja": "Research leads and contacts"
     },
@@ -7592,38 +7336,6 @@
       "description_ja": "Mcp Cli"
     },
     {
-      "name": "mcp-copilot-studio-server-generator",
-      "source": "github-awesome-copilot",
-      "path": "plugins/power-platform-mcp-connector-development/skills/mcp-copilot-studio-server-generator",
-      "categories": [],
-      "description": "Generate a complete MCP server implementation optimized for Copilot Studio integration with proper schema constraints and streamable HTTP support",
-      "description_ja": ""
-    },
-    {
-      "name": "mcp-create-adaptive-cards",
-      "source": "github-awesome-copilot",
-      "path": "plugins/mcp-m365-copilot/skills/mcp-create-adaptive-cards",
-      "categories": [],
-      "description": "Skill converted from mcp-create-adaptive-cards.prompt.md",
-      "description_ja": ""
-    },
-    {
-      "name": "mcp-create-declarative-agent",
-      "source": "github-awesome-copilot",
-      "path": "plugins/mcp-m365-copilot/skills/mcp-create-declarative-agent",
-      "categories": [],
-      "description": "Skill converted from mcp-create-declarative-agent.prompt.md",
-      "description_ja": ""
-    },
-    {
-      "name": "mcp-deploy-manage-agents",
-      "source": "github-awesome-copilot",
-      "path": "plugins/mcp-m365-copilot/skills/mcp-deploy-manage-agents",
-      "categories": [],
-      "description": "Skill converted from mcp-deploy-manage-agents.prompt.md",
-      "description_ja": ""
-    },
-    {
       "name": "Media",
       "source": "pai-packs",
       "path": "Releases/v4.0.0/.claude/skills/Media",
@@ -7635,7 +7347,9 @@
       "name": "meeting-insights-analyzer",
       "source": "composio-awesome",
       "path": "meeting-insights-analyzer",
-      "categories": ["community"],
+      "categories": [
+        "community"
+      ],
       "description": "Analyzes meeting transcripts and recordings to uncover behavioral patterns, communication insights, and actionable feedback. Identifies when you avoid conflict, use filler words, dominate conversations, or miss opportunities to listen. Perfect for professionals seeking to improve their communication and leadership skills.",
       "description_ja": "Analyze meeting insights"
     },
@@ -7936,14 +7650,6 @@
       "description_ja": "Multi-agent design patterns"
     },
     {
-      "name": "multi-stage-dockerfile",
-      "source": "github-awesome-copilot",
-      "path": "plugins/devops-oncall/skills/multi-stage-dockerfile",
-      "categories": [],
-      "description": "Create optimized multi-stage Dockerfiles for any language or framework",
-      "description_ja": ""
-    },
-    {
       "name": "mural-automation",
       "source": "composio-awesome",
       "path": "composio-skills/mural-automation",
@@ -7989,14 +7695,6 @@
       "path": "composio-skills/nano-nets-automation",
       "categories": [],
       "description": "Automate Nano Nets tasks via Rube MCP (Composio). Always search tools first for current schemas.",
-      "description_ja": ""
-    },
-    {
-      "name": "napkin",
-      "source": "github-awesome-copilot",
-      "path": "plugins/napkin/skills/napkin",
-      "categories": [],
-      "description": "Visual whiteboard collaboration for Copilot CLI. Creates an interactive whiteboard that opens in your browser — draw, sketch, add sticky notes, then share everything back with Copilot. Copilot sees your drawings and text, and responds with analysis, suggestions, and ideas.",
       "description_ja": ""
     },
     {
@@ -8141,14 +7839,6 @@
       "path": "composio-skills/nocrm-io-automation",
       "categories": [],
       "description": "Automate Nocrm IO tasks via Rube MCP (Composio). Always search tools first for current schemas.",
-      "description_ja": ""
-    },
-    {
-      "name": "noob-mode",
-      "source": "github-awesome-copilot",
-      "path": "plugins/noob-mode/skills/noob-mode",
-      "categories": [],
-      "description": "Plain-English translation layer for non-technical Copilot CLI users. Translates every approval prompt, error message, and technical output into clear, jargon-free English with color-coded risk indicators.",
       "description_ja": ""
     },
     {
@@ -8309,14 +7999,6 @@
       "path": "skills/.curated/openai-docs",
       "categories": [],
       "description": "Use when the user asks how to build with OpenAI products or APIs and needs up-to-date official documentation with citations, help choosing the latest model for a use case, or explicit GPT-5.4 upgrade and prompt-upgrade guidance; prioritize OpenAI docs MCP tools, use bundled references only as helper context, and restrict any fallback browsing to official OpenAI domains.",
-      "description_ja": ""
-    },
-    {
-      "name": "openapi-to-application-code",
-      "source": "github-awesome-copilot",
-      "path": "plugins/openapi-to-application-csharp-dotnet/skills/openapi-to-application-code",
-      "categories": [],
-      "description": "Generate a complete, production-ready application from an OpenAPI specification",
       "description_ja": ""
     },
     {
@@ -8616,14 +8298,6 @@
       "description_ja": ""
     },
     {
-      "name": "php-mcp-server-generator",
-      "source": "github-awesome-copilot",
-      "path": "plugins/php-mcp-development/skills/php-mcp-server-generator",
-      "categories": [],
-      "description": "Generate a complete PHP Model Context Protocol server project with tools, resources, prompts, and tests using the official PHP SDK",
-      "description_ja": ""
-    },
-    {
       "name": "piggy-automation",
       "source": "composio-awesome",
       "path": "composio-skills/piggy-automation",
@@ -8744,22 +8418,6 @@
       "description_ja": ""
     },
     {
-      "name": "playwright-explore-website",
-      "source": "github-awesome-copilot",
-      "path": "plugins/frontend-web-dev/skills/playwright-explore-website",
-      "categories": [],
-      "description": "Website exploration for testing using Playwright MCP",
-      "description_ja": ""
-    },
-    {
-      "name": "playwright-generate-test",
-      "source": "github-awesome-copilot",
-      "path": "plugins/frontend-web-dev/skills/playwright-generate-test",
-      "categories": [],
-      "description": "Generate a Playwright test based on a scenario using Playwright MCP",
-      "description_ja": ""
-    },
-    {
       "name": "playwright-interactive",
       "source": "openai-skills",
       "path": "skills/.curated/playwright-interactive",
@@ -8800,22 +8458,6 @@
       "description_ja": ""
     },
     {
-      "name": "postgresql-code-review",
-      "source": "github-awesome-copilot",
-      "path": "plugins/database-data-management/skills/postgresql-code-review",
-      "categories": [],
-      "description": "PostgreSQL-specific code review assistant focusing on PostgreSQL best practices, anti-patterns, and unique quality standards. Covers JSONB operations, array usage, custom types, schema design, function optimization, and PostgreSQL-exclusive security features like Row Level Security (RLS).",
-      "description_ja": ""
-    },
-    {
-      "name": "postgresql-optimization",
-      "source": "github-awesome-copilot",
-      "path": "plugins/database-data-management/skills/postgresql-optimization",
-      "categories": [],
-      "description": "PostgreSQL-specific development assistant focusing on unique PostgreSQL features, advanced data types, and PostgreSQL-exclusive capabilities. Covers JSONB operations, array types, custom types, range/geometric types, full-text search, window functions, and PostgreSQL extensions ecosystem.",
-      "description_ja": ""
-    },
-    {
       "name": "postgrid-automation",
       "source": "composio-awesome",
       "path": "composio-skills/postgrid-automation",
@@ -8829,54 +8471,6 @@
       "path": "composio-skills/postgrid-verify-automation",
       "categories": [],
       "description": "Automate Postgrid Verify tasks via Rube MCP (Composio). Always search tools first for current schemas.",
-      "description_ja": ""
-    },
-    {
-      "name": "power-apps-code-app-scaffold",
-      "source": "github-awesome-copilot",
-      "path": "plugins/power-apps-code-apps/skills/power-apps-code-app-scaffold",
-      "categories": [],
-      "description": "Scaffold a complete Power Apps Code App project with PAC CLI setup, SDK integration, and connector configuration",
-      "description_ja": ""
-    },
-    {
-      "name": "power-bi-dax-optimization",
-      "source": "github-awesome-copilot",
-      "path": "plugins/power-bi-development/skills/power-bi-dax-optimization",
-      "categories": [],
-      "description": "Comprehensive Power BI DAX formula optimization prompt for improving performance, readability, and maintainability of DAX calculations.",
-      "description_ja": ""
-    },
-    {
-      "name": "power-bi-model-design-review",
-      "source": "github-awesome-copilot",
-      "path": "plugins/power-bi-development/skills/power-bi-model-design-review",
-      "categories": [],
-      "description": "Comprehensive Power BI data model design review prompt for evaluating model architecture, relationships, and optimization opportunities.",
-      "description_ja": ""
-    },
-    {
-      "name": "power-bi-performance-troubleshooting",
-      "source": "github-awesome-copilot",
-      "path": "plugins/power-bi-development/skills/power-bi-performance-troubleshooting",
-      "categories": [],
-      "description": "Systematic Power BI performance troubleshooting prompt for identifying, diagnosing, and resolving performance issues in Power BI models, reports, and queries.",
-      "description_ja": ""
-    },
-    {
-      "name": "power-bi-report-design-consultation",
-      "source": "github-awesome-copilot",
-      "path": "plugins/power-bi-development/skills/power-bi-report-design-consultation",
-      "categories": [],
-      "description": "Power BI report visualization design prompt for creating effective, user-friendly, and accessible reports with optimal chart selection and layout design.",
-      "description_ja": ""
-    },
-    {
-      "name": "power-platform-mcp-connector-suite",
-      "source": "github-awesome-copilot",
-      "path": "plugins/power-platform-mcp-connector-development/skills/power-platform-mcp-connector-suite",
-      "categories": [],
-      "description": "Generate complete Power Platform custom connector with MCP integration for Copilot Studio - includes schema generation, troubleshooting, and validation",
       "description_ja": ""
     },
     {
@@ -9048,22 +8642,6 @@
       "description_ja": ""
     },
     {
-      "name": "prp-core-runner",
-      "source": "prps-agentic",
-      "path": ".claude/skills/prp-core-runner",
-      "categories": [],
-      "description": "Orchestrate complete PRP workflow from feature request to pull request. Run create branch, create PRP, execute implementation, commit changes, and create PR in sequence. Use when implementing features using PRP methodology or when user requests full PRP workflow.",
-      "description_ja": ""
-    },
-    {
-      "name": "prp-ralph-loop",
-      "source": "prps-agentic",
-      "path": "plugins/prp-core/skills/prp-ralph-loop",
-      "categories": [],
-      "description": "Autonomous iteration execution guide for PRP Ralph loops. Use when .claude/prp-ralph.state.md exists, when continuing Ralph iterations, or when executing plans autonomously until all validations pass. Provides iteration behavior, completion protocol, validation requirements, and progress logging.",
-      "description_ja": ""
-    },
-    {
       "name": "pushbullet-automation",
       "source": "composio-awesome",
       "path": "composio-skills/pushbullet-automation",
@@ -9085,14 +8663,6 @@
       "path": "skills/pytest-coverage",
       "categories": [],
       "description": "Run pytest tests with coverage, discover lines missing coverage, and increase coverage to 100%.",
-      "description_ja": ""
-    },
-    {
-      "name": "python-mcp-server-generator",
-      "source": "github-awesome-copilot",
-      "path": "plugins/python-mcp-development/skills/python-mcp-server-generator",
-      "categories": [],
-      "description": "Generate a complete MCP server project in Python with tools, resources, and proper configuration",
       "description_ja": ""
     },
     {
@@ -9139,7 +8709,9 @@
       "name": "raffle-winner-picker",
       "source": "composio-awesome",
       "path": "raffle-winner-picker",
-      "categories": ["community"],
+      "categories": [
+        "community"
+      ],
       "description": "Picks random winners from lists, spreadsheets, or Google Sheets for giveaways, raffles, and contests. Ensures fair, unbiased selection with transparency.",
       "description_ja": "Pick raffle winners randomly"
     },
@@ -9296,14 +8868,6 @@
       "description_ja": ""
     },
     {
-      "name": "refactor-plan",
-      "source": "github-awesome-copilot",
-      "path": "plugins/context-engineering/skills/refactor-plan",
-      "categories": [],
-      "description": "Plan a multi-file refactor with proper sequencing and rollback steps",
-      "description_ja": ""
-    },
-    {
       "name": "refiner-automation",
       "source": "composio-awesome",
       "path": "composio-skills/refiner-automation",
@@ -9325,14 +8889,6 @@
       "path": "skills/remember",
       "categories": [],
       "description": "Transforms lessons learned into domain-organized memory instructions (global or workspace). Syntax: `/remember [>domain [scope]] lesson clue` where scope is `global` (default), `user`, `workspace`, or `ws`.",
-      "description_ja": ""
-    },
-    {
-      "name": "remember-interactive-programming",
-      "source": "github-awesome-copilot",
-      "path": "plugins/clojure-interactive-programming/skills/remember-interactive-programming",
-      "categories": [],
-      "description": "A micro-prompt that reminds the agent that it is an interactive programmer. Works great in Clojure when Copilot has access to the REPL (probably via Backseat Driver). Will work with any system that has a live REPL that the agent can use. Adapt the prompt with any specific reminders in your workflow and/or workspace.",
       "description_ja": ""
     },
     {
@@ -9581,22 +9137,6 @@
       "path": "composio-skills/route4me-automation",
       "categories": [],
       "description": "Automate Route4me tasks via Rube MCP (Composio). Always search tools first for current schemas.",
-      "description_ja": ""
-    },
-    {
-      "name": "ruby-mcp-server-generator",
-      "source": "github-awesome-copilot",
-      "path": "plugins/ruby-mcp-development/skills/ruby-mcp-server-generator",
-      "categories": [],
-      "description": "Generate a complete Model Context Protocol server project in Ruby using the official MCP Ruby SDK gem.",
-      "description_ja": ""
-    },
-    {
-      "name": "rust-mcp-server-generator",
-      "source": "github-awesome-copilot",
-      "path": "plugins/rust-mcp-development/skills/rust-mcp-server-generator",
-      "categories": [],
-      "description": "Generate a complete Rust Model Context Protocol server project with tools, prompts, resources, and tests using the official rmcp SDK",
       "description_ja": ""
     },
     {
@@ -10171,7 +9711,9 @@
       "name": "skill-share",
       "source": "composio-awesome",
       "path": "skill-share",
-      "categories": ["community"],
+      "categories": [
+        "community"
+      ],
       "description": "A skill that creates new Claude skills and automatically shares them on Slack using Rube for seamless team collaboration and skill discovery.",
       "description_ja": "Share skills across teams"
     },
@@ -10304,14 +9846,6 @@
       "description_ja": ""
     },
     {
-      "name": "sponsor-finder",
-      "source": "github-awesome-copilot",
-      "path": "plugins/ospo-sponsorship/skills/sponsor-finder",
-      "categories": [],
-      "description": "Find which of a GitHub repository's dependencies are sponsorable via GitHub Sponsors. Uses deps.dev API for dependency resolution across npm, PyPI, Cargo, Go, RubyGems, Maven, and NuGet. Checks npm funding metadata, FUNDING.yml files, and web search. Verifies every link. Shows direct and transitive dependencies with OSSF Scorecard health data. Invoke with /sponsor followed by a GitHub owner/repo (e.g. \"/sponsor expressjs/express\").",
-      "description_ja": ""
-    },
-    {
       "name": "Spotify Automation",
       "source": "composio-awesome",
       "path": "composio-skills/spotify-automation",
@@ -10325,22 +9859,6 @@
       "path": "composio-skills/spotlightr-automation",
       "categories": [],
       "description": "Automate Spotlightr tasks via Rube MCP (Composio). Always search tools first for current schemas.",
-      "description_ja": ""
-    },
-    {
-      "name": "sql-code-review",
-      "source": "github-awesome-copilot",
-      "path": "plugins/database-data-management/skills/sql-code-review",
-      "categories": [],
-      "description": "Universal SQL code review assistant that performs comprehensive security, maintainability, and code quality analysis across all SQL databases (MySQL, PostgreSQL, SQL Server, Oracle). Focuses on SQL injection prevention, access control, code standards, and anti-pattern detection. Complements SQL optimization prompt for complete development coverage.",
-      "description_ja": ""
-    },
-    {
-      "name": "sql-optimization",
-      "source": "github-awesome-copilot",
-      "path": "plugins/database-data-management/skills/sql-optimization",
-      "categories": [],
-      "description": "Universal SQL performance optimization assistant for comprehensive query tuning, indexing strategies, and database performance analysis across all SQL databases (MySQL, PostgreSQL, SQL Server, Oracle). Provides execution plan analysis, pagination optimization, batch operations, and performance monitoring guidance.",
       "description_ja": ""
     },
     {
@@ -10424,60 +9942,12 @@
       "description_ja": ""
     },
     {
-      "name": "structured-autonomy-generate",
-      "source": "github-awesome-copilot",
-      "path": "plugins/structured-autonomy/skills/structured-autonomy-generate",
-      "categories": [],
-      "description": "Structured Autonomy Implementation Generator Prompt",
-      "description_ja": ""
-    },
-    {
-      "name": "structured-autonomy-implement",
-      "source": "github-awesome-copilot",
-      "path": "plugins/structured-autonomy/skills/structured-autonomy-implement",
-      "categories": [],
-      "description": "Structured Autonomy Implementation Prompt",
-      "description_ja": ""
-    },
-    {
-      "name": "structured-autonomy-plan",
-      "source": "github-awesome-copilot",
-      "path": "plugins/structured-autonomy/skills/structured-autonomy-plan",
-      "categories": [],
-      "description": "Structured Autonomy Planning Prompt",
-      "description_ja": ""
-    },
-    {
       "name": "subagent-driven-development",
       "source": "obra-superpowers",
       "path": "skills/subagent-driven-development",
       "categories": [],
       "description": "Use when executing implementation plans with independent tasks in the current session",
       "description_ja": "Subagent Driven Development"
-    },
-    {
-      "name": "suggest-awesome-github-copilot-agents",
-      "source": "github-awesome-copilot",
-      "path": "plugins/awesome-copilot/skills/suggest-awesome-github-copilot-agents",
-      "categories": [],
-      "description": "Suggest relevant GitHub Copilot Custom Agents files from the awesome-copilot repository based on current repository context and chat history, avoiding duplicates with existing custom agents in this repository, and identifying outdated agents that need updates.",
-      "description_ja": ""
-    },
-    {
-      "name": "suggest-awesome-github-copilot-instructions",
-      "source": "github-awesome-copilot",
-      "path": "plugins/awesome-copilot/skills/suggest-awesome-github-copilot-instructions",
-      "categories": [],
-      "description": "Suggest relevant GitHub Copilot instruction files from the awesome-copilot repository based on current repository context and chat history, avoiding duplicates with existing instructions in this repository, and identifying outdated instructions that need updates.",
-      "description_ja": ""
-    },
-    {
-      "name": "suggest-awesome-github-copilot-skills",
-      "source": "github-awesome-copilot",
-      "path": "plugins/awesome-copilot/skills/suggest-awesome-github-copilot-skills",
-      "categories": [],
-      "description": "Suggest relevant GitHub Copilot skills from the awesome-copilot repository based on current repository context and chat history, avoiding duplicates with existing skills in this repository, and identifying outdated skills that need updates.",
-      "description_ja": ""
     },
     {
       "name": "supadata-automation",
@@ -10493,14 +9963,6 @@
       "path": "composio-skills/superchat-automation",
       "categories": [],
       "description": "Automate Superchat tasks via Rube MCP (Composio). Always search tools first for current schemas.",
-      "description_ja": ""
-    },
-    {
-      "name": "supportbee-automation",
-      "source": "composio-awesome",
-      "path": "composio-skills/supportbee-automation",
-      "categories": [],
-      "description": "Automate Supportbee tasks via Rube MCP (Composio). Always search tools first for current schemas.",
       "description_ja": ""
     },
     {
@@ -10541,14 +10003,6 @@
       "path": "skills/swarm",
       "categories": [],
       "description": "Deprecated compatibility shim for team execution",
-      "description_ja": ""
-    },
-    {
-      "name": "swift-mcp-server-generator",
-      "source": "github-awesome-copilot",
-      "path": "plugins/swift-mcp-development/skills/swift-mcp-server-generator",
-      "categories": [],
-      "description": "Generate a complete Model Context Protocol server project in Swift using the official MCP Swift SDK package.",
       "description_ja": ""
     },
     {
@@ -10595,7 +10049,9 @@
       "name": "tailored-resume-generator",
       "source": "composio-awesome",
       "path": "tailored-resume-generator",
-      "categories": ["community"],
+      "categories": [
+        "community"
+      ],
       "description": "Analyzes job descriptions and generates tailored resumes that highlight relevant experience, skills, and achievements to maximize interview chances",
       "description_ja": "Tailored Resume Generator"
     },
@@ -11027,7 +10483,9 @@
       "name": "twitter-algorithm-optimizer",
       "source": "composio-awesome",
       "path": "twitter-algorithm-optimizer",
-      "categories": ["community"],
+      "categories": [
+        "community"
+      ],
       "description": "Analyze and optimize tweets for maximum reach using Twitter's open-source algorithm insights. Rewrite and edit user tweets to improve engagement and visibility based on how the recommendation system ranks content.",
       "description_ja": "Twitter Algorithm Optimizer"
     },
@@ -11045,38 +10503,6 @@
       "path": "composio-skills/typefully-automation",
       "categories": [],
       "description": "Automate Typefully tasks via Rube MCP (Composio). Always search tools first for current schemas.",
-      "description_ja": ""
-    },
-    {
-      "name": "typescript-mcp-server-generator",
-      "source": "github-awesome-copilot",
-      "path": "plugins/typescript-mcp-development/skills/typescript-mcp-server-generator",
-      "categories": [],
-      "description": "Generate a complete MCP server project in TypeScript with tools, resources, and proper configuration",
-      "description_ja": ""
-    },
-    {
-      "name": "typespec-api-operations",
-      "source": "github-awesome-copilot",
-      "path": "plugins/typespec-m365-copilot/skills/typespec-api-operations",
-      "categories": [],
-      "description": "Add GET, POST, PATCH, and DELETE operations to a TypeSpec API plugin with proper routing, parameters, and adaptive cards",
-      "description_ja": ""
-    },
-    {
-      "name": "typespec-create-agent",
-      "source": "github-awesome-copilot",
-      "path": "plugins/typespec-m365-copilot/skills/typespec-create-agent",
-      "categories": [],
-      "description": "Generate a complete TypeSpec declarative agent with instructions, capabilities, and conversation starters for Microsoft 365 Copilot",
-      "description_ja": ""
-    },
-    {
-      "name": "typespec-create-api-plugin",
-      "source": "github-awesome-copilot",
-      "path": "plugins/typespec-m365-copilot/skills/typespec-create-api-plugin",
-      "categories": [],
-      "description": "Generate a TypeSpec API plugin with REST operations, authentication, and Adaptive Cards for Microsoft 365 Copilot",
       "description_ja": ""
     },
     {
@@ -11133,14 +10559,6 @@
       "path": "skills/update-avm-modules-in-bicep",
       "categories": [],
       "description": "Update Azure Verified Modules (AVM) to latest versions in Bicep files.",
-      "description_ja": ""
-    },
-    {
-      "name": "update-implementation-plan",
-      "source": "github-awesome-copilot",
-      "path": "plugins/project-planning/skills/update-implementation-plan",
-      "categories": [],
-      "description": "Update an existing implementation plan file with new or update requirements to provide new features, refactoring existing code or upgrading packages, design, architecture or infrastructure.",
       "description_ja": ""
     },
     {
@@ -11206,14 +10624,6 @@
       "categories": [],
       "description": "Use when starting feature work that needs isolation from current workspace or before executing implementation plans - creates isolated git worktrees with smart directory selection and safety verification",
       "description_ja": "Using Git Worktrees"
-    },
-    {
-      "name": "using-superpowers",
-      "source": "obra-superpowers",
-      "path": "skills/using-superpowers",
-      "categories": [],
-      "description": "Use when starting any conversation - establishes how to find and use skills, requiring Skill tool invocation before ANY response including clarifying questions",
-      "description_ja": "Using Superpowers"
     },
     {
       "name": "USMetrics",
@@ -11493,14 +10903,6 @@
       "path": "composio-skills/webvizio-automation",
       "categories": [],
       "description": "Automate Webvizio tasks via Rube MCP (Composio). Always search tools first for current schemas.",
-      "description_ja": ""
-    },
-    {
-      "name": "what-context-needed",
-      "source": "github-awesome-copilot",
-      "path": "plugins/context-engineering/skills/what-context-needed",
-      "categories": [],
-      "description": "Ask Copilot what files it needs to see before answering a question",
       "description_ja": ""
     },
     {

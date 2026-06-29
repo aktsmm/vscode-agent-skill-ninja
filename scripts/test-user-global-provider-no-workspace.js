@@ -53,6 +53,12 @@ const vscodeStub = {
       return { fsPath: filePath };
     },
   },
+  workspace: {
+    workspaceFolders: undefined,
+    getConfiguration: () => ({
+      get: (_key, defaultValue) => defaultValue,
+    }),
+  },
 };
 
 const userRoot = {
@@ -101,6 +107,7 @@ const builtInRoot = {
 };
 
 let capturedWorkspaceUri = "not-called";
+let skillIndexFixture = { skills: [], sources: [] };
 
 function loadModule() {
   const moduleExports = {};
@@ -204,7 +211,7 @@ function loadModule() {
       if (request === "./skillIndex") {
         return {
           getLocalizedDescription: (skill) => skill.description || "",
-          loadSkillIndex: async () => ({ skills: [], sources: [] }),
+          loadSkillIndex: async () => skillIndexFixture,
         };
       }
       if (request === "./i18n") {
@@ -248,7 +255,7 @@ async function test(name, fn) {
 }
 
 (async () => {
-  const { UserGlobalSkillsProvider } = loadModule();
+  const { BrowseSkillsProvider, UserGlobalSkillsProvider } = loadModule();
 
   await test("user/global provider scans without an open workspace", async () => {
     const provider = new UserGlobalSkillsProvider(undefined);
@@ -295,6 +302,17 @@ async function test(name, fn) {
     await provider.getChildren();
 
     assert.strictEqual(capturedWorkspaceUri, workspaceUri);
+  });
+
+  await test("browse provider tolerates missing skill index arrays", async () => {
+    skillIndexFixture = {};
+    const provider = new BrowseSkillsProvider({
+      globalState: { get: () => [] },
+    });
+
+    const rootItems = await provider.getChildren();
+
+    assert.strictEqual(rootItems.length, 0);
   });
 
   console.log("RESULT=PASS");

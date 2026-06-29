@@ -38,6 +38,10 @@ async function getSkillIndex(): Promise<SkillIndex> {
   return loadSkillIndex(context);
 }
 
+function getIndexSkills(index: SkillIndex): Skill[] {
+  return Array.isArray(index.skills) ? index.skills : [];
+}
+
 /**
  * 信頼度バッジを取得
  */
@@ -128,7 +132,7 @@ function getIndexUpdateInfo(index: SkillIndex): {
  */
 function getSourceStats(index: SkillIndex): string {
   const sourceCount = index.sources?.length || 0;
-  const skillCount = index.skills?.length || 0;
+  const skillCount = getIndexSkills(index).length;
   return `${sourceCount} リポジトリ、${skillCount} スキル`;
 }
 
@@ -277,7 +281,7 @@ class SkillSearchTool implements vscode.LanguageModelTool<{ query: string }> {
   ): Promise<vscode.LanguageModelToolResult> {
     const query = options.input.query;
     const index = await getSkillIndex();
-    const skills = index.skills;
+    const skills = getIndexSkills(index);
     const lowerQuery = query.toLowerCase();
 
     // インデックス更新情報を取得
@@ -431,7 +435,7 @@ class SkillInstallTool implements vscode.LanguageModelTool<{
   ): Promise<vscode.LanguageModelToolResult> {
     const skillName = options.input.skillName;
     const index = await getSkillIndex();
-    const skills = index.skills;
+    const skills = getIndexSkills(index);
     const lowerName = skillName.toLowerCase();
 
     // スキルを検索
@@ -622,7 +626,7 @@ class SkillRecommendTool implements vscode.LanguageModelTool<
     }
 
     const index = await getSkillIndex();
-    const skills = index.skills;
+    const skills = getIndexSkills(index);
     const recommendations: { skill: Skill; reason: string }[] = [];
     const updateInfo = getIndexUpdateInfo(index);
     const sourceStats = getSourceStats(index);
@@ -926,7 +930,7 @@ class UpdateIndexTool implements vscode.LanguageModelTool<
     try {
       // 更新前の情報
       const oldIndex = await getSkillIndex();
-      const oldCount = oldIndex.skills.length;
+      const oldCount = getIndexSkills(oldIndex).length;
       const oldUpdated = oldIndex.lastUpdated || "unknown";
 
       // VS Code コマンドでインデックス更新を実行
@@ -934,7 +938,7 @@ class UpdateIndexTool implements vscode.LanguageModelTool<
 
       const newIndex = await loadSkillIndex(extContext);
 
-      const newCount = newIndex.skills.length;
+      const newCount = getIndexSkills(newIndex).length;
       const newUpdated =
         newIndex.lastUpdated || new Date().toISOString().split("T")[0];
       const diff = newCount - oldCount;
@@ -1358,7 +1362,7 @@ ${localizeMcpText("Usage: Provide skillName and at least one of description_en o
 
     try {
       const index = await getSkillIndex();
-      const skill = index.skills.find(
+      const skill = getIndexSkills(index).find(
         (s) => s.name.toLowerCase() === skillName.toLowerCase(),
       );
 

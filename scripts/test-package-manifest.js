@@ -400,6 +400,51 @@ test("chat participant user-facing copy goes through runtime i18n", () => {
   }
 });
 
+test("chat participant guards malformed skill index arrays", () => {
+  assert.ok(
+    chatParticipantSource.includes(
+      "function getIndexSkills(index: SkillIndex): Skill[]",
+    ),
+    "chat participant should centralize skill array normalization",
+  );
+  assert.strictEqual(
+    chatParticipantSource.includes("= index.skills;"),
+    false,
+    "chat participant should not directly dereference index.skills",
+  );
+  assert.ok(
+    chatParticipantSource.includes(
+      "Array.isArray(index.skills) ? index.skills : []",
+    ),
+    "chat participant should tolerate malformed runtime index objects",
+  );
+});
+
+test("MCP tools guard malformed skill index arrays", () => {
+  assert.ok(
+    mcpToolsSource.includes(
+      "function getIndexSkills(index: SkillIndex): Skill[]",
+    ),
+    "MCP tools should centralize skill array normalization",
+  );
+  for (const forbidden of [
+    "const skills = index.skills;",
+    "oldIndex.skills.length",
+    "newIndex.skills.length",
+    "index.skills.find(",
+  ]) {
+    assert.strictEqual(
+      mcpToolsSource.includes(forbidden),
+      false,
+      `MCP tools should not directly dereference: ${forbidden}`,
+    );
+  }
+  assert.ok(
+    mcpToolsSource.includes("Array.isArray(index.skills) ? index.skills : []"),
+    "MCP tools should tolerate malformed runtime index objects",
+  );
+});
+
 test("MCP workspace errors use runtime i18n", () => {
   assert.ok(
     mcpToolsSource.includes('import { isJapanese, messages } from "./i18n";'),
