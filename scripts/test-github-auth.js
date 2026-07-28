@@ -103,6 +103,9 @@ async function main() {
   const auth = requireTypeScriptModule(
     path.join(__dirname, "..", "src", "githubAuth.ts"),
   );
+  const githubFetch = requireTypeScriptModule(
+    path.join(__dirname, "..", "src", "githubFetch.ts"),
+  );
 
   const context = {
     secrets: {
@@ -198,6 +201,84 @@ async function main() {
       await context.secrets.get("skillNinja.githubToken"),
       undefined,
     );
+  });
+
+  await test("public raw content remains anonymous", async () => {
+    const requests = [];
+    const originalFetch = global.fetch;
+    global.fetch = async (url, options) => {
+      requests.push({ url, options });
+      return { ok: true, status: 200 };
+    };
+
+    try {
+      const response = await githubFetch.fetchGitHubWithOptionalAuthRetry(
+        "https://raw.githubusercontent.com/owner/repo/main/SKILL.md",
+        { accept: "text/plain", token: "test-token" },
+      );
+
+      assert.strictEqual(response.status, 200);
+      assert.strictEqual(requests.length, 1);
+      assert.strictEqual(requests[0].options.headers.Authorization, undefined);
+    } finally {
+      global.fetch = originalFetch;
+    }
+  });
+
+  await test("private raw content retries with authentication", async () => {
+    const requests = [];
+    const originalFetch = global.fetch;
+    global.fetch = async (url, options) => {
+      requests.push({ url, options });
+      return requests.length === 1
+        ? { ok: false, status: 404 }
+        : { ok: true, status: 200 };
+    };
+
+    try {
+      const response = await githubFetch.fetchGitHubWithOptionalAuthRetry(
+        "https://raw.githubusercontent.com/owner/private-repo/main/SKILL.md",
+        { accept: "text/plain", token: "test-token" },
+      );
+
+      assert.strictEqual(response.status, 200);
+      assert.strictEqual(requests.length, 2);
+      assert.strictEqual(requests[0].options.headers.Authorization, undefined);
+      assert.strictEqual(
+        requests[1].options.headers.Authorization,
+        "token test-token",
+      );
+      assert.strictEqual(requests[1].options.redirect, "error");
+    } finally {
+      global.fetch = originalFetch;
+    }
+  });
+
+  await test("missing private raw content stops after authenticated retry", async () => {
+    const requests = [];
+    const originalFetch = global.fetch;
+    global.fetch = async (url, options) => {
+      requests.push({ url, options });
+      return { ok: false, status: 404 };
+    };
+
+    try {
+      const response = await githubFetch.fetchGitHubWithOptionalAuthRetry(
+        "https://raw.githubusercontent.com/owner/private-repo/main/missing.md",
+        { accept: "text/plain", token: "test-token" },
+      );
+
+      assert.strictEqual(response.status, 404);
+      assert.strictEqual(requests.length, 2);
+      assert.strictEqual(requests[0].options.headers.Authorization, undefined);
+      assert.strictEqual(
+        requests[1].options.headers.Authorization,
+        "token test-token",
+      );
+      assert.strictEqual(requests[1].options.redirect, "error");
+    } finally {
+      global.fetch = originalFetch;
+    }
   });
 }
 

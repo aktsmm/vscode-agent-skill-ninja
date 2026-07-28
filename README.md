@@ -204,7 +204,7 @@ Preset index includes skills from official, curated, and community sources out o
 | [ComposioHQ/awesome-claude-skills](https://github.com/ComposioHQ/awesome-claude-skills)                                       | Curated   | Curated Claude Skills list            |
 | [obra/superpowers](https://github.com/obra/superpowers)                                                                       | Community | High-quality skills & agents          |
 | [muratcankoylan/Agent-Skills-for-Context-Engineering](https://github.com/muratcankoylan/Agent-Skills-for-Context-Engineering) | Community | Context Engineering skills (5k+)      |
-| [danielmiessler/Personal_AI_Infrastructure](https://github.com/danielmiessler/Personal_AI_Infrastructure)                     | Community | PAI Packs - Skills & Features         |
+| [danielmiessler/LifeOS](https://github.com/danielmiessler/LifeOS)                                                             | Community | LifeOS Skills - PAI successor         |
 | [EveryInc/compound-engineering-plugin](https://github.com/EveryInc/compound-engineering-plugin)                               | Community | Compound Engineering (3.5k+)          |
 | [Wirasm/PRPs-agentic-eng](https://github.com/Wirasm/PRPs-agentic-eng)                                                         | Community | PRP (Prompt Recipe Patterns)          |
 | [qdhenry/Claude-Command-Suite](https://github.com/qdhenry/Claude-Command-Suite)                                               | Community | Claude commands & skills              |
@@ -517,6 +517,8 @@ Find `Agent Skills Ninja: GitHub Token` in settings and enter your token:
 When this legacy setting is present, Agent Skills Ninja copies the value into VS Code SecretStorage and uses the secure copy first. The setting is retained for backward compatibility and reset workflows.
 
 For private repositories, prefer a fine-grained personal access token limited to the selected repositories with `Contents: read`. Classic personal access tokens need the `repo` scope to read private repositories.
+
+If a private source reports `404` or "not found", open the GitHub token setting from the error message and verify repository access before updating the index or reporting a bug.
 
 👉 [Create a fine-grained GitHub Token](https://github.com/settings/personal-access-tokens/new?name=Agent%20Skill%20Ninja&description=Read%20skill%20source%20repositories&contents=read)
 

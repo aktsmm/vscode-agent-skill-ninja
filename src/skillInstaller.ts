@@ -3,7 +3,7 @@
 
 import * as vscode from "vscode";
 import { Skill, loadSkillIndex, Source, getSourceBranch } from "./skillIndex";
-import { isJapanese } from "./i18n";
+import { isJapanese, messages } from "./i18n";
 import { getGitHubToken } from "./githubAuth";
 import { normalizeInstalledSkillSource } from "./installedSkillIndex";
 import {
@@ -11,10 +11,7 @@ import {
   resolveWorkspaceSkillsRootUri,
   type SkillRoot,
 } from "./skillLocations";
-import {
-  createGitHubHeaders,
-  fetchGitHubWithOptionalAuthRetry,
-} from "./githubFetch";
+import { fetchGitHubWithOptionalAuthRetry } from "./githubFetch";
 import {
   GitHubDirectoryEntry,
   partitionGitHubDirectoryEntries,
@@ -46,6 +43,61 @@ function buildGitHub403Message(token?: string): string {
   return token
     ? "GitHub API access was denied (403). The token may be invalid, missing required scope, or the target repository/search may require additional authentication. Check your GitHub auth settings."
     : "GitHub API access was denied (403). You may have hit the unauthenticated rate limit, or the target repository/search may require authentication. Configure a GitHub token and try again.";
+}
+
+function buildSkillNotFoundMessage(skillName: string, token?: string): string {
+  return token
+    ? messages.skillDownloadNotFoundWithAuth(skillName)
+    : messages.skillDownloadNotFoundNoAuth(skillName);
+}
+
+function buildSkillNotFoundPossibleCause(hasToken: boolean): string {
+  return hasToken
+    ? "The skill index path may be outdated, or the configured GitHub authentication may not have Contents: read access to the repository."
+    : "The skill index path may be outdated. If the repository is private, GitHub authentication with Contents: read access is required.";
+}
+
+async function handleSkillNotFound(
+  skillPath: vscode.Uri,
+  skill: Skill,
+  source: Source | undefined,
+  failedUrl: string,
+  token?: string,
+): Promise<never> {
+  try {
+    await vscode.workspace.fs.delete(skillPath, { recursive: true });
+  } catch {
+    // 削除失敗は無視
+  }
+
+  const openSettings = messages.openSettings();
+  const updateIndex = messages.actionUpdateIndex();
+  const reportBug = messages.actionReportBug();
+  const choice = await vscode.window.showErrorMessage(
+    buildSkillNotFoundMessage(skill.name, token),
+    openSettings,
+    updateIndex,
+    reportBug,
+  );
+
+  if (choice === openSettings) {
+    await vscode.commands.executeCommand(
+      "workbench.action.openSettings",
+      "skillNinja.githubToken",
+    );
+  } else if (choice === updateIndex) {
+    await vscode.commands.executeCommand("skillNinja.updateIndex");
+  } else if (choice === reportBug) {
+    await openBugReport(
+      skill,
+      source,
+      failedUrl,
+      "404 Not Found",
+      Boolean(token),
+    );
+  }
+
+  throw new Error(`Skill not found: ${skill.name}`);
 }
 
 /**
@@ -509,36 +561,7 @@ export async function installSkill(
 
         // 404エラーの場合はインストールをキャンセル（フォールバック作らない）
         if (errorMsg.includes("404")) {
-          // 作成したフォルダを削除
-          try {
-            await vscode.workspace.fs.delete(skillPath, { recursive: true });
-          } catch {
-            // 削除失敗は無視
-          }
-
-          // バグレポートオプションを提供
-          const updateIndex = isJapanese()
-            ? "インデックス更新"
-            : "Update Index";
-          const reportBug = isJapanese() ? "バグ報告" : "Report Bug";
-
-          const choice = await vscode.window.showErrorMessage(
-            isJapanese()
-              ? `スキル "${skill.name}" が見つかりません。\nスキルインデックスの情報が古い可能性があります。`
-              : `Skill "${skill.name}" not found.\nThe skill index may be outdated.`,
-            updateIndex,
-            reportBug,
-          );
-
-          if (choice === updateIndex) {
-            // Update Index コマンドを実行
-            await vscode.commands.executeCommand("skillNinja.updateIndex");
-          } else if (choice === reportBug) {
-            // バグレポートを作成
-            await openBugReport(skill, source, rawUrl, "404 Not Found");
-          }
-
-          throw new Error(`Skill not found: ${skill.name}`);
+          await handleSkillNotFound(skillPath, skill, source, rawUrl, token);
         }
 
         // その他のエラーはフォールバック版を作成
@@ -621,36 +644,14 @@ export async function installSkill(
               : `Some files for skill "${skill.name}" could not be downloaded. SKILL.md was installed directly.`,
           );
         } else if (errorMsg.includes("404")) {
-          // 404エラーの場合はインストールをキャンセル（フォールバック作らない）
-          // 作成したフォルダを削除
-          try {
-            await vscode.workspace.fs.delete(skillPath, { recursive: true });
-          } catch {
-            // 削除失敗は無視
-          }
-
-          // バグレポートオプションを提供
-          const updateIndex = isJapanese()
-            ? "インデックス更新"
-            : "Update Index";
-          const reportBug = isJapanese() ? "バグ報告" : "Report Bug";
-
-          const choice = await vscode.window.showErrorMessage(
-            isJapanese()
-              ? `スキル "${skill.name}" が見つかりません。\nスキルインデックスの情報が古い可能性があります。`
-              : `Skill "${skill.name}" not found.\nThe skill index may be outdated.`,
-            updateIndex,
-            reportBug,
+          const repoTreeUrl = `https://github.com/${owner}/${repo}/tree/${branch}/${remotePath}`;
+          await handleSkillNotFound(
+            skillPath,
+            skill,
+            source,
+            repoTreeUrl,
+            token,
           );
-
-          if (choice === updateIndex) {
-            await vscode.commands.executeCommand("skillNinja.updateIndex");
-          } else if (choice === reportBug) {
-            const repoTreeUrl = `https://github.com/${owner}/${repo}/tree/${branch}/${remotePath}`;
-            await openBugReport(skill, source, repoTreeUrl, "404 Not Found");
-          }
-
-          throw new Error(`Skill not found: ${skill.name}`);
         } else {
           // Don't overwrite SKILL.md with fallback if it was already downloaded
           const skillMdPath = vscode.Uri.joinPath(skillPath, "SKILL.md");
@@ -1818,6 +1819,7 @@ async function openBugReport(
   source: Source | undefined,
   url: string,
   errorType: string,
+  hasToken: boolean,
 ): Promise<void> {
   const extensionVersion =
     vscode.extensions.getExtension("yamapan.agent-skill-ninja")?.packageJSON
@@ -1842,9 +1844,10 @@ async function openBugReport(
     `**Environment**\n` +
     `- Extension Version: ${extensionVersion}\n` +
     `- VS Code: ${vscode.version}\n` +
-    `- OS: ${process.platform}\n\n` +
+    `- OS: ${process.platform}\n` +
+    `- GitHub Authentication: ${hasToken ? "configured" : "not configured"}\n\n` +
     `**Possible Cause**\n` +
-    `The skill index may contain outdated paths that no longer exist in the repository.`;
+    buildSkillNotFoundPossibleCause(hasToken);
 
   const params = new URLSearchParams({
     title: issueTitle,
@@ -1858,8 +1861,10 @@ async function openBugReport(
  * URL からファイル内容を取得
  */
 async function fetchFileContent(url: string, token?: string): Promise<string> {
-  const headers = createGitHubHeaders(url, "text/plain", token);
-  const response = await fetch(url, { headers });
+  const response = await fetchGitHubWithOptionalAuthRetry(url, {
+    accept: "text/plain",
+    token,
+  });
   if (!response.ok) {
     throw new Error(
       `HTTP ${response.status}: ${response.statusText} (URL: ${url})`,

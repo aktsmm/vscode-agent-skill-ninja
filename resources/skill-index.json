@@ -1,6 +1,6 @@
 {
-  "version": "1.24.0",
-  "lastUpdated": "2026-06-30",
+  "version": "1.25.0",
+  "lastUpdated": "2026-07-28",
   "sources": [
     {
       "id": "anthropics-skills",
@@ -53,11 +53,12 @@
     },
     {
       "id": "pai-packs",
-      "name": "Personal AI Infrastructure (PAI)",
-      "url": "https://github.com/danielmiessler/Personal_AI_Infrastructure",
+      "name": "LifeOS Skills (PAI successor)",
+      "url": "https://github.com/danielmiessler/LifeOS",
       "type": "community",
-      "description": "Personal AI Infrastructure (PAI)",
-      "description_ja": "Personal AI Infrastructure (PAI)"
+      "includePaths": ["LifeOS/install/skills"],
+      "description": "LifeOS Skills (PAI successor)",
+      "description_ja": "LifeOS Skills (PAI successor)"
     },
     {
       "id": "compound-engineering",
@@ -92,9 +93,7 @@
       "branch": "main",
       "description": "oh-my-codex (OMX) Codex workflow skills",
       "description_ja": "oh-my-codex (OMX) Codex workflow skills",
-      "includePaths": [
-        "skills"
-      ]
+      "includePaths": ["skills"]
     },
     {
       "id": "openai-skills",
@@ -234,20 +233,8 @@
       "source": "pai-packs",
       "description": "Complete PAI infrastructure - Core, Agents, Art, Prompting",
       "description_ja": "PAI完全セット - コア・エージェント・アート・プロンプティング",
-      "skills": [
-        "CORE",
-        "Agents",
-        "Art",
-        "CreateSkill",
-        "Prompting"
-      ],
-      "installOrder": [
-        "CORE",
-        "Agents",
-        "Art",
-        "CreateSkill",
-        "Prompting"
-      ],
+      "skills": ["CORE", "Agents", "Art", "CreateSkill", "Prompting"],
+      "installOrder": ["CORE", "Agents", "Art", "CreateSkill", "Prompting"],
       "coreSkill": "CORE"
     },
     {
@@ -566,14 +553,6 @@
       "description_ja": ""
     },
     {
-      "name": "Agents",
-      "source": "pai-packs",
-      "path": "Releases/v2.3/.claude/skills/Agents",
-      "categories": [],
-      "description": "Dynamic agent composition and management system. USE WHEN user says create custom agents, spin up custom agents, specialized agents, OR asks for agent personalities, available traits, agent voices. Handles custom agent creation, personality assignment, voice mapping, and parallel agent orchestration.",
-      "description_ja": "Agents"
-    },
-    {
       "name": "agenty-automation",
       "source": "composio-awesome",
       "path": "composio-skills/agenty-automation",
@@ -758,14 +737,6 @@
       "description_ja": ""
     },
     {
-      "name": "AnnualReports",
-      "source": "pai-packs",
-      "path": "Releases/v2.3/.claude/skills/AnnualReports",
-      "categories": [],
-      "description": "Annual security report aggregation and analysis. USE WHEN annual reports, security reports, threat reports, industry reports, update reports, analyze reports, vendor reports, threat landscape.",
-      "description_ja": "AnnualReports"
-    },
-    {
       "name": "anonyflow-automation",
       "source": "composio-awesome",
       "path": "composio-skills/anonyflow-automation",
@@ -798,6 +769,15 @@
       "description_ja": ""
     },
     {
+      "name": "ApertureOscillation",
+      "source": "pai-packs",
+      "path": "LifeOS/install/skills/ApertureOscillation",
+      "categories": [],
+      "description": "3-pass scope oscillation that holds a question constant while shifting zoom — narrow/tactical, wide/strategic, then synthesis — to surface design tensions, scope recommendations, and coherence assessments invisible at any single zoom level. USE WHEN aperture oscillation, oscillate scope, zoom in and out, tactical vs strategic, scope framing, design tension, system coherence check, local vs global design, wrong scope, scope negotiation. NOT FOR lens rotation across angles (use IterativeDepth).",
+      "description_ja": "",
+      "version": "1.0.8"
+    },
+    {
       "name": "apex27-automation",
       "source": "composio-awesome",
       "path": "composio-skills/apex27-automation",
@@ -808,10 +788,11 @@
     {
       "name": "Aphorisms",
       "source": "pai-packs",
-      "path": "Releases/v2.4/.claude/skills/Aphorisms",
+      "path": "LifeOS/install/skills/Aphorisms",
       "categories": [],
-      "description": "Aphorism management. USE WHEN aphorism, quote, saying. SkillSearch('aphorisms') for docs.",
-      "description_ja": "Aphorisms"
+      "description": "Curated aphorism collection with CRUD — content-based matching, themed search, thinker research, DB maintenance. Quotes organized by author/theme/context/usage to prevent repetition. Four workflows: FindAphorism, AddAphorism, ResearchThinker, SearchAphorisms. Themes: Stoicism, Wisdom, Truth-seeking, Excellence, Resilience, Curiosity. USE WHEN aphorism, quote, find a quote, research thinker, add aphorism, quote for newsletter, what did X say about, quote bank. NOT FOR creative writing or social posts.",
+      "description_ja": "Aphorisms",
+      "version": "1.1.19"
     },
     {
       "name": "api-bible-automation",
@@ -864,10 +845,11 @@
     {
       "name": "Apify",
       "source": "pai-packs",
-      "path": "Releases/v2.4/.claude/skills/Apify",
+      "path": "LifeOS/install/skills/Apify",
       "categories": [],
-      "description": "Social media scraping, business data, e-commerce via Apify actors. USE WHEN Twitter, Instagram, LinkedIn, TikTok, YouTube, Facebook, Google Maps, Amazon scraping.",
-      "description_ja": "Apify"
+      "description": "Scrapes social platforms, business data, and e-commerce via Apify actors — Instagram, LinkedIn, TikTok, YouTube, Facebook, Google Maps, Amazon, and web crawls — filtering in code. USE WHEN scrape Instagram, scrape LinkedIn, scrape TikTok, scrape YouTube, scrape Facebook, Google Maps leads, Amazon reviews, business intelligence, multi-platform social listening, competitive analysis, lead generation, social monitoring, Apify actors, web crawl, extract contacts. NOT FOR X/Twitter operations (use _X), 4-tier progressive scraping with proxy escalation (use BrightData), or real-Chrome bot bypass and computer use (use Interceptor).",
+      "description_ja": "Apify",
+      "version": "1.1.18"
     },
     {
       "name": "Apify Automation",
@@ -992,20 +974,28 @@
     {
       "name": "Art",
       "source": "pai-packs",
-      "path": "Releases/v2.3/.claude/skills/Art",
+      "path": "LifeOS/install/skills/Art",
       "categories": [],
-      "description": "Complete visual content system. USE WHEN user wants to create visual content, illustrations, diagrams, OR mentions art, header images, visualizations, mermaid, flowchart, technical diagram, infographic, PAI icon, pack icon, or PAI pack icon.",
-      "description_ja": "Art"
+      "description": "Static visual content across 20+ formats — diagrams, mermaid, infographics, D3 dashboards, comics, icons, wallpaper — via Flux, Nano Banana Pro, and GPT-Image-2. USE WHEN art, illustration, diagram, flowchart, infographic, header image, blog social thumbnail, visualize, generate image, mermaid, architecture diagram, comic, icon, blog art, framework diagram, D3 chart, remove background, wallpaper. NOT FOR locked house-style YouTube/channel/video thumbnails (use _THUMBNAIL — it orchestrates Art's Generate/PickExpression/ThumbnailText tools), video or animation (use Remotion), or web UI design and integrated frontend layout (use Webdesign).",
+      "description_ja": "Art",
+      "version": "1.5.8"
     },
     {
       "name": "artifacts-builder",
       "source": "composio-awesome",
       "path": "artifacts-builder",
-      "categories": [
-        "community"
-      ],
+      "categories": ["community"],
       "description": "Suite of tools for creating elaborate, multi-component claude.ai HTML artifacts using modern frontend web technologies (React, Tailwind CSS, shadcn/ui). Use for complex artifacts requiring state management, routing, or shadcn/ui components - not for simple single-file HTML/JSX artifacts.",
       "description_ja": "Artifacts Builder"
+    },
+    {
+      "name": "ArXiv",
+      "source": "pai-packs",
+      "path": "LifeOS/install/skills/ArXiv",
+      "categories": [],
+      "description": "Search and retrieve arXiv academic papers by topic, category, or paper ID — with AlphaXiv-enriched AI-generated overviews. Uses arXiv Atom API across cs.AI/cs.LG/cs.CL/cs.CR/cs.MA/cs.SE/cs.IR. Three workflows: Latest, Search, Paper. USE WHEN arxiv, papers, latest papers, research papers, recent ML papers, paper lookup, summarize paper, latest LLM papers, AI safety papers, cs.AI latest. NOT FOR general research (Research), URL parsing (_PARSER), or annual reports (_ANNUALREPORTS).",
+      "description_ja": "",
+      "version": "1.0.7"
     },
     {
       "name": "aryn-automation",
@@ -1114,10 +1104,11 @@
     {
       "name": "AudioEditor",
       "source": "pai-packs",
-      "path": "Releases/v4.0.0/.claude/skills/Utilities/AudioEditor",
+      "path": "LifeOS/install/skills/AudioEditor",
       "categories": [],
-      "description": "AI-powered audio/video editing — transcription, intelligent cut detection, automated editing with crossfades, and optional cloud polish. USE WHEN clean audio, edit audio, remove filler words, clean podcast, remove ums, fix audio, cut dead air, polish audio, clean recording, transcribe and edit.",
-      "description_ja": ""
+      "description": "AI audio editing pipeline: Whisper word-level transcription → Claude segment classification (KEEP/CUT_FILLER/CUT_FALSE_START/CUT_STUTTER/CUT_DEAD_AIR) → ffmpeg with 40ms qsin crossfades and room-tone fill → optional Cleanvoice cloud polish. Distinguishes rhetorical from accidental pauses; breaths attenuated 50%. Modes: --preview, --aggressive, --polish. Workflow: Clean. USE WHEN clean audio, edit audio, remove filler words, clean podcast, remove ums, cut dead air, polish audio, trim recording, cut stutters. NOT FOR video composition (use Remotion).",
+      "description_ja": "",
+      "version": "1.0.22"
     },
     {
       "name": "audit-env-variables",
@@ -2802,10 +2793,11 @@
     {
       "name": "BeCreative",
       "source": "pai-packs",
-      "path": "Releases/v2.4/.claude/skills/BeCreative",
+      "path": "LifeOS/install/skills/BeCreative",
       "categories": [],
-      "description": "Extended thinking mode. USE WHEN be creative, deep thinking, deep thinking, extended reasoning. SkillSearch('becreative') for docs.",
-      "description_ja": "BeCreative"
+      "description": "Divergent ideation and corpus expansion via Verbalized Sampling plus extended thinking — single-shot generates several internally diverse candidates and surfaces the strongest, or expands a seed corpus into a diverse dataset for evals and test sets. USE WHEN be creative, brainstorm, divergent ideas, creative solutions, maximum creativity, tree of thoughts, radically different, name this, creative angle, expand this corpus, synthetic data, generate diverse examples, create test set. NOT FOR multi-cycle evolutionary ideation with Lamarckian meta-learning (use Ideate).",
+      "description_ja": "BeCreative",
+      "version": "1.1.18"
     },
     {
       "name": "beeminder-automation",
@@ -2870,6 +2862,15 @@
       "categories": [],
       "description": "Automate Better Stack tasks via Rube MCP (Composio). Always search tools first for current schemas.",
       "description_ja": ""
+    },
+    {
+      "name": "BiasCheck",
+      "source": "pai-packs",
+      "path": "LifeOS/install/skills/BiasCheck",
+      "categories": [],
+      "description": "Three-layer bias analysis on any URL, file, or text — auto-fetches the content and any cited study, then audits data-level biases, source conflicts of interest, and journalism-added distortions, separating what the data supports from what's editorialized. USE WHEN bias analysis, analyze bias, bias check, check this study, who funded this, is this source biased, fact-check article, methodological flaws, source credibility, what's wrong with this claim. NOT FOR psychological author analysis (use _CRITICAL_ANALYSIS), research synthesis (use Research), entity due diligence (use _OSINT).",
+      "description_ja": "",
+      "version": "1.0.2"
     },
     {
       "name": "bidsketch-automation",
@@ -2942,6 +2943,15 @@
       "categories": [],
       "description": "Automate Bitquery tasks via Rube MCP (Composio). Always search tools first for current schemas.",
       "description_ja": ""
+    },
+    {
+      "name": "BitterPillEngineering",
+      "source": "pai-packs",
+      "path": "LifeOS/install/skills/BitterPillEngineering",
+      "categories": [],
+      "description": "Audits any AI instruction set for over-prompting using the core test — would a smarter model make this rule unnecessary? Applies Five Questions to every rule (Claude already does this? Contradiction? Redundant? One-off fix? Vague?) then classifies as CUT/RESOLVE/MERGE/EVALUATE/SHARPEN/MOVE/KEEP. Workflows: Audit (full system, token savings), QuickCheck (single file). Principle: less scaffolding = better output. USE WHEN BPE, bitter pill, audit setup, over-prompting, trim instructions, dead weight, simplify setup, clean up CLAUDE.md. NOT FOR attacking logical flaws in ideas (use RedTeam).",
+      "description_ja": "",
+      "version": "1.0.8"
     },
     {
       "name": "bitwarden-automation",
@@ -3186,10 +3196,11 @@
     {
       "name": "BrightData",
       "source": "pai-packs",
-      "path": "Releases/v2.3/.claude/skills/BrightData",
+      "path": "LifeOS/install/skills/BrightData",
       "categories": [],
-      "description": "Progressive URL scraping. USE WHEN Bright Data, scrape URL, web scraping tiers. SkillSearch('brightdata') for docs.",
-      "description_ja": "BrightData"
+      "description": "4-tier progressive web scraping that auto-escalates WebFetch to curl to Interceptor to Bright Data proxy for bot detection and CAPTCHAs, with single-URL and multi-page crawl modes, output as markdown. USE WHEN Bright Data, scrape URL, web scraping, bot detection, crawl site, CAPTCHA, can't access, site blocking, extract page content, scrape whole site, spider domain, convert URL to markdown, getting blocked. NOT FOR simple public content (use WebFetch directly), social platform scraping with named actors (use Apify), or real-Chrome bot bypass with logged-in sessions and zero CDP fingerprint (use Interceptor).",
+      "description_ja": "BrightData",
+      "version": "1.2.19"
     },
     {
       "name": "brightdata-automation",
@@ -3222,14 +3233,6 @@
       "categories": [],
       "description": "Automate Browseai tasks via Rube MCP (Composio). Always search tools first for current schemas.",
       "description_ja": ""
-    },
-    {
-      "name": "Browser",
-      "source": "pai-packs",
-      "path": "Releases/v2.3/.claude/skills/Browser",
-      "categories": [],
-      "description": "Debug-first browser automation with always-on visibility. Console logs, network requests, and errors captured by default. USE WHEN browser, screenshot, debug web, verify UI, troubleshoot frontend.",
-      "description_ja": "Browser"
     },
     {
       "name": "browser-tool-automation",
@@ -3531,9 +3534,7 @@
       "name": "changelog-generator",
       "source": "composio-awesome",
       "path": "changelog-generator",
-      "categories": [
-        "community"
-      ],
+      "categories": ["community"],
       "description": "Automatically creates user-facing changelogs from git commits by analyzing commit history, categorizing changes, and transforming technical commits into clear, customer-friendly release notes. Turns hours of manual changelog writing into minutes of automated generation.",
       "description_ja": "Changelog Generator"
     },
@@ -3690,14 +3691,6 @@
       "description_ja": ""
     },
     {
-      "name": "Cloudflare",
-      "source": "pai-packs",
-      "path": "Releases/v3.0/.claude/skills/Cloudflare",
-      "categories": [],
-      "description": "Deploy Cloudflare Workers/Pages. USE WHEN Cloudflare, worker, deploy, Pages, MCP server. SkillSearch('cloudflare') for docs.",
-      "description_ja": ""
-    },
-    {
       "name": "Cloudflare Manager",
       "source": "claude-command-suite",
       "path": ".claude/skills/cloudflare-manager",
@@ -3760,6 +3753,15 @@
       "categories": [],
       "description": "Automate Cloudpress tasks via Rube MCP (Composio). Always search tools first for current schemas.",
       "description_ja": ""
+    },
+    {
+      "name": "CMUX",
+      "source": "pai-packs",
+      "path": "LifeOS/install/skills/CMUX",
+      "categories": [],
+      "description": "Drives cmux as an agent cockpit to boot, race, and monitor visible agent teams. Mac-only. USE WHEN cmux, agent cockpit, boot an agent team, orchestrate agents, three-tier orchestration, agent race, needle-in-haystack hotfix, agent fleet, 2x2 fleet, watch/monitor my agents, scale compute to scale impact, send a prompt to a running agent, multiplexer, terminal cockpit, orchestrator lead worker. NOT FOR one-shot in-harness subagents with no terminal to watch (use Delegation/Agent/Workflow), the Pulse dashboard itself (cmux feeds it, use Pulse), browser deploy-verification (use Interceptor), or Linux/Windows (cmux is Mac-only — use tmux).",
+      "description_ja": "",
+      "version": "1.0.2"
     },
     {
       "name": "coassemble-automation",
@@ -3861,9 +3863,7 @@
       "name": "competitive-ads-extractor",
       "source": "composio-awesome",
       "path": "competitive-ads-extractor",
-      "categories": [
-        "community"
-      ],
+      "categories": ["community"],
       "description": "Extracts and analyzes competitors' ads from ad libraries (Facebook, LinkedIn, etc.) to understand what messaging, problems, and creative approaches are working. Helps inspire and improve your own ad campaigns.",
       "description_ja": "Extract competitive advertising data"
     },
@@ -3903,9 +3903,7 @@
       "name": "connect",
       "source": "composio-awesome",
       "path": "connect",
-      "categories": [
-        "community"
-      ],
+      "categories": ["community"],
       "description": "Connect Claude to any app. Send emails, create issues, post messages, update databases - take real actions across Gmail, Slack, GitHub, Notion, and 1000+ services.",
       "description_ja": "Connect"
     },
@@ -3913,9 +3911,7 @@
       "name": "connect-apps",
       "source": "composio-awesome",
       "path": "connect-apps",
-      "categories": [
-        "community"
-      ],
+      "categories": ["community"],
       "description": "Connect Claude to external apps like Gmail, Slack, GitHub. Use this skill when the user wants to send emails, create issues, post messages, or take actions in external services.",
       "description_ja": "Connect Apps"
     },
@@ -3947,19 +3943,9 @@
       "name": "content-research-writer",
       "source": "composio-awesome",
       "path": "content-research-writer",
-      "categories": [
-        "community"
-      ],
+      "categories": ["community"],
       "description": "Assists in writing high-quality content by conducting research, adding citations, improving hooks, iterating on outlines, and providing real-time feedback on each section. Transforms your writing process from solo effort to collaborative partnership.",
       "description_ja": "Content Research Writer"
-    },
-    {
-      "name": "ContentAnalysis",
-      "source": "pai-packs",
-      "path": "Releases/v4.0.0/.claude/skills/ContentAnalysis",
-      "categories": [],
-      "description": "Content extraction and analysis — wisdom extraction from videos, podcasts, articles, and YouTube. USE WHEN extract wisdom, content analysis, analyze content, insight report, analyze video, analyze podcast, extract insights, key takeaways, what did I miss, extract from YouTube.",
-      "description_ja": ""
     },
     {
       "name": "Contentful Automation",
@@ -4008,6 +3994,15 @@
       "categories": [],
       "description": "This skill should be used when the user asks to \"optimize context\", \"reduce token costs\", \"improve context efficiency\", \"implement KV-cache optimization\", \"partition context\", or mentions context limits, observation masking, context budgeting, or extending effective context capacity.",
       "description_ja": "Optimize context usage"
+    },
+    {
+      "name": "ContextSearch",
+      "source": "pai-packs",
+      "path": "LifeOS/install/skills/ContextSearch",
+      "categories": [],
+      "description": "Find prior LifeOS work — sessions, ISAs, conversations — by topic or date phrase; searches the work registry, titles, dir names, ISA bodies, and conversation logs, ranked by relevance. USE WHEN context search, prior work, browse sessions, recall, remember, previous sessions, context recovery, what did we do, find session, search history, what was that project, pick up where we left off, resume, look up old work, cold start, yesterday's work, last week, find that session, the one about. NOT FOR searching published content like blog posts/newsletters/tweets (use _CONTENTSEARCH) or the typed-graph Knowledge Archive (use Knowledge).",
+      "description_ja": "",
+      "version": "1.1.6"
     },
     {
       "name": "control-d-automation",
@@ -4098,14 +4093,6 @@
       "description_ja": ""
     },
     {
-      "name": "CORE",
-      "source": "pai-packs",
-      "path": "Releases/v2.3/.claude/skills/CORE",
-      "categories": [],
-      "description": "Personal AI Infrastructure core. AUTO-LOADS at session start. The authoritative reference for how the PAI system works, how to use it, and all system-level configuration. USE WHEN any session begins, user asks about the system, identity, configuration, workflows, security, or any other question about how the PAI system operates.",
-      "description_ja": "CORE"
-    },
-    {
       "name": "corrently-automation",
       "source": "composio-awesome",
       "path": "composio-skills/corrently-automation",
@@ -4124,10 +4111,11 @@
     {
       "name": "Council",
       "source": "pai-packs",
-      "path": "Releases/v2.3/.claude/skills/Council",
+      "path": "LifeOS/install/skills/Council",
       "categories": [],
-      "description": "Multi-agent debate system. USE WHEN council, debate, perspectives, agents discuss. SkillSearch('council') for docs.",
-      "description_ja": "Council"
+      "description": "Multi-agent collaborative debate producing visible round-by-round transcripts with real intellectual friction — members are topic-briefed custom agents, run as a 3-round DEBATE or a 1-round QUICK check, to find the best path. USE WHEN council, debate, multiple perspectives, weigh options, deliberate, get different views, what would experts say, pros and cons. NOT FOR pure adversarial attack (use RedTeam).",
+      "description_ja": "Council",
+      "version": "1.1.18"
     },
     {
       "name": "countdown-api-automation",
@@ -4236,18 +4224,20 @@
     {
       "name": "CreateCLI",
       "source": "pai-packs",
-      "path": "Releases/v2.3/.claude/skills/CreateCLI",
+      "path": "LifeOS/install/skills/CreateCLI",
       "categories": [],
-      "description": "Generate TypeScript CLIs. USE WHEN create CLI, build CLI, command-line tool. SkillSearch('createcli') for docs.",
-      "description_ja": "CreateCLI"
+      "description": "Generates production-ready TypeScript CLIs via a 3-tier template system (manual arg parsing, Commander.js, oclif), each shipping full implementation, docs, package.json, strict config, JSON output, and exit-code compliance. USE WHEN create CLI, build CLI, command-line tool, wrap API, add command, upgrade tier, TypeScript CLI. NOT FOR LifeOS skill scaffolding (use CreateSkill).",
+      "description_ja": "CreateCLI",
+      "version": "1.1.18"
     },
     {
       "name": "CreateSkill",
       "source": "pai-packs",
-      "path": "Releases/v2.3/.claude/skills/CreateSkill",
+      "path": "LifeOS/install/skills/CreateSkill",
       "categories": [],
-      "description": "Create and validate skills. USE WHEN create skill, new skill, skill structure, canonicalize. SkillSearch('createskill') for docs.",
-      "description_ja": "CreateSkill"
+      "description": "Mandatory orchestrator for all LifeOS skill work — creating, editing, adding a workflow or tool, renaming, validating, or canonicalizing any skill. Handrolling skill files is forbidden; owns the full lifecycle: scaffold, validate, canonicalize, test, improve. USE WHEN create skill, new skill, make a skill, build a skill, set up a skill, private skill, make a X skill, add a workflow, add a tool, edit/change/update/rename a skill, skill frontmatter, validate skill, check skill, canonicalize, scaffold skill, test skill, improve skill, optimize description, skill not triggering, overtriggering. NOT FOR TypeScript CLI generation (use CreateCLI).",
+      "description_ja": "CreateSkill",
+      "version": "1.1.23"
     },
     {
       "name": "crowdin-automation",
@@ -4352,6 +4342,15 @@
       "categories": [],
       "description": "Automate Dadata Ru tasks via Rube MCP (Composio). Always search tools first for current schemas.",
       "description_ja": ""
+    },
+    {
+      "name": "Daemon",
+      "source": "pai-packs",
+      "path": "LifeOS/install/skills/Daemon",
+      "categories": [],
+      "description": "Manage the public daemon profile — a digital representation of what you're working on. DaemonAggregator reads LifeOS sources (TELOS, KNOWLEDGE, PROJECTS, MEMORY/WORK, identity) → daemon-data.json. SecurityFilter strips names/paths/credentials via deterministic patterns (NOT LLM). Workflows: UpdateDaemon, ReadDaemon, PreviewDaemon, DeployDaemon. USE WHEN daemon, update daemon, daemon profile, deploy daemon, preview daemon, read daemon, public profile, digital presence. NOT FOR LifeOS system management (use _LIFEOS).",
+      "description_ja": "",
+      "version": "1.0.15"
     },
     {
       "name": "daffy-automation",
@@ -4460,10 +4459,11 @@
     {
       "name": "Delegation",
       "source": "pai-packs",
-      "path": "Releases/v4.0.0/.claude/skills/Utilities/Delegation",
+      "path": "LifeOS/install/skills/Delegation",
       "categories": [],
-      "description": "Parallelize work via background/foreground agents, built-in types, custom agents, or agent teams/swarms. USE WHEN 3+ independent workstreams, parallel execution, agent specialization, Extended+ effort, agent team, swarm, create an agent team.",
-      "description_ja": ""
+      "description": "Parallelizes work across six patterns — built-in agents, worktree-isolated agents, background agents, custom inline-brief agents, multi-turn agent teams, and parallel task dispatch — choosing teams when agents must share state, subagents when independent. USE WHEN parallel execution, agent team, swarm, spawn agents, fan out, divide and conquer, multi-agent, coordinate agents, custom agents.",
+      "description_ja": "",
+      "version": "1.0.23"
     },
     {
       "name": "demio-automation",
@@ -4501,9 +4501,7 @@
       "name": "developer-growth-analysis",
       "source": "composio-awesome",
       "path": "developer-growth-analysis",
-      "categories": [
-        "community"
-      ],
+      "categories": ["community"],
       "description": "Analyzes your recent Claude Code chat history to identify coding patterns, development gaps, and areas for improvement, curates relevant learning resources from HackerNews, and automatically sends a personalized growth report to your Slack DMs.",
       "description_ja": "Developer Growth Analysis"
     },
@@ -4700,14 +4698,6 @@
       "description_ja": ""
     },
     {
-      "name": "Documents",
-      "source": "pai-packs",
-      "path": "Releases/v2.4/.claude/skills/Documents",
-      "categories": [],
-      "description": "Document processing. USE WHEN document, process file. SkillSearch('documents') for docs.",
-      "description_ja": "Documents"
-    },
-    {
       "name": "documint-automation",
       "source": "composio-awesome",
       "path": "composio-skills/documint-automation",
@@ -4751,9 +4741,7 @@
       "name": "domain-name-brainstormer",
       "source": "composio-awesome",
       "path": "domain-name-brainstormer",
-      "categories": [
-        "community"
-      ],
+      "categories": ["community"],
       "description": "Generates creative domain name ideas for your project and checks availability across multiple TLDs (.com, .io, .dev, .ai, etc.). Saves hours of brainstorming and manual checking.",
       "description_ja": "Brainstorm domain names"
     },
@@ -5064,10 +5052,11 @@
     {
       "name": "Evals",
       "source": "pai-packs",
-      "path": "Releases/v2.4/.claude/skills/Evals",
+      "path": "LifeOS/install/skills/Evals",
       "categories": [],
-      "description": "Agent evaluation framework based on Anthropic's best practices. USE WHEN eval, evaluate, test agent, benchmark, verify behavior, regression test, capability test. Includes three grader types (code-based, model-based, human), transcript capture, pass@k/pass^k metrics, and ALGORITHM integration.",
-      "description_ja": "Evals"
+      "description": "AI agent evaluation framework with three grader types (code-based, model-based, human) and pass@k/pass^k scoring over agent transcripts, tool-call sequences, and multi-turn conversations; covers capability and regression evals. USE WHEN eval, evaluate, benchmark, regression test, compare models, create judge, test agent, pass@k, scenario simulation. NOT FOR scientific method framing (use Science).",
+      "description_ja": "Evals",
+      "version": "1.2.17"
     },
     {
       "name": "evaluation",
@@ -5192,18 +5181,20 @@
     {
       "name": "ExtractWisdom",
       "source": "pai-packs",
-      "path": "Releases/v3.0/.claude/skills/ExtractWisdom",
+      "path": "LifeOS/install/skills/ExtractWisdom",
       "categories": [],
-      "description": "Dynamic wisdom extraction that adapts sections to content. USE WHEN extract wisdom, analyze video, analyze podcast, extract insights, what's interesting, extract from YouTube, what did I miss, key takeaways. Replaces static extract_wisdom with content-adaptive extraction.",
-      "description_ja": ""
+      "description": "Content-adaptive wisdom extraction that reads content first, detects which wisdom domains are present, and builds custom sections around them, with five depth levels and mandatory contrarian takes; pulls YouTube via fabric and articles via WebFetch. USE WHEN extract wisdom, analyze video, analyze podcast, extract insights, key takeaways, summarize interview, distill content. NOT FOR static Fabric extract_wisdom pattern (use Fabric).",
+      "description_ja": "",
+      "version": "1.1.15"
     },
     {
       "name": "Fabric",
       "source": "pai-packs",
-      "path": "Releases/v2.4/.claude/skills/Fabric",
+      "path": "LifeOS/install/skills/Fabric",
       "categories": [],
-      "description": "Intelligent prompt pattern system with 240+ specialized patterns for content analysis, extraction, and transformation. USE WHEN user says 'use fabric', 'fabric pattern', 'run fabric', 'update fabric', 'update patterns', 'sync fabric', 'extract wisdom', 'summarize with fabric', 'create threat model', 'analyze with fabric', OR any request to apply Fabric patterns to content.",
-      "description_ja": "Fabric"
+      "description": "Execute any of 240+ specialized prompt patterns natively across Extraction, Summarization, Analysis, Creation, Improvement, Security, Rating. Common: extract_wisdom, create_threat_model, analyze_claims, improve_writing, review_code, mermaid, youtube_summary. CLI used only for YouTube transcript (-y) and URL fallback (-u). Two workflows: ExecutePattern, UpdatePatterns. USE WHEN fabric, fabric pattern, run fabric, update patterns, threat model, analyze claims, improve writing, review code, mermaid, STRIDE, sigma rules. NOT FOR multi-agent investigation (Research) or content-adaptive extraction (ExtractWisdom).",
+      "description_ja": "Fabric",
+      "version": "1.1.17"
     },
     {
       "name": "fabric-lakehouse",
@@ -5297,9 +5288,7 @@
       "name": "file-organizer",
       "source": "composio-awesome",
       "path": "file-organizer",
-      "categories": [
-        "community"
-      ],
+      "categories": ["community"],
       "description": "Intelligently organizes your files and folders across your computer by understanding context, finding duplicates, suggesting better structures, and automating cleanup tasks. Reduces cognitive load and keeps your digital workspace tidy without manual effort.",
       "description_ja": "Organize files and directories"
     },
@@ -5458,10 +5447,11 @@
     {
       "name": "FirstPrinciples",
       "source": "pai-packs",
-      "path": "Releases/v2.3/.claude/skills/FirstPrinciples",
+      "path": "LifeOS/install/skills/FirstPrinciples",
       "categories": [],
-      "description": "First principles analysis. USE WHEN first principles, fundamental, root cause, decompose. SkillSearch('firstprinciples') for docs.",
-      "description_ja": "FirstPrinciples"
+      "description": "Physics-based reasoning framework (Musk methodology) that deconstructs a problem to irreducible fundamental truths, classifies every element as hard constraint, soft constraint, or assumption, then reconstructs the optimal solution from fundamentals alone. USE WHEN first principles, fundamental truths, challenge assumptions, real constraint, rebuild from scratch, start over, physics first, question everything, reasoning by analogy. NOT FOR structural feedback loops (use SystemsThinking).",
+      "description_ja": "FirstPrinciples",
+      "version": "1.1.14"
     },
     {
       "name": "fitbit-automation",
@@ -6296,6 +6286,25 @@
       "description_ja": ""
     },
     {
+      "name": "Hardening",
+      "source": "pai-packs",
+      "path": "LifeOS/install/skills/Hardening",
+      "categories": [],
+      "description": "Hardens LifeOS tests via property/mutation testing. USE WHEN harden, hardening, property test, property based testing, PBT, fast-check, mutation test, mutation testing, Stryker, CRAP score, CRAP analysis, DRY scan, jscpd, acceptance test mutation, strengthen tests, sharpen ISCs, find bugs example tests miss, universal quantified claim, shrink counterexample, what bugs am I missing, test the tests, test of the test. NOT FOR writing new feature tests (use bun test directly), grading agent output quality (use Evals), UI verification with real Chrome (use Interceptor), finding security vulnerabilities (use _HELIOS), or building new functionality.",
+      "description_ja": "",
+      "version": "1.0.3"
+    },
+    {
+      "name": "Harvest",
+      "source": "pai-packs",
+      "path": "LifeOS/install/skills/Harvest",
+      "categories": [],
+      "description": "Mines a single piece of content (URL, YouTube, article, text, file) for anything useful to LifeOS, ranks the findings, then ingests the content into the Knowledge Archive. USE WHEN harvest, harvest this, harvest <URL>, harvest <YouTube>, harvest this video, harvest this article, /harvest, /ha, mine this for the system, anything useful in this for us, what can LifeOS take from this, analyze this for LifeOS-usefulness, should we adopt anything from this. NOT FOR ingestion-only saves with no system-mining (use _HARVEST directly), broad multi-source upgrade or bookmark scans (use Upgrade / pu), or general research synthesis (use Research).",
+      "description_ja": "",
+      "license": "public",
+      "version": "1.0.1"
+    },
+    {
       "name": "Harvest Automation",
       "source": "composio-awesome",
       "path": "composio-skills/harvest-automation",
@@ -6432,6 +6441,15 @@
       "description_ja": ""
     },
     {
+      "name": "HTML",
+      "source": "pai-packs",
+      "path": "LifeOS/install/skills/HTML",
+      "categories": [],
+      "description": "Renders the current session's output (analysis, research, red team, report, plan) as an extremely well-designed, self-contained HTML artifact via a deterministic renderer — the model distills content into typed JSON, the tool owns all layout/typography/color. USE WHEN /HTML, HTML artifact, render this as HTML, make this an HTML page, artifact of this analysis, designed HTML output. NOT FOR deployed websites or web apps (build the project directly), web UI design systems (use Webdesign), static images or diagrams (use Art), or writing the underlying analysis itself (run the analysis first, then /HTML renders it).",
+      "description_ja": "",
+      "version": "1.0.0"
+    },
+    {
       "name": "html-to-image-automation",
       "source": "composio-awesome",
       "path": "composio-skills/html-to-image-automation",
@@ -6528,6 +6546,15 @@
       "description_ja": ""
     },
     {
+      "name": "Ideate",
+      "source": "pai-packs",
+      "path": "LifeOS/install/skills/Ideate",
+      "categories": [],
+      "description": "Evolutionary ideation engine — loop-controlled multi-cycle idea generation through phases of dreaming, cross-domain stealing, recombination, fitness testing, selection, and Lamarckian meta-learning, producing ranked novel solution candidates with provenance. USE WHEN ideate, id8, novel ideas, evolve ideas, dream up solutions, innovate, breakthrough ideas, idea evolution, multi-cycle creativity, need genuinely new approaches. NOT FOR quick single-pass brainstorming (use BeCreative).",
+      "description_ja": "",
+      "version": "1.0.16"
+    },
+    {
       "name": "identitycheck-automation",
       "source": "composio-awesome",
       "path": "composio-skills/identitycheck-automation",
@@ -6547,9 +6574,7 @@
       "name": "image-enhancer",
       "source": "composio-awesome",
       "path": "image-enhancer",
-      "categories": [
-        "community"
-      ],
+      "categories": ["community"],
       "description": "Improves the quality of images, especially screenshots, by enhancing resolution, sharpness, and clarity. Perfect for preparing images for presentations, documentation, or social media posts.",
       "description_ja": "Enhance and edit images"
     },
@@ -6626,12 +6651,30 @@
       "description_ja": ""
     },
     {
+      "name": "Interceptor",
+      "source": "pai-packs",
+      "path": "LifeOS/install/skills/Interceptor",
+      "categories": [],
+      "description": "Real Chrome/Brave + macOS Computer Use from inside the browser — zero CDP fingerprint, real sessions; mandatory for visual deploy verification. Drive clickwork yourself. USE WHEN verify deploy, confirm UI, screenshot verification, computer use, macos automation, debug web, troubleshoot, visual check, motion/animation bug, jank, transition stutter, scrub a flow, console logs/errors, runtime/JS/react errors, mismatch warning, network traffic/log, HAR/pcapng export, hydration/blank-page debug, flash then blank/page broken, why is this not working/what's happening on the page, authenticated page, bot detection bypass, reproduce bug, drive native app, about to ask the operator to click/navigate/fill a form/log in/approve OAuth, OAuth consent flow, complete a web login, do this in your browser. NOT FOR residential-proxy crawling (BrightData) or social actor scraping (Apify).",
+      "description_ja": "",
+      "version": "4.3.2"
+    },
+    {
       "name": "internal-comms",
       "source": "anthropics-skills",
       "path": "skills/internal-comms",
       "categories": [],
       "description": "A set of resources to help me write all kinds of internal communications, using the formats that my company likes to use. Claude should use this skill whenever asked to write some sort of internal communications (status reports, leadership updates, 3P updates, company newsletters, FAQs, incident reports, project updates, etc.).",
       "description_ja": "Internal communications management"
+    },
+    {
+      "name": "Interview",
+      "source": "pai-packs",
+      "path": "LifeOS/install/skills/Interview",
+      "categories": [],
+      "description": "Reads seven constitutional files (TELOS, DA_IDENTITY, PRINCIPAL_IDENTITY, PROJECTS, system prompt, PRINCIPAL_TELOS, ARCHITECTURE_SUMMARY) via TelosFreshness, surfaces stalest items, drives contextual peer conversation. Routes to ContextCheckin; falls back to Phase0Setup on fresh install. ContextAudit surfaces TBD markers. USE WHEN /interview, resume interview, context check-in, telos check-in, what's stale, freshness check, fresh LifeOS install, configure DA name, review TELOS, quarterly context refresh. NOT FOR single edits (Telos), bulk intake (Migrate), identity-only (_PROFILE).",
+      "description_ja": "",
+      "version": "1.1.7"
     },
     {
       "name": "interzoid-automation",
@@ -6642,20 +6685,10 @@
       "description_ja": ""
     },
     {
-      "name": "Investigation",
-      "source": "pai-packs",
-      "path": "Releases/v4.0.0/.claude/skills/Investigation",
-      "categories": [],
-      "description": "OSINT and people-finding — structured investigations, company intel, due diligence, and ethical people search across public records and social media. USE WHEN OSINT, due diligence, company intel, background check, find person, locate, people search, reconnect, public records, reverse lookup, social media search, verify identity, domain lookup, entity lookup, organization lookup, company lookup, threat intel.",
-      "description_ja": ""
-    },
-    {
       "name": "invoice-organizer",
       "source": "composio-awesome",
       "path": "invoice-organizer",
-      "categories": [
-        "community"
-      ],
+      "categories": ["community"],
       "description": "Automatically organizes invoices and receipts for tax preparation by reading messy files, extracting key information, renaming them consistently, and sorting them into logical folders. Turns hours of manual bookkeeping into minutes of automated organization.",
       "description_ja": "Organize and manage invoices"
     },
@@ -6716,12 +6749,22 @@
       "description_ja": ""
     },
     {
+      "name": "ISA",
+      "source": "pai-packs",
+      "path": "LifeOS/install/skills/ISA",
+      "categories": [],
+      "description": "Owns the Ideal State Artifact — the primitive holding a project or task's articulated ideal state; scaffolds, interviews, scores completeness, reconciles feature excerpts to master, seeds from a repo, and appends decisions/changelog/verification across a locked fourteen-section order. USE WHEN ISA, ISC, ideal state, ideal state criteria, project specification, hill-climb, articulating done. NOT FOR creating new skills (use CreateSkill).",
+      "description_ja": "",
+      "version": "1.0.13"
+    },
+    {
       "name": "IterativeDepth",
       "source": "pai-packs",
-      "path": "Releases/v3.0/.claude/skills/IterativeDepth",
+      "path": "LifeOS/install/skills/IterativeDepth",
       "categories": [],
-      "description": "Multi-angle iterative exploration for deeper ISC extraction. USE WHEN iterative depth, deep exploration, multi-angle analysis, explore deeper, multiple perspectives on problem, examine from angles, OR when the Algorithm's OBSERVE phase needs enhanced ISC extraction.",
-      "description_ja": ""
+      "description": "Structured multi-angle exploration running 2-8 sequential passes over the same problem, each through a different scientific lens, to surface hidden requirements and edge cases invisible from one angle; each pass yields new ISC criteria. USE WHEN iterative depth, explore deeper, multi-angle analysis, surface hidden requirements, blind spot check, what am I missing. NOT FOR scope/zoom analysis (use ApertureOscillation).",
+      "description_ja": "",
+      "version": "1.1.15"
     },
     {
       "name": "java-add-graalvm-native-image-support",
@@ -6868,6 +6911,15 @@
       "description_ja": ""
     },
     {
+      "name": "Knowledge",
+      "source": "pai-packs",
+      "path": "LifeOS/install/skills/Knowledge",
+      "categories": [],
+      "description": "Manage the LifeOS Knowledge Archive — a curated, typed graph of People, Companies, Ideas, and Research notes with typed related: links; search, add, harvest, develop, ingest, and graph-navigate. USE WHEN knowledge, knowledge base, search knowledge, what do we know about, archive, harvest, knowledge status, develop note, add to knowledge, ingest, contradictions, knowledge graph, retrieve, mine conversations. NOT FOR session/ISA context recovery (use ContextSearch), published content semantic search across blog/newsletter/X/LinkedIn (use _CONTENTSEARCH), or one-shot URL/YouTube ingestion via the Arbol harvester pipeline (use _HARVEST).",
+      "description_ja": "",
+      "version": "1.0.13"
+    },
+    {
       "name": "ko-fi-automation",
       "source": "composio-awesome",
       "path": "composio-skills/ko-fi-automation",
@@ -6943,9 +6995,7 @@
       "name": "langsmith-fetch",
       "source": "composio-awesome",
       "path": "langsmith-fetch",
-      "categories": [
-        "community"
-      ],
+      "categories": ["community"],
       "description": "Debug LangChain and LangGraph agents by fetching execution traces from LangSmith Studio. Use when debugging agent behavior, investigating errors, analyzing tool calls, checking memory operations, or examining agent performance. Automatically fetches recent traces and analyzes execution patterns. Requires langsmith-fetch CLI installed.",
       "description_ja": "Langsmith Fetch"
     },
@@ -6977,9 +7027,7 @@
       "name": "lead-research-assistant",
       "source": "composio-awesome",
       "path": "lead-research-assistant",
-      "categories": [
-        "community"
-      ],
+      "categories": ["community"],
       "description": "Identifies high-quality leads for your product or service by analyzing your business, searching for target companies, and providing actionable contact strategies. Perfect for sales, business development, and marketing professionals.",
       "description_ja": "Research leads and contacts"
     },
@@ -7080,6 +7128,15 @@
       "description_ja": ""
     },
     {
+      "name": "LifeOS",
+      "source": "pai-packs",
+      "path": "LifeOS/install/skills/LifeOS",
+      "categories": [],
+      "description": "Install and onboard a user into LifeOS — the Life Operating System (current state → ideal state via TELOS + the Algorithm). The agentic installer detects your OS + harness, wires hooks with permission, scaffolds your USER tree, pulls in sources you provide, and runs the TELOS / current→ideal interview that seeds your Pulse dashboard. USE WHEN install LifeOS, set up LifeOS, lifeos setup, lifeos-setup, lifeos interview, onboard me, run the interview, integrate LifeOS into my harness, update LifeOS, uninstall LifeOS, first-time setup. NOT FOR building or cutting a LifeOS release (private release tooling), editing TELOS after onboarding (use Telos / Interview), or LifeOS system maintenance (use the private maintenance skill).",
+      "description_ja": "",
+      "version": "1.4.19"
+    },
+    {
       "name": "linear",
       "source": "openai-skills",
       "path": "skills/.curated/linear",
@@ -7152,6 +7209,15 @@
       "description_ja": ""
     },
     {
+      "name": "LocalIntelligence",
+      "source": "pai-packs",
+      "path": "LifeOS/install/skills/LocalIntelligence",
+      "categories": [],
+      "description": "Generic civic intelligence aggregator for any US city — daily local digest of construction permits, crime, new businesses, public officials, legislation, elections, arrests, and local news, keyed off principal's Hometown. Writes JSON consumed by Pulse LOCAL tab. Crime delegates to _CRIMESTATS. Workflows: DailyBrief, Construction, Crime, Business, Officials, Legislation, Elections, Arrests, News. USE WHEN local news, hometown news, council meeting, building permits, mayor, ballot measures, ordinance, recent arrests, civic intel, local digest. NOT FOR national news or arbitrary-city crime.",
+      "description_ja": "",
+      "version": "1.0.4"
+    },
+    {
       "name": "lodgify-automation",
       "source": "composio-awesome",
       "path": "composio-skills/lodgify-automation",
@@ -7174,6 +7240,15 @@
       "categories": [],
       "description": "Automate Loomio tasks via Rube MCP (Composio). Always search tools first for current schemas.",
       "description_ja": ""
+    },
+    {
+      "name": "Loop",
+      "source": "pai-packs",
+      "path": "LifeOS/install/skills/Loop",
+      "categories": [],
+      "description": "Iterative improvement loop — refine a target across multiple Algorithm cycles toward ideal state. USE WHEN loop, iterate, refine, multiple passes, keep improving, revisit, rework.",
+      "description_ja": "",
+      "version": "1.0.7"
     },
     {
       "name": "loyverse-automation",
@@ -7336,20 +7411,10 @@
       "description_ja": "Mcp Cli"
     },
     {
-      "name": "Media",
-      "source": "pai-packs",
-      "path": "Releases/v4.0.0/.claude/skills/Media",
-      "categories": [],
-      "description": "Visual and video content creation — illustrations, diagrams, mermaid flowcharts, infographics, header images, PAI pack icons, thumbnails, comics, and programmatic video via Remotion. USE WHEN art, header images, visualizations, mermaid, diagrams, flowcharts, infographics, pack icons, video, animation, motion graphics, Remotion, video rendering, YouTube thumbnails, comics, comparisons, frameworks, maps, timelines, taxonomies, stats, aphorisms, recipe cards, annotated screenshots, D3 dashboards, embossed logo wallpaper, remove background, essay illustration, technical diagrams, content to animation, generate image, Midjourney.",
-      "description_ja": ""
-    },
-    {
       "name": "meeting-insights-analyzer",
       "source": "composio-awesome",
       "path": "meeting-insights-analyzer",
-      "categories": [
-        "community"
-      ],
+      "categories": ["community"],
       "description": "Analyzes meeting transcripts and recordings to uncover behavioral patterns, communication insights, and actionable feedback. Identifies when you avoid conflict, use filler words, dominate conversations, or miss opportunities to listen. Perfect for professionals seeking to improve their communication and leadership skills.",
       "description_ja": "Analyze meeting insights"
     },
@@ -7504,6 +7569,15 @@
       "categories": [],
       "description": "Automate Microsoft Tenant tasks via Rube MCP (Composio). Always search tools first for current schemas.",
       "description_ja": ""
+    },
+    {
+      "name": "Migrate",
+      "source": "pai-packs",
+      "path": "LifeOS/install/skills/Migrate",
+      "categories": [],
+      "description": "Intakes external content, classifies chunks against LifeOS taxonomy, commits with provenance. Sources: .md/.txt, stdin, LifeOS dirs, CLAUDE.md/Cursor/OpenAI Custom Instructions, Obsidian/Notion/Apple Notes exports. MigrateScan classifies → routing table. MigrateApprove with --approve-all/--approve-target/--review/--dry-run. Confidence ≥70% auto, 40-70% confirm, <40% walk-through. USE WHEN /migrate, migrate content, import from other LifeOS, bring in old notes, import Cursor rules, import CLAUDE.md, bulk import, Obsidian/Notion/Apple Notes import. NOT FOR single-file edits, conversational interviews, identity edits.",
+      "description_ja": "",
+      "version": "1.0.10"
     },
     {
       "name": "minerstat-automation",
@@ -8042,20 +8116,21 @@
       "description_ja": ""
     },
     {
+      "name": "Optimize",
+      "source": "pai-packs",
+      "path": "LifeOS/install/skills/Optimize",
+      "categories": [],
+      "description": "Autonomous optimization loop — hill-climb any target. Code with metrics, or skills/prompts/agents with LLM-as-judge. USE WHEN optimize, hill climb, improve metric, reduce latency, optimize skill, optimize prompt, eval mode.",
+      "description_ja": "",
+      "version": "1.0.10"
+    },
+    {
       "name": "optimoroute-automation",
       "source": "composio-awesome",
       "path": "composio-skills/optimoroute-automation",
       "categories": [],
       "description": "Automate Optimoroute tasks via Rube MCP (Composio). Always search tools first for current schemas.",
       "description_ja": ""
-    },
-    {
-      "name": "OSINT",
-      "source": "pai-packs",
-      "path": "Releases/v2.3/.claude/skills/OSINT",
-      "categories": [],
-      "description": "Open source intelligence gathering. USE WHEN OSINT, due diligence, background check, research person, company intel, investigate. SkillSearch('osint') for docs.",
-      "description_ja": "OSINT"
     },
     {
       "name": "owl-protocol-automation",
@@ -8072,22 +8147,6 @@
       "categories": [],
       "description": "Automate Page X tasks via Rube MCP (Composio). Always search tools first for current schemas.",
       "description_ja": ""
-    },
-    {
-      "name": "PAI",
-      "source": "pai-packs",
-      "path": "Releases/v2.5/.claude/skills/PAI",
-      "categories": [],
-      "description": "Personal AI Infrastructure core. The authoritative reference for how PAI works.",
-      "description_ja": ""
-    },
-    {
-      "name": "PAIUpgrade",
-      "source": "pai-packs",
-      "path": "Releases/v2.3/.claude/skills/PAIUpgrade",
-      "categories": [],
-      "description": "Extract system improvements from content AND monitor external sources (Anthropic ecosystem, YouTube). USE WHEN upgrade, improve system, system upgrade, analyze for improvements, check Anthropic, Anthropic changes, new Claude features, check YouTube, new videos. SkillSearch('upgrade') for docs.",
-      "description_ja": "PAIUpgrade"
     },
     {
       "name": "PandaDoc Automation",
@@ -8127,14 +8186,6 @@
       "path": "composio-skills/parsehub-automation",
       "categories": [],
       "description": "Automate Parsehub tasks via Rube MCP (Composio). Always search tools first for current schemas.",
-      "description_ja": ""
-    },
-    {
-      "name": "Parser",
-      "source": "pai-packs",
-      "path": "Releases/v3.0/.claude/skills/Parser",
-      "categories": [],
-      "description": "Parse URLs, files, videos to JSON. USE WHEN parse, extract, URL, transcript, entities, JSON, batch, content, YouTube, PDF, article. SkillSearch('parser') for docs.",
       "description_ja": ""
     },
     {
@@ -8540,10 +8591,11 @@
     {
       "name": "PrivateInvestigator",
       "source": "pai-packs",
-      "path": "Releases/v2.3/.claude/skills/PrivateInvestigator",
+      "path": "LifeOS/install/skills/PrivateInvestigator",
       "categories": [],
-      "description": "Ethical people-finding. USE WHEN find person, locate, reconnect, people search, skip trace. SkillSearch('privateinvestigator') for docs.",
-      "description_ja": "PrivateInvestigator"
+      "description": "Ethical people-finding and identity verification via parallel research agents across people-search sites, social media, public records, and reverse phone/email/image/username lookups, with confidence-scored results requiring 3+ matching identifiers. USE WHEN find person, locate person, reconnect, lost contact, old friend, reverse phone lookup, who owns this email, reverse image search, find by username, verify identity, people search, public-data background check, who is this caller. NOT FOR structured due-diligence or company/entity intelligence investigations (use _OSINT) or general web research synthesis (use Research).",
+      "description_ja": "PrivateInvestigator",
+      "version": "1.1.16"
     },
     {
       "name": "process-street-automation",
@@ -8612,18 +8664,11 @@
     {
       "name": "Prompting",
       "source": "pai-packs",
-      "path": "Releases/v2.3/.claude/skills/Prompting",
+      "path": "LifeOS/install/skills/Prompting",
       "categories": [],
-      "description": "Meta-prompting system for dynamic prompt generation using templates, standards, and patterns. USE WHEN meta-prompting, template generation, prompt optimization, or programmatic prompt composition.",
-      "description_ja": "Prompting"
-    },
-    {
-      "name": "PromptInjection",
-      "source": "pai-packs",
-      "path": "Releases/v2.4/.claude/skills/PromptInjection",
-      "categories": [],
-      "description": "Prompt injection testing. USE WHEN prompt injection, jailbreak, LLM security, AI security assessment, pentest AI application, test chatbot vulnerabilities.",
-      "description_ja": "PromptInjection"
+      "description": "Meta-prompting standard library for generating, optimizing, and composing prompts programmatically via Standards, Handlebars Templates, and Tools; output is always a prompt to use elsewhere, not final content. USE WHEN meta-prompting, template generation, prompt optimization, prompt engineering, write a prompt, create system prompt, Handlebars template, eval prompt, judge prompt. NOT FOR generating final content (use the appropriate domain skill).",
+      "description_ja": "Prompting",
+      "version": "1.1.21"
     },
     {
       "name": "proofly-automation",
@@ -8709,9 +8754,7 @@
       "name": "raffle-winner-picker",
       "source": "composio-awesome",
       "path": "raffle-winner-picker",
-      "categories": [
-        "community"
-      ],
+      "categories": ["community"],
       "description": "Picks random winners from lists, spreadsheets, or Google Sheets for giveaways, raffles, and contests. Ensures fair, unbiased selection with transparency.",
       "description_ja": "Pick raffle winners randomly"
     },
@@ -8828,14 +8871,6 @@
       "description_ja": "Receiving Code Review"
     },
     {
-      "name": "Recon",
-      "source": "pai-packs",
-      "path": "Releases/v2.3/.claude/skills/Recon",
-      "categories": [],
-      "description": "Security reconnaissance. USE WHEN recon, reconnaissance, bug bounty, attack surface. SkillSearch('recon') for docs.",
-      "description_ja": "Recon"
-    },
-    {
       "name": "recruitee-automation",
       "source": "composio-awesome",
       "path": "composio-skills/recruitee-automation",
@@ -8846,10 +8881,11 @@
     {
       "name": "RedTeam",
       "source": "pai-packs",
-      "path": "Releases/v2.3/.claude/skills/RedTeam",
+      "path": "LifeOS/install/skills/RedTeam",
       "categories": [],
-      "description": "Adversarial analysis with 32 agents. USE WHEN red team, attack idea, counterarguments, critique, stress test. SkillSearch('redteam') for docs.",
-      "description_ja": "RedTeam"
+      "description": "Adversarial analysis deploying parallel expert agents to stress-test ideas, strategies, and plans — decomposes into atomic claims, attacks them, then steelmans and counter-argues, producing severity-ranked findings with remediation. USE WHEN red team, attack idea, counterarguments, critique, stress test, devil's advocate, find weaknesses, break this, poke holes, strongest objection. NOT FOR collaborative debate to find best path (use Council).",
+      "description_ja": "RedTeam",
+      "version": "1.1.16"
     },
     {
       "name": "refactor",
@@ -8902,10 +8938,11 @@
     {
       "name": "Remotion",
       "source": "pai-packs",
-      "path": "Releases/v3.0/.claude/skills/Remotion",
+      "path": "LifeOS/install/skills/Remotion",
       "categories": [],
-      "description": "Programmatic video creation with React. USE WHEN video, animation, motion graphics, video rendering, React video, intro video, YouTube video, TikTok video, video production, render video.",
-      "description_ja": ""
+      "description": "Creates programmatic video with React via Remotion — compositions, sequences, and motion graphics animated with useCurrentFrame() and rendered to MP4. USE WHEN video, animation, motion graphics, video rendering, React video, render video, animate content, make a short, create animations, video overlay, explainer video, animated explainer, content to video, programmatic video. NOT FOR static images, diagrams, or illustrations (use Art), tight-cut filler removal from raw recordings (use Video), or audio-only podcast cleaning (use AudioEditor).",
+      "description_ja": "",
+      "version": "1.2.10"
     },
     {
       "name": "remove-bg-automation",
@@ -8990,10 +9027,11 @@
     {
       "name": "Research",
       "source": "pai-packs",
-      "path": "Releases/v2.3/.claude/skills/Research",
+      "path": "LifeOS/install/skills/Research",
       "categories": [],
-      "description": "Comprehensive research, analysis, and content extraction system. USE WHEN user says 'do research', 'do extensive research', 'quick research', 'minor research', 'research this', 'find information', 'investigate', 'extract wisdom', 'extract alpha', 'analyze content', 'can't get this content', 'use fabric', OR requests any web/content research. Supports three research modes (quick/standard/extensive), deep content analysis, intelligent retrieval, and 242+ Fabric patterns. NOTE: For due diligence, OSINT, or background checks, use OSINT skill instead.",
-      "description_ja": "Research"
+      "description": "Multi-agent web research with mandatory URL verification, confidence-tagged output, and four depth modes (quick to deep investigation). USE WHEN research, do research, quick research, extensive research, deep investigation, find information, investigate, extract alpha, analyze content, retrieve content, AI trends, enhance content, extract knowledge, web scraping, YouTube extraction, map landscape, competitive analysis, find it, find this, find this product, identify this, what is this, what's that thing, track down, locate, help me find, I can't find X online, can't find it online, source this — never substitute raw WebSearch/WebFetch for a multi-source find/identify/investigate request. NOT FOR people/company/entity deep background (use _OSINT), academic papers (use ArXiv), JSON entity extraction (use _PARSER), or content-adaptive wisdom extraction (use ExtractWisdom).",
+      "description_ja": "Research",
+      "version": "1.5.9"
     },
     {
       "name": "resend-automation",
@@ -9116,6 +9154,15 @@
       "description_ja": ""
     },
     {
+      "name": "RootCauseAnalysis",
+      "source": "pai-packs",
+      "path": "LifeOS/install/skills/RootCauseAnalysis",
+      "categories": [],
+      "description": "Structured incident investigation using Five Whys, Fishbone, blameless Postmortem, Fault Tree, Kepner-Tregoe, and FMEA — traces failures to systemic root causes rather than blaming humans. USE WHEN root cause, RCA, 5 whys, fishbone, postmortem, incident analysis, fault tree, why does this keep failing, blameless, recurring bug. NOT FOR systemic loops (use SystemsThinking).",
+      "description_ja": "",
+      "version": "1.0.5"
+    },
+    {
       "name": "rootly-automation",
       "source": "composio-awesome",
       "path": "composio-skills/rootly-automation",
@@ -9158,10 +9205,11 @@
     {
       "name": "Sales",
       "source": "pai-packs",
-      "path": "Releases/v3.0/.claude/skills/Sales",
+      "path": "LifeOS/install/skills/Sales",
       "categories": [],
-      "description": "Sales workflows. USE WHEN sales, proposal, pricing. SkillSearch('sales') for docs.",
-      "description_ja": ""
+      "description": "Transforms product documentation into sales-ready packages — a story explanation, charcoal gestural sketch art, and talking points — via a narrative-arc pipeline. USE WHEN sales, proposal, pitch deck, value proposition, sales narrative, sales deck, sales package, turn this into a pitch, create a sales story, sales materials, product pitch, transform docs to sales, sales script. NOT FOR Hormozi $100M frameworks, value equation, irresistible offer, or VOC mining (use _SALESHORMOZI), standalone diagrams or illustrations (use Art), or platform social posts (use _SOCIALPOST).",
+      "description_ja": "",
+      "version": "1.0.25"
     },
     {
       "name": "salesforce-marketing-cloud-automation",
@@ -9206,10 +9254,11 @@
     {
       "name": "Science",
       "source": "pai-packs",
-      "path": "Releases/v3.0/.claude/skills/Science",
+      "path": "LifeOS/install/skills/Science",
       "categories": [],
-      "description": "Universal thinking and iteration engine based on the scientific method. USE WHEN user says \"think about\", \"figure out\", \"try approaches\", \"experiment with\", \"test this idea\", \"iterate on\", \"improve\", \"optimize\", OR any problem-solving that benefits from structured hypothesis-test-analyze cycles. THE meta-skill that other workflows implement.",
-      "description_ja": ""
+      "description": "The scientific method as a universal problem-solving algorithm — goal-first, plural falsifiable hypotheses, designed experiments, and honest measurement, scaling from TDD to feature validation to MVP launch. USE WHEN think about, figure out, experiment, iterate, optimize, hypothesis, science, full cycle, quick diagnosis, structured investigation, how do we test, analyze results. NOT FOR multi-angle lens passes (use IterativeDepth).",
+      "description_ja": "",
+      "version": "1.1.17"
     },
     {
       "name": "scoutqa-test",
@@ -9241,14 +9290,6 @@
       "path": "composio-skills/scrapfly-automation",
       "categories": [],
       "description": "Automate Scrapfly tasks via Rube MCP (Composio). Always search tools first for current schemas.",
-      "description_ja": ""
-    },
-    {
-      "name": "Scraping",
-      "source": "pai-packs",
-      "path": "Releases/v4.0.0/.claude/skills/Scraping",
-      "categories": [],
-      "description": "Web scraping via progressive escalation (Bright Data proxy) and social media platform actors (Apify). USE WHEN scraping, Bright Data, proxy, crawl, scrape URL, Twitter scraping, Instagram scraping, LinkedIn scraping, TikTok scraping, YouTube scraping, Facebook scraping, Google Maps, Amazon scraping, Apify, bot detection, CAPTCHA, spider, four tier scrape, site blocking.",
       "description_ja": ""
     },
     {
@@ -9297,22 +9338,6 @@
       "path": "composio-skills/seat-geek-automation",
       "categories": [],
       "description": "Automate Seat Geek tasks via Rube MCP (Composio). Always search tools first for current schemas.",
-      "description_ja": ""
-    },
-    {
-      "name": "SECUpdates",
-      "source": "pai-packs",
-      "path": "Releases/v2.4/.claude/skills/SECUpdates",
-      "categories": [],
-      "description": "Security news aggregation from tldrsec, no.security, and other sources. USE WHEN security news, security updates, what's new in security, breaches, security research, sec updates. SkillSearch('secupdates') for docs.",
-      "description_ja": "SECUpdates"
-    },
-    {
-      "name": "Security",
-      "source": "pai-packs",
-      "path": "Releases/v4.0.0/.claude/skills/Security",
-      "categories": [],
-      "description": "Security assessment and intelligence — network reconnaissance, web app security testing, prompt injection testing, security news monitoring, and annual report analysis. USE WHEN recon, reconnaissance, port scan, subdomain, DNS, WHOIS, ASN, netblock, CIDR, mass scan, path discovery, endpoint discovery, corporate structure, bounty programs, IP recon, domain recon, passive recon, web assessment, OWASP, pentest, threat model, vulnerability analysis, ffuf, Playwright, Gemini analysis, prompt injection, jailbreak, LLM security, guardrail bypass, direct injection, indirect injection, multi-stage attack, security news, sec updates, breaches, tldrsec, security research, annual reports, threat landscape, security trends, vendor reports, fetch report, list sources.",
       "description_ja": ""
     },
     {
@@ -9711,9 +9736,7 @@
       "name": "skill-share",
       "source": "composio-awesome",
       "path": "skill-share",
-      "categories": [
-        "community"
-      ],
+      "categories": ["community"],
       "description": "A skill that creates new Claude skills and automatically shares them on Slack using Rube for seamless team collaboration and skill discovery.",
       "description_ja": "Share skills across teams"
     },
@@ -10022,20 +10045,21 @@
       "description_ja": ""
     },
     {
-      "name": "System",
-      "source": "pai-packs",
-      "path": "Releases/v2.3/.claude/skills/System",
-      "categories": [],
-      "description": "System maintenance with three core operations - integrity check (find/fix broken references), document session (current transcript), document recent (catch-up since last update). Plus security workflows. USE WHEN integrity check, audit system, document session, document this session, document today, document recent, catch up docs, what's undocumented, check for secrets, security scan, privacy check, OR asking about past work (\"we just worked on\", \"remember when we\").",
-      "description_ja": "System"
-    },
-    {
       "name": "systematic-debugging",
       "source": "obra-superpowers",
       "path": "skills/systematic-debugging",
       "categories": [],
       "description": "Use when encountering any bug, test failure, or unexpected behavior, before proposing fixes",
       "description_ja": "Systematic Debugging"
+    },
+    {
+      "name": "SystemsThinking",
+      "source": "pai-packs",
+      "path": "LifeOS/install/skills/SystemsThinking",
+      "categories": [],
+      "description": "Structural analysis of complex systems — Iceberg model, Causal Loop feedback diagrams, archetype matching, Meadows leverage points, and concept maps — grounded in the premise that behavior is generated by structure. USE WHEN systems thinking, causal loop, feedback loops, archetypes, leverage points, iceberg model, fix the system, why does this keep happening, recurring problem, second-order effects. NOT FOR incident causal chains (use RootCauseAnalysis).",
+      "description_ja": "",
+      "version": "1.0.5"
     },
     {
       "name": "taggun-automation",
@@ -10049,9 +10073,7 @@
       "name": "tailored-resume-generator",
       "source": "composio-awesome",
       "path": "tailored-resume-generator",
-      "categories": [
-        "community"
-      ],
+      "categories": ["community"],
       "description": "Analyzes job descriptions and generates tailored resumes that highlight relevant experience, skills, and achievements to maximize interview chances",
       "description_ja": "Tailored Resume Generator"
     },
@@ -10146,10 +10168,11 @@
     {
       "name": "Telos",
       "source": "pai-packs",
-      "path": "Releases/v2.3/.claude/skills/Telos",
+      "path": "LifeOS/install/skills/Telos",
       "categories": [],
-      "description": "Life OS and project analysis. USE WHEN TELOS, life goals, projects, dependencies, books, movies. SkillSearch('telos') for docs.",
-      "description_ja": "Telos"
+      "description": "Dual-context skill: Personal TELOS reads and updates goals, beliefs, narratives, strategies, and more with timestamped backups; Project TELOS analyzes .md/.csv directories for dependency chains, bottlenecks, and alignment, generating reports, narrative points, or dashboards. USE WHEN Telos, life goals, projects, dependencies, update TELOS, narrative points, McKinsey report, dashboard, what am I wrong about, life frames, mental models. NOT FOR conversational constitutional review (use Interview).",
+      "description_ja": "Telos",
+      "version": "1.0.39"
     },
     {
       "name": "teltel-automation",
@@ -10248,28 +10271,12 @@
       "description_ja": ""
     },
     {
-      "name": "THEALGORITHM",
-      "source": "pai-packs",
-      "path": "Releases/v2.3/.claude/skills/THEALGORITHM",
-      "categories": [],
-      "description": "Universal execution engine using scientific method to achieve ideal state. USE WHEN complex tasks, multi-step work, \"run the algorithm\", \"use the algorithm\", OR any non-trivial request that benefits from structured execution with ISC (Ideal State Criteria) tracking.",
-      "description_ja": "THEALGORITHM"
-    },
-    {
       "name": "theme-factory",
       "source": "anthropics-skills",
       "path": "skills/theme-factory",
       "categories": [],
       "description": "Toolkit for styling artifacts with a theme. These artifacts can be slides, docs, reportings, HTML landing pages, etc. There are 10 pre-set themes with colors/fonts that you can apply to any artifact that has been creating, or can generate a new theme on-the-fly.",
       "description_ja": "Create and manage themes"
-    },
-    {
-      "name": "Thinking",
-      "source": "pai-packs",
-      "path": "Releases/v4.0.0/.claude/skills/Thinking",
-      "categories": [],
-      "description": "Multi-mode analytical and creative thinking — first principles decomposition, iterative depth analysis, creative brainstorming, multi-agent council debates, adversarial red teaming, world threat modeling, and scientific hypothesis testing. USE WHEN first principles, decompose, deconstruct, reconstruct, challenge assumptions, iterative depth, multi-angle, deep exploration, be creative, brainstorm, divergent ideas, tree of thoughts, maximum creativity, technical creativity, idea generation, domain specific, council, debate, perspectives, quick consensus, red team, critique, stress test, adversarial validation, parallel analysis, devil's advocate, threat model, world model, future analysis, test idea, test investment, update models, view models, time horizon, think about, figure out, experiment, iterate, science, hypothesis, define goal, design experiment, quick diagnosis, structured investigation, full cycle.",
-      "description_ja": ""
     },
     {
       "name": "ticketmaster-automation",
@@ -10440,6 +10447,15 @@
       "description_ja": ""
     },
     {
+      "name": "Trim",
+      "source": "pai-packs",
+      "path": "LifeOS/install/skills/Trim",
+      "categories": [],
+      "description": "Reduces an always-on LifeOS context file that is over its byte budget via a human-gated pass — deterministic GC of stale entries first, then semantic merges and relocations — never dropping a directive and committing every change reversibly. USE WHEN /trim, trim the context, trim OPERATIONAL_RULES, this file is too big, reduce a doctrine file, context file over budget, file is NN% full, statusline file went red, prune an always-loaded file, shrink CLAUDE.md or DA_IDENTITY. NOT FOR general code refactoring, trimming video/audio (use Video/AudioEditor), or removing AI writing patterns from prose (use _WRITING).",
+      "description_ja": "",
+      "version": "1.0.1"
+    },
+    {
       "name": "tripadvisor-content-api-automation",
       "source": "composio-awesome",
       "path": "composio-skills/tripadvisor-content-api-automation",
@@ -10483,9 +10499,7 @@
       "name": "twitter-algorithm-optimizer",
       "source": "composio-awesome",
       "path": "twitter-algorithm-optimizer",
-      "categories": [
-        "community"
-      ],
+      "categories": ["community"],
       "description": "Analyze and optimize tweets for maximum reach using Twitter's open-source algorithm insights. Rewrite and edit user tweets to improve engagement and visibility based on how the recommendation system ranks content.",
       "description_ja": "Twitter Algorithm Optimizer"
     },
@@ -10594,6 +10608,15 @@
       "description_ja": ""
     },
     {
+      "name": "Upgrade",
+      "source": "pai-packs",
+      "path": "LifeOS/install/skills/Upgrade",
+      "categories": [],
+      "description": "Generate prioritized LifeOS upgrade recommendations via 4 parallel threads (prior-work audit, user context, external source collection, internal reflections), output as a ranked Discoveries table plus tiered CRITICAL/HIGH/MEDIUM/LOW recommendations with Prior Status tags and before/after code. USE WHEN upgrade, system upgrade, check Anthropic, new Claude features, algorithm upgrade, LifeOS upgrade, check bookmarks, scan bookmarks, twitter bookmarks, X bookmarks, bookmarks for upgrades, what have I bookmarked, mine reflections.",
+      "description_ja": "",
+      "version": "1.1.12"
+    },
+    {
       "name": "Uploadcare Automation",
       "source": "composio-awesome",
       "path": "composio-skills/uploadcare-automation",
@@ -10628,18 +10651,11 @@
     {
       "name": "USMetrics",
       "source": "pai-packs",
-      "path": "Releases/v3.0/.claude/skills/USMetrics",
+      "path": "LifeOS/install/skills/USMetrics",
       "categories": [],
-      "description": "US economic indicators. USE WHEN GDP, inflation, unemployment, economic metrics, gas prices. SkillSearch('usmetrics') for docs.",
-      "description_ja": ""
-    },
-    {
-      "name": "Utilities",
-      "source": "pai-packs",
-      "path": "Releases/v4.0.0/.claude/skills/Utilities",
-      "categories": [],
-      "description": "Developer utilities and tools — CLI generation, skill scaffolding, agent delegation, system upgrades, evals, documents, parsing, audio editing, Fabric patterns, Cloudflare infrastructure, browser automation, meta-prompting, and aphorisms. USE WHEN create CLI, build CLI, command-line tool, wrap API, add command, upgrade tier, TypeScript CLI, create skill, new skill, scaffold skill, validate skill, update skill, fix skill structure, canonicalize skill, parallel execution, agent teams, delegate, workstreams, swarm, upgrade, improve system, system upgrade, check Anthropic, algorithm upgrade, mine reflections, find sources, research upgrade, PAI upgrade, eval, evaluate, test agent, benchmark, verify behavior, regression test, capability test, run eval, compare models, compare prompts, create judge, view results, document, process file, create document, convert format, extract text, PDF, DOCX, XLSX, PPTX, Word, Excel, spreadsheet, PowerPoint, presentation, slides, consulting report, large PDF, merge PDF, fill form, tracked changes, redlining, parse, extract, URL, transcript, entities, JSON, batch, YouTube, article, newsletter, Twitter, browser extension, collision detection, detect content type, extract article, extract newsletter, extract YouTube, extract PDF, parse content, clean audio, edit audio, remove filler words, clean podcast, remove ums, cut dead air, polish audio, transcribe, analyze audio, audio pipeline, fabric, fabric pattern, run fabric, update patterns, sync fabric, summarize, threat model pattern, Cloudflare, worker, deploy, Pages, MCP server, wrangler, DNS, KV, R2, D1, Vectorize, browser, screenshot, debug web, verify UI, troubleshoot frontend, automate browser, browse website, review stories, run stories, web automation, meta-prompting, template generation, prompt optimization, programmatic prompt, render template, validate template, prompt engineering, aphorism, quote, saying, find quote, research thinker, newsletter quotes, add aphorism, search aphorisms.",
-      "description_ja": ""
+      "description": "Analyze and update 68 US economic and social indicators from five government APIs (FRED, EIA, Treasury, BLS, Census) across 10 categories: GDP, Inflation, Employment, Housing, Consumer Finance, Markets, Trade, Government/Fiscal, Demographics, Health. Two workflows: UpdateData, GetCurrentState (10y/5y/2y/1y trend analysis). USE WHEN GDP, inflation, unemployment, economic metrics, gas prices, how is the economy, refresh data, FRED, US metrics, economic trends. NOT FOR pathogen surveillance.",
+      "description_ja": "",
+      "version": "1.0.19"
     },
     {
       "name": "v0-automation",
@@ -10744,14 +10760,6 @@
       "categories": [],
       "description": "Visual Verdict deprecated skill",
       "description_ja": ""
-    },
-    {
-      "name": "VoiceServer",
-      "source": "pai-packs",
-      "path": "Releases/v2.4/.claude/skills/VoiceServer",
-      "categories": [],
-      "description": "Voice server management. USE WHEN voice server, TTS server, voice notification, prosody.",
-      "description_ja": "VoiceServer"
     },
     {
       "name": "vscode-ext-commands",
@@ -10866,12 +10874,14 @@
       "description_ja": "Test web applications"
     },
     {
-      "name": "WebAssessment",
+      "name": "Webdesign",
       "source": "pai-packs",
-      "path": "Releases/v2.4/.claude/skills/WebAssessment",
+      "path": "LifeOS/install/skills/Webdesign",
       "categories": [],
-      "description": "Web security assessment. USE WHEN web assessment, pentest, security testing, vulnerability scan. SkillSearch('webassessment') for docs.",
-      "description_ja": "WebAssessment"
+      "description": "Design and integrate web interfaces via three paths: DirectDesign (write design inline with Anthropic frontend-design philosophy — the default workhorse), native /design + /design-sync Claude Code commands (preferred for code integration and design-system sync), or ClaudeDesign (drive claude.ai/design through Interceptor — experimental visual-review fallback). USE WHEN web design, UI design, create prototype, design system, design sync, redesign site, mockup, landing page, dashboard design, design-to-code, frontend design, polish UI, design audit, brutalist/editorial/retro UI. NOT FOR illustrations/logos (use Art) or video (use Remotion).",
+      "description_ja": "",
+      "license": "Complete terms in LICENSE.txt",
+      "version": "1.2.0"
     },
     {
       "name": "Webex Automation",
@@ -11034,12 +11044,13 @@
       "description_ja": ""
     },
     {
-      "name": "WorldThreatModelHarness",
+      "name": "WorldThreatModel",
       "source": "pai-packs",
-      "path": "Releases/v3.0/.claude/skills/WorldThreatModelHarness",
+      "path": "LifeOS/install/skills/WorldThreatModel",
       "categories": [],
-      "description": "Persistent world model system across 11 time horizons (6mo→50yr) for adversarial analysis of ideas, strategies, and investments. USE WHEN threat model, world model, test idea, test strategy, future analysis, test investment, how will this hold up, test against future, update world models, view world models, time horizon analysis, adversarial future test, stress test idea.",
-      "description_ja": ""
+      "description": "Persistent world-model harness that stress-tests ideas, strategies, and investments against 11 time horizons from 6 months to 50 years, each a deep analysis of geopolitics, tech, economics, society, and security, in Fast/Standard/Deep tiers. USE WHEN threat model, world model, test idea, future analysis, time horizon, stress test against future, long-term risk. NOT FOR single-shot idea attack (use RedTeam).",
+      "description_ja": "",
+      "version": "1.0.16"
     },
     {
       "name": "write-coding-standards-from-file",
@@ -11060,10 +11071,11 @@
     {
       "name": "WriteStory",
       "source": "pai-packs",
-      "path": "Releases/v3.0/.claude/skills/WriteStory",
+      "path": "LifeOS/install/skills/WriteStory",
       "categories": [],
-      "description": "Layered fiction writing system using Will Storr's storytelling science and rhetorical figures. USE WHEN write story, fiction, novel, short story, book, chapter, story bible, character arc, plot outline, creative writing, worldbuilding, narrative, mystery writing, dialogue, prose, series planning.",
-      "description_ja": ""
+      "description": "Scaffolding that helps a writer build a story they already want to tell — fills in structure, hidden wound, theme, and prose from the writer's own material across seven narrative layers, deriving the spine from their notes as proposals they ratify. Bans generic AI patterns; scales short story to multi-book series. USE WHEN write story, fiction, novel, chapter, story bible, character arc, plot outline, creative writing, worldbuilding, draft story, help me write my story, develop my novel, layer my story, build out my book, I have notes for a story. NOT FOR narrative summaries of real content (use _STORYEXPLANATION).",
+      "description_ja": "",
+      "version": "1.1.7"
     },
     {
       "name": "writing-plans",

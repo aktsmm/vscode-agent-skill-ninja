@@ -7,6 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.9.32] - 2026-07-28
+
+### Fixed
+
+- 🔐 **Private Skill Raw Download** - Public raw content remains anonymous, while private GitHub raw files retry with authentication only after an anonymous `404` / public raw content は匿名取得を維持し、private GitHub raw file は匿名 `404` の後だけ認証付きで再試行するよう修正
+- 🧭 **Auth-aware 404 Recovery** - Skill installation failures now distinguish missing GitHub authentication, insufficient `Contents: read` access, and outdated index paths, with direct recovery actions / skill install 失敗時に GitHub 認証未設定、`Contents: read` 権限不足、古い index path を区別し、直接復旧できる導線を追加
+- 🧪 **Private Install Regression Guards** - Added coverage for public/private raw requests, authenticated retry boundaries, recovery actions, and token-safe bug reports / public/private raw request、認証再試行境界、復旧操作、token を漏らさないバグ報告の回帰テストを追加
+- 🔄 **LifeOS Skill Source Migration** - Migrated the renamed PAI source to `danielmiessler/LifeOS`, refreshed its current skill paths, and updated the bundled index to `v1.25.0` with 1376 installable skills / rename・再構成された PAI source を `danielmiessler/LifeOS` へ移行し、現行 skill path を再取得して bundled index を `v1.25.0`・1376 installable skills に更新
+
 ## [0.9.31] - 2026-06-30
 
 ### Fixed

@@ -83,4 +83,28 @@ test("GitHub 403 guidance mentions both auth-required and rate-limit cases", () 
   );
 });
 
+test("skill download 404 recovery is centralized and auth-aware", () => {
+  const handlerCalls =
+    skillInstallerSource.match(/await handleSkillNotFound\(/g) || [];
+  assert.strictEqual(
+    handlerCalls.length,
+    2,
+    "single-file and directory 404 paths should use the shared handler",
+  );
+  assert.ok(
+    skillInstallerSource.includes('"skillNinja.githubToken"'),
+    "404 recovery should open the GitHub token setting",
+  );
+  assert.ok(
+    skillInstallerSource.includes("GitHub Authentication: ${hasToken") &&
+      skillInstallerSource.includes("Contents: read access"),
+    "bug reports should include auth state and permission guidance",
+  );
+  assert.ok(
+    i18nSource.includes("Private repositories require GitHub authentication") &&
+      i18nSource.includes("プライベート リポジトリの場合は GitHub 認証が必要"),
+    "404 guidance should distinguish private repository authentication in both locales",
+  );
+});
+
 console.log("\nSearch/auth UX tests passed.");

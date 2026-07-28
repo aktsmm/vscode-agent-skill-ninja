@@ -87,10 +87,20 @@ function createResponse({
   };
 }
 
-function loadModule() {
+function loadModule(options = {}) {
   const moduleExports = {};
+  const errorMessages = options.errorMessages || [];
+  const executedCommands = options.executedCommands || [];
+  const openedUrls = options.openedUrls || [];
+  const skillIndex = options.skillIndex || { skills: [], sources: [] };
   const vscodeStub = {
     FileType,
+    version: "test",
+    extensions: {
+      getExtension() {
+        return { packageJSON: { version: "test" } };
+      },
+    },
     Uri: {
       file: makeUri,
       joinPath,
@@ -109,8 +119,9 @@ function loadModule() {
       },
     },
     window: {
-      async showErrorMessage() {
-        return undefined;
+      async showErrorMessage(...args) {
+        errorMessages.push(args);
+        return options.errorMessageChoice;
       },
       async showWarningMessage() {
         return undefined;
@@ -120,13 +131,15 @@ function loadModule() {
       },
     },
     commands: {
-      async executeCommand() {
+      async executeCommand(...args) {
+        executedCommands.push(args);
         return undefined;
       },
     },
     env: {
-      async openExternal() {
-        return false;
+      async openExternal(uri) {
+        openedUrls.push(uri.toString());
+        return true;
       },
     },
   };
@@ -137,6 +150,8 @@ function loadModule() {
     Buffer,
     console,
     process,
+    URL,
+    URLSearchParams,
     fetch: async (url) => {
       if (
         url ===
@@ -196,17 +211,26 @@ function loadModule() {
       }
       if (request === "./skillIndex") {
         return {
-          loadSkillIndex: async () => ({ skills: [], sources: [] }),
-          getSourceBranch: async () => {
-            throw new Error("getSourceBranch should not be used in this test");
-          },
+          loadSkillIndex: async () => skillIndex,
+          getSourceBranch: async (source) => source.branch || "main",
         };
       }
       if (request === "./i18n") {
-        return { isJapanese: () => false };
+        return {
+          isJapanese: () => false,
+          messages: {
+            skillDownloadNotFoundNoAuth: (name) =>
+              `Skill "${name}" was not found. Private repositories require GitHub authentication.`,
+            skillDownloadNotFoundWithAuth: (name) =>
+              `Skill "${name}" was not found. GitHub authentication may not have Contents: read access.`,
+            openSettings: () => "Open Settings",
+            actionUpdateIndex: () => "Update Index",
+            actionReportBug: () => "Report Bug",
+          },
+        };
       }
       if (request === "./githubAuth") {
-        return { getGitHubToken: async () => undefined };
+        return { getGitHubToken: async () => options.token };
       }
       if (request === "./installedSkillIndex") {
         return { normalizeInstalledSkillSource: (source) => source };
@@ -221,6 +245,10 @@ function loadModule() {
         return {
           createGitHubHeaders: () => ({}),
           fetchGitHubWithOptionalAuthRetry: async (url) => {
+            if (url.startsWith("https://raw.githubusercontent.com/")) {
+              return sandbox.fetch(url);
+            }
+
             if (
               url ===
               "https://api.github.com/repos/aktsmm/Agent-Skills/contents/local-media-transcription?ref=master"
@@ -394,6 +422,92 @@ async function main() {
 
     console.log(
       "PASS installSkill recovers primary SKILL.md when directory listing fails",
+    );
+
+    const privateSourceIndex = {
+      skills: [],
+      sources: [
+        {
+          id: "private-source",
+          url: "https://github.com/owner/private-repo",
+          branch: "main",
+        },
+      ],
+    };
+    const noAuthErrorMessages = [];
+    const noAuthCommands = [];
+    const { installSkill: installPrivateSkillWithoutAuth } = loadModule({
+      skillIndex: privateSourceIndex,
+      errorMessageChoice: "Open Settings",
+      errorMessages: noAuthErrorMessages,
+      executedCommands: noAuthCommands,
+    });
+
+    await assert.rejects(
+      installPrivateSkillWithoutAuth(
+        {
+          name: "private-demo",
+          source: "private-source",
+          path: "skills/private-demo",
+          categories: [],
+          description: "Private demo skill",
+        },
+        makeUri(tmp),
+        {},
+      ),
+      /Skill not found: private-demo/,
+    );
+    assert.strictEqual(noAuthErrorMessages.length, 1);
+    assert.match(
+      noAuthErrorMessages[0][0],
+      /Private repositories require GitHub authentication/,
+    );
+    assert.deepStrictEqual(noAuthCommands[0], [
+      "workbench.action.openSettings",
+      "skillNinja.githubToken",
+    ]);
+    assert.strictEqual(
+      fs.existsSync(path.join(tmp, "private-demo")),
+      false,
+      "failed private skill directory should be removed",
+    );
+    console.log(
+      "PASS unauthenticated private 404 opens GitHub authentication settings",
+    );
+
+    const authErrorMessages = [];
+    const openedUrls = [];
+    const { installSkill: installPrivateSkillWithAuth } = loadModule({
+      skillIndex: privateSourceIndex,
+      token: "test-token-must-not-leak",
+      errorMessageChoice: "Report Bug",
+      errorMessages: authErrorMessages,
+      openedUrls,
+    });
+
+    await assert.rejects(
+      installPrivateSkillWithAuth(
+        {
+          name: "private-demo",
+          source: "private-source",
+          path: "skills/private-demo",
+          categories: [],
+          description: "Private demo skill",
+        },
+        makeUri(tmp),
+        {},
+      ),
+      /Skill not found: private-demo/,
+    );
+    assert.match(authErrorMessages[0][0], /Contents: read access/);
+    assert.strictEqual(openedUrls.length, 1);
+    const reportUrl = new URL(openedUrls[0]);
+    const reportBody = reportUrl.searchParams.get("body") || "";
+    assert.match(reportBody, /GitHub Authentication: configured/);
+    assert.match(reportBody, /Contents: read access/);
+    assert.strictEqual(reportBody.includes("test-token-must-not-leak"), false);
+    console.log(
+      "PASS authenticated private 404 reports access diagnostics without token leakage",
     );
   } finally {
     fs.rmSync(tmp, { recursive: true, force: true });

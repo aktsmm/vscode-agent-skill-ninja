@@ -200,7 +200,7 @@ ext install yamapan.agent-skill-ninja
 | [ComposioHQ/awesome-claude-skills](https://github.com/ComposioHQ/awesome-claude-skills)                                       | Curated   | Claude Skills キュレーションリスト |
 | [obra/superpowers](https://github.com/obra/superpowers)                                                                       | Community | 高品質スキル・エージェント集       |
 | [muratcankoylan/Agent-Skills-for-Context-Engineering](https://github.com/muratcankoylan/Agent-Skills-for-Context-Engineering) | Community | Context Engineering スキル (5k+)   |
-| [danielmiessler/Personal_AI_Infrastructure](https://github.com/danielmiessler/Personal_AI_Infrastructure)                     | Community | PAI Packs - スキル・フィーチャー集 |
+| [danielmiessler/LifeOS](https://github.com/danielmiessler/LifeOS)                                                             | Community | LifeOS Skills - PAI 後継スキル集   |
 | [EveryInc/compound-engineering-plugin](https://github.com/EveryInc/compound-engineering-plugin)                               | Community | Compound Engineering (3.5k+)       |
 | [Wirasm/PRPs-agentic-eng](https://github.com/Wirasm/PRPs-agentic-eng)                                                         | Community | PRP (Prompt Recipe Patterns)       |
 | [qdhenry/Claude-Command-Suite](https://github.com/qdhenry/Claude-Command-Suite)                                               | Community | Claude コマンド・スキル集          |
@@ -513,6 +513,8 @@ GitHub CLI が入っていれば token は自動取得され、拡張機能側�
 この互換用設定がある場合、Agent Skills Ninja は値を VS Code SecretStorage にコピーし、安全な保存先を優先して使います。この設定は後方互換と reset workflow のために残しています。
 
 Private repository を読む場合は、対象 repository だけに限定した fine-grained personal access token に `Contents: read` を付与する構成を推奨します。classic personal access token では `repo` scope が必要です。
+
+Private source で `404` または「見つかりません」と表示された場合は、エラーメッセージから GitHub token 設定を開き、インデックス更新やバグ報告の前に対象 repository の読み取り権限を確認してください。
 
 👉 [Fine-grained GitHub Token を作成する](https://github.com/settings/personal-access-tokens/new?name=Agent%20Skill%20Ninja&description=Read%20skill%20source%20repositories&contents=read)
 

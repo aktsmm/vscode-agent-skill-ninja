@@ -23,7 +23,7 @@ applyTo: "**/resources/skill-index.json"
 3. **Community リポジトリ（有名・高品質）**
    - `obra/superpowers` - 高品質スキル集
    - `muratcankoylan/Agent-Skills-for-Context-Engineering` - Context Engineering (5k+ stars)
-   - `danielmiessler/Personal_AI_Infrastructure` - PAI Packs (3.5k+ stars)
+   - `danielmiessler/LifeOS` - LifeOS Skills, PAI successor (3.5k+ stars)
    - `EveryInc/compound-engineering-plugin` - Compound Engineering (3.5k+ stars)
    - `Wirasm/PRPs-agentic-eng` - PRP (Prompt Recipe Patterns)
    - `qdhenry/Claude-Command-Suite` - Claude Command Suite

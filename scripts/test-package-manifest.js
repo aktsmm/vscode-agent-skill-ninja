@@ -1266,8 +1266,10 @@ test("GitHub token docs mention private repository read permissions", () => {
   );
   assert.ok(readme.includes("Contents: read"));
   assert.ok(readme.includes("repo` scope"));
+  assert.ok(readme.includes('reports `404` or "not found"'));
   assert.ok(readmeJa.includes("Contents: read"));
   assert.ok(readmeJa.includes("repo` scope"));
+  assert.ok(readmeJa.includes("インデックス更新やバグ報告の前に"));
 });
 
 test("release instructions include the maintained npm test path", () => {
