@@ -28,11 +28,23 @@ const jaMessages = {
   updateFailed: "更新失敗: {0}",
   staleSourceIndexPrompt:
     "30日以上更新されていない source index が {0} 件あります（{1}）。更新しますか？",
+  staleSourceIndexAgeDays: "{0}日",
   staleSourceIndexUpdating: "古い source index を更新中...",
   staleSourceIndexUpdated:
     "✅ 古い source index を更新しました ({0}/{1} source)",
   staleSourceIndexPartialFailed:
-    "一部の source index を更新できませんでした ({0}/{1} source 失敗): {2}",
+    "source index の更新結果: 更新 {0}/{2}、失敗 {1}、未試行 {5}。失敗: {3}。理由: {4}",
+  sourceIndexSkillsUpdatedProgress: "{0} スキルを更新しました",
+  sourceIndexUpdated:
+    "✅ {0} を更新しました: {1} → {2} スキル ({3})",
+  githubRateLimitReason: "GitHub API のレート制限に達しました",
+  githubRateLimitResetAt: "再試行可能時刻: {0}",
+  githubSsoRequiredReason: "GitHub organization の SSO 認可が必要です",
+  githubClassicPatForbiddenReason:
+    "GitHub organization のポリシーで classic PAT が拒否されました",
+  githubAuthRequiredReason: "GitHub の認証またはリポジトリ権限が必要です",
+  actionShowDetails: "詳細を表示",
+  actionConfigureGitHubAuth: "GitHub 認証を設定",
   actionUpdateNow: "今すぐ更新",
   actionLater: "後で",
   chatFollowupSearchSkills: "スキルを検索",
@@ -202,11 +214,24 @@ const enMessages: MessageDictionary = {
   updateFailed: "Update failed: {0}",
   staleSourceIndexPrompt:
     "{0} source index(es) have not been updated for more than 30 days ({1}). Update now?",
+  staleSourceIndexAgeDays: "{0}d",
   staleSourceIndexUpdating: "Updating stale source indexes...",
   staleSourceIndexUpdated:
     "✅ Updated stale source indexes ({0}/{1} source(s))",
   staleSourceIndexPartialFailed:
-    "Some source indexes could not be updated ({0}/{1} source(s) failed): {2}",
+    "Source index update result: {0}/{2} updated, {1} failed, {5} not attempted. Failed: {3}. Reason: {4}",
+  sourceIndexSkillsUpdatedProgress: "Updated {0} skill(s)",
+  sourceIndexUpdated:
+    "✅ Updated {0}: {1} → {2} skill(s) ({3})",
+  githubRateLimitReason: "GitHub API rate limit exceeded",
+  githubRateLimitResetAt: "retry after {0}",
+  githubSsoRequiredReason: "GitHub organization SSO authorization is required",
+  githubClassicPatForbiddenReason:
+    "GitHub organization policy rejected the classic PAT",
+  githubAuthRequiredReason:
+    "GitHub authentication or repository permission is required",
+  actionShowDetails: "Show Details",
+  actionConfigureGitHubAuth: "Configure GitHub Authentication",
   actionUpdateNow: "Update Now",
   actionLater: "Later",
   chatFollowupSearchSkills: "Search Skills",
@@ -426,14 +451,45 @@ export const messages = {
   updateFailed: (error: string) => localize("updateFailed", error),
   staleSourceIndexPrompt: (count: number, sources: string) =>
     localize("staleSourceIndexPrompt", count, sources),
+  staleSourceIndexAgeDays: (days: number) =>
+    localize("staleSourceIndexAgeDays", days),
   staleSourceIndexUpdating: () => localize("staleSourceIndexUpdating"),
   staleSourceIndexUpdated: (updated: number, total: number) =>
     localize("staleSourceIndexUpdated", updated, total),
   staleSourceIndexPartialFailed: (
+    updated: number,
     failed: number,
     total: number,
     sources: string,
-  ) => localize("staleSourceIndexPartialFailed", failed, total, sources),
+    reason: string,
+    skipped: number,
+  ) =>
+    localize(
+      "staleSourceIndexPartialFailed",
+      updated,
+      failed,
+      total,
+      sources,
+      reason,
+      skipped,
+    ),
+  sourceIndexSkillsUpdatedProgress: (count: number) =>
+    localize("sourceIndexSkillsUpdatedProgress", count),
+  sourceIndexUpdated: (
+    source: string,
+    oldCount: number,
+    newCount: number,
+    diff: string,
+  ) => localize("sourceIndexUpdated", source, oldCount, newCount, diff),
+  githubRateLimitReason: () => localize("githubRateLimitReason"),
+  githubRateLimitResetAt: (resetAt: string) =>
+    localize("githubRateLimitResetAt", resetAt),
+  githubSsoRequiredReason: () => localize("githubSsoRequiredReason"),
+  githubClassicPatForbiddenReason: () =>
+    localize("githubClassicPatForbiddenReason"),
+  githubAuthRequiredReason: () => localize("githubAuthRequiredReason"),
+  actionShowDetails: () => localize("actionShowDetails"),
+  actionConfigureGitHubAuth: () => localize("actionConfigureGitHubAuth"),
   actionUpdateNow: () => localize("actionUpdateNow"),
   actionLater: () => localize("actionLater"),
   chatFollowupSearchSkills: () => localize("chatFollowupSearchSkills"),

@@ -82,6 +82,13 @@ import {
   migrateConfiguredGitHubTokenToSecretStorage,
 } from "./githubAuth";
 import { getStaleSources, type StaleSourceInfo } from "./sourceIndexFreshness";
+import { GitHubResponseError, isGitHubResponseError } from "./githubResponse";
+import { runSourceIndexUpdateBatch } from "./sourceIndexUpdateBatch";
+import {
+  formatSourceIndexResetAt,
+  getSourceIndexUpdateNotificationKind,
+  scaleSourceIndexProgressIncrement,
+} from "./sourceIndexUpdatePresentation";
 import {
   publishBeacon,
   clearBeacon,
@@ -158,11 +165,48 @@ function getSourceDisplayName(source: Source): string {
 
 function formatStaleSourceSummary(staleSources: StaleSourceInfo[]): string {
   const labels = staleSources.slice(0, 3).map((entry) => {
-    const suffix = Number.isFinite(entry.daysOld) ? `, ${entry.daysOld}d` : "";
+    const suffix = Number.isFinite(entry.daysOld)
+      ? `, ${messages.staleSourceIndexAgeDays(entry.daysOld)}`
+      : "";
     return `${getSourceDisplayName(entry.source)}${suffix}`;
   });
 
   return `${labels.join(", ")}${staleSources.length > 3 ? "..." : ""}`;
+}
+
+function formatStaleSourceFailureReason(error: unknown): string {
+  if (!isGitHubResponseError(error)) {
+    return error instanceof Error ? error.message : String(error);
+  }
+
+  switch (error.kind) {
+    case "rate-limit":
+      return error.resetAt
+        ? `${messages.githubRateLimitReason()} (${messages.githubRateLimitResetAt(
+            formatSourceIndexResetAt(error.resetAt, vscode.env.language),
+          )})`
+        : messages.githubRateLimitReason();
+    case "sso-required":
+      return messages.githubSsoRequiredReason();
+    case "classic-pat-forbidden":
+      return messages.githubClassicPatForbiddenReason();
+    case "auth-required":
+      return messages.githubAuthRequiredReason();
+    default:
+      return error.message;
+  }
+}
+
+function shouldOfferGitHubAuth(error: unknown): error is GitHubResponseError {
+  return (
+    isGitHubResponseError(error) &&
+    [
+      "rate-limit",
+      "sso-required",
+      "classic-pat-forbidden",
+      "auth-required",
+    ].includes(error.kind)
+  );
 }
 
 export function activate(
@@ -191,7 +235,14 @@ export function activate(
   const skillStateChannel = vscode.window.createOutputChannel(
     "Agent Skills Ninja: Skill State",
   );
-  context.subscriptions.push(coexistenceChannel, skillStateChannel);
+  const sourceIndexChannel = vscode.window.createOutputChannel(
+    "Agent Skills Ninja: Source Index",
+  );
+  context.subscriptions.push(
+    coexistenceChannel,
+    skillStateChannel,
+    sourceIndexChannel,
+  );
 
   // 設定値のマイグレーション（旧フォーマット名 → 新フォーマット名）
   const formatMigrated = migrateOutputFormatSetting();
@@ -485,64 +536,103 @@ export function activate(
     index: SkillIndex,
     staleSources: StaleSourceInfo[],
   ): Promise<SkillIndex> {
-    let nextIndex = index;
-    const failedSources: string[] = [];
-    const failedMessages: string[] = [];
+    sourceIndexChannel.appendLine(
+      `[${new Date().toISOString()}] Updating ${staleSources.length} stale source index(es)`,
+    );
 
-    await vscode.window.withProgress(
+    const batchResult = await vscode.window.withProgress(
       {
         location: vscode.ProgressLocation.Notification,
         title: messages.staleSourceIndexUpdating(),
         cancellable: false,
       },
-      async (progress) => {
-        for (const entry of staleSources) {
-          try {
-            nextIndex = await updateIndexFromSingleSource(
+      async (progress) =>
+        runSourceIndexUpdateBatch(
+          staleSources,
+          index,
+          async (currentIndex, entry) =>
+            updateIndexFromSingleSource(
               context,
-              nextIndex,
+              currentIndex,
               entry.source.id,
-              progress,
-            );
-          } catch (error) {
-            const errorMessage =
-              error instanceof Error ? error.message : String(error);
-            failedSources.push(getSourceDisplayName(entry.source));
-            failedMessages.push(errorMessage);
-            console.warn(
-              `[Skill Ninja] Failed to update stale source ${entry.source.id}:`,
-              error,
-            );
-          }
-        }
-      },
+              {
+                report(value) {
+                  progress.report({
+                    ...value,
+                    increment: scaleSourceIndexProgressIncrement(
+                      staleSources.length,
+                      value.increment,
+                    ),
+                  });
+                },
+              },
+            ),
+        ),
     );
 
-    const updatedCount = staleSources.length - failedSources.length;
+    const { value: nextIndex, succeeded, failures, skipped } = batchResult;
+    for (const entry of succeeded) {
+      sourceIndexChannel.appendLine(
+        `[OK] ${getSourceDisplayName(entry.source)}`,
+      );
+    }
+    for (const failure of failures) {
+      const reason = formatStaleSourceFailureReason(failure.error);
+      sourceIndexChannel.appendLine(
+        `[FAILED] ${getSourceDisplayName(failure.entry.source)}: ${reason}`,
+      );
+      console.warn(
+        `[Skill Ninja] Failed to update stale source ${failure.entry.source.id}:`,
+        failure.error,
+      );
+    }
+    for (const entry of skipped) {
+      sourceIndexChannel.appendLine(
+        `[SKIPPED] ${getSourceDisplayName(entry.source)}`,
+      );
+    }
+
+    const updatedCount = succeeded.length;
     browseProvider.refresh();
 
     if (updatedCount > 0) {
       skillIndex = nextIndex;
+    }
+
+    const notificationKind = getSourceIndexUpdateNotificationKind(
+      failures.length,
+    );
+    if (notificationKind === "success") {
       vscode.window.showInformationMessage(
         messages.staleSourceIndexUpdated(updatedCount, staleSources.length),
       );
     }
 
-    if (failedSources.length > 0) {
-      vscode.window.showWarningMessage(
+    if (notificationKind === "warning") {
+      const firstFailure = failures[0];
+      const reason = formatStaleSourceFailureReason(firstFailure.error);
+      const detailAction = messages.actionShowDetails();
+      const authAction = messages.actionConfigureGitHubAuth();
+      const actions = shouldOfferGitHubAuth(firstFailure.error)
+        ? [detailAction, authAction]
+        : [detailAction];
+      const action = await vscode.window.showWarningMessage(
         messages.staleSourceIndexPartialFailed(
-          failedSources.length,
+          updatedCount,
+          failures.length,
           staleSources.length,
-          failedSources.slice(0, 3).join(", "),
+          failures
+            .slice(0, 3)
+            .map((failure) => getSourceDisplayName(failure.entry.source))
+            .join(", "),
+          reason,
+          skipped.length,
         ),
+        ...actions,
       );
-      if (
-        failedMessages.some(
-          (message) =>
-            message.includes("rate limit") ||
-            message.includes("authentication"),
-        )
-      ) {
+      if (action === detailAction) {
+        sourceIndexChannel.show(true);
+      } else if (action === authAction) {
         await showAuthHelp();
       }
     }
@@ -2994,7 +3084,12 @@ export function activate(
         const diff = newCount - oldCount;
         const diffText = diff > 0 ? `+${diff}` : diff === 0 ? "±0" : `${diff}`;
         vscode.window.showInformationMessage(
-          `Updated ${item.source?.name || sourceId}: ${oldCount} → ${newCount} skills (${diffText})`,
+          messages.sourceIndexUpdated(
+            item.source?.name || sourceId,
+            oldCount,
+            newCount,
+            diffText,
+          ),
         );
         browseProvider.refresh();
       } catch (error: unknown) {

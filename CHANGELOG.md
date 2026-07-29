@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.9.33] - 2026-07-29
+
+### Fixed
+
+- 🔐 **GitHub Auth Source Recovery** - Public source content is fetched anonymously first, avoiding organization SAML SSO and stale-token failures, while private content retries with authentication only after an anonymous `404` and rate-limited requests preserve their original failures / public source content は最初に匿名取得して organization の SAML SSO と古い token の失敗を回避し、private content は匿名 `404` の後だけ認証付きで再試行して rate-limit request は元の失敗を維持するよう修正
+- 🚦 **Rate-limit Short Circuit** - Stale source updates now stop after a GitHub API rate-limit failure and report remaining sources as not attempted instead of repeating the same failure across every source / stale source 更新は GitHub API の rate-limit 検知後に停止し、全 source で同じ失敗を繰り返さず残りを未試行として報告するよう修正
+- 🔎 **Source Update Diagnostics** - Failure notifications now include a classified reason and recovery actions, with per-source results available in the `Agent Skills Ninja: Source Index` output channel / 失敗通知に分類済みの理由と復旧操作を追加し、source ごとの結果を `Agent Skills Ninja: Source Index` 出力チャネルで確認できるよう改善
+- 🧭 **Source Update Feedback** - Multi-source progress now advances proportionally, partial results use one complete summary notification, and rate-limit reset times follow the active locale / 複数 source の進捗を正しい割合で表示し、部分結果を1件の完全な通知へ統合して、rate-limit の再試行時刻を現在の locale で表示するよう改善
+- 🧪 **Source Update Regression Guards** - Added coverage for SAML fallback boundaries and sequential update behavior after rate-limit and non-systemic failures / SAML fallback の境界と、rate-limit および個別失敗後の順次更新動作を守る回帰テストを追加
+
 ## [0.9.32] - 2026-07-28
 
 ### Fixed

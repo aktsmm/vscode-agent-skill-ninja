@@ -13,6 +13,12 @@ import { messages } from "./i18n";
 import { getGitHubToken } from "./githubAuth";
 export { checkGitHubAuth } from "./githubAuth";
 import { LICENSE_EXTRACTION, INDEX_LIMITS } from "./constants";
+import {
+  createGitHubResponseError,
+  isGitHubResponseError,
+  retryGitHubRequestAnonymously,
+} from "./githubResponse";
+import { fetchGitHubWithOptionalAuthRetry } from "./githubFetch";
 
 const REQUEST_TIMEOUT_MS = 15000;
 const FETCH_CONCURRENCY = 8;
@@ -34,36 +40,6 @@ function stampSourceIndexedAt(
   return sources.map((source) =>
     source.id === sourceId ? { ...source, lastIndexedAt: indexedAt } : source,
   );
-}
-
-class GitHubFileContentError extends Error {
-  constructor(
-    public readonly status: number,
-    owner: string,
-    repo: string,
-    filePath: string,
-    bodyText: string,
-  ) {
-    const lowerBody = bodyText.toLowerCase();
-    const permissionHint =
-      status === 401 || status === 403
-        ? " Configure a GitHub token with Contents: read access for fine-grained PATs, or repo scope for classic PATs. gh CLI authentication also works."
-        : "";
-    const rateLimitHint = lowerBody.includes("rate limit")
-      ? " GitHub API rate limit may be exceeded."
-      : "";
-
-    super(
-      `GitHub content request failed (${status}) for ${owner}/${repo}/${filePath}.${permissionHint}${rateLimitHint}`,
-    );
-    this.name = "GitHubFileContentError";
-  }
-}
-
-function isGitHubFileContentError(
-  error: unknown,
-): error is GitHubFileContentError {
-  return error instanceof GitHubFileContentError;
 }
 
 async function fetchWithTimeout(
@@ -102,7 +78,7 @@ function joinRepositoryPath(...segments: Array<string | undefined>): string {
     .join("/");
 }
 
-async function fetchRepositoryTextFile(
+export async function fetchRepositoryTextFile(
   owner: string,
   repo: string,
   branch: string,
@@ -113,6 +89,13 @@ async function fetchRepositoryTextFile(
   const effectiveToken = token || (await getGitHubToken());
   const encodedPath = encodeGitHubContentPath(filePath);
   const url = `https://api.github.com/repos/${owner}/${repo}/contents/${encodedPath}?ref=${encodeURIComponent(branch)}`;
+  const anonymousUrl = `https://raw.githubusercontent.com/${encodeURIComponent(owner)}/${encodeURIComponent(repo)}/${encodeURIComponent(branch)}/${encodedPath}`;
+  const fetchAnonymously = () =>
+    fetchWithTimeout(
+      anonymousUrl,
+      { headers: { "User-Agent": "VSCode-SkillNinja" } },
+      timeoutMs,
+    );
   const headers: Record<string, string> = {
     Accept: "application/vnd.github.raw+json",
     "User-Agent": "VSCode-SkillNinja",
@@ -123,23 +106,9 @@ async function fetchRepositoryTextFile(
     headers.Authorization = `token ${effectiveToken}`;
   }
 
-  let response = await fetchWithTimeout(url, { headers }, timeoutMs);
-  if (response.status === 403 && headers.Authorization) {
-    const bodyText = await response.clone().text();
-    if (
-      bodyText.includes("forbids access via a personal access tokens (classic)")
-    ) {
-      const retryHeaders: Record<string, string> = {
-        Accept: "application/vnd.github.raw+json",
-        "User-Agent": "VSCode-SkillNinja",
-        "X-GitHub-Api-Version": GITHUB_API_VERSION,
-      };
-      response = await fetchWithTimeout(
-        url,
-        { headers: retryHeaders },
-        timeoutMs,
-      );
-    }
+  let response = await fetchAnonymously();
+  if (response.status === 404 && effectiveToken) {
+    response = await fetchWithTimeout(url, { headers }, timeoutMs);
   }
 
   if (response.ok) {
@@ -159,12 +128,10 @@ async function fetchRepositoryTextFile(
     response.status === 403 ||
     bodyText.toLowerCase().includes("rate limit")
   ) {
-    throw new GitHubFileContentError(
-      response.status,
-      owner,
-      repo,
-      filePath,
+    throw createGitHubResponseError(
+      response,
       bodyText,
+      `GitHub content request failed for ${owner}/${repo}/${filePath}`,
     );
   }
 
@@ -320,23 +287,17 @@ async function githubFetch(url: string, token?: string): Promise<Response> {
   }
 
   const response = await fetchWithTimeout(url, { headers });
-  if (response.status === 403 && headers.Authorization) {
-    const bodyText = await response.clone().text();
-    if (
-      bodyText.includes("forbids access via a personal access tokens (classic)")
-    ) {
-      console.warn(
-        "[Skill Ninja] Retrying without token because the repository rejects this classic PAT policy",
-      );
-      const retryHeaders: Record<string, string> = {
-        Accept: "application/vnd.github.v3+json",
-        "User-Agent": "VSCode-SkillNinja",
-      };
-      return fetchWithTimeout(url, { headers: retryHeaders });
-    }
-  }
-
-  return response;
+  return retryGitHubRequestAnonymously(
+    response,
+    Boolean(headers.Authorization),
+    () =>
+      fetchWithTimeout(url, {
+        headers: {
+          Accept: "application/vnd.github.v3+json",
+          "User-Agent": "VSCode-SkillNinja",
+        },
+      }),
+  );
 }
 
 function unquoteYamlValue(value: string): string {
@@ -544,6 +505,17 @@ export async function scanRepositoryForSkills(
           sourceOptions,
         );
       }
+      const fallbackBody = await fallbackResponse
+        .clone()
+        .text()
+        .catch(() => "");
+      if (fallbackResponse.status !== 404) {
+        throw createGitHubResponseError(
+          fallbackResponse,
+          fallbackBody,
+          `GitHub tree request failed for ${owner}/${repoName}`,
+        );
+      }
       throw new Error(
         `Repository or branch not found: ${owner}/${repoName} (branch: ${branch}).${getPrivateRepositoryAuthHint(token)}`,
       );
@@ -553,12 +525,15 @@ export async function scanRepositoryForSkills(
         `Repository or branch not found: ${owner}/${repoName} (branch: ${branch}).${getPrivateRepositoryAuthHint(token)}`,
       );
     }
-    if (response.status === 403) {
-      throw new Error(
-        `GitHub API access denied or rate limit exceeded. Please authenticate with a GitHub token.${getPrivateRepositoryAuthHint(token)}`,
-      );
-    }
-    throw new Error(`GitHub API error: ${response.status}`);
+    const bodyText = await response
+      .clone()
+      .text()
+      .catch(() => "");
+    throw createGitHubResponseError(
+      response,
+      bodyText,
+      `GitHub tree request failed for ${owner}/${repoName}`,
+    );
   }
 
   const responseData = (await response.json()) as {
@@ -756,7 +731,7 @@ async function processTreeResponse(
         }
         return skill;
       } catch (error) {
-        if (isGitHubFileContentError(error)) {
+        if (isGitHubResponseError(error)) {
           throw error;
         }
         // 個別のスキル取得エラーは無視して続行
@@ -970,7 +945,7 @@ async function scanClaudeCommands(
           description: description || `Claude Code command: ${skillName}`,
         };
       } catch (error) {
-        if (isGitHubFileContentError(error)) {
+        if (isGitHubResponseError(error)) {
           throw error;
         }
         console.warn(`Failed to fetch command: ${file.path}`);
@@ -1396,7 +1371,7 @@ export async function updateSingleSource(
     }
   }
 
-  progress?.report({ message: `Updating ${source.name}...` });
+  progress?.report({ message: messages.updatingSource(source.name) });
 
   try {
     const result = await scanRepositoryForSkills(
@@ -1488,7 +1463,7 @@ export async function updateIndexFromSources(
   for (const source of currentIndex.sources) {
     try {
       progress?.report({
-        message: `Updating ${source.name}...`,
+        message: messages.updatingSource(source.name),
         increment: (1 / totalSources) * 100,
       });
 
@@ -1592,7 +1567,7 @@ export async function updateIndexFromSingleSource(
   }
 
   progress?.report({
-    message: `Updating ${source.name}...`,
+    message: messages.updatingSource(source.name),
     increment: 50,
   });
 
@@ -1635,7 +1610,7 @@ export async function updateIndexFromSingleSource(
   }));
 
   progress?.report({
-    message: `Updated ${newSkills.length} skills`,
+    message: messages.sourceIndexSkillsUpdatedProgress(newSkills.length),
     increment: 50,
   });
 
@@ -2098,7 +2073,10 @@ export async function searchGitHub(
 
     try {
       const rawUrl = `https://raw.githubusercontent.com/${result.repo}/${result.defaultBranch}/${result.itemPath}`;
-      const contentResponse = await githubFetch(rawUrl, token);
+      const contentResponse = await fetchGitHubWithOptionalAuthRetry(rawUrl, {
+        accept: "text/plain",
+        token,
+      });
       if (contentResponse.ok) {
         const content = await contentResponse.text();
         const frontmatterMatch = content.match(/^---\s*\n([\s\S]*?)\n---/);
