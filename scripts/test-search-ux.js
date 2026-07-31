@@ -20,6 +20,10 @@ const skillInstallerSource = fs.readFileSync(
   path.join(root, "src", "skillInstaller.ts"),
   "utf8",
 );
+const indexUpdaterSource = fs.readFileSync(
+  path.join(root, "src", "indexUpdater.ts"),
+  "utf8",
+);
 const i18nSource = fs.readFileSync(path.join(root, "src", "i18n.ts"), "utf8");
 
 function test(name, fn) {
@@ -96,6 +100,16 @@ test("skill download 404 recovery is centralized and auth-aware", () => {
     "404 recovery should open the GitHub token setting",
   );
   assert.ok(
+    skillInstallerSource.includes("hasStoredGitHubToken") &&
+      skillInstallerSource.includes('"skillNinja.clearGitHubToken"'),
+    "404 recovery should offer clearing a stored SecretStorage token",
+  );
+  assert.ok(
+    indexUpdaterSource.includes("hasStoredGitHubToken") &&
+      indexUpdaterSource.includes('"skillNinja.clearGitHubToken"'),
+    "general auth help should offer clearing a stored SecretStorage token",
+  );
+  assert.ok(
     skillInstallerSource.includes("GitHub Authentication: ${hasToken") &&
       skillInstallerSource.includes("Contents: read access"),
     "bug reports should include auth state and permission guidance",
@@ -104,6 +118,11 @@ test("skill download 404 recovery is centralized and auth-aware", () => {
     i18nSource.includes("Private repositories require GitHub authentication") &&
       i18nSource.includes("プライベート リポジトリの場合は GitHub 認証が必要"),
     "404 guidance should distinguish private repository authentication in both locales",
+  );
+  assert.ok(
+    i18nSource.includes("Clear Stored GitHub Token") &&
+      i18nSource.includes("保存済み GitHub トークンをクリア"),
+    "stored-token recovery action should be localized in both locales",
   );
 });
 

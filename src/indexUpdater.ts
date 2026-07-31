@@ -10,17 +10,19 @@ import {
   saveSkillIndex,
 } from "./skillIndex";
 import { messages } from "./i18n";
-import { getGitHubToken } from "./githubAuth";
+import { getGitHubToken, hasStoredGitHubToken } from "./githubAuth";
 export { checkGitHubAuth } from "./githubAuth";
 import { LICENSE_EXTRACTION, INDEX_LIMITS } from "./constants";
 import {
   createGitHubResponseError,
   isGitHubResponseError,
-  retryGitHubRequestAnonymously,
 } from "./githubResponse";
-import { fetchGitHubWithOptionalAuthRetry } from "./githubFetch";
+import {
+  fetchGitHubWithOptionalAuthRetry,
+  fetchGitHubWithTimeout,
+  GITHUB_REQUEST_TIMEOUT_MS,
+} from "./githubFetch";
 
-const REQUEST_TIMEOUT_MS = 15000;
 const FETCH_CONCURRENCY = 8;
 const GITHUB_API_VERSION = "2022-11-28";
 
@@ -40,25 +42,6 @@ function stampSourceIndexedAt(
   return sources.map((source) =>
     source.id === sourceId ? { ...source, lastIndexedAt: indexedAt } : source,
   );
-}
-
-async function fetchWithTimeout(
-  url: string,
-  options?: RequestInit,
-  timeoutMs: number = REQUEST_TIMEOUT_MS,
-): Promise<Response> {
-  const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
-  try {
-    return await fetch(url, { ...options, signal: controller.signal });
-  } catch (error) {
-    if (controller.signal.aborted) {
-      throw new Error(`Request timeout: ${url}`);
-    }
-    throw error;
-  } finally {
-    clearTimeout(timeoutId);
-  }
 }
 
 function encodeGitHubContentPath(filePath: string): string {
@@ -84,14 +67,14 @@ export async function fetchRepositoryTextFile(
   branch: string,
   filePath: string,
   token?: string,
-  timeoutMs: number = REQUEST_TIMEOUT_MS,
+  timeoutMs: number = GITHUB_REQUEST_TIMEOUT_MS,
 ): Promise<string | undefined> {
   const effectiveToken = token || (await getGitHubToken());
   const encodedPath = encodeGitHubContentPath(filePath);
   const url = `https://api.github.com/repos/${owner}/${repo}/contents/${encodedPath}?ref=${encodeURIComponent(branch)}`;
   const anonymousUrl = `https://raw.githubusercontent.com/${encodeURIComponent(owner)}/${encodeURIComponent(repo)}/${encodeURIComponent(branch)}/${encodedPath}`;
   const fetchAnonymously = () =>
-    fetchWithTimeout(
+    fetchGitHubWithTimeout(
       anonymousUrl,
       { headers: { "User-Agent": "VSCode-SkillNinja" } },
       timeoutMs,
@@ -108,7 +91,7 @@ export async function fetchRepositoryTextFile(
 
   let response = await fetchAnonymously();
   if (response.status === 404 && effectiveToken) {
-    response = await fetchWithTimeout(url, { headers }, timeoutMs);
+    response = await fetchGitHubWithTimeout(url, { headers }, timeoutMs);
   }
 
   if (response.ok) {
@@ -276,28 +259,11 @@ function extractLicenseFromContent(content: string): string | null {
 async function githubFetch(url: string, token?: string): Promise<Response> {
   // トークンが渡されなかった場合は自動取得を試みる
   const effectiveToken = token || (await getGitHubToken());
-
-  const headers: Record<string, string> = {
-    Accept: "application/vnd.github.v3+json",
-    "User-Agent": "VSCode-SkillNinja",
-  };
-
-  if (effectiveToken) {
-    headers["Authorization"] = `token ${effectiveToken}`;
-  }
-
-  const response = await fetchWithTimeout(url, { headers });
-  return retryGitHubRequestAnonymously(
-    response,
-    Boolean(headers.Authorization),
-    () =>
-      fetchWithTimeout(url, {
-        headers: {
-          Accept: "application/vnd.github.v3+json",
-          "User-Agent": "VSCode-SkillNinja",
-        },
-      }),
-  );
+  return fetchGitHubWithOptionalAuthRetry(url, {
+    accept: "application/vnd.github.v3+json",
+    token: effectiveToken,
+    request: fetchGitHubWithTimeout,
+  });
 }
 
 function unquoteYamlValue(value: string): string {
@@ -2168,16 +2134,25 @@ export async function searchGitHub(
 export async function showAuthHelp(): Promise<void> {
   const openSettingsLabel = messages.openSettings();
   const authWithGhCliLabel = messages.authWithGhCli();
+  const clearStoredTokenLabel = messages.actionClearStoredGitHubToken();
   const cancelLabel = messages.actionCancel();
+  const actions = (await hasStoredGitHubToken())
+    ? [
+        clearStoredTokenLabel,
+        openSettingsLabel,
+        authWithGhCliLabel,
+        cancelLabel,
+      ]
+    : [openSettingsLabel, authWithGhCliLabel, cancelLabel];
 
   const action = await vscode.window.showErrorMessage(
     messages.authRequired(),
-    openSettingsLabel,
-    authWithGhCliLabel,
-    cancelLabel,
+    ...actions,
   );
 
-  if (action === openSettingsLabel) {
+  if (action === clearStoredTokenLabel) {
+    await vscode.commands.executeCommand("skillNinja.clearGitHubToken");
+  } else if (action === openSettingsLabel) {
     await vscode.commands.executeCommand(
       "workbench.action.openSettings",
       "skillNinja.githubToken",

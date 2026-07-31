@@ -1087,22 +1087,19 @@ function makeConfigStub(values) {
   });
 
   await test("getDefaultBranch normalizes .git suffix before probing raw URLs", async () => {
-    const moduleWithFetchCapture = loadTranspiledModule(
-      skillIndexPath,
-      {
-        "./githubFetch": {
-          createGitHubHeaders: () => ({}),
-          fetchGitHubWithOptionalAuthRetry: async () => ({ ok: false }),
+    const requests = [];
+    const moduleWithFetchCapture = loadTranspiledModule(skillIndexPath, {
+      "./githubFetch": {
+        fetchGitHubWithOptionalAuthRetry: async (url, options) => {
+          requests.push({ url, options });
+          return {
+            ok:
+              url ===
+              "https://raw.githubusercontent.com/aktsmm/Agent-Skills/master/humanize-writing/SKILL.md",
+          };
         },
       },
-      {
-        fetch: async (url) => ({
-          ok:
-            url ===
-            "https://raw.githubusercontent.com/aktsmm/Agent-Skills/master/humanize-writing/SKILL.md",
-        }),
-      },
-    );
+    });
 
     const branch = await moduleWithFetchCapture.getDefaultBranch(
       "https://github.com/aktsmm/Agent-Skills.git",
@@ -1111,6 +1108,14 @@ function makeConfigStub(values) {
     );
 
     assert.strictEqual(branch, "master");
+    assert.deepStrictEqual(
+      requests.map(({ url }) => url),
+      [
+        "https://raw.githubusercontent.com/aktsmm/Agent-Skills/main/humanize-writing/SKILL.md",
+        "https://raw.githubusercontent.com/aktsmm/Agent-Skills/master/humanize-writing/SKILL.md",
+      ],
+    );
+    assert.ok(requests.every(({ options }) => options.method === "HEAD"));
   });
 
   console.log("\nSkill location tests passed.");

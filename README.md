@@ -287,6 +287,8 @@ Preset index includes skills from official, curated, and community sources out o
 | `Agent Skills Ninja: Open Skill Output`         | Choose a managed root, then open the linked catalog in `ref`, or the instruction file in other formats                                        |
 | `Agent Skills Ninja: Regenerate Skill Output`   | Regenerate the selected root's skill output files manually (`AGENTS.md`, `copilot-instructions.md`, `CLAUDE.md`, or the linked `ref` catalog) |
 | `Agent Skills Ninja: Open Skill Folder`         | Open installed skill folder in OS                                                                                                             |
+| `Agent Skills Ninja: Clear GitHub Token (SecretStorage only)` | Remove only the GitHub token stored in VS Code SecretStorage so other authentication sources can be retried                                  |
+| `Agent Skills Ninja: Explain Skill State`       | Show skill registration details and the active GitHub token source without revealing the token value                                          |
 
 ### Quick Start
 
@@ -515,6 +517,8 @@ Find `Agent Skills Ninja: GitHub Token` in settings and enter your token:
 ```
 
 When this legacy setting is present, Agent Skills Ninja copies the value into VS Code SecretStorage and uses the secure copy first. The setting is retained for backward compatibility and reset workflows.
+
+If the SecretStorage token becomes stale or belongs to another account, run `Agent Skills Ninja: Clear GitHub Token (SecretStorage only)`. This removes only the SecretStorage copy; environment variables, `gh` CLI authentication, and the legacy setting remain unchanged. If the legacy setting itself is stale, clear or update it before reloading VS Code.
 
 For private repositories, prefer a fine-grained personal access token limited to the selected repositories with `Contents: read`. Classic personal access tokens need the `repo` scope to read private repositories.
 

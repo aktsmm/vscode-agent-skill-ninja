@@ -59,6 +59,7 @@ Module._load = function patchedLoad(request, parent, isMain) {
   if (request === "./githubFetch") {
     return {
       fetchGitHubWithOptionalAuthRetry: async () => response(200, ""),
+      fetchGitHubWithTimeout: async (url, init) => fetch(url, init),
     };
   }
   return originalLoad.call(this, request, parent, isMain);
@@ -96,21 +97,14 @@ async function test(name, fn) {
 }
 
 async function main() {
-  const indexUpdaterPath = path.join(
-    __dirname,
-    "..",
-    "src",
-    "indexUpdater.ts",
-  );
+  const indexUpdaterPath = path.join(__dirname, "..", "src", "indexUpdater.ts");
   const indexUpdaterSource = fs.readFileSync(indexUpdaterPath, "utf8");
   const { fetchRepositoryTextFile, scanRepositoryForSkills } =
     requireTypeScriptModule(indexUpdaterPath);
 
   await test("raw search previews use the anonymous-first GitHub helper", async () => {
     assert.ok(
-      indexUpdaterSource.includes(
-        "fetchGitHubWithOptionalAuthRetry(rawUrl, {",
-      ),
+      indexUpdaterSource.includes("fetchGitHubWithOptionalAuthRetry(rawUrl, {"),
     );
     assert.ok(!indexUpdaterSource.includes("githubFetch(rawUrl, token)"));
   });
@@ -257,7 +251,9 @@ async function main() {
 
       assert.strictEqual(content, "private content");
       assert.strictEqual(requests.length, 2);
-      assert.ok(requests[0].url.startsWith("https://raw.githubusercontent.com/"));
+      assert.ok(
+        requests[0].url.startsWith("https://raw.githubusercontent.com/"),
+      );
       assert.strictEqual(requests[0].headers.Authorization, undefined);
       assert.ok(requests[1].url.startsWith("https://api.github.com/"));
       assert.strictEqual(requests[1].headers.Authorization, "token test-token");

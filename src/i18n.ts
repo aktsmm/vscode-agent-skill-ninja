@@ -35,8 +35,7 @@ const jaMessages = {
   staleSourceIndexPartialFailed:
     "source index の更新結果: 更新 {0}/{2}、失敗 {1}、未試行 {5}。失敗: {3}。理由: {4}",
   sourceIndexSkillsUpdatedProgress: "{0} スキルを更新しました",
-  sourceIndexUpdated:
-    "✅ {0} を更新しました: {1} → {2} スキル ({3})",
+  sourceIndexUpdated: "✅ {0} を更新しました: {1} → {2} スキル ({3})",
   githubRateLimitReason: "GitHub API のレート制限に達しました",
   githubRateLimitResetAt: "再試行可能時刻: {0}",
   githubSsoRequiredReason: "GitHub organization の SSO 認可が必要です",
@@ -45,6 +44,8 @@ const jaMessages = {
   githubAuthRequiredReason: "GitHub の認証またはリポジトリ権限が必要です",
   actionShowDetails: "詳細を表示",
   actionConfigureGitHubAuth: "GitHub 認証を設定",
+  actionClearStoredGitHubToken:
+    "保存済み GitHub トークンをクリア（SecretStorage のみ）",
   actionUpdateNow: "今すぐ更新",
   actionLater: "後で",
   chatFollowupSearchSkills: "スキルを検索",
@@ -130,6 +131,11 @@ const jaMessages = {
   resetAllSettings: "すべての設定をリセット",
   resetAllIncludingToken: "すべての設定をリセット（トークン含む）",
   resetComplete: "✅ 初期化が完了しました。VS Codeを再起動してください。",
+  githubTokenCleared: "SecretStorage の GitHub トークンを削除しました。",
+  githubTokenNotStored:
+    "SecretStorage に保存された GitHub トークンはありません。",
+  githubTokenClearFailed:
+    "SecretStorage の GitHub トークンを削除できませんでした。VS Code を再読み込みして再試行してください。",
   authWithGhCli: "gh CLIで認証",
   installedFolder: "インストール済み",
   rateLimitExceeded:
@@ -221,8 +227,7 @@ const enMessages: MessageDictionary = {
   staleSourceIndexPartialFailed:
     "Source index update result: {0}/{2} updated, {1} failed, {5} not attempted. Failed: {3}. Reason: {4}",
   sourceIndexSkillsUpdatedProgress: "Updated {0} skill(s)",
-  sourceIndexUpdated:
-    "✅ Updated {0}: {1} → {2} skill(s) ({3})",
+  sourceIndexUpdated: "✅ Updated {0}: {1} → {2} skill(s) ({3})",
   githubRateLimitReason: "GitHub API rate limit exceeded",
   githubRateLimitResetAt: "retry after {0}",
   githubSsoRequiredReason: "GitHub organization SSO authorization is required",
@@ -232,6 +237,8 @@ const enMessages: MessageDictionary = {
     "GitHub authentication or repository permission is required",
   actionShowDetails: "Show Details",
   actionConfigureGitHubAuth: "Configure GitHub Authentication",
+  actionClearStoredGitHubToken:
+    "Clear Stored GitHub Token (SecretStorage only)",
   actionUpdateNow: "Update Now",
   actionLater: "Later",
   chatFollowupSearchSkills: "Search Skills",
@@ -317,6 +324,10 @@ const enMessages: MessageDictionary = {
   resetAllSettings: "Reset All Settings",
   resetAllIncludingToken: "Reset All Settings (including token)",
   resetComplete: "✅ Reset complete. Please restart VS Code.",
+  githubTokenCleared: "Removed the GitHub token from SecretStorage.",
+  githubTokenNotStored: "No GitHub token is stored in SecretStorage.",
+  githubTokenClearFailed:
+    "Could not remove the GitHub token from SecretStorage. Reload VS Code and try again.",
   authWithGhCli: "Authenticate with gh CLI",
   installedFolder: "Installed",
   rateLimitExceeded:
@@ -490,6 +501,7 @@ export const messages = {
   githubAuthRequiredReason: () => localize("githubAuthRequiredReason"),
   actionShowDetails: () => localize("actionShowDetails"),
   actionConfigureGitHubAuth: () => localize("actionConfigureGitHubAuth"),
+  actionClearStoredGitHubToken: () => localize("actionClearStoredGitHubToken"),
   actionUpdateNow: () => localize("actionUpdateNow"),
   actionLater: () => localize("actionLater"),
   chatFollowupSearchSkills: () => localize("chatFollowupSearchSkills"),
@@ -580,6 +592,9 @@ export const messages = {
   resetAllSettings: () => localize("resetAllSettings"),
   resetAllIncludingToken: () => localize("resetAllIncludingToken"),
   resetComplete: () => localize("resetComplete"),
+  githubTokenCleared: () => localize("githubTokenCleared"),
+  githubTokenNotStored: () => localize("githubTokenNotStored"),
+  githubTokenClearFailed: () => localize("githubTokenClearFailed"),
 
   // TreeView
   installedFolder: () => localize("installedFolder"),

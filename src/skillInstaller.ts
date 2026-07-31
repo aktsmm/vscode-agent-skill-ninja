@@ -4,7 +4,7 @@
 import * as vscode from "vscode";
 import { Skill, loadSkillIndex, Source, getSourceBranch } from "./skillIndex";
 import { isJapanese, messages } from "./i18n";
-import { getGitHubToken } from "./githubAuth";
+import { getGitHubToken, hasStoredGitHubToken } from "./githubAuth";
 import { normalizeInstalledSkillSource } from "./installedSkillIndex";
 import {
   getManagedSkillRoots,
@@ -73,14 +73,18 @@ async function handleSkillNotFound(
   const openSettings = messages.openSettings();
   const updateIndex = messages.actionUpdateIndex();
   const reportBug = messages.actionReportBug();
+  const clearStoredToken = messages.actionClearStoredGitHubToken();
+  const actions = (await hasStoredGitHubToken())
+    ? [clearStoredToken, openSettings, updateIndex, reportBug]
+    : [openSettings, updateIndex, reportBug];
   const choice = await vscode.window.showErrorMessage(
     buildSkillNotFoundMessage(skill.name, token),
-    openSettings,
-    updateIndex,
-    reportBug,
+    ...actions,
   );
 
-  if (choice === openSettings) {
+  if (choice === clearStoredToken) {
+    await vscode.commands.executeCommand("skillNinja.clearGitHubToken");
+  } else if (choice === openSettings) {
     await vscode.commands.executeCommand(
       "workbench.action.openSettings",
       "skillNinja.githubToken",

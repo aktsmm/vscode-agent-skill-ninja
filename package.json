@@ -2,7 +2,7 @@
   "name": "agent-skill-ninja",
   "displayName": "%displayName%",
   "description": "%description%",
-  "version": "0.9.33",
+  "version": "0.9.34",
   "publisher": "yamapan",
   "license": "CC-BY-NC-SA-4.0",
   "icon": "resources/icon.png",
@@ -609,6 +609,12 @@
         "title": "%command.resetSettings%",
         "category": "Agent Skills Ninja",
         "icon": "$(clear-all)"
+      },
+      {
+        "command": "skillNinja.clearGitHubToken",
+        "title": "%command.clearGitHubToken%",
+        "category": "Agent Skills Ninja",
+        "icon": "$(key)"
       },
       {
         "command": "skillNinja.showCoexistenceStatus",

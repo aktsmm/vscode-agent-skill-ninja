@@ -226,11 +226,17 @@ function loadModule(options = {}) {
             openSettings: () => "Open Settings",
             actionUpdateIndex: () => "Update Index",
             actionReportBug: () => "Report Bug",
+            actionClearStoredGitHubToken: () =>
+              "Clear Stored GitHub Token",
           },
         };
       }
       if (request === "./githubAuth") {
-        return { getGitHubToken: async () => options.token };
+        return {
+          getGitHubToken: async () => options.token,
+          hasStoredGitHubToken: async () =>
+            options.hasStoredToken === true,
+        };
       }
       if (request === "./installedSkillIndex") {
         return { normalizeInstalledSkillSource: (source) => source };
@@ -473,6 +479,47 @@ async function main() {
     );
     console.log(
       "PASS unauthenticated private 404 opens GitHub authentication settings",
+    );
+
+    const storedTokenErrorMessages = [];
+    const storedTokenCommands = [];
+    const { installSkill: installPrivateSkillWithStoredToken } = loadModule({
+      skillIndex: privateSourceIndex,
+      token: "stale-token-must-not-leak",
+      hasStoredToken: true,
+      errorMessageChoice: "Clear Stored GitHub Token",
+      errorMessages: storedTokenErrorMessages,
+      executedCommands: storedTokenCommands,
+    });
+
+    await assert.rejects(
+      installPrivateSkillWithStoredToken(
+        {
+          name: "private-demo",
+          source: "private-source",
+          path: "skills/private-demo",
+          categories: [],
+          description: "Private demo skill",
+        },
+        makeUri(tmp),
+        {},
+      ),
+      /Skill not found: private-demo/,
+    );
+    assert.ok(
+      storedTokenErrorMessages[0].includes("Clear Stored GitHub Token"),
+    );
+    assert.deepStrictEqual(storedTokenCommands[0], [
+      "skillNinja.clearGitHubToken",
+    ]);
+    assert.strictEqual(
+      storedTokenErrorMessages[0].join(" ").includes(
+        "stale-token-must-not-leak",
+      ),
+      false,
+    );
+    console.log(
+      "PASS stored private token 404 offers SecretStorage recovery",
     );
 
     const authErrorMessages = [];

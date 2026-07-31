@@ -76,10 +76,12 @@ import { MAX_SEARCH_RESULTS } from "./skillSearch";
 import { createChatParticipant } from "./chatParticipant";
 import { registerMcpTools } from "./mcpTools";
 import {
+  clearStoredGitHubTokenWithFeedback,
   deleteStoredGitHubToken,
   getGitHubToken,
   initializeGitHubAuth,
   migrateConfiguredGitHubTokenToSecretStorage,
+  resolveGitHubToken,
 } from "./githubAuth";
 import { getStaleSources, type StaleSourceInfo } from "./sourceIndexFreshness";
 import { GitHubResponseError, isGitHubResponseError } from "./githubResponse";
@@ -4010,6 +4012,11 @@ Add examples here
     },
   );
 
+  const clearGitHubTokenCmd = vscode.commands.registerCommand(
+    "skillNinja.clearGitHubToken",
+    clearStoredGitHubTokenWithFeedback,
+  );
+
   // Command: Copy URL (for Browse view)
   const copyUrlCmd = vscode.commands.registerCommand(
     "skillNinja.copyUrl",
@@ -4069,6 +4076,7 @@ Add examples here
       const skill = item.skill as Skill & Partial<LocalSkill>;
       const root = getSkillRootFromItem(item);
       const decision = await getEffectiveOwnership(context);
+      const githubAuth = await resolveGitHubToken();
       let markerState = "none";
 
       if (root?.instructionUri) {
@@ -4118,6 +4126,10 @@ Add examples here
       lines.push(`Marker           : ${markerState}`);
       lines.push(`Owner            : ${decision.owner}`);
       lines.push(`Owner Reason     : ${decision.reason}`);
+      lines.push(`GitHub Auth Src  : ${githubAuth.source}`);
+      if (githubAuth.source === "secret") {
+        lines.push("GitHub Auth Help : skillNinja.clearGitHubToken");
+      }
 
       skillStateChannel.clear();
       skillStateChannel.appendLine(lines.join("\n"));
@@ -4386,6 +4398,7 @@ Add examples here
     openSettingsCmd,
     showBuiltInSkillsCmd,
     resetSettingsCmd,
+    clearGitHubTokenCmd,
     copyUrlCmd,
     copyPathCmd,
     openInTerminalCmd,

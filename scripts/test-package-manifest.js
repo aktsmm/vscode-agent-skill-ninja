@@ -881,6 +881,49 @@ test("install bundle command uses localized command titles", () => {
   assert.strictEqual(installBundle.title, "%command.installBundle%");
 });
 
+test("GitHub auth recovery exposes token reset and token source diagnostics", () => {
+  const clearToken = (pkg.contributes.commands || []).find(
+    (command) => command.command === "skillNinja.clearGitHubToken",
+  );
+
+  assert.ok(clearToken);
+  assert.strictEqual(clearToken.title, "%command.clearGitHubToken%");
+  assert.strictEqual(
+    packageNls["command.clearGitHubToken"],
+    "Clear GitHub Token (SecretStorage only)",
+  );
+  assert.strictEqual(
+    packageNlsJa["command.clearGitHubToken"],
+    "GitHub トークンをクリア（SecretStorage のみ）",
+  );
+  assert.match(
+    extensionSource,
+    /registerCommand\(\s*"skillNinja\.clearGitHubToken",\s*clearStoredGitHubTokenWithFeedback,\s*\)/,
+  );
+  assert.match(
+    extensionSource,
+    /context\.subscriptions\.push\([\s\S]*?\bclearGitHubTokenCmd\b[\s\S]*?\);/,
+  );
+  assert.ok(
+    extensionSource.includes("GitHub Auth Src  : ${githubAuth.source}"),
+  );
+  assert.ok(
+    extensionSource.includes("GitHub Auth Help : skillNinja.clearGitHubToken"),
+  );
+  assert.ok(
+    readme.includes(
+      "Agent Skills Ninja: Clear GitHub Token (SecretStorage only)",
+    ),
+  );
+  assert.ok(readme.includes("Agent Skills Ninja: Explain Skill State"));
+  assert.ok(
+    readmeJa.includes(
+      "Agent Skills Ninja: GitHub トークンをクリア（SecretStorage のみ）",
+    ),
+  );
+  assert.ok(readmeJa.includes("Agent Skills Ninja: スキル状態を診断"));
+});
+
 test("all views expose create skill and settings in the title bar", () => {
   for (const viewId of [
     "skillNinja.installedView",

@@ -64,7 +64,11 @@ function loadI18n(language) {
         env: { language },
         workspace: {
           getConfiguration() {
-            return { get(key, fallback) { return fallback; } };
+            return {
+              get(key, fallback) {
+                return fallback;
+              },
+            };
           },
         },
       };
@@ -102,7 +106,10 @@ test("scales per-source progress across the complete batch", () => {
   assert.strictEqual(scaleSourceIndexProgressIncrement(5, 50), 10);
   assert.strictEqual(scaleSourceIndexProgressIncrement(5, 100), 20);
   assert.strictEqual(scaleSourceIndexProgressIncrement(0, 50), 50);
-  assert.strictEqual(scaleSourceIndexProgressIncrement(5, undefined), undefined);
+  assert.strictEqual(
+    scaleSourceIndexProgressIncrement(5, undefined),
+    undefined,
+  );
 });
 
 test("formats GitHub reset timestamps for the active locale", () => {
@@ -118,7 +125,9 @@ test("formats GitHub reset timestamps for the active locale", () => {
 });
 
 test("source update user-facing text is localized", () => {
-  assert.ok(!indexUpdaterSource.includes("message: `Updating ${source.name}...`"));
+  assert.ok(
+    !indexUpdaterSource.includes("message: `Updating ${source.name}...`"),
+  );
   assert.ok(
     !extensionSource.includes(
       "`Updated ${item.source?.name || sourceId}: ${oldCount}",

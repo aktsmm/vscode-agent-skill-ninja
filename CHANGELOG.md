@@ -7,6 +7,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.9.34] - 2026-07-31
+
+### Added
+
+- 🔑 **SecretStorage Recovery Command** - Added a SecretStorage-only GitHub token clear command, contextual recovery actions, and credential-source diagnostics without exposing token values / SecretStorage 専用の GitHub token クリアコマンド、状況に応じた復旧操作、token 値を露出しない認証元診断を追加
+
+### Fixed
+
+- 🔄 **Stale Credential Fallback** - Failed SecretStorage credentials now retry the next distinct environment, `gh` CLI, or legacy configuration credential, including credentials changed while a request is in flight / SecretStorage の古い認証情報が失敗した場合、request 中に認証元が変わったケースを含め、次の異なる環境変数・`gh` CLI・互換設定の認証情報で再試行するよう修正
+- ⏱️ **Bounded GitHub Requests** - Shared GitHub requests now use bounded timeouts, preserve caller cancellation, and release timers and listeners after completion / 共通 GitHub request に timeout を適用し、呼び出し元のキャンセルを保持して完了後に timer と listener を解放するよう改善
+- 🧵 **SecretStorage Mutation Safety** - Startup migration and token deletion are serialized so a completed clear cannot be undone by an in-flight migration, with localized success, empty, and failure feedback / 起動時 migration と token 削除を直列化し、clear 完了後に実行中の migration が token を復活させないよう修正して、成功・未保存・失敗の通知をローカライズ
+- 🧭 **Private Branch Detection** - Source branch HEAD probes now use the bounded anonymous-first helper and retry private repositories with authentication only after an anonymous `404` / source branch の HEAD probe を timeout 付き匿名優先 helper へ統合し、private repository は匿名 `404` の後だけ認証付きで再試行するよう修正
+- 🧪 **Authentication Regression Guards** - Added command-handler, migration-race, timeout, cancellation, private HEAD, fallback-order, manifest, and bilingual recovery coverage / command handler、migration 競合、timeout、キャンセル、private HEAD、fallback 順序、manifest、日英復旧導線の回帰テストを追加
+
 ## [0.9.33] - 2026-07-29
 
 ### Fixed

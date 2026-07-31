@@ -283,6 +283,8 @@ ext install yamapan.agent-skill-ninja
 | `Agent Skills Ninja: スキル出力を開く`             | managed root を選んで、`ref` ではリンク先 catalog、それ以外では instruction file を開く                                       |
 | `Agent Skills Ninja: スキル出力を再生成`           | 選択した root のスキル出力ファイルを手動で再生成 (`AGENTS.md` / `copilot-instructions.md` / `CLAUDE.md` または `ref` catalog) |
 | `Agent Skills Ninja: スキルフォルダを開く`         | インストール済みスキルのフォルダを開く                                                                                        |
+| `Agent Skills Ninja: GitHub トークンをクリア（SecretStorage のみ）` | VS Code SecretStorage の GitHub token だけを削除し、ほかの認証元で再試行できるようにする                         |
+| `Agent Skills Ninja: スキル状態を診断`             | token 値を表示せず、スキルの登録状態と現在の GitHub token source を表示する                                                     |
 
 ### クイックスタート
 
@@ -511,6 +513,8 @@ GitHub CLI が入っていれば token は自動取得され、拡張機能側�
 ```
 
 この互換用設定がある場合、Agent Skills Ninja は値を VS Code SecretStorage にコピーし、安全な保存先を優先して使います。この設定は後方互換と reset workflow のために残しています。
+
+SecretStorage の token が古い、または別アカウントのものになった場合は、`Agent Skills Ninja: GitHub トークンをクリア（SecretStorage のみ）` を実行してください。削除されるのは SecretStorage のコピーだけで、環境変数、`gh` CLI 認証、互換用設定は変更されません。互換用設定自体が古い場合は、VS Code を再読み込みする前に設定も削除または更新してください。
 
 Private repository を読む場合は、対象 repository だけに限定した fine-grained personal access token に `Contents: read` を付与する構成を推奨します。classic personal access token では `repo` scope が必要です。
 

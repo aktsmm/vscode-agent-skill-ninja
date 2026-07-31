@@ -2,10 +2,7 @@
 // プリインストールされたインデックスと更新可能なローカルインデックスを管理
 
 import * as vscode from "vscode";
-import {
-  createGitHubHeaders,
-  fetchGitHubWithOptionalAuthRetry,
-} from "./githubFetch";
+import { fetchGitHubWithOptionalAuthRetry } from "./githubFetch";
 import {
   applySharedSourcesManifestToSkillIndex,
   bootstrapSharedSourcesManifest,
@@ -625,11 +622,12 @@ export function getCachedSourceBranch(source: Source): string | undefined {
  * URL が存在するか HEAD リクエストで確認
  */
 async function checkUrlExists(url: string, token?: string): Promise<boolean> {
-  const headers = createGitHubHeaders(url, "*/*", token);
-  delete headers.Accept;
-
   try {
-    const response = await fetch(url, { method: "HEAD", headers });
+    const response = await fetchGitHubWithOptionalAuthRetry(url, {
+      accept: "*/*",
+      token,
+      method: "HEAD",
+    });
     return response.ok;
   } catch {
     return false;
