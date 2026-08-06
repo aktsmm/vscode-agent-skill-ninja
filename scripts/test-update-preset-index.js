@@ -6,16 +6,33 @@ const {
   normalizePathPrefix,
   pathMatchesPrefix,
   isSkillPathAllowed,
+  processTree,
+  assertNoUnexpectedShrink,
 } = require("./update-preset-index.js");
+
+const pending = [];
+
+function fail(name, error) {
+  console.error(`FAIL ${name}`);
+  console.error(error);
+  process.exitCode = 1;
+}
 
 function test(name, fn) {
   try {
-    fn();
+    const result = fn();
+    if (result && typeof result.then === "function") {
+      pending.push(
+        result.then(
+          () => console.log(`PASS ${name}`),
+          (error) => fail(name, error),
+        ),
+      );
+      return;
+    }
     console.log(`PASS ${name}`);
   } catch (error) {
-    console.error(`FAIL ${name}`);
-    console.error(error);
-    process.exitCode = 1;
+    fail(name, error);
   }
 }
 
@@ -81,6 +98,172 @@ test("oh-my-codex bundled skills match includePaths guard", () => {
   }
 });
 
-if (process.exitCode) {
-  process.exit(process.exitCode);
+// Preset completeness gate: keep the shipped index self-consistent so a stale
+// bundle or an emptied source cannot reach users.
+test("every skill points at a declared source", () => {
+  const sourceIds = new Set(skillIndex.sources.map((source) => source.id));
+  const orphans = [
+    ...new Set(
+      skillIndex.skills
+        .filter((skill) => !sourceIds.has(skill.source))
+        .map((skill) => skill.source),
+    ),
+  ];
+  assert.deepStrictEqual(orphans, [], `Unknown skill sources: ${orphans}`);
+});
+
+test("every source contributes at least one skill", () => {
+  const countsBySource = new Map();
+  for (const skill of skillIndex.skills) {
+    countsBySource.set(
+      skill.source,
+      (countsBySource.get(skill.source) || 0) + 1,
+    );
+  }
+  const empty = skillIndex.sources
+    .filter((source) => !countsBySource.get(source.id))
+    .map((source) => source.id);
+  assert.deepStrictEqual(empty, [], `Sources without skills: ${empty}`);
+});
+
+test("skill names are unique across the index", () => {
+  const seen = new Set();
+  const duplicates = [];
+  for (const skill of skillIndex.skills) {
+    const key = skill.name.toLowerCase();
+    if (seen.has(key)) {
+      duplicates.push(skill.name);
+    }
+    seen.add(key);
+  }
+  assert.deepStrictEqual(duplicates, [], `Duplicate skills: ${duplicates}`);
+});
+
+function findDanglingBundleReferences(index) {
+  const sourceIds = new Set(index.sources.map((source) => source.id));
+  const skillNamesBySource = new Map();
+  for (const skill of index.skills) {
+    if (!skillNamesBySource.has(skill.source)) {
+      skillNamesBySource.set(skill.source, new Set());
+    }
+    skillNamesBySource.get(skill.source).add(skill.name);
+  }
+
+  const problems = [];
+  for (const bundle of index.bundles || []) {
+    if (!sourceIds.has(bundle.source)) {
+      problems.push(`${bundle.id}: unknown source ${bundle.source}`);
+      continue;
+    }
+
+    const available = skillNamesBySource.get(bundle.source) || new Set();
+    const referenced = [
+      ...(bundle.skills || []),
+      ...(bundle.installOrder || []),
+      ...(bundle.coreSkill ? [bundle.coreSkill] : []),
+    ];
+    for (const name of referenced) {
+      if (!available.has(name)) {
+        problems.push(`${bundle.id}: missing skill ${name}`);
+      }
+    }
+  }
+
+  return problems;
 }
+
+test("bundles only reference skills that exist in their source", () => {
+  const problems = findDanglingBundleReferences(skillIndex);
+  assert.deepStrictEqual(
+    problems,
+    [],
+    `Dangling bundle references: ${problems}`,
+  );
+});
+
+test("the bundle gate detects a stale bundle reference", () => {
+  const problems = findDanglingBundleReferences({
+    sources: [{ id: "demo" }],
+    skills: [{ name: "kept", source: "demo" }],
+    bundles: [
+      {
+        id: "stale",
+        source: "demo",
+        skills: ["kept", "removed-upstream"],
+        coreSkill: "removed-upstream",
+      },
+    ],
+  });
+  assert.deepStrictEqual(problems, [
+    "stale: missing skill removed-upstream",
+    "stale: missing skill removed-upstream",
+  ]);
+});
+
+test("bundle installOrder covers exactly the bundled skills", () => {
+  const mismatches = [];
+  for (const bundle of skillIndex.bundles || []) {
+    if (!bundle.installOrder) {
+      continue;
+    }
+    const skills = [...(bundle.skills || [])].sort();
+    const order = [...bundle.installOrder].sort();
+    if (JSON.stringify(skills) !== JSON.stringify(order)) {
+      mismatches.push(bundle.id);
+    }
+  }
+  assert.deepStrictEqual(
+    mismatches,
+    [],
+    `installOrder does not match skills: ${mismatches}`,
+  );
+});
+
+test("the preset index generator refuses truncated GitHub trees", async () => {
+  await assert.rejects(
+    () =>
+      processTree({ tree: [], truncated: true }, "example", "demo", "main", {}),
+    /truncated/i,
+  );
+});
+
+test("the preset index generator refuses scanners it cannot run", async () => {
+  await assert.rejects(
+    () =>
+      processTree({ tree: [] }, "example", "demo", "main", {
+        id: "demo",
+        scanner: "top-level-dirs",
+      }),
+    /does not implement/i,
+  );
+});
+
+test("preset sources that rely on a fallback scanner declare it explicitly", () => {
+  const composio = skillIndex.sources.find(
+    (source) => source.id === "composio-awesome",
+  );
+  assert.ok(composio, "Expected composio-awesome source in bundled index");
+  assert.strictEqual(composio.scanner, "top-level-dirs");
+});
+
+test("the generator refuses a sharp per-source skill drop", () => {
+  const source = { id: "demo" };
+  assert.ok(assertNoUnexpectedShrink(source, 850, 0));
+  assert.ok(assertNoUnexpectedShrink(source, 850, 100));
+  assert.strictEqual(assertNoUnexpectedShrink(source, 850, 840), undefined);
+  assert.strictEqual(assertNoUnexpectedShrink(source, 0, 0), undefined);
+});
+
+test("regenerated sources carry a lastIndexedAt stamp", () => {
+  const regenerated = skillIndex.sources.find(
+    (source) => source.id === "prps-agentic",
+  );
+  assert.ok(regenerated, "Expected prps-agentic source in bundled index");
+  assert.strictEqual(typeof regenerated.lastIndexedAt, "string");
+});
+
+Promise.all(pending).then(() => {
+  if (process.exitCode) {
+    process.exit(process.exitCode);
+  }
+});

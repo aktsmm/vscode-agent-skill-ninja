@@ -233,6 +233,24 @@ async function getDefaultBranch(owner, repo) {
   return data.default_branch || "main";
 }
 
+const SHRINK_RATIO_THRESHOLD = 0.5;
+const ALLOW_SHRINK = process.env.SKILL_NINJA_ALLOW_SHRINK === "1";
+
+/**
+ * 既存件数に対する急減を検出する。許容する場合は SKILL_NINJA_ALLOW_SHRINK=1 を付ける。
+ */
+function assertNoUnexpectedShrink(source, previousCount, nextCount) {
+  if (ALLOW_SHRINK || previousCount === 0) {
+    return undefined;
+  }
+
+  if (nextCount === 0 || nextCount < previousCount * SHRINK_RATIO_THRESHOLD) {
+    return `Source ${source.id} dropped from ${previousCount} to ${nextCount} skills. Re-run with SKILL_NINJA_ALLOW_SHRINK=1 if the upstream removal is intentional.`;
+  }
+
+  return undefined;
+}
+
 /**
  * リポジトリ内の SKILL.md ファイルを検索
  */
@@ -276,6 +294,13 @@ async function scanRepositoryForSkills(source) {
  * ツリーを処理してスキルを抽出
  */
 async function processTree(data, owner, repoName, branch, source) {
+  // truncated のまま取り込むと、欠落したスキルが削除として確定してしまう
+  if (data.truncated) {
+    throw new Error(
+      `GitHub tree response was truncated for ${owner}/${repoName}. Narrow the source with includePaths or split the repository into smaller sources.`,
+    );
+  }
+
   // SKILL.md ファイルを探す
   const skillFiles = data.tree.filter((item) => {
     if (item.type !== "blob") return false;
@@ -287,6 +312,17 @@ async function processTree(data, owner, repoName, branch, source) {
   });
 
   console.log(`  📄 Found ${skillFiles.length} SKILL.md files`);
+
+  // 拡張本体は SKILL.md が 0 件のときだけ代替 scanner へ落とす。生成器はそれを持たないので黙って 0 件で確定させない。
+  if (
+    skillFiles.length === 0 &&
+    source.scanner &&
+    source.scanner !== "skill-md"
+  ) {
+    throw new Error(
+      `Source ${source.id} declares scanner "${source.scanner}", which the preset generator does not implement. Regenerate this source from the extension or narrow includePaths.`,
+    );
+  }
 
   const skills = [];
 
@@ -535,6 +571,16 @@ async function main() {
 
       allSkills.push(...skills);
       console.log(`  ✅ ${skills.length} skills`);
+
+      // 件数の急減はコード側の scan 規則ズレを示すことが多いので、黙って確定させない
+      const shrinkGuard = assertNoUnexpectedShrink(
+        source,
+        existingSkills.length,
+        skills.length,
+      );
+      if (shrinkGuard) {
+        throw new Error(shrinkGuard);
+      }
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
       console.error(`  ❌ Error: ${message}`);
@@ -580,10 +626,18 @@ async function main() {
   uniqueSkills.sort((a, b) => a.name.localeCompare(b.name));
 
   // インデックスを更新
+  // 再生成したソースには lastIndexedAt を刻む。無いと index.lastUpdated が代用され、
+  // 全ソースが同じ日に一斉 stale 化する。
+  const indexedAt = new Date().toISOString();
+  const updatedSourceIds = new Set(sourcesToUpdate.map((source) => source.id));
   const newIndex = {
     version: index.version,
     lastUpdated: new Date().toISOString().split("T")[0],
-    sources: index.sources,
+    sources: index.sources.map((source) =>
+      updatedSourceIds.has(source.id)
+        ? { ...source, lastIndexedAt: indexedAt }
+        : source,
+    ),
     categories: index.categories,
     bundles: index.bundles,
     skills: uniqueSkills,
@@ -613,4 +667,6 @@ module.exports = {
   normalizePathPrefix,
   pathMatchesPrefix,
   isSkillPathAllowed,
+  processTree,
+  assertNoUnexpectedShrink,
 };

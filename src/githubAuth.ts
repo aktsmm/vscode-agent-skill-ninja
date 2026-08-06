@@ -18,9 +18,7 @@ export function initializeGitHubAuth(context: vscode.ExtensionContext): void {
   pendingSecretStorageMutation = Promise.resolve();
 }
 
-function runSecretStorageMutation<T>(
-  mutation: () => Promise<T>,
-): Promise<T> {
+function runSecretStorageMutation<T>(mutation: () => Promise<T>): Promise<T> {
   const result = pendingSecretStorageMutation.then(mutation, mutation);
   pendingSecretStorageMutation = result.then(
     () => undefined,

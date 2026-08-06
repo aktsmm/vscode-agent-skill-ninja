@@ -83,7 +83,11 @@ import {
   migrateConfiguredGitHubTokenToSecretStorage,
   resolveGitHubToken,
 } from "./githubAuth";
-import { getStaleSources, type StaleSourceInfo } from "./sourceIndexFreshness";
+import {
+  getStaleSources,
+  selectStaleSourcesForRun,
+  type StaleSourceInfo,
+} from "./sourceIndexFreshness";
 import { GitHubResponseError, isGitHubResponseError } from "./githubResponse";
 import { runSourceIndexUpdateBatch } from "./sourceIndexUpdateBatch";
 import {
@@ -536,11 +540,19 @@ export function activate(
 
   async function updateStaleSourceIndexes(
     index: SkillIndex,
-    staleSources: StaleSourceInfo[],
+    allStaleSources: StaleSourceInfo[],
   ): Promise<SkillIndex> {
+    const { selected: staleSources, deferred } =
+      selectStaleSourcesForRun(allStaleSources);
+
     sourceIndexChannel.appendLine(
       `[${new Date().toISOString()}] Updating ${staleSources.length} stale source index(es)`,
     );
+    for (const entry of deferred) {
+      sourceIndexChannel.appendLine(
+        `[DEFERRED] ${getSourceDisplayName(entry.source)}`,
+      );
+    }
 
     const batchResult = await vscode.window.withProgress(
       {
@@ -606,7 +618,7 @@ export function activate(
     );
     if (notificationKind === "success") {
       vscode.window.showInformationMessage(
-        messages.staleSourceIndexUpdated(updatedCount, staleSources.length),
+        messages.staleSourceIndexUpdated(updatedCount, allStaleSources.length),
       );
     }
 
@@ -622,7 +634,7 @@ export function activate(
         messages.staleSourceIndexPartialFailed(
           updatedCount,
           failures.length,
-          staleSources.length,
+          allStaleSources.length,
           failures
             .slice(0, 3)
             .map((failure) => getSourceDisplayName(failure.entry.source))

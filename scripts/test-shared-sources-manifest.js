@@ -295,6 +295,8 @@ async function run() {
                 description: "Alpha source",
                 includePaths: ["skills/alpha"],
                 excludePaths: ["skills/alpha/tests"],
+                scanner: "top-level-dirs",
+                repoId: 4242,
               },
             ],
           },
@@ -317,6 +319,8 @@ async function run() {
         JSON.parse(JSON.stringify(index.sources[0].excludePaths)),
         ["skills/alpha/tests"],
       );
+      assert.strictEqual(index.sources[0].scanner, "top-level-dirs");
+      assert.strictEqual(index.sources[0].repoId, 4242);
       assert.deepStrictEqual(
         JSON.parse(JSON.stringify(index.skills.map((skill) => skill.source))),
         ["alpha"],

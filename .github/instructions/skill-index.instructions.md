@@ -25,7 +25,7 @@ applyTo: "**/resources/skill-index.json"
    - `muratcankoylan/Agent-Skills-for-Context-Engineering` - Context Engineering (5k+ stars)
    - `danielmiessler/LifeOS` - LifeOS Skills, PAI successor (3.5k+ stars)
    - `EveryInc/compound-engineering-plugin` - Compound Engineering (3.5k+ stars)
-   - `Wirasm/PRPs-agentic-eng` - PRP (Prompt Recipe Patterns)
+   - `Wirasm/prp` - PRP (Prompt Recipe Patterns)
    - `qdhenry/Claude-Command-Suite` - Claude Command Suite
 
 ### 除外済みソース
@@ -54,6 +54,13 @@ applyTo: "**/resources/skill-index.json"
 
 - マイナーアップデート（スキル追加・削除、メタデータ更新）: `1.X.0` → `1.(X+1).0`
 - パッチ（説明文修正など軽微な変更）: `1.X.Y` → `1.X.(Y+1)`
+
+## scanner の指定
+
+- 既定は SKILL.md 走査。`SKILL.md` 以外の並び（`.claude/commands` 配下、トップレベルディレクトリ、`registry.json`）に依存する source は `scanner` を明示する
+- 指定値: `skill-md` / `claude-commands` / `top-level-dirs` / `registry-json`
+- 未指定のときだけ repo 名ベースの legacy 判定へ落ちる。この判定は rename で黙って外れるため、プリセット source では依存しない
+- `skill-md` 以外を指定した source は `scripts/update-preset-index.js` で再生成できない（SKILL.md が 0 件のとき明示的に失敗する）。その場合は拡張機能側から更新する
 
 ## 更新時のチェックリスト
 

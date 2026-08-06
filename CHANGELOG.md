@@ -7,6 +7,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.9.35] - 2026-08-07
+
+### Added
+
+- 🛡️ **Repository Identity Guard** - Sources now store the GitHub numeric repository id and refuse to update when a URL starts resolving to a different repository, with a single aggregated warning / ソースに GitHub の数値リポジトリ ID を保存し、URL の参照先が別リポジトリに変わった場合は更新を拒否して 1 件の集約警告を表示するよう追加
+- 🧭 **Source Scanner Contract** - Sources can declare `scanner` (`skill-md` / `claude-commands` / `top-level-dirs` / `registry-json`) so a repository rename can no longer silently change how a source is scanned / ソースに `scanner` を宣言できるようにし、リポジトリのリネームでスキャン方式が黙って変わらないよう追加
+- 🧪 **Preset Completeness Gate** - `npm test` now verifies source referential integrity, empty sources, duplicate skill names, bundle references, `installOrder` consistency, README settings coverage, and documented output channel names / `npm test` にソース参照整合、空ソース、スキル名重複、bundle 参照、`installOrder` 整合、README 設定網羅、出力チャネル名の検証を追加
+
+### Fixed
+
+- 💾 **Empty Scan Protection** - A successful scan that returns zero skills no longer replaces an existing source's skills; the previous index is kept and the update is reported as failed / 取得結果が 0 件のスキャンで既存スキルを置き換えないよう修正し、既存インデックスを保持して更新を失敗として報告
+- 🔗 **Repository Rename Following** - Repository scanning resolves the canonical `owner/repo` from GitHub and writes it back to the source URL instead of relying on redirects / リポジトリスキャンで canonical な `owner/repo` を解決し、リダイレクト頼みにせずソース URL へ書き戻すよう修正
+- 📦 **Bundle Integrity** - Bundles are keyed by `source:id`, a rescanned source only replaces its own bundles when the scan produced any, and preset bundles removed from the bundled index are pruned from existing installs / bundle を `source:id` で識別し、再スキャンで bundle が得られた場合のみ置換して、bundled index から削除されたプリセット bundle を既存環境からも除去するよう修正
+- 🚦 **Bounded Stale Updates** - Startup refreshes at most five stale sources per run, defers the rest to the `Agent Skills Ninja: Source Index` output channel, and reports progress against the full stale count / 起動時の更新を 1 回あたり最大 5 ソースに制限し、残りを `Agent Skills Ninja: Source Index` 出力チャネルへ繰り越して、stale 全件を分母に進捗を報告するよう修正
+- 🗂️ **Preset Index Repairs** - Repointed the PRP source to its renamed repository, removed a bundle referencing skills that no longer exist, and dropped dangling bundle entries / PRP ソースをリネーム先へ付け替え、存在しないスキルを参照する bundle を削除し、宙に浮いた bundle 項目を整理
+- 📝 **Settings Documentation** - `skillNinja.staleSourceIndexUpdateMode` was missing from both README settings tables and the following rows were misnumbered; both READMEs now document it plus the source index refresh behavior / `skillNinja.staleSourceIndexUpdateMode` が両 README の設定表から欠落し以降の番号がずれていた問題を修正し、ソースインデックス更新の挙動も追記
+
 ## [0.9.34] - 2026-07-31
 
 ### Added

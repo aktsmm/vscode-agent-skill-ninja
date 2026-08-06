@@ -6,6 +6,7 @@ import {
   SkillIndex,
   Skill,
   Source,
+  SourceScanner,
   Bundle,
   saveSkillIndex,
 } from "./skillIndex";
@@ -22,6 +23,12 @@ import {
   fetchGitHubWithTimeout,
   GITHUB_REQUEST_TIMEOUT_MS,
 } from "./githubFetch";
+import {
+  createSourceBundleKey,
+  hasRepositoryIdentityChanged,
+  reconcileSourceBundles,
+  shouldPreserveSkillsOnEmptyScan,
+} from "./sourceUpdateReconcile";
 
 const FETCH_CONCURRENCY = 8;
 const GITHUB_API_VERSION = "2022-11-28";
@@ -38,9 +45,18 @@ function stampSourceIndexedAt(
   sources: Source[],
   sourceId: string,
   indexedAt: string,
+  canonicalUrl?: string,
+  repoId?: number,
 ): Source[] {
   return sources.map((source) =>
-    source.id === sourceId ? { ...source, lastIndexedAt: indexedAt } : source,
+    source.id === sourceId
+      ? {
+          ...source,
+          url: canonicalUrl || source.url,
+          repoId: repoId ?? source.repoId,
+          lastIndexedAt: indexedAt,
+        }
+      : source,
   );
 }
 
@@ -396,6 +412,106 @@ function parseTopLevelFrontmatter(frontmatter: string): Map<string, string> {
   return values;
 }
 
+export type SourceScanOptions = Pick<
+  Source,
+  "includePaths" | "excludePaths" | "scanner"
+>;
+
+/**
+ * source 定義の `scanner` を優先し、未指定のときだけ repo 名ベースの legacy 判定へ落とす。
+ * repo 名判定は rename で黙って外れるため、preset source では常に明示する。
+ */
+export function resolveSourceScanner(
+  repoName: string,
+  sourceOptions?: Pick<Source, "scanner">,
+): SourceScanner {
+  if (sourceOptions?.scanner) {
+    return sourceOptions.scanner;
+  }
+
+  const lowerName = repoName.toLowerCase();
+  if (lowerName.includes("skill-registry")) {
+    return "registry-json";
+  }
+  if (lowerName.includes("prps-agentic")) {
+    return "claude-commands";
+  }
+  if (lowerName.includes("awesome-claude-skills")) {
+    return "top-level-dirs";
+  }
+
+  return "skill-md";
+}
+
+interface ResolvedRepository {
+  owner: string;
+  repo: string;
+  defaultBranch?: string;
+  repoId?: number;
+}
+
+const repositoryResolutionCache = new Map<string, ResolvedRepository>();
+
+export function clearRepositoryResolutionCache(): void {
+  repositoryResolutionCache.clear();
+}
+
+/**
+ * owner/repo を canonical な値へ解決する。
+ * リネーム済みリポジトリでも GitHub の redirect に依存せずに済ませるため、
+ * full_name を正として以降の tree / raw URL を組み立てる。
+ */
+async function resolveRepository(
+  owner: string,
+  repo: string,
+  token?: string,
+): Promise<ResolvedRepository> {
+  const cacheKey = `${owner}/${repo}`.toLowerCase();
+  const cached = repositoryResolutionCache.get(cacheKey);
+  if (cached) {
+    return cached;
+  }
+
+  const fallback: ResolvedRepository = { owner, repo };
+  let response: Response;
+  try {
+    response = await githubFetch(
+      `https://api.github.com/repos/${owner}/${repo}`,
+      token,
+    );
+  } catch {
+    return fallback;
+  }
+
+  if (!response.ok) {
+    return fallback;
+  }
+
+  const info = (await response.json().catch(() => undefined)) as
+    | { full_name?: string; default_branch?: string; id?: number }
+    | undefined;
+  const [resolvedOwner, resolvedRepo] = (info?.full_name || "").split("/");
+  const resolved: ResolvedRepository = {
+    owner: resolvedOwner || owner,
+    repo: resolvedRepo || repo,
+    defaultBranch: info?.default_branch,
+    repoId: info?.id,
+  };
+
+  repositoryResolutionCache.set(cacheKey, resolved);
+  return resolved;
+}
+
+type ScanResult = { skills: Skill[]; source: Source; bundles?: Bundle[] };
+
+function withResolvedRepoId(result: ScanResult, repoId?: number): ScanResult {
+  if (repoId === undefined) {
+    return result;
+  }
+
+  return { ...result, source: { ...result.source, repoId } };
+}
+
 /**
  * リポジトリ内のSKILL.mdファイルを検索
  */
@@ -403,7 +519,7 @@ export async function scanRepositoryForSkills(
   repoUrl: string,
   token?: string,
   preferredBranch?: string, // skill-index.json で指定されたブランチ
-  sourceOptions?: Pick<Source, "includePaths" | "excludePaths">,
+  sourceOptions?: SourceScanOptions,
 ): Promise<{ skills: Skill[]; source: Source; bundles?: Bundle[] } | null> {
   // URLからowner/repoを抽出
   const match = repoUrl.match(/github\.com\/([^/]+)\/([^/]+)/);
@@ -411,28 +527,22 @@ export async function scanRepositoryForSkills(
     throw new Error("Invalid GitHub repository URL");
   }
 
-  const [, owner, repo] = match;
-  const repoName = repo.replace(/\.git$/, "");
+  const [, requestedOwner, requestedRepo] = match;
+  // リネーム済みリポジトリでは redirect 頼みにせず canonical な owner/repo を使う
+  const resolved = await resolveRepository(
+    requestedOwner,
+    requestedRepo.replace(/\.git$/, ""),
+    token,
+  );
+  const owner = resolved.owner;
+  const repoName = resolved.repo;
+  const canonicalUrl = `https://github.com/${owner}/${repoName}`;
 
   // ブランチを決定: 指定されたブランチ → デフォルトブランチを取得
-  let branch = preferredBranch;
-  if (!branch) {
-    // GitHub API でデフォルトブランチを取得
-    const repoInfoUrl = `https://api.github.com/repos/${owner}/${repoName}`;
-    const repoInfoResponse = await githubFetch(repoInfoUrl, token);
-    if (repoInfoResponse.ok) {
-      const repoInfo = (await repoInfoResponse.json()) as {
-        default_branch: string;
-      };
-      branch = repoInfo.default_branch;
-    } else {
-      branch = "main"; // フォールバック
-    }
-  }
+  const branch = preferredBranch || resolved.defaultBranch || "main";
 
   // claude-skill-registry 特別処理: registry.json から読み込む
-  const isSkillRegistry = repoName.toLowerCase().includes("skill-registry");
-  if (isSkillRegistry) {
+  if (resolveSourceScanner(repoName, sourceOptions) === "registry-json") {
     const registryResult = await scanSkillRegistryJson(
       owner,
       repoName,
@@ -441,7 +551,7 @@ export async function scanRepositoryForSkills(
       sourceOptions,
     );
     if (registryResult) {
-      return registryResult;
+      return withResolvedRepoId(registryResult, resolved.repoId);
     }
     // registry.json がない場合は通常処理にフォールバック
   }
@@ -461,14 +571,17 @@ export async function scanRepositoryForSkills(
           tree: Array<{ path: string; type: string }>;
           truncated?: boolean;
         };
-        return processTreeResponse(
-          fallbackData,
-          owner,
-          repoName,
-          repoUrl,
-          fallbackBranch,
-          token,
-          sourceOptions,
+        return withResolvedRepoId(
+          await processTreeResponse(
+            fallbackData,
+            owner,
+            repoName,
+            canonicalUrl,
+            fallbackBranch,
+            token,
+            sourceOptions,
+          ),
+          resolved.repoId,
         );
       }
       const fallbackBody = await fallbackResponse
@@ -506,14 +619,17 @@ export async function scanRepositoryForSkills(
     tree: Array<{ path: string; type: string }>;
     truncated?: boolean;
   };
-  return processTreeResponse(
-    responseData,
-    owner,
-    repoName,
-    repoUrl,
-    branch,
-    token,
-    sourceOptions,
+  return withResolvedRepoId(
+    await processTreeResponse(
+      responseData,
+      owner,
+      repoName,
+      canonicalUrl,
+      branch,
+      token,
+      sourceOptions,
+    ),
+    resolved.repoId,
   );
 }
 
@@ -563,7 +679,7 @@ async function processTreeResponse(
   repoUrl: string,
   branch: string,
   token?: string,
-  sourceOptions?: Pick<Source, "includePaths" | "excludePaths">,
+  sourceOptions?: SourceScanOptions,
 ): Promise<{ skills: Skill[]; source: Source; bundles?: Bundle[] }> {
   if (data.truncated) {
     throw new Error(
@@ -582,9 +698,9 @@ async function processTreeResponse(
     );
   });
   const canUseLegacyFallbackScanner = skillFiles.length === 0;
-  // PRPs-agentic-eng リポジトリの特別処理: .claude/commands/**/*.md をスキャン
-  const isPRPsRepo = repoName.toLowerCase().includes("prps-agentic");
-  if (isPRPsRepo && canUseLegacyFallbackScanner) {
+  const scanner = resolveSourceScanner(repoName, sourceOptions);
+
+  if (scanner === "claude-commands" && canUseLegacyFallbackScanner) {
     const claudeCommandSkills = await scanClaudeCommands(
       data,
       owner,
@@ -606,11 +722,7 @@ async function processTreeResponse(
     return { skills: claudeCommandSkills, source };
   }
 
-  // ComposioHQ/awesome-claude-skills リポジトリの特別処理: トップレベルディレクトリをスキル扱い
-  const isComposioRepo = repoName
-    .toLowerCase()
-    .includes("awesome-claude-skills");
-  if (isComposioRepo && canUseLegacyFallbackScanner) {
+  if (scanner === "top-level-dirs" && canUseLegacyFallbackScanner) {
     const composioSkills = scanComposioSkills(
       data,
       owner,
@@ -1351,6 +1463,19 @@ export async function updateSingleSource(
       throw new Error(`Failed to scan repository: ${source.url}`);
     }
 
+    if (hasRepositoryIdentityChanged(source.repoId, result.source.repoId)) {
+      throw new Error(
+        messages.sourceIndexRepositoryIdentityChanged(
+          source.repoId as number,
+          result.source.repoId as number,
+        ),
+      );
+    }
+
+    if (shouldPreserveSkillsOnEmptyScan(result.skills.length, oldSkillCount)) {
+      throw new Error(messages.sourceIndexEmptyScanKept(oldSkillCount));
+    }
+
     // 新しいスキルを追加（既存の説明があれば保持）
     const updatedSkills: Skill[] = [];
     for (const skill of result.skills) {
@@ -1368,6 +1493,8 @@ export async function updateSingleSource(
         currentIndex.sources,
         sourceId,
         getSourceIndexedStamp(),
+        result.source.url,
+        result.source.repoId,
       ),
       skills: [...otherSkills, ...updatedSkills],
       lastUpdated: getIndexDateStamp(),
@@ -1424,9 +1551,21 @@ export async function updateIndexFromSources(
   const updatedSkills: Skill[] = [];
   const updatedBundles: Bundle[] = [];
   const updatedSourceIds = new Set<string>();
+  const handledSourceIds = new Set<string>();
+  const canonicalSourceUrls = new Map<string, string>();
+  const resolvedRepoIds = new Map<string, number>();
+  const identityMismatchedSources: string[] = [];
   const totalSources = currentIndex.sources.length;
 
   for (const source of currentIndex.sources) {
+    handledSourceIds.add(source.id);
+    const existingSkillsForSource = currentIndex.skills.filter(
+      (s) => s.source === source.id,
+    );
+    const existingBundlesForSource = (currentIndex.bundles || []).filter(
+      (b) => b.source === source.id,
+    );
+
     try {
       progress?.report({
         message: messages.updatingSource(source.name),
@@ -1441,7 +1580,36 @@ export async function updateIndexFromSources(
         source,
       );
       if (result) {
+        if (hasRepositoryIdentityChanged(source.repoId, result.source.repoId)) {
+          console.warn(
+            `[Skill Ninja] Source ${source.id} now resolves to repository ${result.source.repoId} instead of ${source.repoId}; keeping the stored index`,
+          );
+          updatedSkills.push(...existingSkillsForSource);
+          updatedBundles.push(...existingBundlesForSource);
+          continue;
+        }
+
+        if (
+          shouldPreserveSkillsOnEmptyScan(
+            result.skills.length,
+            existingSkillsForSource.length,
+          )
+        ) {
+          console.warn(
+            `[Skill Ninja] Source ${source.id} returned 0 skills; keeping ${existingSkillsForSource.length} existing skill(s)`,
+          );
+          updatedSkills.push(...existingSkillsForSource);
+          updatedBundles.push(...existingBundlesForSource);
+          continue;
+        }
+
         updatedSourceIds.add(source.id);
+        if (result.source.url && result.source.url !== source.url) {
+          canonicalSourceUrls.set(source.id, result.source.url);
+        }
+        if (result.source.repoId !== undefined) {
+          resolvedRepoIds.set(source.id, result.source.repoId);
+        }
         // 既存の説明があれば保持、なければGitHubから取得した説明を使用
         // source ID は既存の source.id を使用（GitHub から生成された ID ではなく）
         for (const skill of result.skills) {
@@ -1457,35 +1625,28 @@ export async function updateIndexFromSources(
           });
         }
 
-        // Bundlesもマージ（source ID を修正）
-        if (result.bundles?.length) {
-          for (const bundle of result.bundles) {
-            updatedBundles.push({
-              ...bundle,
-              source: source.id,
-            });
-          }
-        }
+        updatedBundles.push(
+          ...reconcileSourceBundles(
+            existingBundlesForSource,
+            result.bundles,
+            source.id,
+          ),
+        );
       }
     } catch (error) {
       console.warn(`Failed to update source ${source.id}:`, error);
-      // 更新に失敗したソースの既存スキルは保持
-      const existingSkills = currentIndex.skills.filter(
-        (s) => s.source === source.id,
-      );
-      updatedSkills.push(...existingSkills);
-      // 既存のBundlesも保持
-      const existingBundles = (currentIndex.bundles || []).filter(
-        (b) => b.source === source.id,
-      );
-      updatedBundles.push(...existingBundles);
+      // 更新に失敗したソースの既存スキルとBundlesは保持
+      updatedSkills.push(...existingSkillsForSource);
+      updatedBundles.push(...existingBundlesForSource);
     }
   }
 
-  // 既存のBundles（バンドル版から来たもの）を保持しつつ、新規を追加
-  const existingBundleIds = new Set(updatedBundles.map((b) => b.id));
+  // 現在の source 一覧に属さない孤立 bundle だけを温存する
+  const handledBundleKeys = new Set(updatedBundles.map(createSourceBundleKey));
   const preservedBundles = (currentIndex.bundles || []).filter(
-    (b) => !existingBundleIds.has(b.id),
+    (b) =>
+      !handledSourceIds.has(b.source) &&
+      !handledBundleKeys.has(createSourceBundleKey(b)),
   );
   const indexedAt = getSourceIndexedStamp();
 
@@ -1494,7 +1655,12 @@ export async function updateIndexFromSources(
     lastUpdated: getIndexDateStamp(),
     sources: currentIndex.sources.map((source) =>
       updatedSourceIds.has(source.id)
-        ? { ...source, lastIndexedAt: indexedAt }
+        ? {
+            ...source,
+            url: canonicalSourceUrls.get(source.id) || source.url,
+            repoId: resolvedRepoIds.get(source.id) ?? source.repoId,
+            lastIndexedAt: indexedAt,
+          }
         : source,
     ),
     skills: updatedSkills,
@@ -1503,6 +1669,14 @@ export async function updateIndexFromSources(
 
   // 保存
   await saveSkillIndex(context, updatedIndex);
+
+  if (identityMismatchedSources.length > 0) {
+    vscode.window.showWarningMessage(
+      messages.sourceIndexRepositoryIdentitySkipped(
+        identityMismatchedSources.join(", "),
+      ),
+    );
+  }
 
   return updatedIndex;
 }
@@ -1553,6 +1727,32 @@ export async function updateIndexFromSingleSource(
   const otherBundles = (currentIndex.bundles || []).filter(
     (b) => b.source !== sourceId,
   );
+  const existingSkillsForSource = currentIndex.skills.filter(
+    (s) => s.source === sourceId,
+  );
+  const existingBundlesForSource = (currentIndex.bundles || []).filter(
+    (b) => b.source === sourceId,
+  );
+
+  if (hasRepositoryIdentityChanged(source.repoId, result.source.repoId)) {
+    throw new Error(
+      messages.sourceIndexRepositoryIdentityChanged(
+        source.repoId as number,
+        result.source.repoId as number,
+      ),
+    );
+  }
+
+  if (
+    shouldPreserveSkillsOnEmptyScan(
+      result.skills.length,
+      existingSkillsForSource.length,
+    )
+  ) {
+    throw new Error(
+      messages.sourceIndexEmptyScanKept(existingSkillsForSource.length),
+    );
+  }
 
   // 新しいスキルをマージ
   const newSkills: Skill[] = [];
@@ -1570,10 +1770,11 @@ export async function updateIndexFromSingleSource(
   }
 
   // 新しいバンドルをマージ
-  const newBundles: Bundle[] = (result.bundles || []).map((b) => ({
-    ...b,
-    source: sourceId,
-  }));
+  const newBundles: Bundle[] = reconcileSourceBundles(
+    existingBundlesForSource,
+    result.bundles,
+    sourceId,
+  );
 
   progress?.report({
     message: messages.sourceIndexSkillsUpdatedProgress(newSkills.length),
@@ -1587,6 +1788,8 @@ export async function updateIndexFromSingleSource(
       currentIndex.sources,
       sourceId,
       getSourceIndexedStamp(),
+      result.source.url,
+      result.source.repoId,
     ),
     skills: [...otherSkills, ...newSkills],
     bundles: [...otherBundles, ...newBundles],
@@ -1623,13 +1826,38 @@ export async function addSource(
     (s) => s.id === result.source.id,
   );
 
+  // 既存のスキルを除外して新しいスキルを追加
+  const existingSkills = currentIndex.skills.filter(
+    (s) => s.source !== result.source.id,
+  );
+  const existingSkillsForSource = currentIndex.skills.filter(
+    (s) => s.source === result.source.id,
+  );
+
+  if (
+    shouldPreserveSkillsOnEmptyScan(
+      result.skills.length,
+      existingSkillsForSource.length,
+    )
+  ) {
+    throw new Error(
+      messages.sourceIndexEmptyScanKept(existingSkillsForSource.length),
+    );
+  }
+
   let updatedSources: Source[];
   const indexedAt = getSourceIndexedStamp();
   if (existingSourceIndex >= 0) {
-    // 既存ソースを更新
+    // 既存ソースを更新。scanner や path フィルタなどの curation 設定はスキャン結果で上書きしない
+    const existingSource = currentIndex.sources[existingSourceIndex];
     updatedSources = [...currentIndex.sources];
     updatedSources[existingSourceIndex] = {
       ...result.source,
+      scanner: existingSource.scanner ?? result.source.scanner,
+      includePaths: existingSource.includePaths ?? result.source.includePaths,
+      excludePaths: existingSource.excludePaths ?? result.source.excludePaths,
+      description_ja:
+        existingSource.description_ja ?? result.source.description_ja,
       lastIndexedAt: indexedAt,
     };
   } else {
@@ -1640,17 +1868,20 @@ export async function addSource(
     ];
   }
 
-  // 既存のスキルを除外して新しいスキルを追加
-  const existingSkills = currentIndex.skills.filter(
-    (s) => s.source !== result.source.id,
-  );
   const updatedSkills = [...existingSkills, ...result.skills];
 
   // Bundlesもマージ
   const existingBundles = (currentIndex.bundles || []).filter(
     (b) => b.source !== result.source.id,
   );
-  const updatedBundles = [...existingBundles, ...(result.bundles || [])];
+  const updatedBundles = [
+    ...existingBundles,
+    ...reconcileSourceBundles(
+      (currentIndex.bundles || []).filter((b) => b.source === result.source.id),
+      result.bundles,
+      result.source.id,
+    ),
+  ];
 
   const updatedIndex: SkillIndex = {
     ...currentIndex,

@@ -47,6 +47,8 @@ function normalizeSourceEntry(source: SourceEntry): SourceEntry {
     description_ja: source.description_ja,
     includePaths: normalizePathList(source.includePaths),
     excludePaths: normalizePathList(source.excludePaths),
+    scanner: source.scanner,
+    repoId: typeof source.repoId === "number" ? source.repoId : undefined,
   };
 }
 

@@ -62,6 +62,11 @@ Module._load = function patchedLoad(request, parent, isMain) {
       fetchGitHubWithTimeout: async (url, init) => fetch(url, init),
     };
   }
+  if (request === "./sourceUpdateReconcile") {
+    return requireTypeScriptModule(
+      path.join(__dirname, "..", "src", "sourceUpdateReconcile.ts"),
+    );
+  }
   return originalLoad.call(this, request, parent, isMain);
 };
 

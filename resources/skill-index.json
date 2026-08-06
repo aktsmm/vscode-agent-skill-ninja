@@ -1,6 +1,6 @@
 {
-  "version": "1.25.0",
-  "lastUpdated": "2026-07-28",
+  "version": "1.26.0",
+  "lastUpdated": "2026-08-06",
   "sources": [
     {
       "id": "anthropics-skills",
@@ -40,6 +40,7 @@
       "url": "https://github.com/ComposioHQ/awesome-claude-skills",
       "type": "awesome-list",
       "branch": "master",
+      "scanner": "top-level-dirs",
       "description": "Awesome Claude Skills (ComposioHQ)",
       "description_ja": "Awesome Claude Skills (ComposioHQ)"
     },
@@ -56,7 +57,9 @@
       "name": "LifeOS Skills (PAI successor)",
       "url": "https://github.com/danielmiessler/LifeOS",
       "type": "community",
-      "includePaths": ["LifeOS/install/skills"],
+      "includePaths": [
+        "LifeOS/install/skills"
+      ],
       "description": "LifeOS Skills (PAI successor)",
       "description_ja": "LifeOS Skills (PAI successor)"
     },
@@ -70,12 +73,16 @@
     },
     {
       "id": "prps-agentic",
-      "name": "PRPs Agentic Engineering",
-      "url": "https://github.com/Wirasm/PRPs-agentic-eng",
+      "name": "PRP Agentic Engineering",
+      "url": "https://github.com/Wirasm/prp",
       "type": "community",
       "branch": "development",
-      "description": "PRPs Agentic Engineering",
-      "description_ja": "PRPs Agentic Engineering"
+      "includePaths": [
+        ".agents/skills"
+      ],
+      "description": "PRP Agentic Engineering",
+      "description_ja": "PRP Agentic Engineering",
+      "lastIndexedAt": "2026-08-06T16:09:38.739Z"
     },
     {
       "id": "claude-command-suite",
@@ -93,7 +100,9 @@
       "branch": "main",
       "description": "oh-my-codex (OMX) Codex workflow skills",
       "description_ja": "oh-my-codex (OMX) Codex workflow skills",
-      "includePaths": ["skills"]
+      "includePaths": [
+        "skills"
+      ]
     },
     {
       "id": "openai-skills",
@@ -231,35 +240,17 @@
       "id": "pai-kai",
       "name": "PAI Kai Bundle",
       "source": "pai-packs",
-      "description": "Complete PAI infrastructure - Core, Agents, Art, Prompting",
-      "description_ja": "PAI完全セット - コア・エージェント・アート・プロンプティング",
-      "skills": ["CORE", "Agents", "Art", "CreateSkill", "Prompting"],
-      "installOrder": ["CORE", "Agents", "Art", "CreateSkill", "Prompting"],
-      "coreSkill": "CORE"
-    },
-    {
-      "id": "prp-core",
-      "name": "PRP Core Bundle",
-      "source": "prps-agentic",
-      "description": "Core PRP workflow patterns (create/execute/commit/review/pr)",
-      "description_ja": "PRPコアワークフロー（作成・実行・コミット・レビュー・PR）",
+      "description": "PAI infrastructure skills - Art, CreateSkill, Prompting",
+      "description_ja": "PAI 基盤スキル - アート・スキル作成・プロンプティング",
       "skills": [
-        "prp-core/prp-core-create",
-        "prp-core/prp-core-execute",
-        "prp-core/prp-core-commit",
-        "prp-core/prp-core-review",
-        "prp-core/prp-core-pr",
-        "prp-core/prp-core-new-branch",
-        "prp-core/prp-core-run-all"
+        "Art",
+        "CreateSkill",
+        "Prompting"
       ],
       "installOrder": [
-        "prp-core/prp-core-create",
-        "prp-core/prp-core-execute",
-        "prp-core/prp-core-commit",
-        "prp-core/prp-core-review",
-        "prp-core/prp-core-pr",
-        "prp-core/prp-core-new-branch",
-        "prp-core/prp-core-run-all"
+        "Art",
+        "CreateSkill",
+        "Prompting"
       ]
     }
   ],
@@ -984,7 +975,9 @@
       "name": "artifacts-builder",
       "source": "composio-awesome",
       "path": "artifacts-builder",
-      "categories": ["community"],
+      "categories": [
+        "community"
+      ],
       "description": "Suite of tools for creating elaborate, multi-component claude.ai HTML artifacts using modern frontend web technologies (React, Tailwind CSS, shadcn/ui). Use for complex artifacts requiring state management, routing, or shadcn/ui components - not for simple single-file HTML/JSX artifacts.",
       "description_ja": "Artifacts Builder"
     },
@@ -3534,7 +3527,9 @@
       "name": "changelog-generator",
       "source": "composio-awesome",
       "path": "changelog-generator",
-      "categories": ["community"],
+      "categories": [
+        "community"
+      ],
       "description": "Automatically creates user-facing changelogs from git commits by analyzing commit history, categorizing changes, and transforming technical commits into clear, customer-friendly release notes. Turns hours of manual changelog writing into minutes of automated generation.",
       "description_ja": "Changelog Generator"
     },
@@ -3863,7 +3858,9 @@
       "name": "competitive-ads-extractor",
       "source": "composio-awesome",
       "path": "competitive-ads-extractor",
-      "categories": ["community"],
+      "categories": [
+        "community"
+      ],
       "description": "Extracts and analyzes competitors' ads from ad libraries (Facebook, LinkedIn, etc.) to understand what messaging, problems, and creative approaches are working. Helps inspire and improve your own ad campaigns.",
       "description_ja": "Extract competitive advertising data"
     },
@@ -3903,7 +3900,9 @@
       "name": "connect",
       "source": "composio-awesome",
       "path": "connect",
-      "categories": ["community"],
+      "categories": [
+        "community"
+      ],
       "description": "Connect Claude to any app. Send emails, create issues, post messages, update databases - take real actions across Gmail, Slack, GitHub, Notion, and 1000+ services.",
       "description_ja": "Connect"
     },
@@ -3911,7 +3910,9 @@
       "name": "connect-apps",
       "source": "composio-awesome",
       "path": "connect-apps",
-      "categories": ["community"],
+      "categories": [
+        "community"
+      ],
       "description": "Connect Claude to external apps like Gmail, Slack, GitHub. Use this skill when the user wants to send emails, create issues, post messages, or take actions in external services.",
       "description_ja": "Connect Apps"
     },
@@ -3943,7 +3944,9 @@
       "name": "content-research-writer",
       "source": "composio-awesome",
       "path": "content-research-writer",
-      "categories": ["community"],
+      "categories": [
+        "community"
+      ],
       "description": "Assists in writing high-quality content by conducting research, adding citations, improving hooks, iterating on outlines, and providing real-time feedback on each section. Transforms your writing process from solo effort to collaborative partnership.",
       "description_ja": "Content Research Writer"
     },
@@ -4501,7 +4504,9 @@
       "name": "developer-growth-analysis",
       "source": "composio-awesome",
       "path": "developer-growth-analysis",
-      "categories": ["community"],
+      "categories": [
+        "community"
+      ],
       "description": "Analyzes your recent Claude Code chat history to identify coding patterns, development gaps, and areas for improvement, curates relevant learning resources from HackerNews, and automatically sends a personalized growth report to your Slack DMs.",
       "description_ja": "Developer Growth Analysis"
     },
@@ -4741,7 +4746,9 @@
       "name": "domain-name-brainstormer",
       "source": "composio-awesome",
       "path": "domain-name-brainstormer",
-      "categories": ["community"],
+      "categories": [
+        "community"
+      ],
       "description": "Generates creative domain name ideas for your project and checks availability across multiple TLDs (.com, .io, .dev, .ai, etc.). Saves hours of brainstorming and manual checking.",
       "description_ja": "Brainstorm domain names"
     },
@@ -5288,7 +5295,9 @@
       "name": "file-organizer",
       "source": "composio-awesome",
       "path": "file-organizer",
-      "categories": ["community"],
+      "categories": [
+        "community"
+      ],
       "description": "Intelligently organizes your files and folders across your computer by understanding context, finding duplicates, suggesting better structures, and automating cleanup tasks. Reduces cognitive load and keeps your digital workspace tidy without manual effort.",
       "description_ja": "Organize files and directories"
     },
@@ -6574,7 +6583,9 @@
       "name": "image-enhancer",
       "source": "composio-awesome",
       "path": "image-enhancer",
-      "categories": ["community"],
+      "categories": [
+        "community"
+      ],
       "description": "Improves the quality of images, especially screenshots, by enhancing resolution, sharpness, and clarity. Perfect for preparing images for presentations, documentation, or social media posts.",
       "description_ja": "Enhance and edit images"
     },
@@ -6688,7 +6699,9 @@
       "name": "invoice-organizer",
       "source": "composio-awesome",
       "path": "invoice-organizer",
-      "categories": ["community"],
+      "categories": [
+        "community"
+      ],
       "description": "Automatically organizes invoices and receipts for tax preparation by reading messy files, extracting key information, renaming them consistently, and sorting them into logical folders. Turns hours of manual bookkeeping into minutes of automated organization.",
       "description_ja": "Organize and manage invoices"
     },
@@ -6995,7 +7008,9 @@
       "name": "langsmith-fetch",
       "source": "composio-awesome",
       "path": "langsmith-fetch",
-      "categories": ["community"],
+      "categories": [
+        "community"
+      ],
       "description": "Debug LangChain and LangGraph agents by fetching execution traces from LangSmith Studio. Use when debugging agent behavior, investigating errors, analyzing tool calls, checking memory operations, or examining agent performance. Automatically fetches recent traces and analyzes execution patterns. Requires langsmith-fetch CLI installed.",
       "description_ja": "Langsmith Fetch"
     },
@@ -7027,7 +7042,9 @@
       "name": "lead-research-assistant",
       "source": "composio-awesome",
       "path": "lead-research-assistant",
-      "categories": ["community"],
+      "categories": [
+        "community"
+      ],
       "description": "Identifies high-quality leads for your product or service by analyzing your business, searching for target companies, and providing actionable contact strategies. Perfect for sales, business development, and marketing professionals.",
       "description_ja": "Research leads and contacts"
     },
@@ -7414,7 +7431,9 @@
       "name": "meeting-insights-analyzer",
       "source": "composio-awesome",
       "path": "meeting-insights-analyzer",
-      "categories": ["community"],
+      "categories": [
+        "community"
+      ],
       "description": "Analyzes meeting transcripts and recordings to uncover behavioral patterns, communication insights, and actionable feedback. Identifies when you avoid conflict, use filler words, dominate conversations, or miss opportunities to listen. Perfect for professionals seeking to improve their communication and leadership skills.",
       "description_ja": "Analyze meeting insights"
     },
@@ -8687,6 +8706,126 @@
       "description_ja": ""
     },
     {
+      "name": "prp-codebase-question",
+      "source": "prps-agentic",
+      "path": ".agents/skills/prp-codebase-question",
+      "categories": [],
+      "description": "Research codebase questions using parallel agents - documents what exists, not what should change. Use when the user asks how the codebase works, where something lives, or invokes $prp-codebase-question.",
+      "description_ja": ""
+    },
+    {
+      "name": "prp-commit",
+      "source": "prps-agentic",
+      "path": ".agents/skills/prp-commit",
+      "categories": [],
+      "description": "Quick commit with natural language file targeting. Use when the user wants to commit changes, stage and commit specific files, or invokes $prp-commit.",
+      "description_ja": ""
+    },
+    {
+      "name": "prp-debug",
+      "source": "prps-agentic",
+      "path": ".agents/skills/prp-debug",
+      "categories": [],
+      "description": "Deep root cause analysis - finds the actual cause, not just symptoms. Use when the user reports a bug, error, or stacktrace, wants to debug or do root-cause analysis, or invokes $prp-debug.",
+      "description_ja": ""
+    },
+    {
+      "name": "prp-diagram",
+      "source": "prps-agentic",
+      "path": ".agents/skills/prp-diagram",
+      "categories": [],
+      "description": "Generate a mermaid-only visual supplement for a plan artifact - the data-model, architecture, and flow diagrams a human wants when absorbing a plan. Use when the user wants to \"diagram this plan\", \"visualize the plan\", \"draw the plan's architecture\", \"make diagrams for this plan\", or invokes $prp-diagram.",
+      "description_ja": ""
+    },
+    {
+      "name": "prp-implement",
+      "source": "prps-agentic",
+      "path": ".agents/skills/prp-implement",
+      "categories": [],
+      "description": "Execute an implementation plan with rigorous validation loops. Use when the user wants to implement or execute a plan file, build a planned feature, or invokes $prp-implement.",
+      "description_ja": ""
+    },
+    {
+      "name": "prp-issue",
+      "source": "prps-agentic",
+      "path": ".agents/skills/prp-issue",
+      "categories": [],
+      "description": "Investigate a GitHub issue and implement the fix - analyze codebase, create a plan, then code, PR, review by the review agents, and act on their findings. Use when the user wants to investigate or triage a GitHub issue or bug report, fix an investigated issue, implement an issue fix, or invokes $prp-issue.",
+      "description_ja": ""
+    },
+    {
+      "name": "prp-loop",
+      "source": "prps-agentic",
+      "path": ".agents/skills/prp-loop",
+      "categories": [],
+      "description": "Run the autonomous cyclic PRP pipeline end to end (plan → implement → pr → review, looping review→fix until the PR is clean). Use when the user wants to \"ship feature X end to end\", \"run the full PRP loop\", \"auto-implement and open a PR for a feature\", or invokes $prp-loop.",
+      "description_ja": ""
+    },
+    {
+      "name": "prp-meta-skill",
+      "source": "prps-agentic",
+      "path": ".agents/skills/prp-meta-skill",
+      "categories": [],
+      "description": "Author new Claude Code skills PRP-style, and refactor existing fat skills into a lean SKILL.md plus references/. Use when the user wants to \"create a skill\", \"write a new skill\", \"turn a command into a skill\", \"split a skill into references\", \"trim a SKILL.md\", \"extract output templates from a skill\", \"make a skill leaner\", or invokes $prp-meta-skill.",
+      "description_ja": ""
+    },
+    {
+      "name": "prp-orchestrate",
+      "source": "prps-agentic",
+      "path": ".agents/skills/prp-orchestrate",
+      "categories": [],
+      "description": "Turn the current session into an SDLC orchestrator that coordinates parallel background agents running PRP skills in isolated worktrees - decompose work into workstreams, launch and steer background agents with your harness's delegation tools, hold review gates as the user's proxy, and sequence merges. Use when the user wants to \"spawn N agents in separate worktrees\", \"run prp-issue on these issues in parallel\", \"orchestrate these features\", \"act as my orchestrator\", \"coordinate agents through the PRP pipeline\", \"ship these issues in parallel\", or invokes $prp-orchestrate.",
+      "description_ja": ""
+    },
+    {
+      "name": "prp-plan",
+      "source": "prps-agentic",
+      "path": ".agents/skills/prp-plan",
+      "categories": [],
+      "description": "Create comprehensive feature implementation plan with codebase analysis and research. Also wires bidirectional back/forward references between existing plans (the update-references workflow). Use when the user wants to plan a feature, turn a PRD into an implementation plan, \"link two plans\", \"add a back/forward reference\", \"connect related plans\", or invokes $prp-plan.",
+      "description_ja": ""
+    },
+    {
+      "name": "prp-pr",
+      "source": "prps-agentic",
+      "path": ".agents/skills/prp-pr",
+      "categories": [],
+      "description": "Create a PR from current branch with unpushed commits. Use when the user wants to open or create a pull request, push and PR a branch, or invokes $prp-pr.",
+      "description_ja": ""
+    },
+    {
+      "name": "prp-prd",
+      "source": "prps-agentic",
+      "path": ".agents/skills/prp-prd",
+      "categories": [],
+      "description": "Interactive PRD generator - problem-first, hypothesis-driven product spec. Use when the user wants to create a PRD, write a product or feature spec, scope a new product, or invokes $prp-prd.",
+      "description_ja": ""
+    },
+    {
+      "name": "prp-review",
+      "source": "prps-agentic",
+      "path": ".agents/skills/prp-review",
+      "categories": [],
+      "description": "Comprehensive PR code review - checks diff, patterns, runs validation, comments on PR. Single-pass by default; pass --agents for a multi-agent specialist fan-out (comments, tests, errors, types, code, docs, simplify). Use when the user wants to review a pull request, wants a thorough/multi-agent review, or invokes $prp-review.",
+      "description_ja": ""
+    },
+    {
+      "name": "prp-worklist",
+      "source": "prps-agentic",
+      "path": ".agents/skills/prp-worklist",
+      "categories": [],
+      "description": "Render the open work of a repository as something worth looking at, so the maintainer can see what to take next. Deliberate invocation only — $prp-worklist.",
+      "description_ja": ""
+    },
+    {
+      "name": "prp-worktree",
+      "source": "prps-agentic",
+      "path": ".agents/skills/prp-worktree",
+      "categories": [],
+      "description": "Git-native worktree management via a bundled single-file CLI - create, list (with per-worktree git stats), and safely tear down isolated checkouts under .worktrees/ for parallel workstreams. Use when the user or an orchestrating skill wants to \"create a worktree\", \"work on this in a separate worktree\", \"spin up an isolated checkout\", \"list my worktrees\", \"clean up / remove a worktree\", or invokes $prp-worktree.",
+      "description_ja": ""
+    },
+    {
       "name": "pushbullet-automation",
       "source": "composio-awesome",
       "path": "composio-skills/pushbullet-automation",
@@ -8754,7 +8893,9 @@
       "name": "raffle-winner-picker",
       "source": "composio-awesome",
       "path": "raffle-winner-picker",
-      "categories": ["community"],
+      "categories": [
+        "community"
+      ],
       "description": "Picks random winners from lists, spreadsheets, or Google Sheets for giveaways, raffles, and contests. Ensures fair, unbiased selection with transparency.",
       "description_ja": "Pick raffle winners randomly"
     },
@@ -9736,7 +9877,9 @@
       "name": "skill-share",
       "source": "composio-awesome",
       "path": "skill-share",
-      "categories": ["community"],
+      "categories": [
+        "community"
+      ],
       "description": "A skill that creates new Claude skills and automatically shares them on Slack using Rube for seamless team collaboration and skill discovery.",
       "description_ja": "Share skills across teams"
     },
@@ -10073,7 +10216,9 @@
       "name": "tailored-resume-generator",
       "source": "composio-awesome",
       "path": "tailored-resume-generator",
-      "categories": ["community"],
+      "categories": [
+        "community"
+      ],
       "description": "Analyzes job descriptions and generates tailored resumes that highlight relevant experience, skills, and achievements to maximize interview chances",
       "description_ja": "Tailored Resume Generator"
     },
@@ -10499,7 +10644,9 @@
       "name": "twitter-algorithm-optimizer",
       "source": "composio-awesome",
       "path": "twitter-algorithm-optimizer",
-      "categories": ["community"],
+      "categories": [
+        "community"
+      ],
       "description": "Analyze and optimize tweets for maximum reach using Twitter's open-source algorithm insights. Rewrite and edit user tweets to improve engagement and visibility based on how the recommendation system ranks content.",
       "description_ja": "Twitter Algorithm Optimizer"
     },

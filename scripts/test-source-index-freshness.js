@@ -8,7 +8,6 @@ const ts = require("typescript");
 
 const repoRoot = path.resolve(__dirname, "..");
 const modulePath = path.join(repoRoot, "src", "sourceIndexFreshness.ts");
-
 function loadModule() {
   const source = fs.readFileSync(modulePath, "utf8");
   const transpiled = ts.transpileModule(source, {
@@ -45,8 +44,72 @@ function test(name, fn) {
   }
 }
 
-const { getSourceIndexAgeDays, getStaleSources } = loadModule();
+const {
+  getSourceIndexAgeDays,
+  getStaleSources,
+  selectStaleSourcesForRun,
+  MAX_STALE_SOURCE_UPDATES_PER_RUN,
+} = loadModule();
 const now = new Date("2026-06-24T12:00:00.000Z");
+
+function staleEntry(id, daysOld) {
+  return { source: { id }, daysOld, isUnknown: false };
+}
+
+test("a stale batch is capped and the rest is deferred", () => {
+  const entries = Array.from({ length: 13 }, (_, index) =>
+    staleEntry(`source-${index}`, 100 - index),
+  );
+
+  const { selected, deferred } = selectStaleSourcesForRun(entries);
+
+  assert.strictEqual(selected.length, MAX_STALE_SOURCE_UPDATES_PER_RUN);
+  assert.strictEqual(
+    deferred.length,
+    entries.length - MAX_STALE_SOURCE_UPDATES_PER_RUN,
+  );
+  assert.strictEqual(selected[0].source.id, "source-0");
+  assert.strictEqual(
+    deferred[0].source.id,
+    `source-${MAX_STALE_SOURCE_UPDATES_PER_RUN}`,
+  );
+});
+
+test("a batch at or under the cap defers nothing", () => {
+  const entries = [staleEntry("a", 40), staleEntry("b", 35)];
+  const { selected, deferred } = selectStaleSourcesForRun(entries);
+
+  assert.strictEqual(selected.length, 2);
+  assert.strictEqual(deferred.length, 0);
+});
+
+test("stamped and unstamped sources are aged independently", () => {
+  const index = createIndex({
+    lastUpdated: "2026-05-01",
+    sources: [
+      {
+        id: "stamped-fresh",
+        name: "Stamped Fresh",
+        url: "https://github.com/example/stamped",
+        type: "preset",
+        description: "Stamped source",
+        lastIndexedAt: "2026-06-20T00:00:00.000Z",
+      },
+      {
+        id: "unstamped",
+        name: "Unstamped",
+        url: "https://github.com/example/unstamped",
+        type: "preset",
+        description: "Unstamped source",
+      },
+    ],
+  });
+
+  assert.deepStrictEqual(
+    getStaleSources(index, 30, now).map((entry) => entry.source.id),
+    ["unstamped"],
+  );
+});
 
 function createIndex(overrides = {}) {
   return {

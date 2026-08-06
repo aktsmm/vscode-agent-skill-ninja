@@ -83,6 +83,8 @@ node scripts/audit-skill-installability.js --raw-only
 
 **テストが全て PASS していることを確認してからリリースに進む。**
 
+プリセット source の内容を更新した場合は、監査の前に `node scripts/update-preset-index.js` で `resources/skill-index.json` を再生成する（特定 source だけなら `$env:SKILL_NINJA_SOURCES = "<source-id>"` を付ける）。再生成後は `node scripts/test-update-preset-index.js` の完全性ゲート（bundle 参照の実在、source ごとの 0 件検知、skill 名重複、truncated tree 拒否）が PASS することと、`package.nls.json` / `package.nls.ja.json` のバージョン情報ブロックが index の `version` / `lastUpdated` / 件数と一致することを確認する。
+
 `audit-skill-installability.js --raw-only` は source ごとの件数差が大きく、`composio-awesome` のような大規模 source では silent に数分かかることがある。3 分以上無出力で不安定なら、`--sources=<source-id>` で分割実行し、ログを `artifacts/` に逃がして PASS/FAIL を source 単位で判定する。
 
 新しい回帰テスト script を追加した場合は、存在確認だけで満足せず、同じ変更で `package.json` の `npm test` に組み込むこと（2026-05-11 / GitHub Copilot）。

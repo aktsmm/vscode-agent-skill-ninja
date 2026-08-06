@@ -308,6 +308,50 @@ test("output format defaults and docs are aligned to ref", () => {
   );
 });
 
+test("every ordered setting appears in both README settings tables", () => {
+  const ordered = Object.entries(pkg.contributes.configuration.properties)
+    .filter(([, value]) => typeof value.order === "number" && value.order < 90)
+    .sort((left, right) => left[1].order - right[1].order);
+
+  const missing = [];
+  for (const [name, value] of ordered) {
+    for (const [label, doc] of [
+      ["README.md", readme],
+      ["README_ja.md", readmeJa],
+    ]) {
+      // The settings table row pins the documented order to the manifest order.
+      if (!doc.includes(`| \`${name}\``)) {
+        missing.push(`${label}: ${name} row`);
+        continue;
+      }
+      const rowPattern = new RegExp(
+        `\\|\\s*${value.order}\\s*\\|\\s*\`${name.replace(/\./g, "\\.")}\``,
+      );
+      if (!rowPattern.test(doc)) {
+        missing.push(`${label}: ${name} order ${value.order}`);
+      }
+    }
+  }
+
+  assert.deepStrictEqual(missing, [], `README settings drift: ${missing}`);
+});
+
+test("documented output channel names match the registered ones", () => {
+  const channelNames = [
+    ...extensionSource.matchAll(/createOutputChannel\(\s*"([^"]+)"/g),
+  ].map((match) => match[1]);
+  assert.ok(channelNames.length > 0, "Expected registered output channels");
+
+  for (const doc of [readme, readmeJa]) {
+    for (const referenced of doc.matchAll(/`([^`]*: Source Index)`/g)) {
+      assert.ok(
+        channelNames.includes(referenced[1]),
+        `Unknown output channel referenced in docs: ${referenced[1]}`,
+      );
+    }
+  }
+});
+
 test("package version info stays in sync with skill-index metadata", () => {
   for (const description of [
     packageNls["config.versionInfo.markdownDescription"] || "",

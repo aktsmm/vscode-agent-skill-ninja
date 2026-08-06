@@ -35,6 +35,12 @@ const jaMessages = {
   staleSourceIndexPartialFailed:
     "source index の更新結果: 更新 {0}/{2}、失敗 {1}、未試行 {5}。失敗: {3}。理由: {4}",
   sourceIndexSkillsUpdatedProgress: "{0} スキルを更新しました",
+  sourceIndexEmptyScanKept:
+    "取得結果が 0 件だったため更新を中止し、既存の {0} スキルを保持しました",
+  sourceIndexRepositoryIdentityChanged:
+    "URL の参照先が別のリポジトリに変わっています（repository ID {0} → {1}）。意図した変更なら、このソースを削除してから追加し直してください",
+  sourceIndexRepositoryIdentitySkipped:
+    "⚠️ 参照先が別のリポジトリに変わったため更新をスキップしました: {0}",
   sourceIndexUpdated: "✅ {0} を更新しました: {1} → {2} スキル ({3})",
   githubRateLimitReason: "GitHub API のレート制限に達しました",
   githubRateLimitResetAt: "再試行可能時刻: {0}",
@@ -227,6 +233,12 @@ const enMessages: MessageDictionary = {
   staleSourceIndexPartialFailed:
     "Source index update result: {0}/{2} updated, {1} failed, {5} not attempted. Failed: {3}. Reason: {4}",
   sourceIndexSkillsUpdatedProgress: "Updated {0} skill(s)",
+  sourceIndexEmptyScanKept:
+    "The scan returned 0 skills, so the update was cancelled and the existing {0} skill(s) were kept",
+  sourceIndexRepositoryIdentityChanged:
+    "This URL now resolves to a different repository (repository ID {0} -> {1}). If the change is intentional, remove this source and add it again",
+  sourceIndexRepositoryIdentitySkipped:
+    "⚠️ Skipped updating source(s) whose URL now resolves to a different repository: {0}",
   sourceIndexUpdated: "✅ Updated {0}: {1} → {2} skill(s) ({3})",
   githubRateLimitReason: "GitHub API rate limit exceeded",
   githubRateLimitResetAt: "retry after {0}",
@@ -486,6 +498,12 @@ export const messages = {
     ),
   sourceIndexSkillsUpdatedProgress: (count: number) =>
     localize("sourceIndexSkillsUpdatedProgress", count),
+  sourceIndexEmptyScanKept: (count: number) =>
+    localize("sourceIndexEmptyScanKept", count),
+  sourceIndexRepositoryIdentityChanged: (stored: number, scanned: number) =>
+    localize("sourceIndexRepositoryIdentityChanged", stored, scanned),
+  sourceIndexRepositoryIdentitySkipped: (sourceNames: string) =>
+    localize("sourceIndexRepositoryIdentitySkipped", sourceNames),
   sourceIndexUpdated: (
     source: string,
     oldCount: number,

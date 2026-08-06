@@ -66,6 +66,13 @@ export function getLocalizedCategoryNames(
   });
 }
 
+// ソースごとのスキャナ選択。省略時は SKILL.md 走査。
+export type SourceScanner =
+  | "skill-md"
+  | "claude-commands"
+  | "top-level-dirs"
+  | "registry-json";
+
 // ソース情報の型定義
 export interface Source {
   id: string;
@@ -78,6 +85,8 @@ export interface Source {
   description_ja?: string; // 日本語説明（オプション）
   includePaths?: string[]; // 取り込むパス prefix の限定
   excludePaths?: string[]; // 除外するパス prefix
+  scanner?: SourceScanner; // 明示しない場合は repo 名ベースの legacy 判定にフォールバック
+  repoId?: number; // GitHub の数値 repository ID。rename や transfer では変わらない
 }
 
 // カテゴリ情報の型定義
@@ -366,18 +375,28 @@ function mergeSkillIndexes(
   });
 
   // 既存バンドルをバンドル版で補完・更新
-  const updatedBundles = (localIndex.bundles || []).map((localBundle) => {
-    const bundledBundle = bundledBundlesByKey.get(createBundleKey(localBundle));
-    if (bundledBundle) {
-      return {
-        ...localBundle,
-        ...bundledBundle,
-        description_ja:
-          bundledBundle.description_ja || localBundle.description_ja,
-      };
-    }
-    return localBundle;
-  });
+  // preset source（bundled index に定義がある source）の bundle は bundled index を正とし、
+  // bundled 側から消えた bundle は既存ユーザーの index からも取り除く
+  const updatedBundles = (localIndex.bundles || [])
+    .filter(
+      (localBundle) =>
+        !bundledSourcesById.has(localBundle.source) ||
+        bundledBundlesByKey.has(createBundleKey(localBundle)),
+    )
+    .map((localBundle) => {
+      const bundledBundle = bundledBundlesByKey.get(
+        createBundleKey(localBundle),
+      );
+      if (bundledBundle) {
+        return {
+          ...localBundle,
+          ...bundledBundle,
+          description_ja:
+            bundledBundle.description_ja || localBundle.description_ja,
+        };
+      }
+      return localBundle;
+    });
 
   return {
     ...localIndex,
@@ -386,10 +405,7 @@ function mergeSkillIndexes(
     sources: [...updatedSources, ...newSources],
     categories: [...updatedCategories, ...newCategories],
     skills: [...updatedSkills, ...newSkills],
-    bundles:
-      updatedBundles.length > 0 || newBundles.length > 0
-        ? [...updatedBundles, ...newBundles]
-        : localIndex.bundles,
+    bundles: [...updatedBundles, ...newBundles],
   };
 }
 
@@ -430,6 +446,8 @@ function shouldPersistMergedIndex(
       localSource.branch !== mergedSource.branch ||
       localSource.description !== mergedSource.description ||
       localSource.description_ja !== mergedSource.description_ja ||
+      localSource.scanner !== mergedSource.scanner ||
+      localSource.repoId !== mergedSource.repoId ||
       !areStringArraysEqual(
         localSource.includePaths,
         mergedSource.includePaths,

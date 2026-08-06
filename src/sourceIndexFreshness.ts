@@ -1,7 +1,26 @@
 import type { SkillIndex, Source } from "./skillIndex";
 
 export const STALE_SOURCE_INDEX_THRESHOLD_DAYS = 30;
+// 1 回の起動で全ソースを一括再スキャンすると rate limit と長時間ブロックを招くため上限を置く
+export const MAX_STALE_SOURCE_UPDATES_PER_RUN = 5;
 const DAY_MS = 24 * 60 * 60 * 1000;
+
+/**
+ * 最も古いものから上限件数までを今回の対象にし、残りは次回以降へ回す。
+ */
+export function selectStaleSourcesForRun(
+  staleSources: StaleSourceInfo[],
+  limit: number = MAX_STALE_SOURCE_UPDATES_PER_RUN,
+): { selected: StaleSourceInfo[]; deferred: StaleSourceInfo[] } {
+  if (limit <= 0 || staleSources.length <= limit) {
+    return { selected: staleSources, deferred: [] };
+  }
+
+  return {
+    selected: staleSources.slice(0, limit),
+    deferred: staleSources.slice(limit),
+  };
+}
 
 export interface StaleSourceInfo {
   source: Source;
