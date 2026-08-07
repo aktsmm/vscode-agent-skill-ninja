@@ -476,6 +476,7 @@ type SkillCatalogRow = {
   name: string;
   path: string;
   description: string;
+  incomplete?: boolean;
 };
 
 function formatDuplicateSkillQualifier(skillPath: string): string {
@@ -504,14 +505,19 @@ function withDisplayNames<T extends SkillCatalogRow>(
   }
 
   return rows.map((row) => {
+    // Warn the reading agent before it trusts placeholder-only content
+    const description = row.incomplete
+      ? `[incomplete] ${row.description}`.trim()
+      : row.description;
     const duplicateCount = nameCounts.get(row.name) || 0;
     if (duplicateCount < 2) {
-      return { ...row, displayName: row.name };
+      return { ...row, description, displayName: row.name };
     }
 
     const qualifier = formatDuplicateSkillQualifier(row.path);
     return {
       ...row,
+      description,
       displayName:
         qualifier && qualifier !== row.name
           ? `${row.name} (${qualifier})`
@@ -631,6 +637,7 @@ ${MARKER_END}`;
         name: skill.name,
         path: skill.relativePath || skill.name,
         description: desc.replace(/\|/g, "\\|"),
+        incomplete: skill.incomplete,
       };
     }),
     ...localSkills.map((skill) => {
@@ -641,6 +648,7 @@ ${MARKER_END}`;
         name: skill.name,
         path: skill.relativePath,
         description: truncatedDesc.replace(/\|/g, "\\|"),
+        incomplete: skill.incomplete,
       };
     }),
   ]);
@@ -838,6 +846,7 @@ function generateCompactSection(
           ? s.description.substring(0, 97) + "..."
           : s.description
         : "",
+      incomplete: s.incomplete,
     })),
     ...localSkills.map((s) => ({
       name: s.name,
@@ -847,6 +856,7 @@ function generateCompactSection(
           ? s.description.substring(0, 97) + "..."
           : s.description
         : "",
+      incomplete: s.incomplete,
     })),
   ]);
 
@@ -900,6 +910,7 @@ function generateFullSection(
         s.description,
         s.customWhenToUse || s.whenToUse,
       ),
+      incomplete: s.incomplete,
     })),
     ...localSkills.map((s) => ({
       name: s.name,
@@ -909,6 +920,7 @@ function generateFullSection(
         s.description && s.description.length > 200
           ? s.description.substring(0, 197) + "..."
           : s.description || "",
+      incomplete: s.incomplete,
     })),
   ]);
 

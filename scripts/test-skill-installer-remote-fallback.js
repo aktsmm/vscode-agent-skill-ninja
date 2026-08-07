@@ -226,16 +226,20 @@ function loadModule(options = {}) {
             openSettings: () => "Open Settings",
             actionUpdateIndex: () => "Update Index",
             actionReportBug: () => "Report Bug",
-            actionClearStoredGitHubToken: () =>
-              "Clear Stored GitHub Token",
+            actionRetryInstall: () => "Retry Install",
+            actionRemoveSkill: () => "Remove",
+            installIncomplete: (name) =>
+              `Skill "${name}" was not installed completely.`,
+            installPartial: (name) =>
+              `Some files for skill "${name}" could not be downloaded.`,
+            actionClearStoredGitHubToken: () => "Clear Stored GitHub Token",
           },
         };
       }
       if (request === "./githubAuth") {
         return {
           getGitHubToken: async () => options.token,
-          hasStoredGitHubToken: async () =>
-            options.hasStoredToken === true,
+          hasStoredGitHubToken: async () => options.hasStoredToken === true,
         };
       }
       if (request === "./installedSkillIndex") {
@@ -340,7 +344,7 @@ function loadModule(options = {}) {
 }
 
 async function main() {
-  const { installSkill } = loadModule();
+  const { installSkill, isFallbackSkillMd } = loadModule();
   const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "skill-remote-fallback-"));
 
   try {
@@ -380,7 +384,7 @@ async function main() {
 
     console.log("PASS installSkill resolves rawUrl/url when source is missing");
 
-    await installSkill(
+    const foundryResult = await installSkill(
       {
         name: "microsoft-foundry",
         source: "MicrosoftDocs/Agent-Skills",
@@ -393,6 +397,12 @@ async function main() {
       },
       makeUri(tmp),
       {},
+    );
+
+    assert.strictEqual(
+      foundryResult.status,
+      "partial",
+      "recovering only SKILL.md must be reported as a partial install",
     );
 
     const foundrySkillMdPath = path.join(tmp, "microsoft-foundry", "SKILL.md");
@@ -429,6 +439,105 @@ async function main() {
     console.log(
       "PASS installSkill recovers primary SKILL.md when directory listing fails",
     );
+
+    await assert.rejects(
+      installSkill(
+        {
+          name: "unresolvable-skill",
+          source: "unknown-source",
+          path: "",
+          categories: [],
+          description: "A skill whose download target cannot be resolved",
+        },
+        makeUri(tmp),
+        {},
+      ),
+      (error) => error.name === "SkillInstallIncompleteError",
+      "a placeholder-only install must not be reported as success",
+    );
+
+    const unresolvableMeta = JSON.parse(
+      fs.readFileSync(
+        path.join(tmp, "unresolvable-skill", ".skill-meta.json"),
+        "utf8",
+      ),
+    );
+    assert.strictEqual(
+      unresolvableMeta.incomplete,
+      true,
+      "metadata must record that only placeholder content was written",
+    );
+
+    console.log(
+      "PASS installSkill throws when only placeholder content exists",
+    );
+
+    const silentErrors = [];
+    const { installSkill: silentInstall } = loadModule({
+      errorMessages: silentErrors,
+    });
+
+    await assert.rejects(
+      silentInstall(
+        {
+          name: "bulk-unresolvable-skill",
+          source: "unknown-source",
+          path: "",
+          categories: [],
+          description: "A skill installed as part of a bulk operation",
+        },
+        makeUri(tmp),
+        {},
+        undefined,
+        { interactive: false },
+      ),
+      (error) => error.name === "SkillInstallIncompleteError",
+    );
+
+    assert.strictEqual(
+      silentErrors.length,
+      0,
+      "bulk installs must not raise a per-skill dialog",
+    );
+
+    console.log("PASS installSkill stays silent during bulk installs");
+
+    assert.strictEqual(
+      isFallbackSkillMd(
+        "# demo\n\nA short description.\n\nSource: demo-source\n",
+        "demo-source",
+      ),
+      true,
+    );
+
+    const longPlaceholder = `# demo\n\n${"A very long placeholder description. ".repeat(
+      10,
+    )}\n\nSource: demo-source\n`;
+    assert.ok(longPlaceholder.length > 100);
+    assert.strictEqual(
+      isFallbackSkillMd(longPlaceholder, "demo-source"),
+      true,
+      "placeholders larger than 100 bytes must still be detected",
+    );
+
+    assert.strictEqual(
+      isFallbackSkillMd(
+        `---\nname: demo\n---\n\n# demo\n\nReal content that is long enough to pass the length guard.\n`,
+        "demo-source",
+      ),
+      false,
+    );
+
+    assert.strictEqual(
+      isFallbackSkillMd(
+        `---\nname: demo\ndescription: d\n---\n`,
+        "demo-source",
+      ),
+      false,
+      "a real SKILL.md with frontmatter must never be treated as a placeholder",
+    );
+
+    console.log("PASS isFallbackSkillMd detects legacy placeholder installs");
 
     const privateSourceIndex = {
       skills: [],
@@ -513,14 +622,12 @@ async function main() {
       "skillNinja.clearGitHubToken",
     ]);
     assert.strictEqual(
-      storedTokenErrorMessages[0].join(" ").includes(
-        "stale-token-must-not-leak",
-      ),
+      storedTokenErrorMessages[0]
+        .join(" ")
+        .includes("stale-token-must-not-leak"),
       false,
     );
-    console.log(
-      "PASS stored private token 404 offers SecretStorage recovery",
-    );
+    console.log("PASS stored private token 404 offers SecretStorage recovery");
 
     const authErrorMessages = [];
     const openedUrls = [];

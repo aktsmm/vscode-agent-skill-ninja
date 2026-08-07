@@ -654,6 +654,72 @@ async function main() {
     }
   });
 
+  await test("stale env token retries with the gh CLI token", async () => {
+    process.env.GITHUB_TOKEN = "env-token";
+    execBehavior = "token";
+    const requests = [];
+    const originalFetch = global.fetch;
+    global.fetch = async (url, options) => {
+      requests.push({ url, options });
+      return options.headers.Authorization === "token gh-token"
+        ? { ok: true, status: 200 }
+        : { ok: false, status: 404 };
+    };
+
+    try {
+      const response = await githubFetch.fetchGitHubWithOptionalAuthRetry(
+        "https://api.github.com/repos/owner/private-repo/contents/SKILL.md",
+        { accept: "application/vnd.github+json", token: "env-token" },
+      );
+
+      assert.strictEqual(response.status, 200);
+      assert.strictEqual(requests.length, 2);
+      assert.strictEqual(
+        requests[0].options.headers.Authorization,
+        "token env-token",
+      );
+      assert.strictEqual(
+        requests[1].options.headers.Authorization,
+        "token gh-token",
+      );
+    } finally {
+      global.fetch = originalFetch;
+    }
+  });
+
+  await test("walks past several stale credentials in one request", async () => {
+    await context.secrets.store("skillNinja.githubToken", "secret-token");
+    process.env.GITHUB_TOKEN = "env-token";
+    execBehavior = "token";
+    const requests = [];
+    const originalFetch = global.fetch;
+    global.fetch = async (url, options) => {
+      requests.push({ url, options });
+      return options.headers.Authorization === "token gh-token"
+        ? { ok: true, status: 200 }
+        : { ok: false, status: 404 };
+    };
+
+    try {
+      const response = await githubFetch.fetchGitHubWithOptionalAuthRetry(
+        "https://api.github.com/repos/owner/private-repo/contents/SKILL.md",
+        { accept: "application/vnd.github+json", token: "secret-token" },
+      );
+
+      assert.strictEqual(response.status, 200);
+      assert.deepStrictEqual(
+        requests.map((entry) => entry.options.headers.Authorization),
+        ["token secret-token", "token env-token", "token gh-token"],
+      );
+      assert.ok(
+        execCalls.length <= 3,
+        `credential walk should stay bounded, saw ${execCalls.length} gh calls`,
+      );
+    } finally {
+      global.fetch = originalFetch;
+    }
+  });
+
   await test("missing private raw content stops after authenticated retry", async () => {
     const requests = [];
     const originalFetch = global.fetch;

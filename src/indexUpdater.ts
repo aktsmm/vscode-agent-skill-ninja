@@ -20,6 +20,7 @@ import {
 } from "./githubResponse";
 import {
   fetchGitHubWithOptionalAuthRetry,
+  fetchGitHubWithRetry,
   fetchGitHubWithTimeout,
   GITHUB_REQUEST_TIMEOUT_MS,
 } from "./githubFetch";
@@ -90,24 +91,23 @@ export async function fetchRepositoryTextFile(
   const url = `https://api.github.com/repos/${owner}/${repo}/contents/${encodedPath}?ref=${encodeURIComponent(branch)}`;
   const anonymousUrl = `https://raw.githubusercontent.com/${encodeURIComponent(owner)}/${encodeURIComponent(repo)}/${encodeURIComponent(branch)}/${encodedPath}`;
   const fetchAnonymously = () =>
-    fetchGitHubWithTimeout(
+    fetchGitHubWithRetry(
       anonymousUrl,
       { headers: { "User-Agent": "VSCode-SkillNinja" } },
       timeoutMs,
     );
-  const headers: Record<string, string> = {
-    Accept: "application/vnd.github.raw+json",
-    "User-Agent": "VSCode-SkillNinja",
-    "X-GitHub-Api-Version": GITHUB_API_VERSION,
-  };
-
-  if (effectiveToken) {
-    headers.Authorization = `token ${effectiveToken}`;
-  }
 
   let response = await fetchAnonymously();
   if (response.status === 404 && effectiveToken) {
-    response = await fetchGitHubWithTimeout(url, { headers }, timeoutMs);
+    // Route the authenticated attempt through the shared fallback so a stale
+    // credential can still be replaced by the next available token source.
+    response = await fetchGitHubWithOptionalAuthRetry(url, {
+      accept: "application/vnd.github.raw+json",
+      token: effectiveToken,
+      extraHeaders: { "X-GitHub-Api-Version": GITHUB_API_VERSION },
+      request: (requestUrl, init) =>
+        fetchGitHubWithTimeout(requestUrl, init, timeoutMs),
+    });
   }
 
   if (response.ok) {
@@ -125,6 +125,7 @@ export async function fetchRepositoryTextFile(
   if (
     response.status === 401 ||
     response.status === 403 ||
+    response.status === 429 ||
     bodyText.toLowerCase().includes("rate limit")
   ) {
     throw createGitHubResponseError(

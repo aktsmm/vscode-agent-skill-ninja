@@ -58,8 +58,24 @@ Module._load = function patchedLoad(request, parent, isMain) {
   }
   if (request === "./githubFetch") {
     return {
-      fetchGitHubWithOptionalAuthRetry: async () => response(200, ""),
+      // Callers that inject `request` exercise the real header contract; the
+      // rest keep the previous inert stub.
+      fetchGitHubWithOptionalAuthRetry: async (url, options = {}) => {
+        if (!options.request) {
+          return response(200, "");
+        }
+        const headers = {
+          Accept: options.accept,
+          "User-Agent": "VSCode-SkillNinja",
+          ...options.extraHeaders,
+        };
+        if (options.token) {
+          headers.Authorization = `token ${options.token}`;
+        }
+        return options.request(url, { headers });
+      },
       fetchGitHubWithTimeout: async (url, init) => fetch(url, init),
+      fetchGitHubWithRetry: async (url, init) => fetch(url, init),
     };
   }
   if (request === "./sourceUpdateReconcile") {
@@ -204,6 +220,28 @@ async function main() {
 
     assert.strictEqual(result, initial);
     assert.strictEqual(retryCount, 0);
+  });
+
+  await test("reports a 429 as a rate-limit failure", async () => {
+    const originalFetch = global.fetch;
+    global.fetch = async () => response(429, "Too Many Requests");
+
+    try {
+      await assert.rejects(
+        fetchRepositoryTextFile(
+          "MicrosoftDocs",
+          "Agent-Skills",
+          "main",
+          "skills/example/SKILL.md",
+          "test-token",
+        ),
+        (error) =>
+          error.name === "GitHubResponseError" && error.kind === "rate-limit",
+        "a 429 must surface as a rate-limit failure so batch updates short-circuit",
+      );
+    } finally {
+      global.fetch = originalFetch;
+    }
   });
 
   await test("fetches public content anonymously even when a token is available", async () => {

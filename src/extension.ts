@@ -22,6 +22,8 @@ import {
   enrichSkillMeta,
   refreshManagedSkillMetadata,
   refreshSingleSkillMetadata,
+  findIncompleteInstalledSkills,
+  SkillInstallIncompleteError,
   type SkillMeta,
 } from "./skillInstaller";
 import {
@@ -368,6 +370,8 @@ export function activate(
   ).finally(() => {
     void settleInitialSync();
   });
+
+  void notifyIncompleteSkillsOnce(context, workspaceFolder?.uri);
 
   loadSkillIndex(context).then(async (index: SkillIndex) => {
     skillIndex = index;
@@ -1973,6 +1977,11 @@ export function activate(
           );
         }
       } catch (error) {
+        // 不完全インストールは installSkill 側で回復手段付きの通知済み
+        if (error instanceof SkillInstallIncompleteError) {
+          refreshAllViews();
+          return;
+        }
         const errorMessage =
           error instanceof Error ? error.message : String(error);
         if (
@@ -2180,7 +2189,9 @@ export function activate(
                   wsFolder.uri,
                   root.rootUri,
                 );
-                await installSkill(skill, wsFolder.uri, context, root);
+                await installSkill(skill, wsFolder.uri, context, root, {
+                  interactive: false,
+                });
               } catch (error) {
                 console.error(`Failed to reinstall ${meta.name}:`, error);
                 failed += 1;
@@ -2328,7 +2339,9 @@ export function activate(
                   wsFolder.uri,
                   root.rootUri,
                 );
-                await installSkill(skill, wsFolder.uri, context, root);
+                await installSkill(skill, wsFolder.uri, context, root, {
+                  interactive: false,
+                });
                 markRecentlyInstalled(skill);
               } catch (error) {
                 console.error(
@@ -2503,6 +2516,10 @@ export function activate(
         );
         refreshAllViews();
       } catch (error) {
+        if (error instanceof SkillInstallIncompleteError) {
+          refreshAllViews();
+          return;
+        }
         vscode.window.showErrorMessage(
           isJapanese()
             ? `再インストール失敗: ${String(error)}`
@@ -2661,7 +2678,9 @@ export function activate(
 
             if (skill) {
               try {
-                await installSkill(skill, wsFolder.uri, context, targetRoot);
+                await installSkill(skill, wsFolder.uri, context, targetRoot, {
+                  interactive: false,
+                });
                 markRecentlyInstalled(skill);
               } catch (error) {
                 console.error(`Failed to install ${skillName}:`, error);
@@ -2905,6 +2924,7 @@ export function activate(
                   wsFolder.uri,
                   context,
                   item.entry.root,
+                  { interactive: false },
                 );
                 markRecentlyInstalled(skill);
               } catch (error) {
@@ -4710,6 +4730,52 @@ async function promptForSkillUpdate(skillCount: number): Promise<boolean> {
   );
 
   return result === (isJapanese() ? "更新する" : "Update");
+}
+
+const INCOMPLETE_SKILL_SCAN_STATE_KEY = "skillNinja.incompleteSkillScanDone";
+
+/**
+ * v0.9.36 以前にプレースホルダーのまま残ったスキルを一度だけ検出して通知する
+ */
+async function notifyIncompleteSkillsOnce(
+  context: vscode.ExtensionContext,
+  workspaceUri?: vscode.Uri,
+): Promise<void> {
+  if (!workspaceUri) {
+    return;
+  }
+
+  const stateKey = INCOMPLETE_SKILL_SCAN_STATE_KEY;
+  if (context.workspaceState.get<boolean>(stateKey)) {
+    return;
+  }
+
+  try {
+    const incompleteNames = await findIncompleteInstalledSkills(workspaceUri);
+    if (incompleteNames.length === 0) {
+      await context.workspaceState.update(stateKey, true);
+      return;
+    }
+
+    const reinstall = messages.actionRetryInstall();
+    const choice = await vscode.window.showWarningMessage(
+      messages.incompleteSkillsDetected(
+        incompleteNames.length,
+        incompleteNames.slice(0, 5).join(", "),
+      ),
+      reinstall,
+    );
+    await context.workspaceState.update(stateKey, true);
+
+    if (choice === reinstall) {
+      await vscode.commands.executeCommand("skillNinja.reinstallAll");
+    }
+  } catch (error) {
+    console.warn(
+      "[Skill Ninja] Failed to scan for incomplete installed skills:",
+      error,
+    );
+  }
 }
 
 /**

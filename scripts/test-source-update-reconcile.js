@@ -388,6 +388,7 @@ async function run() {
       "./githubFetch": {
         GITHUB_REQUEST_TIMEOUT_MS: 15000,
         fetchGitHubWithTimeout: async () => emptyTreeResponse(),
+        fetchGitHubWithRetry: async () => emptyTreeResponse(),
         fetchGitHubWithOptionalAuthRetry: async (url) => {
           requestedUrls.push(url);
           if (/^https:\/\/api\.github\.com\/repos\/[^/]+\/[^/]+$/.test(url)) {

@@ -47,6 +47,7 @@ export interface WorkspaceSkill {
   source?: string; // インストール元ソース
   categories?: string[];
   remotePath?: string;
+  incomplete?: boolean;
   reinstallDisabled?: boolean;
   reinstallDisabledReason?: string;
   reinstallDisabledAt?: string;
@@ -381,6 +382,13 @@ export function getManagedSkillTreeItemLabel(
 export function getManagedSkillTreeItemDescription(
   skill: WorkspaceSkill,
 ): string {
+  // Incomplete content matters more than registration state, so it wins the slot
+  if (skill.incomplete) {
+    return isJapanese()
+      ? `${skill.relativePath} • 不完全`
+      : `${skill.relativePath} • Incomplete`;
+  }
+
   const registrationState = getEffectiveRegistrationState(skill);
   if (skill.isReadOnly || registrationState === "registered") {
     return skill.relativePath;
@@ -433,6 +441,7 @@ function toWorkspaceSkill(skill: LocalSkill): WorkspaceSkill {
     source: skill.source,
     categories: skill.categories,
     remotePath: skill.remotePath,
+    incomplete: skill.incomplete,
     reinstallDisabled: skill.reinstallDisabled,
     reinstallDisabledReason: skill.reinstallDisabledReason,
     reinstallDisabledAt: skill.reinstallDisabledAt,
@@ -613,6 +622,7 @@ function createManagedSkillTreeItem(
       isManaged: skill.isManaged,
       isReadOnly: skill.isReadOnly,
       remotePath: skill.remotePath,
+      incomplete: skill.incomplete,
       reinstallDisabled: skill.reinstallDisabled,
       reinstallDisabledReason: skill.reinstallDisabledReason,
       reinstallDisabledAt: skill.reinstallDisabledAt,
@@ -629,20 +639,26 @@ function createManagedSkillTreeItem(
     skill.scope,
   );
 
-  item.iconPath = new vscode.ThemeIcon(
-    skill.isReadOnly ? "library" : "package",
-    skill.isReadOnly
-      ? new vscode.ThemeColor("disabledForeground")
-      : registrationState === "pending"
-        ? new vscode.ThemeColor("charts.blue")
-        : registrationState === "registered"
-          ? new vscode.ThemeColor("charts.green")
-          : new vscode.ThemeColor("charts.yellow"),
-  );
+  item.iconPath = skill.incomplete
+    ? new vscode.ThemeIcon("warning", new vscode.ThemeColor("errorForeground"))
+    : new vscode.ThemeIcon(
+        skill.isReadOnly ? "library" : "package",
+        skill.isReadOnly
+          ? new vscode.ThemeColor("disabledForeground")
+          : registrationState === "pending"
+            ? new vscode.ThemeColor("charts.blue")
+            : registrationState === "registered"
+              ? new vscode.ThemeColor("charts.green")
+              : new vscode.ThemeColor("charts.yellow"),
+      );
   item.resourceUri = vscode.Uri.file(skill.fullPath);
 
   const noDescription = isJapanese() ? "説明なし" : "No description";
-  const statusText = skill.isReadOnly
+  const statusText = skill.incomplete
+    ? isJapanese()
+      ? "不完全（再インストールが必要）"
+      : "Incomplete (reinstall required)"
+    : skill.isReadOnly
     ? skill.scope === "extension"
       ? isJapanese()
         ? "インストール済み拡張機能（読み取り専用）"

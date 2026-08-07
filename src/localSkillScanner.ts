@@ -9,7 +9,11 @@ import {
   SHARED_MARKER_START,
   updateInstructionFileForRoot,
 } from "./instructionManager";
-import { enrichSkillMeta, type SkillMeta } from "./skillInstaller";
+import {
+  enrichSkillMeta,
+  isFallbackSkillMd,
+  type SkillMeta,
+} from "./skillInstaller";
 import {
   getBuiltInSkillRoots,
   getExtensionSkillRoots,
@@ -41,6 +45,7 @@ export interface LocalSkill extends Skill {
   isManaged: boolean;
   isReadOnly: boolean;
   remotePath?: string;
+  incomplete?: boolean;
   reinstallDisabled?: boolean;
   reinstallDisabledReason?: string;
   reinstallDisabledAt?: string;
@@ -412,6 +417,12 @@ async function parseLocalSkillFile(
     isManaged: root.isManaged,
     isReadOnly: root.isReadOnly,
     remotePath: meta?.remotePath,
+    // Installs from before the flag existed are detected from the content instead
+    incomplete:
+      meta?.incomplete ??
+      (meta?.source
+        ? isFallbackSkillMd(normalizedText, meta.source)
+        : undefined),
     reinstallDisabled: meta?.reinstallDisabled,
     reinstallDisabledReason: meta?.reinstallDisabledReason,
     reinstallDisabledAt: meta?.reinstallDisabledAt,

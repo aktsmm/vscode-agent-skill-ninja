@@ -364,6 +364,27 @@ test("package version info stays in sync with skill-index metadata", () => {
   }
 });
 
+test("extension version stays in sync across manifest, NLS, and changelog", () => {
+  for (const [label, nls] of [
+    ["package.nls.json", packageNls],
+    ["package.nls.ja.json", packageNlsJa],
+  ]) {
+    const description = nls["config.versionInfo.markdownDescription"] || "";
+    assert.ok(
+      description.includes(`Extension | **${pkg.version}**`),
+      `${label} should show extension version ${pkg.version}`,
+    );
+  }
+
+  const changelog = fs.readFileSync(path.join(root, "CHANGELOG.md"), "utf8");
+  const latestRelease = /^## \[(\d+\.\d+\.\d+)\]/m.exec(changelog)?.[1];
+  assert.strictEqual(
+    latestRelease,
+    pkg.version,
+    "CHANGELOG should lead with the packaged version",
+  );
+});
+
 test("tool detection keeps markdown-based assistants on ref by default", () => {
   assert.ok(
     toolDetectorSource.includes('tool: "github-copilot"') &&
@@ -682,6 +703,67 @@ test("README files describe workspace, user/global, and built-in skill scopes", 
   assert.ok(readmeJa.includes("Built-in Skills"));
   assert.strictEqual(readmeJa.includes("built-in skills"), false);
   assert.ok(readmeJa.includes("provider/origin"));
+});
+
+test("README files document the install reliability contract", () => {
+  const githubFetchSource = fs.readFileSync(
+    path.join(root, "src", "githubFetch.ts"),
+    "utf8",
+  );
+
+  const attemptCap = /GITHUB_RETRY_MAX_ATTEMPTS = (\d+)/.exec(
+    githubFetchSource,
+  )?.[1];
+  assert.ok(attemptCap, "githubFetch.ts should declare a retry attempt cap");
+
+  const maxDelayMs = /GITHUB_RETRY_MAX_DELAY_MS = (\d+)/.exec(
+    githubFetchSource,
+  )?.[1];
+  assert.ok(maxDelayMs, "githubFetch.ts should declare a retry wait cap");
+  const maxDelaySeconds = Number(maxDelayMs) / 1000;
+
+  const retryableBody = /export function isRetryableGitHubStatus[\s\S]*?\n}/.exec(
+    githubFetchSource,
+  )?.[0];
+  assert.ok(retryableBody, "githubFetch.ts should declare retryable statuses");
+  for (const status of ["429", "502", "503", "504"]) {
+    assert.ok(
+      retryableBody.includes(status),
+      `${status} should stay retryable`,
+    );
+  }
+  for (const status of ["401", "403", "404"]) {
+    assert.strictEqual(
+      retryableBody.includes(status),
+      false,
+      `${status} must never be retried, or the README contract is wrong`,
+    );
+  }
+
+  assert.ok(readme.includes("### Skill Install Reliability"));
+  assert.ok(readme.includes(`up to ${attemptCap} attempts`));
+  assert.ok(readme.includes(`longer than ${maxDelaySeconds} seconds`));
+  assert.ok(readmeJa.includes("### インストール失敗時の挙動"));
+  assert.ok(readmeJa.includes(`最大 ${attemptCap} 回`));
+  assert.ok(readmeJa.includes(`${maxDelaySeconds} 秒を超える`));
+
+  for (const doc of [readme, readmeJa]) {
+    for (const token of [
+      "`429`",
+      "`502`",
+      "`503`",
+      "`504`",
+      "`401`",
+      "`403`",
+      "`404`",
+      "Retry-After",
+      "x-ratelimit-remaining",
+      "x-ratelimit-reset",
+      ".skill-meta.json",
+    ]) {
+      assert.ok(doc.includes(token), `README should document ${token}`);
+    }
+  }
 });
 
 test("built-in setting descriptions explain provider-based grouping", () => {
@@ -1299,6 +1381,23 @@ test("MCP tool responses do not contain corrupted markdown fragments", () => {
   }
 
   assert.strictEqual(mcpToolsSource.includes("\uFFFD"), false);
+});
+
+test("published text assets stay free of replacement characters", () => {
+  for (const file of [
+    "CHANGELOG.md",
+    "README.md",
+    "README_ja.md",
+    "package.nls.json",
+    "package.nls.ja.json",
+  ]) {
+    const text = fs.readFileSync(path.join(root, file), "utf8");
+    assert.strictEqual(
+      text.includes("\uFFFD"),
+      false,
+      `${file} contains a replacement character, so an emoji or multibyte edit was corrupted`,
+    );
+  }
 });
 
 test("MCP source tools support private add and source removal flows", () => {

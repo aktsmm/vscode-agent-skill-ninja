@@ -146,22 +146,25 @@ export async function resolveGitHubToken(
 
 export async function resolveGitHubTokenAfterFailure(
   failedToken: string,
+  alreadyTried: readonly string[] = [],
 ): Promise<{ token: string; source: GitHubTokenSource } | undefined> {
+  const tried = new Set<string>([failedToken, ...alreadyTried]);
   const current = await resolveGitHubToken();
-  if (current.token && current.token !== failedToken) {
+  if (current.token && !tried.has(current.token)) {
     return { token: current.token, source: current.source };
   }
-  if (current.source !== "secret") {
+  if (current.source === "none") {
     return undefined;
   }
 
-  const excludeSources: GitHubTokenSource[] = ["secret"];
+  // Walk past whichever source produced the failing token, not just SecretStorage
+  const excludeSources: GitHubTokenSource[] = [current.source];
   while (true) {
     const fallback = await resolveGitHubToken({ excludeSources });
     if (!fallback.token || fallback.source === "none") {
       return undefined;
     }
-    if (fallback.token !== failedToken) {
+    if (!tried.has(fallback.token)) {
       return { token: fallback.token, source: fallback.source };
     }
     excludeSources.push(fallback.source);

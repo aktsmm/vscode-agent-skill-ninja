@@ -263,6 +263,7 @@ ext install yamapan.agent-skill-ninja
 | verified (青)  | 公式ソース（Anthropic, OpenAI, GitHub, Microsoft） |
 | star (黄)      | キュレーション awesome-list                        |
 | repo           | コミュニティリポジトリ                             |
+| warning (赤)   | 内容が不完全なスキル（再インストールで復旧）         |
 
 ### コマンドパレット
 
@@ -419,6 +420,15 @@ MCP ツールが不要な場合は、GitHub Copilot Chat のツール一覧か�
 
 互換用設定: `skillNinja.includeLocalSkills` は非推奨です。ワークスペーススキルは `skillNinja.skillsDirectory` と `skillNinja.additionalSkillRoots` 配下を管理対象にし、personal root と追加の user/global root は `skillNinja.useVsCodeAgentSkillLocations` から検出します。設定された location では `${workspaceFolder}`, `${userHome}`, `${env:APPDATA}`, `%APPDATA%` を使えます。Built-in Skills は `skillNinja.showBuiltInSkills` で制御され、既定で表示されます。
 
+### インストール失敗時の挙動
+
+ダウンロードできなかったスキルを、インストール成功として扱わないようにしています。
+
+- **プレースホルダーだけのインストールは失敗扱いです。** 生成テンプレートしか書けなかった場合はインストールを失敗とし、`.skill-meta.json` に不完全であることを記録します。単体インストールでは 再インストール / 削除 / バグ報告 を提示し、再インストールは初回のみ表示されます。
+- **一括操作では個別ダイアログを出しません。** すべて再インストール、root 単位の再インストール、複数選択の再インストール、bundle インストールでは skill ごとのダイアログを出さず、最後のサマリで失敗件数を報告します。
+- **レート制限と一時的なネットワーク失敗は再試行します。** 共通のバックオフ層が再試行するのは `429`, `502`, `503`, `504` だけで、合計で最大 3 回まで、`Retry-After` と、`x-ratelimit-remaining` が `0` のときの `x-ratelimit-reset` を尊重します。待機が 20 秒を超える場合は再試行せずに諦めます。`401`, `403`, `404` はバックオフ対象外で、従来どおり認証フォールバックへ流れ、そこで残りの認証情報を順に試します。
+- **ワークスペースに残っている不完全なスキルは 1 回だけ通知します。** そのワークスペースで最初に起動したとき、最大 5 件まで一覧し、すべて再インストールを実行する再インストールの導線を提示します。
+
 ### Agent Resources Ninja との共存
 
 姉妹拡張 [Agent Resources Ninja](https://marketplace.visualstudio.com/items?itemName=yamapan.agent-resources-ninja) を同時にインストールしている場合、両拡張は協調して AGENTS.md / CLAUDE.md などに **共通ブロック 1 つ**（`<!-- agent-ninja-START -->` / `<!-- agent-ninja-END -->`）だけを保つようにします。両方が active のときは Resources Ninja が owner となり、Skill Ninja は黙って書き込みを譲ります。既存の `<!-- skill-ninja-* -->` ブロックは初回起動時に共通マーカーへ自動で migration されます。
@@ -454,6 +464,8 @@ Skill Ninja が active な間は、Resources Ninja は runtime で `kindsExclude
 | `legacy`     | シンプルテーブルのみ（IMPORTANT なし）                            | 後方互換性                              |
 
 `ref` を使う場合は `skillNinja.refCatalogPath`（catalog の出力先）と `skillNinja.refCatalogFormat`（`full` / `compact` / `legacy`）で catalog 内の詳細レベルを設定します。
+
+文字数上限は説明文そのものに適用されます。内容が不完全なスキルには、その上限とは別に `[incomplete]` の接頭辞が付きます。`ref` の場合、この接頭辞は instruction ファイルではなく catalog ファイル側に出ます。
 
 ### Instruction File 同期の仕組み
 

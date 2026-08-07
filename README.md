@@ -267,6 +267,7 @@ Preset index includes skills from official, curated, and community sources out o
 | verified (blue)    | Official source (Anthropic, OpenAI, GitHub, Microsoft) |
 | star (yellow)      | Curated awesome-list                                   |
 | repo               | Community repository                                   |
+| warning (red)      | Incomplete install - reinstall to restore the content  |
 
 ### Command Palette
 
@@ -423,6 +424,15 @@ When `skillNinja.staleSourceIndexUpdateMode` triggers a refresh, Skill Ninja pro
 
 Legacy compatibility setting: `skillNinja.includeLocalSkills` is deprecated. Workspace skills stay scoped to `skillNinja.skillsDirectory` and `skillNinja.additionalSkillRoots`, while personal roots and additional user/global roots are discovered from `skillNinja.useVsCodeAgentSkillLocations`. Configured locations support `${workspaceFolder}`, `${userHome}`, `${env:APPDATA}`, and `%APPDATA%`. Built-in read-only skills are controlled by `skillNinja.showBuiltInSkills` and are shown by default.
 
+### Skill Install Reliability
+
+A skill that cannot be downloaded is no longer reported as installed:
+
+- **A placeholder-only install fails.** When just the generated template could be written, the install is rejected and `.skill-meta.json` records it as incomplete. A single install offers Retry Install / Remove / Report Bug, and Retry Install appears only on the first attempt.
+- **Bulk operations stay quiet per skill.** Reinstall All, per-root reinstall, multi-select reinstall, and bundle install skip the per-skill dialog and report failures in the final summary.
+- **Rate limits and transient network errors are retried.** The shared backoff layer retries only `429`, `502`, `503`, and `504`, for up to 3 attempts in total, honoring `Retry-After` and — when `x-ratelimit-remaining` is `0` — `x-ratelimit-reset`. It gives up rather than waiting longer than 20 seconds. `401`, `403`, and `404` are excluded from the backoff so they keep flowing into the existing authentication fallback, which walks the remaining credential sources until one succeeds.
+- **Incomplete skills already in the workspace are surfaced once.** The first activation in a workspace lists up to 5 of them and offers a reinstall action that runs Reinstall All.
+
 ### Coexistence with Agent Resources Ninja
 
 When the companion extension [Agent Resources Ninja](https://marketplace.visualstudio.com/items?itemName=yamapan.agent-resources-ninja) is also installed, both extensions cooperate so that AGENTS.md / CLAUDE.md / etc. always contains exactly **one shared block** (`<!-- agent-ninja-START -->` / `<!-- agent-ninja-END -->`). Resources Ninja is the owner whenever both are active; Skill Ninja silently defers and migrates any pre-existing `<!-- skill-ninja-* -->` block into the shared marker.
@@ -458,6 +468,8 @@ Diagnostics: `Agent Skills Ninja: Show Coexistence Status` / `Recompute Coexiste
 | `legacy`  | Simple table only (no IMPORTANT)                                 | Backward compatibility                    |
 
 When using `ref`, configure `skillNinja.refCatalogPath` (where the catalog is written) and `skillNinja.refCatalogFormat` (`full` / `compact` / `legacy`) to set the detail level inside that catalog file.
+
+The character limits apply to the description itself. A skill whose content is incomplete also carries an `[incomplete]` prefix on top of that limit, and with `ref` that prefix appears in the catalog file rather than the instruction file.
 
 ### How Instruction File Sync Works
 

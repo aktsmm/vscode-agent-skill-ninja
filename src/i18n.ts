@@ -130,6 +130,14 @@ const jaMessages = {
     'スキル "{0}" が見つかりません。インデックスのパスが古いか、GitHub 認証に対象リポジトリの Contents: read 権限がない可能性があります。',
   actionUpdateIndex: "インデックス更新",
   actionReportBug: "バグ報告",
+  actionRetryInstall: "再インストール",
+  actionRemoveSkill: "削除",
+  installIncomplete:
+    'スキル "{0}" のインストールが完了していません。SKILL.md の内容を取得できなかったため、仮の内容だけが保存されています。',
+  installPartial:
+    'スキル "{0}" の一部のファイルを取得できませんでした。SKILL.md は正常にインストールされています。',
+  incompleteSkillsDetected:
+    "内容が不完全なスキルが {0} 件あります: {1}。再インストールしてください。",
   openSettings: "設定を開く",
   resetSettingsTitle: "設定の初期化",
   resetSettingsPrompt: "初期化する項目を選択してください",
@@ -329,6 +337,14 @@ const enMessages: MessageDictionary = {
     'Skill "{0}" was not found. The index path may be outdated, or GitHub authentication may not have Contents: read access to the repository.',
   actionUpdateIndex: "Update Index",
   actionReportBug: "Report Bug",
+  actionRetryInstall: "Retry Install",
+  actionRemoveSkill: "Remove",
+  installIncomplete:
+    'Skill "{0}" was not installed completely. SKILL.md content could not be downloaded, so only placeholder text was saved.',
+  installPartial:
+    'Some files for skill "{0}" could not be downloaded. SKILL.md was installed successfully.',
+  incompleteSkillsDetected:
+    "{0} installed skill(s) have incomplete content: {1}. Reinstall them to restore the full content.",
   openSettings: "Open Settings",
   resetSettingsTitle: "Reset Settings",
   resetSettingsPrompt: "Select items to reset",
@@ -600,6 +616,12 @@ export const messages = {
     localize("skillDownloadNotFoundWithAuth", name),
   actionUpdateIndex: () => localize("actionUpdateIndex"),
   actionReportBug: () => localize("actionReportBug"),
+  actionRetryInstall: () => localize("actionRetryInstall"),
+  actionRemoveSkill: () => localize("actionRemoveSkill"),
+  installIncomplete: (name: string) => localize("installIncomplete", name),
+  installPartial: (name: string) => localize("installPartial", name),
+  incompleteSkillsDetected: (count: number, names: string) =>
+    localize("incompleteSkillsDetected", String(count), names),
   openSettings: () => localize("openSettings"),
   authWithGhCli: () => localize("authWithGhCli"),
 

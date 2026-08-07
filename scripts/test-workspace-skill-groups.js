@@ -542,6 +542,28 @@ test("uses clean skill labels and keeps registration state in description", () =
   );
 });
 
+test("marks incomplete skills ahead of registration state", () => {
+  setViewRegistrationContext({ initialSyncPending: false });
+  const incompleteSkill = {
+    ...createSkill(
+      "Broken Skill",
+      "userGlobal",
+      "C:/Users/test/.copilot/skills",
+      "agents/broken-skill",
+    ),
+    incomplete: true,
+  };
+
+  assert.strictEqual(
+    getManagedSkillTreeItemDescription(incompleteSkill),
+    "agents/broken-skill • Incomplete",
+  );
+  assert.strictEqual(
+    japaneseExports.getManagedSkillTreeItemDescription(incompleteSkill),
+    "agents/broken-skill • 不完全",
+  );
+});
+
 test("shows pending description while initial sync is unresolved", () => {
   setViewRegistrationContext({ initialSyncPending: true });
 

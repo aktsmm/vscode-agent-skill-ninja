@@ -7,6 +7,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.9.36] - 2026-08-07
+
+### Added
+
+- 🔁 **Rate-limit Aware Retry** - GitHub requests now share one backoff layer that retries `429` / `502` / `503` / `504` and transient network failures, honoring `Retry-After` and (when `x-ratelimit-remaining` is `0`) `x-ratelimit-reset`, capping the wait at 20 seconds and respecting caller cancellation; `401` / `403` / `404` stay out of the backoff and continue to use the authentication fallback / GitHub リクエストに共通のバックオフ層を追加し、`429` / `502` / `503` / `504` と一時的なネットワーク失敗を `Retry-After` と（`x-ratelimit-remaining` が `0` のとき）`x-ratelimit-reset` に従って最大 20 秒まで待機して再試行（`401` / `403` / `404` はバックオフ対象外で従来の認証フォールバックを継続）
+- 🩺 **Incomplete Install Detection** - Installed skills whose `SKILL.md` is only placeholder content are surfaced once per workspace with a reinstall action that runs Reinstall All / `SKILL.md` がプレースホルダーのままのスキルをワークスペースごと 1 回だけ通知し、すべて再インストールを実行する再インストールの導線を提示
+- ⚠️ **Incomplete Skill Badge** - Skills whose content is only a placeholder now show a red warning icon, an `Incomplete` description, and an incomplete status in the tooltip, including installs made before the flag existed, and their rows in the generated skill list are prefixed with `[incomplete]` / 内容がプレースホルダーのスキルを、赤い警告アイコン、`不完全` の説明、tooltip の状態表示で示すよう追加（フラグ導入前のインストールも対象）。生成されるスキル一覧の行にも `[incomplete]` を付与
+
+### Fixed
+
+- 🔐 **Credential Fallback Coverage** - A failing request now walks every remaining credential source instead of stopping unless the failing token came from SecretStorage, and repository file reads share the same fallback instead of hand-building an `Authorization` header / 失敗したリクエストが SecretStorage 起点のときだけでなく、残りの認証情報をすべて順に試すよう修正し、リポジトリファイル取得も同じフォールバックを共有するよう修正
+- 🚫 **Placeholder Installs No Longer Report Success** - An install that could only write the generated template is now rejected and recorded as incomplete in `.skill-meta.json`; a single install offers Retry Install / Remove / Report Bug, while bulk operations suppress the per-skill dialog and report failures in their summary / 生成テンプレートしか書けなかったインストールを失敗として扱い、`.skill-meta.json` に不完全と記録するよう修正（単体インストールでは 再インストール / 削除 / バグ報告 を提示し、一括操作では個別ダイアログを抑制してサマリで報告）
+- 📉 **Rate-limit Classification** - A `429` returned while reading repository files is now classified as a rate-limit failure so batched source updates short-circuit instead of treating the file as missing / リポジトリファイル取得中の `429` をレート制限失敗として分類し、ファイル欠損扱いせず一括ソース更新を短絡するよう修正
+- 🐞 **Bug Report Accuracy** - Install bug reports now show the branch that was actually resolved, the classified failure kinds, and the recorded download errors instead of a literal `default` branch / インストールのバグ報告に、リテラルの `default` ではなく実際に解決された branch、分類された失敗種別、記録されたダウンロードエラーを載せるよう修正
+
 ## [0.9.35] - 2026-08-07
 
 ### Added

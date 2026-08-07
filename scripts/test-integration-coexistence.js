@@ -516,6 +516,11 @@ test("Scenario A: Skill solo writes shared block with skill rows", async () => {
     );
     assert.ok(got.includes("sample-alpha"), "sample-alpha row missing");
     assert.ok(got.includes("sample-beta"), "sample-beta row missing");
+    assert.strictEqual(
+      got.includes("[incomplete]"),
+      false,
+      "complete skills must not be flagged",
+    );
     const counts = countMarkerPairs(got, SHARED_MARKERS);
     assert.strictEqual(counts.starts, 1, "exactly one shared start marker");
     assert.strictEqual(counts.ends, 1, "exactly one shared end marker");
@@ -530,6 +535,47 @@ test("Scenario A: Skill solo writes shared block with skill rows", async () => {
     const after3 = fs.readFileSync(path.join(tmp, "AGENTS.md"), "utf8");
     assert.strictEqual(after1, after2, "second run should be a no-op");
     assert.strictEqual(after2, after3, "third run should be a no-op");
+  } finally {
+    cleanupTmp(tmp);
+  }
+});
+
+test("Scenario A-incomplete: placeholder-only skills are flagged in the skill list", async () => {
+  const tmp = setupTmpFixture("A-skill-solo");
+  try {
+    const wsUri = makeUri(tmp);
+    const stub = makeVscodeStub({
+      workspaceUri: wsUri,
+      settings: { "skillNinja.outputFormat": "full" },
+      siblingExports: undefined,
+    });
+    const broken = makeSampleSkill("sample-broken", "Placeholder description");
+    broken.incomplete = true;
+    const skills = [makeSampleSkill("sample-alpha", "First sample skill"), broken];
+    const { instructionManager } = loadInstructionManager(stub, skills);
+    const ctx = makeContext();
+    const root = makeRoot(wsUri);
+
+    await instructionManager.updateInstructionFileForRoot(root, ctx);
+
+    const got = fs.readFileSync(path.join(tmp, "AGENTS.md"), "utf8");
+    const brokenRow = got
+      .split("\n")
+      .find((line) => line.includes("sample-broken"));
+    assert.ok(brokenRow, "incomplete skill row missing");
+    assert.ok(
+      brokenRow.includes("[incomplete]"),
+      "incomplete skill must be flagged for the reading agent",
+    );
+    const healthyRow = got
+      .split("\n")
+      .find((line) => line.includes("sample-alpha"));
+    assert.ok(healthyRow, "healthy skill row missing");
+    assert.strictEqual(
+      healthyRow.includes("[incomplete]"),
+      false,
+      "healthy skills must stay unflagged",
+    );
   } finally {
     cleanupTmp(tmp);
   }
