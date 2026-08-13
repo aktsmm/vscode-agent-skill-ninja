@@ -7,6 +7,29 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.9.37] - 2026-08-13
+
+### Security
+
+- 🛡️ **Install Path Containment** - Remote file and directory names from the GitHub Contents API are now validated as single path segments before any write, and every write / directory creation asserts it stays under the download root. `vscode.Uri.joinPath` joins POSIX-style, so a git file name such as `..\..\..\evil.txt` survived as one segment and escaped the install folder once converted to a Windows path / GitHub Contents API 由来のファイル名・ディレクトリ名を書き込み前に単一セグメントとして検証し、書き込みとディレクトリ作成のたびにダウンロードルート配下であることを確認するよう修正（`vscode.Uri.joinPath` は POSIX 結合のため `..\..\..\evil.txt` のような名前が 1 セグメントのまま通り、Windows パスへ変換された時点でインストール先の外へ出ていた）
+- 🚫 **Untrusted Metadata Paths** - A source can ship its own `.skill-meta.json`, so the downloader no longer writes extension-owned metadata files, and `relativePath` / `packageParentRelativePath` are always recomputed from the position the scanner actually found instead of the value in the file. Previously that file-supplied path was passed straight to a recursive delete / 配布元が `.skill-meta.json` を同梱できるため、拡張が所有するメタデータファイルをダウンロードしないよう修正し、`relativePath` / `packageParentRelativePath` をファイルの値ではなく走査が実際に見つけた位置から常に再計算するよう変更（従来はファイル由来のパスがそのまま再帰削除へ渡っていた）
+- 🧨 **Skill Root Deletion** - A skill name that sanitized to an empty string (any name made only of non-ASCII characters, brackets, or symbols) resolved to the skill root itself, so a failed download followed by Remove deleted the entire root. Folder names now always fall back to the remote path segment or a stable identity hash, and every recursive delete requires the target to be strictly inside its root / 空文字へサニタイズされるスキル名（非 ASCII のみ、括弧のみ、記号のみの名前）がスキルルート自身を指し、ダウンロード失敗後の削除でルートごと消えていた問題を修正（フォルダ名は配布元パスのセグメントまたは安定した識別子ハッシュへフォールバックし、再帰削除はルートの真配下であることを必須にした）
+- 🔗 **Cross-Repository Fetch** - Remote repository paths are now rejected before URL construction when they contain `.` / `..` segments, separators, schemes, or their percent-encoded forms. `encodeURIComponent` passes `..` through unchanged and `%2e%2e` is normalized back to a parent segment, which could step over the owner / repo / branch prefix of a raw URL / 配布元リポジトリの相対パスに `.` / `..`、区切り、scheme、およびそのパーセントエンコード形が含まれる場合、URL 構築前に拒否するよう修正（`encodeURIComponent` は `..` を素通しし、`%2e%2e` も正規化で親セグメントへ戻るため、raw URL の owner / repo / branch を踏み越えられた）
+
+### Fixed
+
+- 🔢 **Bulk Uninstall Reporting** - Deleting all or multiple skills now counts actual successes and reports failures instead of always claiming the full requested count was deleted / 全件削除・複数選択削除で実際の成功件数を数え、失敗があればその件数を報告するよう修正（従来は要求件数をそのまま削除済みとして表示していた）
+- 🔄 **Nested Metadata Refresh** - Metadata refresh now walks nested skills with the same recursive scan used elsewhere, instead of only direct children of a skill root / メタデータ再抽出をスキルルート直下だけでなく、他と同じ再帰走査でネストされたスキルも対象にするよう修正
+
+### Added
+
+- ⚠️ **Unsafe Entry Reporting** - Entries excluded by the new name policy are tracked separately from transfer errors, so a normal install is not downgraded to partial. A single install shows a dedicated warning, and Reinstall All / per-root reinstall / multi-select reinstall / bundle install add the excluded count to their final summary / 名前ポリシーで除外したエントリを転送エラーとは別チャネルで記録し、正常なインストールを partial へ降格させないよう追加。単体インストールでは専用の警告を出し、すべて再インストール / root 単位の再インストール / 複数選択の再インストール / bundle インストールでは最後のサマリに除外件数を加える
+- 🩹 **Root Artifact Detection** - A skill root whose own `.skill-meta.json` records an empty install location, the signature of the empty-name bug, is reported once with a warning; nothing is deleted automatically. A plain `SKILL.md` at a root is a supported single-skill layout and is not flagged. The scan owns its own workspace state gate, so a workspace that already completed the incomplete-skill scan in an earlier version still receives it / 空文字フォルダ名バグの痕跡である「インストール位置が空の `.skill-meta.json` がルート直下にある」状態を 1 回だけ警告で通知するよう追加（自動削除は行わない）。ルート直下の `SKILL.md` 単体はルートを 1 スキルとする正規構成なので対象外。検出は専用の workspace state を持つため、旧バージョンで incomplete スキル検出を完了済みのワークスペースにも届く
+
+### Changed
+
+- 🧪 **Test Runner** - `npm test` now auto-discovers every `scripts/test-*.js` and runs them with bounded concurrency, buffering each script's output so only failures are printed in full, and prints a `DISCOVERED / TOTAL / PASSED / FAILED / ELAPSED` summary. The suite went from about 15s to about 5s. Set `SKILL_NINJA_TEST_CONCURRENCY=1` to run them serially; passing output stays suppressed either way, so run a single `node scripts/test-<name>.js` when you need its full log. The previous `&&` chain silently skipped every remaining test after the first failure and required manual updates for new test files / `npm test` が `scripts/test-*.js` を自動検出して上限付き並列で実行し、各 script の出力をバッファして失敗した分だけ全文表示し、`DISCOVERED / TOTAL / PASSED / FAILED / ELAPSED` を出力するよう変更（約 15 秒 → 約 5 秒。デバッグ時は `SKILL_NINJA_TEST_CONCURRENCY=1` で直列出力へ戻せる。従来の `&&` チェーンは最初の失敗以降を沈黙スキップし、新規テストの追記漏れも起きていた）
+
 ## [0.9.36] - 2026-08-07
 
 ### Added

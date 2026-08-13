@@ -87,7 +87,9 @@ node scripts/audit-skill-installability.js --raw-only
 
 `audit-skill-installability.js --raw-only` は source ごとの件数差が大きく、`composio-awesome` のような大規模 source では silent に数分かかることがある。3 分以上無出力で不安定なら、`--sources=<source-id>` で分割実行し、ログを `artifacts/` に逃がして PASS/FAIL を source 単位で判定する。
 
-新しい回帰テスト script を追加した場合は、存在確認だけで満足せず、同じ変更で `package.json` の `npm test` に組み込むこと（2026-05-11 / GitHub Copilot）。
+新しい回帰テスト script は `scripts/test-<name>.js` に置く。`npm test` は `scripts/run-skill-tests.js` が `scripts/test-*.js` を自動検出して全件実行するため、`package.json` への追記は不要になった。命名が違うと検出されないので、追加後は `npm test` の `DISCOVERED` 件数が増えたことを確認する（2026-05-11 追記 / 2026-08-13 自動検出へ更新）。
+
+各 script は mkdtemp 配下でしか書き込まない前提で並列実行する。新規 script で repo 内の固定パスへ書くと並列時に衝突するので、一時ファイルは必ず `fs.mkdtempSync` 配下に置く。`SKILL_NINJA_TEST_CONCURRENCY=1` で直列実行に戻せるが、成功した script の出力はどちらでも抑制されるので、全ログが要るときは `node scripts/test-<name>.js` を単体で実行する。2026-08-13 時点で並列 4.8 秒 / 直列 14.2 秒。
 
 ### 2. バージョン更新（必須）
 

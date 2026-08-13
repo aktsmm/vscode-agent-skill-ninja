@@ -315,6 +315,7 @@ function buildDefaultMeta(skill: LocalSkill): SkillMeta {
 
 async function readSkillMetaFile(
   skillDirUri: vscode.Uri,
+  trustedRelativePath?: string,
 ): Promise<SkillMeta | undefined> {
   try {
     const metaContent = await vscode.workspace.fs.readFile(
@@ -322,6 +323,7 @@ async function readSkillMetaFile(
     );
     return enrichSkillMeta(
       JSON.parse(Buffer.from(metaContent).toString("utf-8")) as SkillMeta,
+      trustedRelativePath,
     );
   } catch {
     return undefined;
@@ -371,7 +373,7 @@ async function parseLocalSkillFile(
   }
 
   const skillDirUri = vscode.Uri.file(path.dirname(fileUri.fsPath));
-  const meta = await readSkillMetaFile(skillDirUri);
+  const meta = await readSkillMetaFile(skillDirUri, relativePath);
   const registrationInfo = buildRegistrationInfo(meta);
   const metadataPath = vscode.Uri.joinPath(
     skillDirUri,
@@ -764,7 +766,8 @@ export async function registerLocalSkill(
     }
 
     const meta =
-      (await readSkillMetaFile(skill.skillDirUri)) || buildDefaultMeta(skill);
+      (await readSkillMetaFile(skill.skillDirUri, skill.relativePath)) ||
+      buildDefaultMeta(skill);
     delete meta.registrationDisabled;
     meta.relativePath = skill.relativePath;
 
@@ -798,7 +801,8 @@ export async function unregisterLocalSkill(
     }
 
     const meta =
-      (await readSkillMetaFile(skill.skillDirUri)) || buildDefaultMeta(skill);
+      (await readSkillMetaFile(skill.skillDirUri, skill.relativePath)) ||
+      buildDefaultMeta(skill);
     meta.registrationDisabled = true;
     meta.relativePath = skill.relativePath;
 

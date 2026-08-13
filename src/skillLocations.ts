@@ -2,6 +2,7 @@ import * as os from "os";
 import * as path from "path";
 import * as vscode from "vscode";
 import { resolveOutputFormat } from "./toolDetector";
+import { isContainedPath } from "./pathSafety";
 
 export type SkillScope = "workspace" | "userGlobal" | "extension" | "builtIn";
 
@@ -476,15 +477,7 @@ function pickFirstString(values: unknown[]): string | undefined {
   return undefined;
 }
 
-export function isInsidePath(parentPath: string, targetPath: string): boolean {
-  const normalizedParent = path.resolve(parentPath);
-  const normalizedTarget = path.resolve(targetPath);
-  const relativePath = path.relative(normalizedParent, normalizedTarget);
-  return (
-    relativePath === "" ||
-    (!relativePath.startsWith("..") && !path.isAbsolute(relativePath))
-  );
-}
+export const isInsidePath = isContainedPath;
 
 async function pathExists(targetUri: vscode.Uri): Promise<boolean> {
   try {

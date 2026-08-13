@@ -659,24 +659,24 @@ function createManagedSkillTreeItem(
       ? "不完全（再インストールが必要）"
       : "Incomplete (reinstall required)"
     : skill.isReadOnly
-    ? skill.scope === "extension"
-      ? isJapanese()
-        ? "インストール済み拡張機能（読み取り専用）"
-        : "Installed Extension (read-only)"
-      : isJapanese()
-        ? "Built-in Skills（読み取り専用）"
-        : "Built-in Skills (read-only)"
-    : registrationState === "pending"
-      ? isJapanese()
-        ? "Managed（同期中）"
-        : "Managed (syncing)"
-      : registrationState === "registered"
+      ? skill.scope === "extension"
         ? isJapanese()
-          ? "Managed（登録済み）"
-          : "Managed (registered)"
+          ? "インストール済み拡張機能（読み取り専用）"
+          : "Installed Extension (read-only)"
         : isJapanese()
-          ? "Managed（未登録）"
-          : "Managed (not registered)";
+          ? "Built-in Skills（読み取り専用）"
+          : "Built-in Skills (read-only)"
+      : registrationState === "pending"
+        ? isJapanese()
+          ? "Managed（同期中）"
+          : "Managed (syncing)"
+        : registrationState === "registered"
+          ? isJapanese()
+            ? "Managed（登録済み）"
+            : "Managed (registered)"
+          : isJapanese()
+            ? "Managed（未登録）"
+            : "Managed (not registered)";
   const metaLines = [
     `${isJapanese() ? "パス" : "Path"}: ${skill.displayPath}`,
     `${isJapanese() ? "状態" : "Status"}: ${statusText}`,

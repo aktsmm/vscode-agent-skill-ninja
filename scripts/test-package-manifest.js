@@ -43,6 +43,57 @@ const toolDetectorSource = fs.readFileSync(
 );
 const i18nSource = fs.readFileSync(path.join(root, "src", "i18n.ts"), "utf8");
 
+const isGitCheckout = fs.existsSync(path.join(root, ".git"));
+
+function runGit(args, input) {
+  return require("child_process").execFileSync("git", args, {
+    cwd: root,
+    encoding: "utf8",
+    input,
+  });
+}
+
+// 改行や空白を含むファイル名を壊さないよう、git との受け渡しは NUL 区切りにする
+function toNulLines(output) {
+  return output.split("\0").filter(Boolean);
+}
+
+// git が無い環境では index 由来の検査を skip するが、
+// .git があるのに問い合わせが失敗した場合は握りつぶさず落とす
+const trackedFiles = (() => {
+  if (!isGitCheckout) {
+    return null;
+  }
+  return new Set(toNulLines(runGit(["ls-files", "-z"])));
+})();
+
+/**
+ * 手書きの glob matcher では `scripts` や `test-*.js` のような
+ * 正当な .gitignore 記法を取りこぼすので、判定は git 本体に任せる。
+ */
+function gitIgnoredPaths(candidates) {
+  if (!isGitCheckout || candidates.length === 0) {
+    return null;
+  }
+
+  try {
+    return new Set(
+      toNulLines(
+        runGit(
+          ["check-ignore", "--no-index", "--stdin", "-z"],
+          `${candidates.join("\0")}\0`,
+        ),
+      ),
+    );
+  } catch (error) {
+    // check-ignore は該当なしのとき exit 1 を返す
+    if (error.status === 1) {
+      return new Set();
+    }
+    throw error;
+  }
+}
+
 function test(name, fn) {
   try {
     fn();
@@ -722,9 +773,10 @@ test("README files document the install reliability contract", () => {
   assert.ok(maxDelayMs, "githubFetch.ts should declare a retry wait cap");
   const maxDelaySeconds = Number(maxDelayMs) / 1000;
 
-  const retryableBody = /export function isRetryableGitHubStatus[\s\S]*?\n}/.exec(
-    githubFetchSource,
-  )?.[0];
+  const retryableBody =
+    /export function isRetryableGitHubStatus[\s\S]*?\n}/.exec(
+      githubFetchSource,
+    )?.[0];
   assert.ok(retryableBody, "githubFetch.ts should declare retryable statuses");
   for (const status of ["429", "502", "503", "504"]) {
     assert.ok(
@@ -764,6 +816,131 @@ test("README files document the install reliability contract", () => {
       assert.ok(doc.includes(token), `README should document ${token}`);
     }
   }
+});
+
+test("README files document the path containment contract", () => {
+  const installerSource = fs.readFileSync(
+    path.join(root, "src", "skillInstaller.ts"),
+    "utf8",
+  );
+
+  // 実装側の契約が消えたら README の記述も嘘になるので、両方を突き合わせる
+  const implementationContract = [
+    ["skippedUnsafeEntries", "unsafe entries are tracked separately"],
+    ["EXTENSION_OWNED_FILE_NAMES", "extension-owned metadata is not downloaded"],
+    ["HASHED_SKILL_FOLDER_PREFIX", "a hashed folder fallback exists"],
+    ["isStrictlyInsidePath", "deletes are bounded to the skill root"],
+    ["findRootLevelSkillArtifacts", "root-level leftovers are detected"],
+  ];
+  for (const [symbol, reason] of implementationContract) {
+    assert.ok(
+      installerSource.includes(symbol),
+      `skillInstaller.ts should keep ${symbol} so ${reason}`,
+    );
+  }
+
+  const hashedPrefix = /HASHED_SKILL_FOLDER_PREFIX = "([^"]+)"/.exec(
+    installerSource,
+  )?.[1];
+  assert.strictEqual(
+    hashedPrefix,
+    "skill-",
+    "README documents the hashed folder prefix literally",
+  );
+
+  assert.ok(
+    extensionSource.includes("ROOT_ARTIFACT_SCAN_STATE_KEY"),
+    "the leftover notice needs its own one-shot gate for the README claim to hold",
+  );
+
+  for (const doc of [readme, readmeJa]) {
+    for (const token of ["`..`", "`skill-<hash>`", "`SKILL.md`"]) {
+      assert.ok(
+        doc.includes(token),
+        `README should document the containment contract token ${token}`,
+      );
+    }
+  }
+
+  for (const phrase of [
+    "Unsafe file names from a source are skipped",
+    "cannot ship its own",
+    "still gets its own folder",
+    "Leftover files directly in a skill root are reported once",
+    "Bulk delete reports what actually happened",
+  ]) {
+    assert.ok(readme.includes(phrase), `README.md should document: ${phrase}`);
+  }
+
+  for (const phrase of [
+    "安全でないファイル名は、インストールせずに除外します",
+    "配布元が同梱した `.skill-meta.json` は使いません",
+    "専用フォルダを作ります",
+    "スキルルート直下の残骸は 1 回だけ通知します",
+    "一括削除は実際の結果を報告します",
+  ]) {
+    assert.ok(
+      readmeJa.includes(phrase),
+      `README_ja.md should document: ${phrase}`,
+    );
+  }
+});
+
+test("every localized message key exists in both language tables", () => {
+  // 片方の表にだけ足すと、その言語では生キーがそのままユーザーへ出る
+  const jaStart = i18nSource.indexOf("const jaMessages = {");
+  const enStart = i18nSource.indexOf("const enMessages: MessageDictionary = {");
+  const accessorStart = i18nSource.indexOf("export const messages = {");
+  assert.ok(
+    jaStart >= 0 && enStart > jaStart && accessorStart > enStart,
+    "i18n.ts should keep jaMessages, enMessages, and messages in that order",
+  );
+
+  const jaTable = i18nSource.slice(jaStart, enStart);
+  const enTable = i18nSource.slice(enStart, accessorStart);
+  const accessors = i18nSource.slice(accessorStart);
+
+  const declaredKeys = (table) =>
+    new Set(
+      [...table.matchAll(/(?:^|\n)\s{2}([A-Za-z0-9_]+):/g)].map(
+        (match) => match[1],
+      ),
+    );
+
+  const jaKeys = declaredKeys(jaTable);
+  const enKeys = declaredKeys(enTable);
+  assert.ok(jaKeys.size > 100, `expected a populated ja table, got ${jaKeys.size}`);
+
+  // accessor 外の helper が localize を呼んでも見逃さないよう、ファイル全体を見る
+  const usedKeys = [
+    ...new Set(
+      [...i18nSource.matchAll(/localize\(\s*"([A-Za-z0-9_]+)"/g)].map(
+        (match) => match[1],
+      ),
+    ),
+  ].sort();
+  assert.ok(usedKeys.length > 100, "expected many localize() call sites");
+
+  const missingJa = usedKeys.filter((key) => !jaKeys.has(key));
+  const missingEn = usedKeys.filter((key) => !enKeys.has(key));
+  assert.deepStrictEqual(
+    missingJa,
+    [],
+    `localize keys missing from jaMessages: ${missingJa.join(", ")}`,
+  );
+  assert.deepStrictEqual(
+    missingEn,
+    [],
+    `localize keys missing from enMessages: ${missingEn.join(", ")}`,
+  );
+
+  const jaOnly = [...jaKeys].filter((key) => !enKeys.has(key)).sort();
+  const enOnly = [...enKeys].filter((key) => !jaKeys.has(key)).sort();
+  assert.deepStrictEqual(
+    [jaOnly, enOnly],
+    [[], []],
+    `language tables drifted. ja-only: ${jaOnly.join(", ")} / en-only: ${enOnly.join(", ")}`,
+  );
 });
 
 test("built-in setting descriptions explain provider-based grouping", () => {
@@ -1464,6 +1641,15 @@ test("release instructions include the maintained npm test path", () => {
   assert.ok(
     releaseInstructions.includes("scripts/test-local-skill-scanner.js"),
   );
+  // 自動検出へ移行したので、手順書側もその契約を明示している必要がある
+  assert.ok(
+    releaseInstructions.includes("scripts/run-skill-tests.js"),
+    "release instructions should name the auto-discovering runner",
+  );
+  assert.ok(
+    releaseInstructions.includes("scripts/test-*.js"),
+    "release instructions should state the discovery naming rule",
+  );
   assert.ok(
     releaseInstructions.includes(
       "node scripts/audit-skill-installability.js --raw-only",
@@ -1486,28 +1672,95 @@ test("VSIX ignore rules keep demo docs out of the package", () => {
 });
 
 test("npm test regression scripts are not excluded by .gitignore", () => {
-  const ignoreMatchers = getGitIgnoreEntries().map(globToRegExp);
   const npmTestCommand = pkg.scripts.test || "";
-  const regressionScripts = [
+
+  // `test` が単一ランナーになってからは、コマンド文字列を読むだけでは
+  // 実際に走る 20 本以上の script を 1 本も検査できない
+  const entryScripts = [
     ...new Set(npmTestCommand.match(/scripts\/[A-Za-z0-9._-]+\.js/g) || []),
   ];
-
   assert.ok(
-    regressionScripts.length > 0,
-    "npm test should reference regression scripts",
+    entryScripts.length > 0,
+    "npm test should reference at least one script",
   );
 
-  for (const scriptPath of regressionScripts) {
-    assert.strictEqual(
-      ignoreMatchers.some((matcher) => matcher.test(scriptPath)),
-      false,
-      `${scriptPath} must not be excluded by .gitignore`,
+  // ランナーと同じ発見規則を使う（scripts/run-skill-tests.js の discoverTestScripts）
+  const discoveredScripts = fs
+    .readdirSync(path.join(root, "scripts"), { withFileTypes: true })
+    .filter(
+      (entry) =>
+        entry.isFile() &&
+        entry.name.startsWith("test-") &&
+        entry.name.endsWith(".js"),
+    )
+    .map((entry) => `scripts/${entry.name}`);
+
+  // 名前を変えられた 1 本を件数だけでは検出できないので、
+  // 落ちると痛い回帰テストは名指しで存在を要求する
+  const criticalScripts = [
+    "scripts/test-path-safety.js",
+    "scripts/test-skill-installer-path-traversal.js",
+    "scripts/test-package-manifest.js",
+    "scripts/test-skill-locations.js",
+    "scripts/test-coexistence.js",
+  ];
+  for (const scriptPath of criticalScripts) {
+    assert.ok(
+      discoveredScripts.includes(scriptPath),
+      `${scriptPath} must stay discoverable by the runner's test-*.js rule`,
     );
+  }
+
+  assert.ok(
+    discoveredScripts.length >= criticalScripts.length + 15,
+    `expected the discovered regression suite, got ${discoveredScripts.length}`,
+  );
+
+  const regressionScripts = [
+    ...new Set([...entryScripts, ...discoveredScripts]),
+  ];
+
+  const ignored = gitIgnoredPaths(regressionScripts);
+  const ignoreMatchers = getGitIgnoreEntries().map(globToRegExp);
+
+  for (const scriptPath of regressionScripts) {
     assert.ok(
       fs.existsSync(path.join(root, scriptPath)),
       `${scriptPath} should exist on disk`,
     );
+
+    if (ignored) {
+      assert.strictEqual(
+        ignored.has(scriptPath),
+        false,
+        `${scriptPath} must not be excluded by .gitignore`,
+      );
+    } else {
+      assert.strictEqual(
+        ignoreMatchers.some((matcher) => matcher.test(scriptPath)),
+        false,
+        `${scriptPath} must not be excluded by .gitignore`,
+      );
+    }
   }
+});
+
+test("no tracked file is excluded by .gitignore", () => {
+  if (!trackedFiles) {
+    console.log("  (skipped: not a git checkout)");
+    return;
+  }
+
+  // .gitignore は既に追跡済みのファイルには効かないので、
+  // 「除外したつもりで commit され続けている」状態はパターン検査では見つからない
+  const ignored = gitIgnoredPaths([...trackedFiles]);
+  assert.ok(ignored, "git check-ignore should be available in a git checkout");
+
+  assert.deepStrictEqual(
+    [...ignored].sort(),
+    [],
+    "these files are listed in .gitignore but are still tracked; untrack them or drop the ignore rule",
+  );
 });
 
 test("temporary capture logs are excluded from the VSIX", () => {
@@ -1579,6 +1832,69 @@ test("manifest asset files exist and are not excluded from the VSIX", () => {
       ignoreEntries.has(assetPath),
       false,
       `${assetPath} must not be excluded by .vscodeignore`,
+    );
+  }
+});
+
+test("one-shot activation notices own a distinct workspaceState gate", () => {
+  // gate を共有すると、片方が完了した時点でもう片方が永久に出なくなる。
+  // 特に移行検出は、旧バージョンで gate 済みの環境にこそ届く必要がある。
+  const keyDeclarations = [
+    ...extensionSource.matchAll(
+      /const\s+([A-Z0-9_]*STATE_KEY)\s*=\s*"([^"]+)"/g,
+    ),
+  ].map(([, identifier, value]) => ({ identifier, value }));
+
+  assert.ok(
+    keyDeclarations.length >= 2,
+    "expected at least two one-shot state keys",
+  );
+
+  const values = keyDeclarations.map((entry) => entry.value);
+  assert.strictEqual(
+    new Set(values).size,
+    values.length,
+    `state key literals must be unique: ${values.join(", ")}`,
+  );
+
+  const normalizedExtensionSource = extensionSource.replace(/\r\n/g, "\n");
+  const noticeFunctions = [
+    ...normalizedExtensionSource.matchAll(
+      /async function (notify[A-Za-z0-9]*Once)\([\s\S]*?\n^}$/gm,
+    ),
+  ].map((match) => [match[0], match[1], match[0]]);
+  assert.ok(
+    noticeFunctions.length >= 2,
+    `expected at least two notify*Once functions, got ${noticeFunctions.length}`,
+  );
+
+  const usedKeys = new Map();
+  for (const [, functionName, body] of noticeFunctions) {
+    const referenced = keyDeclarations
+      .map((entry) => entry.identifier)
+      .filter((identifier) => body.includes(identifier));
+
+    assert.strictEqual(
+      referenced.length,
+      1,
+      `${functionName} must reference exactly one state key, got ${referenced.length}`,
+    );
+
+    const [key] = referenced;
+    assert.ok(
+      !usedKeys.has(key),
+      `${functionName} shares ${key} with ${usedKeys.get(key)}`,
+    );
+    usedKeys.set(key, functionName);
+
+    assert.ok(
+      new RegExp(`workspaceState\\.get<boolean>\\(\\s*${key}`).test(body),
+      `${functionName} must read ${key} so the notice stays one-shot`,
+    );
+
+    assert.ok(
+      new RegExp(`workspaceState\\.update\\(\\s*${key}`).test(body),
+      `${functionName} must persist ${key} so the notice stays one-shot`,
     );
   }
 });

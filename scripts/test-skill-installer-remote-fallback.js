@@ -6,6 +6,7 @@ const os = require("os");
 const path = require("path");
 const vm = require("vm");
 const ts = require("typescript");
+const { requireSrcOrNodeModule } = require("./load-src-module");
 
 const sourcePath = path.join(__dirname, "..", "src", "skillInstaller.ts");
 const source = fs.readFileSync(sourcePath, "utf8");
@@ -332,7 +333,7 @@ function loadModule(options = {}) {
           },
         };
       }
-      return require(request);
+      return requireSrcOrNodeModule(request);
     },
   };
 

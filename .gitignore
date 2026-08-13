@@ -22,8 +22,8 @@ scripts/debug-*.js
 .github/copilot-instructions.md
 # .github/instructions/ はリリース手順を含むためリポジトリに含める
 
-# .vscode/ のうち個人設定は除外（launch.json, tasks.json は開発用に同期）
-.vscode/settings.json
+# .vscode/settings.json は dogfooding 用の workspace 設定（skillNinja.outputFormat 等）を
+# 共有するため意図的に追跡している。個人設定はここに書かない
 
 # Review workflow generated files
 .github/review-learnings.md

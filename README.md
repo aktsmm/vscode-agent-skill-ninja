@@ -426,12 +426,17 @@ Legacy compatibility setting: `skillNinja.includeLocalSkills` is deprecated. Wor
 
 ### Skill Install Reliability
 
-A skill that cannot be downloaded is no longer reported as installed:
+Installing, cleaning up, and removing skills all report what actually happened:
 
 - **A placeholder-only install fails.** When just the generated template could be written, the install is rejected and `.skill-meta.json` records it as incomplete. A single install offers Retry Install / Remove / Report Bug, and Retry Install appears only on the first attempt.
 - **Bulk operations stay quiet per skill.** Reinstall All, per-root reinstall, multi-select reinstall, and bundle install skip the per-skill dialog and report failures in the final summary.
 - **Rate limits and transient network errors are retried.** The shared backoff layer retries only `429`, `502`, `503`, and `504`, for up to 3 attempts in total, honoring `Retry-After` and — when `x-ratelimit-remaining` is `0` — `x-ratelimit-reset`. It gives up rather than waiting longer than 20 seconds. `401`, `403`, and `404` are excluded from the backoff so they keep flowing into the existing authentication fallback, which walks the remaining credential sources until one succeeds.
 - **Incomplete skills already in the workspace are surfaced once.** The first activation in a workspace lists up to 5 of them and offers a reinstall action that runs Reinstall All.
+- **Unsafe file names from a source are skipped, not installed.** A remote file or folder name that is not a single safe path segment (for example one containing `..`, a path separator, or a Windows-reserved device name) is excluded before anything is written. The install itself still succeeds. A single install shows a separate warning listing what was skipped, and bulk operations add the excluded count to their final summary, so a hostile source is never presented as a clean install.
+- **A source cannot ship its own `.skill-meta.json`.** That file is owned by the extension. A copy included in the repository is never downloaded, and the recorded install location is always recomputed from where the scanner actually found the skill.
+- **A skill name with no usable ASCII form still gets its own folder.** Names made only of non-ASCII characters, brackets, or symbols fall back to the last segment of the source path, and then to a stable `skill-<hash>` folder. The folder never collapses onto the skill root itself.
+- **Leftover files directly in a skill root are reported once.** A root-level `.skill-meta.json` that records an empty install location is a symptom of that older folder-name problem. It is reported with a warning and never deleted automatically. A plain `SKILL.md` at a root is a supported single-skill layout and is not flagged.
+- **Bulk delete reports what actually happened.** Uninstall All Skills and Uninstall Multiple Skills count real successes and report how many could not be deleted, instead of always claiming the full requested count.
 
 ### Coexistence with Agent Resources Ninja
 

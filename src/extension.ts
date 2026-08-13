@@ -23,6 +23,8 @@ import {
   refreshManagedSkillMetadata,
   refreshSingleSkillMetadata,
   findIncompleteInstalledSkills,
+  findRootLevelSkillArtifacts,
+  resolveManagedSkillDirUri,
   SkillInstallIncompleteError,
   type SkillMeta,
 } from "./skillInstaller";
@@ -169,6 +171,20 @@ function getUtcDateKey(date: Date = new Date()): string {
 
 function getSourceDisplayName(source: Source): string {
   return source.name || source.id;
+}
+
+/**
+ * 一括インストールは skill ごとのダイアログを出さないので、
+ * 除外した安全でない名前はサマリで集約して伝える。
+ */
+function formatUnsafeSkipSuffix(count: number): string {
+  if (count <= 0) {
+    return "";
+  }
+
+  return isJapanese()
+    ? `（安全でない名前 ${count} 件を除外）`
+    : ` (${count} unsafe name(s) excluded)`;
 }
 
 function formatStaleSourceSummary(staleSources: StaleSourceInfo[]): string {
@@ -372,6 +388,7 @@ export function activate(
   });
 
   void notifyIncompleteSkillsOnce(context, workspaceFolder?.uri);
+  void notifyRootLevelArtifactsOnce(context, workspaceFolder?.uri);
 
   loadSkillIndex(context).then(async (index: SkillIndex) => {
     skillIndex = index;
@@ -885,9 +902,9 @@ export function activate(
       return;
     }
 
-    const skillDirUri = vscode.Uri.joinPath(
+    const skillDirUri = resolveManagedSkillDirUri(
       entry.root.rootUri,
-      ...relativePath.split(/[\\/]/).filter(Boolean),
+      relativePath,
     );
     await vscode.workspace.fs.writeFile(
       vscode.Uri.joinPath(skillDirUri, ".skill-meta.json"),
@@ -2164,6 +2181,7 @@ export function activate(
       }
 
       let failed = 0;
+      let unsafeSkips = 0;
       await vscode.window.withProgress(
         {
           location: vscode.ProgressLocation.Notification,
@@ -2189,9 +2207,14 @@ export function activate(
                   wsFolder.uri,
                   root.rootUri,
                 );
-                await installSkill(skill, wsFolder.uri, context, root, {
-                  interactive: false,
-                });
+                const installResult = await installSkill(
+                  skill,
+                  wsFolder.uri,
+                  context,
+                  root,
+                  { interactive: false },
+                );
+                unsafeSkips += installResult.skippedUnsafeEntries?.length ?? 0;
               } catch (error) {
                 console.error(`Failed to reinstall ${meta.name}:`, error);
                 failed += 1;
@@ -2222,7 +2245,7 @@ export function activate(
             ? `（インデックス未検出 ${resolved.skippedMissingCount} 個はスキップ${resolved.disabledMissingCount > 0 ? `、うち ${resolved.disabledMissingCount} 個は今後確認しない設定` : ""}）`
             : ` (${resolved.skippedMissingCount} missing-from-index skill(s) skipped${resolved.disabledMissingCount > 0 ? `, ${resolved.disabledMissingCount} disabled for future checks` : ""})`
           : "";
-      const fullSummarySuffix = `${summarySuffix}${missingSuffix}`;
+      const fullSummarySuffix = `${summarySuffix}${missingSuffix}${formatUnsafeSkipSuffix(unsafeSkips)}`;
       if (summary.isPartialFailure || summary.isTotalFailure) {
         vscode.window.showWarningMessage(
           isJapanese()
@@ -2315,6 +2338,7 @@ export function activate(
       }
 
       let failed = 0;
+      let unsafeSkips = 0;
       await vscode.window.withProgress(
         {
           location: vscode.ProgressLocation.Notification,
@@ -2339,9 +2363,15 @@ export function activate(
                   wsFolder.uri,
                   root.rootUri,
                 );
-                await installSkill(skill, wsFolder.uri, context, root, {
-                  interactive: false,
-                });
+                const rootInstallResult = await installSkill(
+                  skill,
+                  wsFolder.uri,
+                  context,
+                  root,
+                  { interactive: false },
+                );
+                unsafeSkips +=
+                  rootInstallResult.skippedUnsafeEntries?.length ?? 0;
                 markRecentlyInstalled(skill);
               } catch (error) {
                 console.error(
@@ -2374,7 +2404,7 @@ export function activate(
             ? `（インデックス未検出 ${resolved.skippedMissingCount} 個はスキップ${resolved.disabledMissingCount > 0 ? `、うち ${resolved.disabledMissingCount} 個は今後確認しない設定` : ""}）`
             : ` (${resolved.skippedMissingCount} missing-from-index skill(s) skipped${resolved.disabledMissingCount > 0 ? `, ${resolved.disabledMissingCount} disabled for future checks` : ""})`
           : "";
-      const fullRootSummarySuffix = `${rootSummarySuffix}${rootMissingSuffix}`;
+      const fullRootSummarySuffix = `${rootSummarySuffix}${rootMissingSuffix}${formatUnsafeSkipSuffix(unsafeSkips)}`;
       if (rootSummary.isPartialFailure || rootSummary.isTotalFailure) {
         vscode.window.showWarningMessage(
           isJapanese()
@@ -2570,6 +2600,8 @@ export function activate(
         return;
       }
 
+      let deletedCount = 0;
+      let failedCount = 0;
       await vscode.window.withProgress(
         {
           location: vscode.ProgressLocation.Notification,
@@ -2591,7 +2623,9 @@ export function activate(
                 wsFolder.uri,
                 root.rootUri,
               );
+              deletedCount++;
             } catch (error) {
+              failedCount++;
               console.error(`Failed to uninstall ${meta.name}:`, error);
             }
             completed++;
@@ -2605,9 +2639,7 @@ export function activate(
 
       refreshAllViews();
       vscode.window.showInformationMessage(
-        isJapanese()
-          ? `${installedEntries.length} 個のスキルを削除しました`
-          : `Deleted ${installedEntries.length} skills`,
+        messages.bulkUninstallSummary(deletedCount, failedCount),
       );
     },
   );
@@ -2664,6 +2696,7 @@ export function activate(
         async (progress) => {
           let completed = 0;
           let failed = 0;
+          let unsafeSkips = 0;
 
           for (const skillName of installOrder) {
             progress.report({
@@ -2678,9 +2711,15 @@ export function activate(
 
             if (skill) {
               try {
-                await installSkill(skill, wsFolder.uri, context, targetRoot, {
-                  interactive: false,
-                });
+                const bundleInstallResult = await installSkill(
+                  skill,
+                  wsFolder.uri,
+                  context,
+                  targetRoot,
+                  { interactive: false },
+                );
+                unsafeSkips +=
+                  bundleInstallResult.skippedUnsafeEntries?.length ?? 0;
                 markRecentlyInstalled(skill);
               } catch (error) {
                 console.error(`Failed to install ${skillName}:`, error);
@@ -2694,21 +2733,22 @@ export function activate(
           }
 
           // 結果を表示
+          const bundleSuffix = formatUnsafeSkipSuffix(unsafeSkips);
           if (failed > 0) {
             vscode.window.showWarningMessage(
               isJapanese()
                 ? `${bundle.name}: ${completed - failed}/${
                     installOrder.length
-                  } 個インストール完了（${failed} 個失敗）`
+                  } 個インストール完了（${failed} 個失敗）${bundleSuffix}`
                 : `${bundle.name}: ${completed - failed}/${
                     installOrder.length
-                  } installed (${failed} failed)`,
+                  } installed (${failed} failed)${bundleSuffix}`,
             );
           } else {
             vscode.window.showInformationMessage(
               isJapanese()
-                ? `${bundle.name} のインストール完了（${installOrder.length} 個のスキル）`
-                : `${bundle.name} installed (${installOrder.length} skills)`,
+                ? `${bundle.name} のインストール完了（${installOrder.length} 個のスキル）${bundleSuffix}`
+                : `${bundle.name} installed (${installOrder.length} skills)${bundleSuffix}`,
             );
           }
         },
@@ -2768,6 +2808,8 @@ export function activate(
         return;
       }
 
+      let deletedCount = 0;
+      let failedCount = 0;
       await vscode.window.withProgress(
         {
           location: vscode.ProgressLocation.Notification,
@@ -2787,7 +2829,9 @@ export function activate(
                 wsFolder.uri,
                 item.entry.root.rootUri,
               );
+              deletedCount++;
             } catch (error) {
+              failedCount++;
               console.error(`Failed to uninstall ${item.label}:`, error);
             }
             completed++;
@@ -2801,9 +2845,7 @@ export function activate(
 
       refreshAllViews();
       vscode.window.showInformationMessage(
-        isJapanese()
-          ? `${selected.length} 個のスキルを削除しました`
-          : `Deleted ${selected.length} skills`,
+        messages.bulkUninstallSummary(deletedCount, failedCount),
       );
     },
   );
@@ -2891,6 +2933,7 @@ export function activate(
       }
 
       let failed = 0;
+      let unsafeSkips = 0;
       await vscode.window.withProgress(
         {
           location: vscode.ProgressLocation.Notification,
@@ -2919,13 +2962,15 @@ export function activate(
                   wsFolder.uri,
                   item.entry.root.rootUri,
                 );
-                await installSkill(
+                const multiInstallResult = await installSkill(
                   skill,
                   wsFolder.uri,
                   context,
                   item.entry.root,
                   { interactive: false },
                 );
+                unsafeSkips +=
+                  multiInstallResult.skippedUnsafeEntries?.length ?? 0;
                 markRecentlyInstalled(skill);
               } catch (error) {
                 console.error(
@@ -2960,7 +3005,7 @@ export function activate(
             ? `（インデックス未検出 ${resolved.skippedMissingCount} 個はスキップ${resolved.disabledMissingCount > 0 ? `、うち ${resolved.disabledMissingCount} 個は今後確認しない設定` : ""}）`
             : ` (${resolved.skippedMissingCount} missing-from-index skill(s) skipped${resolved.disabledMissingCount > 0 ? `, ${resolved.disabledMissingCount} disabled for future checks` : ""})`
           : "";
-      const fullMultiSummarySuffix = `${multiSummarySuffix}${multiMissingSuffix}`;
+      const fullMultiSummarySuffix = `${multiSummarySuffix}${multiMissingSuffix}${formatUnsafeSkipSuffix(unsafeSkips)}`;
       if (multiSummary.isPartialFailure || multiSummary.isTotalFailure) {
         vscode.window.showWarningMessage(
           isJapanese()
@@ -4490,7 +4535,10 @@ Add examples here
           return;
         }
 
-        const updated = await refreshSingleSkillMetadata(uri);
+        const updated = await refreshSingleSkillMetadata(
+          uri,
+          skillRoot.rootUri,
+        );
         if (updated) {
           // ビューを更新
           refreshAllViews();
@@ -4733,6 +4781,47 @@ async function promptForSkillUpdate(skillCount: number): Promise<boolean> {
 }
 
 const INCOMPLETE_SKILL_SCAN_STATE_KEY = "skillNinja.incompleteSkillScanDone";
+const ROOT_ARTIFACT_SCAN_STATE_KEY = "skillNinja.rootArtifactScanDone";
+
+/**
+ * スキルルート直下に残った SKILL.md / .skill-meta.json を一度だけ通知する。
+ *
+ * v0.9.36 以前は空文字へサニタイズされるスキル名がルート自身を指していたため、
+ * 検出対象は既に 0.9.36 を使っていたワークスペース。
+ * incomplete スキル検出と gate を共有すると、その層に一度も届かない。
+ */
+async function notifyRootLevelArtifactsOnce(
+  context: vscode.ExtensionContext,
+  workspaceUri?: vscode.Uri,
+): Promise<void> {
+  if (!workspaceUri) {
+    return;
+  }
+
+  if (context.workspaceState.get<boolean>(ROOT_ARTIFACT_SCAN_STATE_KEY)) {
+    return;
+  }
+
+  try {
+    const rootArtifacts = await findRootLevelSkillArtifacts(workspaceUri);
+
+    // 表示前に永続化する。dismiss を待つと、ユーザーが閉じないまま
+    // 起動するたびに繰り返す。取りこぼしは update と show の間に
+    // ウィンドウが落ちた場合だけで、そちらの方が影響が小さい。
+    await context.workspaceState.update(ROOT_ARTIFACT_SCAN_STATE_KEY, true);
+
+    if (rootArtifacts.length > 0) {
+      vscode.window.showWarningMessage(
+        messages.rootLevelSkillArtifactsDetected(rootArtifacts.join(", ")),
+      );
+    }
+  } catch (error) {
+    console.warn(
+      "[Skill Ninja] Failed to scan for root-level skill artifacts:",
+      error,
+    );
+  }
+}
 
 /**
  * v0.9.36 以前にプレースホルダーのまま残ったスキルを一度だけ検出して通知する
@@ -4745,15 +4834,17 @@ async function notifyIncompleteSkillsOnce(
     return;
   }
 
-  const stateKey = INCOMPLETE_SKILL_SCAN_STATE_KEY;
-  if (context.workspaceState.get<boolean>(stateKey)) {
+  if (context.workspaceState.get<boolean>(INCOMPLETE_SKILL_SCAN_STATE_KEY)) {
     return;
   }
 
   try {
     const incompleteNames = await findIncompleteInstalledSkills(workspaceUri);
     if (incompleteNames.length === 0) {
-      await context.workspaceState.update(stateKey, true);
+      await context.workspaceState.update(
+        INCOMPLETE_SKILL_SCAN_STATE_KEY,
+        true,
+      );
       return;
     }
 
@@ -4765,7 +4856,7 @@ async function notifyIncompleteSkillsOnce(
       ),
       reinstall,
     );
-    await context.workspaceState.update(stateKey, true);
+    await context.workspaceState.update(INCOMPLETE_SKILL_SCAN_STATE_KEY, true);
 
     if (choice === reinstall) {
       await vscode.commands.executeCommand("skillNinja.reinstallAll");

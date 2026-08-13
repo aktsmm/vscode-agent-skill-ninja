@@ -138,6 +138,13 @@ const jaMessages = {
     'スキル "{0}" の一部のファイルを取得できませんでした。SKILL.md は正常にインストールされています。',
   incompleteSkillsDetected:
     "内容が不完全なスキルが {0} 件あります: {1}。再インストールしてください。",
+  installSkippedUnsafeEntries:
+    'スキル "{0}" の配布元に安全でないファイル名が {1} 件含まれていたため、それらを除外してインストールしました: {2}',
+  rootLevelSkillArtifactsDetected:
+    "スキルルート直下に SKILL.md / .skill-meta.json が直接置かれています ({0})。旧バージョンの不具合による残骸の可能性があります。内容を確認して手動で整理してください（自動削除は行いません）。",
+  bulkUninstallSummary: "{0} 個のスキルを削除しました",
+  bulkUninstallSummaryWithFailures:
+    "{0} 個のスキルを削除しました。{1} 個は削除できませんでした。",
   openSettings: "設定を開く",
   resetSettingsTitle: "設定の初期化",
   resetSettingsPrompt: "初期化する項目を選択してください",
@@ -345,6 +352,13 @@ const enMessages: MessageDictionary = {
     'Some files for skill "{0}" could not be downloaded. SKILL.md was installed successfully.',
   incompleteSkillsDetected:
     "{0} installed skill(s) have incomplete content: {1}. Reinstall them to restore the full content.",
+  installSkippedUnsafeEntries:
+    'The source of skill "{0}" contained {1} unsafe file name(s), which were excluded from the install: {2}',
+  rootLevelSkillArtifactsDetected:
+    "SKILL.md / .skill-meta.json were found directly in a skill root ({0}). These may be leftovers from a bug in an earlier version. Review and clean them up manually (nothing was deleted automatically).",
+  bulkUninstallSummary: "Deleted {0} skills",
+  bulkUninstallSummaryWithFailures:
+    "Deleted {0} skills. {1} could not be deleted.",
   openSettings: "Open Settings",
   resetSettingsTitle: "Reset Settings",
   resetSettingsPrompt: "Select items to reset",
@@ -622,6 +636,21 @@ export const messages = {
   installPartial: (name: string) => localize("installPartial", name),
   incompleteSkillsDetected: (count: number, names: string) =>
     localize("incompleteSkillsDetected", String(count), names),
+  installSkippedUnsafeEntries: (
+    name: string,
+    count: number,
+    names: string,
+  ) => localize("installSkippedUnsafeEntries", name, String(count), names),
+  rootLevelSkillArtifactsDetected: (roots: string) =>
+    localize("rootLevelSkillArtifactsDetected", roots),
+  bulkUninstallSummary: (deleted: number, failed: number) =>
+    failed > 0
+      ? localize(
+          "bulkUninstallSummaryWithFailures",
+          String(deleted),
+          String(failed),
+        )
+      : localize("bulkUninstallSummary", String(deleted)),
   openSettings: () => localize("openSettings"),
   authWithGhCli: () => localize("authWithGhCli"),
 

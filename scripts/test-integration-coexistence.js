@@ -551,7 +551,10 @@ test("Scenario A-incomplete: placeholder-only skills are flagged in the skill li
     });
     const broken = makeSampleSkill("sample-broken", "Placeholder description");
     broken.incomplete = true;
-    const skills = [makeSampleSkill("sample-alpha", "First sample skill"), broken];
+    const skills = [
+      makeSampleSkill("sample-alpha", "First sample skill"),
+      broken,
+    ];
     const { instructionManager } = loadInstructionManager(stub, skills);
     const ctx = makeContext();
     const root = makeRoot(wsUri);

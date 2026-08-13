@@ -9,6 +9,7 @@ const os = require("os");
 const path = require("path");
 const vm = require("vm");
 const ts = require("typescript");
+const { requireSrcOrNodeModule } = require("./load-src-module");
 
 const vscodeStub = {
   FileType: {
@@ -105,7 +106,7 @@ function loadTranspiledModule(sourcePath, extraModules = {}, options = {}) {
       if (request.includes("shared-sources-manifest-store")) {
         return extraModules["./shared-sources-manifest-store"];
       }
-      return require(request);
+      return requireSrcOrNodeModule(request);
     },
   };
 

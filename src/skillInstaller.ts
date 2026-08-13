@@ -2,6 +2,7 @@
 // GitHub からスキルをダウンロードしてワークスペースに配置
 
 import * as vscode from "vscode";
+import * as path from "path";
 import { Skill, loadSkillIndex, Source, getSourceBranch } from "./skillIndex";
 import { isJapanese, messages } from "./i18n";
 import { getGitHubToken, hasStoredGitHubToken } from "./githubAuth";
@@ -17,9 +18,83 @@ import {
   partitionGitHubDirectoryEntries,
   resolveSymlinkTargetPath,
 } from "./githubDirectoryTraversal";
+import {
+  isContainedPath,
+  isSafePathSegment,
+  isSafeRemoteRepoPath,
+  isStrictlyInsidePath,
+  toSafeRelativeSegments,
+} from "./pathSafety";
+import { createHash } from "crypto";
 
 function normalizeNewlines(text: string): string {
   return text.replace(/\r\n/g, "\n");
+}
+
+/**
+ * スキルフォルダを再帰削除する前に、対象がルート配下の真部分であることを確認する。
+ * ルート自身や外部パスを消さないための最後の砦。
+ */
+async function deleteSkillDirectory(
+  skillsRootUri: vscode.Uri,
+  skillPath: vscode.Uri,
+): Promise<void> {
+  if (!isStrictlyInsidePath(skillsRootUri.fsPath, skillPath.fsPath)) {
+    throw new Error(
+      `Refusing to delete outside the skill root: ${skillPath.fsPath} (root: ${skillsRootUri.fsPath})`,
+    );
+  }
+  await vscode.workspace.fs.delete(skillPath, { recursive: true });
+}
+
+/**
+ * 実在位置からスキルルート相対パスを再計算する。
+ * メタデータファイルの値ではなくこちらを正として使う。
+ */
+export function resolveTrustedRelativePath(
+  skillsRootUri: vscode.Uri,
+  skillDirUri: vscode.Uri,
+): string | undefined {
+  if (!isStrictlyInsidePath(skillsRootUri.fsPath, skillDirUri.fsPath)) {
+    return undefined;
+  }
+
+  return path
+    .relative(skillsRootUri.fsPath, skillDirUri.fsPath)
+    .replace(/\\/g, "/");
+}
+
+/**
+ * `"folder/SKILL.md"` 形式の相対パスから、ルート配下のスキルフォルダ URI を解決する。
+ *
+ * 相対パスは配布元が同梱した `.skill-meta.json` 由来でありうるので、
+ * 区切り非依存で末尾の `SKILL.md` を落とし、安全なセグメントが 1 つ以上
+ * 残ることを要求する。空になるとルート自身を指してしまう。
+ */
+export function resolveManagedSkillDirUri(
+  skillsRootUri: vscode.Uri,
+  relativePath: string,
+): vscode.Uri {
+  const rawSegments = (relativePath ?? "").split(/[\\/]/).filter(Boolean);
+  if (rawSegments.at(-1)?.toLowerCase() === "skill.md") {
+    rawSegments.pop();
+  }
+
+  const segments = toSafeRelativeSegments(rawSegments.join("/"));
+  if (!segments) {
+    throw new Error(
+      `Refusing to resolve an unsafe skill path: ${JSON.stringify(relativePath)}`,
+    );
+  }
+
+  const target = vscode.Uri.joinPath(skillsRootUri, ...segments);
+  if (!isStrictlyInsidePath(skillsRootUri.fsPath, target.fsPath)) {
+    throw new Error(
+      `Refusing to resolve a skill path outside its root: ${target.fsPath} (root: ${skillsRootUri.fsPath})`,
+    );
+  }
+
+  return target;
 }
 
 function resolveSkillsRootUri(
@@ -58,6 +133,7 @@ function buildSkillNotFoundPossibleCause(hasToken: boolean): string {
 }
 
 async function handleSkillNotFound(
+  skillsRootUri: vscode.Uri,
   skillPath: vscode.Uri,
   skill: Skill,
   source: Source | undefined,
@@ -66,7 +142,7 @@ async function handleSkillNotFound(
   resolvedBranch?: string,
 ): Promise<never> {
   try {
-    await vscode.workspace.fs.delete(skillPath, { recursive: true });
+    await deleteSkillDirectory(skillsRootUri, skillPath);
   } catch {
     // 削除失敗は無視
   }
@@ -192,6 +268,23 @@ export async function listGitHubDirectory(
 const MAX_SUBDIRECTORY_DOWNLOADS = 300;
 
 /**
+ * 配布元が同梱したメタデータは信用しない。
+ * ダウンロード内容から取ったパスをスキャナや削除処理へ渡さないため、
+ * 拡張が自分で書くファイル名はリモートから受け取らない。
+ */
+const EXTENSION_OWNED_FILE_NAMES = new Set([".skill-meta.json"]);
+
+function isExtensionOwnedFileName(name: string): boolean {
+  return EXTENSION_OWNED_FILE_NAMES.has(name.trim().toLowerCase());
+}
+
+export interface DownloadDirectoryResult {
+  errors: string[];
+  /** ポリシー違反で除外したリモートのファイル名 / ディレクトリ名 */
+  skippedUnsafeEntries: string[];
+}
+
+/**
  * フォルダを再帰的にダウンロード
  * ファイルをディレクトリより先にダウンロードし、
  * サブディレクトリのエラーは個別にキャッチして全体のクラッシュを防止
@@ -204,8 +297,34 @@ async function downloadDirectory(
   branch: string = "main",
   token?: string,
   depth: number = 0,
-): Promise<{ errors: string[] }> {
+  downloadRoot: vscode.Uri = localPath,
+): Promise<DownloadDirectoryResult> {
   const errors: string[] = [];
+  const skippedUnsafeEntries: string[] = [];
+
+  // GitHub のファイル名はディレクトリ区切りを含みうる。
+  // Uri.joinPath は POSIX 結合なので `..\..\x` は 1 セグメントのまま通り、
+  // Windows で fsPath へ変換された時点でインストール先の外へ出る。
+  const resolveEntryUri = (entry: GitHubDirectoryEntry): vscode.Uri | null => {
+    if (!isSafePathSegment(entry.name)) {
+      skippedUnsafeEntries.push(entry.name);
+      console.warn(
+        `[Skill Ninja] Skipping unsafe remote entry name: ${JSON.stringify(entry.name)}`,
+      );
+      return null;
+    }
+
+    const target = vscode.Uri.joinPath(localPath, entry.name);
+    if (!isContainedPath(downloadRoot.fsPath, target.fsPath)) {
+      skippedUnsafeEntries.push(entry.name);
+      console.warn(
+        `[Skill Ninja] Skipping remote entry resolving outside the download root: ${target.fsPath}`,
+      );
+      return null;
+    }
+
+    return target;
+  };
 
   const downloadFileEntry = async (
     entry: GitHubDirectoryEntry,
@@ -214,7 +333,19 @@ async function downloadDirectory(
       return;
     }
 
-    const localFilePath = vscode.Uri.joinPath(localPath, entry.name);
+    if (isExtensionOwnedFileName(entry.name)) {
+      skippedUnsafeEntries.push(entry.name);
+      console.warn(
+        `[Skill Ninja] Skipping extension-owned metadata shipped by the source: ${entry.name}`,
+      );
+      return;
+    }
+
+    const localFilePath = resolveEntryUri(entry);
+    if (!localFilePath) {
+      return;
+    }
+
     console.log(`[Skill Ninja] Downloading file: ${entry.name}`);
     const content = await fetchFileContent(entry.download_url, token);
     await vscode.workspace.fs.writeFile(
@@ -268,7 +399,11 @@ async function downloadDirectory(
   );
 
   for (const entry of dirsToDownload) {
-    const localFilePath = vscode.Uri.joinPath(localPath, entry.name);
+    const localFilePath = resolveEntryUri(entry);
+    if (!localFilePath) {
+      continue;
+    }
+
     try {
       await vscode.workspace.fs.createDirectory(localFilePath);
       const subResult = await downloadDirectory(
@@ -279,8 +414,10 @@ async function downloadDirectory(
         branch,
         token,
         depth + 1,
+        downloadRoot,
       );
       errors.push(...subResult.errors);
+      skippedUnsafeEntries.push(...subResult.skippedUnsafeEntries);
     } catch (error) {
       const msg = `Failed to download directory ${entry.name}: ${error instanceof Error ? error.message : String(error)}`;
       console.error(`[Skill Ninja] ${msg}`);
@@ -289,7 +426,7 @@ async function downloadDirectory(
     }
   }
 
-  return { errors };
+  return { errors, skippedUnsafeEntries };
 }
 
 async function downloadPrimarySkillMd(
@@ -326,6 +463,8 @@ async function downloadPrimarySkillMd(
 
 /**
  * スキル名をフォルダ名として安全な形式に変換
+ * 非 ASCII だけの名前などは空文字になりうるので、
+ * 単独では使わず resolveSkillFolderName 経由で使う。
  */
 function sanitizeSkillName(name: string): string {
   return name
@@ -335,6 +474,41 @@ function sanitizeSkillName(name: string): string {
     .replace(/[^a-z0-9\-_]/g, "-") // 英数字とハイフン、アンダースコア以外をハイフンに
     .replace(/-+/g, "-") // 連続ハイフンを1つに
     .replace(/^-|-$/g, ""); // 先頭・末尾のハイフンを削除
+}
+
+const HASHED_SKILL_FOLDER_PREFIX = "skill-";
+
+/**
+ * インストール先フォルダ名を決める。
+ *
+ * `sanitizeSkillName` は日本語だけの名前や記号だけの名前で空文字を返すため、
+ * そのまま join するとスキルルート自身を指してしまい、
+ * 失敗時の後片付けでルートごと削除されうる。空にならない名前を必ず返す。
+ */
+export function resolveSkillFolderName(skill: {
+  name: string;
+  source?: string;
+  path?: string;
+}): string {
+  const fromName = sanitizeSkillName(skill.name || "");
+  if (isSafePathSegment(fromName)) {
+    return fromName;
+  }
+
+  const remoteSegments = (skill.path || "").split(/[\\/]/).filter(Boolean);
+  const fromRemotePath = sanitizeSkillName(remoteSegments.at(-1) || "");
+  if (isSafePathSegment(fromRemotePath)) {
+    return fromRemotePath;
+  }
+
+  const identity = [skill.source || FALLBACK_LOCAL_SOURCE, skill.path || "", skill.name || ""]
+    .map((part) => `${part.length}:${part}`)
+    .join("|");
+  const digest = createHash("sha256")
+    .update(identity, "utf8")
+    .digest("hex")
+    .slice(0, 16);
+  return `${HASHED_SKILL_FOLDER_PREFIX}${digest}`;
 }
 
 function normalizeRemoteSkillPath(skillPath: string): string {
@@ -475,6 +649,15 @@ async function resolveSkillDownloadTarget(
     return undefined;
   }
 
+  // `..` はパーセントエンコードしても URL 正規化で親セグメントへ戻り、
+  // raw URL の owner / repo / branch を踏み越えて別リポジトリを取得できる
+  if (!isSafeRemoteRepoPath(remotePath)) {
+    console.warn(
+      `[Skill Ninja] Refusing unsafe remote path: ${JSON.stringify(remotePath)}`,
+    );
+    return undefined;
+  }
+
   if (source) {
     const match = source.url.match(/github\.com\/([^/]+)\/([^/]+)/);
     if (match) {
@@ -512,6 +695,12 @@ export interface SkillInstallResult {
   status: SkillInstallStatus;
   name: string;
   errors: string[];
+  /**
+   * 安全でない名前などで意図的に除外したリモートエントリ。
+   * 転送失敗ではないので status を partial へ降格させないが、
+   * 敵対的な配布元を無言で clean install に見せないため別途通知する。
+   */
+  skippedUnsafeEntries?: string[];
 }
 
 /**
@@ -542,13 +731,19 @@ export async function installSkill(
   }
 
   const downloadErrors: string[] = [];
+  const skippedUnsafeEntries: string[] = [];
   let usedFallback = false;
 
   const skillsRootUri = resolveSkillsRootUri(workspaceUri, targetRoot?.rootUri);
 
   // スキル名をサニタイズしてフォルダ名として使用
-  const safeName = sanitizeSkillName(skill.name);
+  const safeName = resolveSkillFolderName(skill);
   const skillPath = vscode.Uri.joinPath(skillsRootUri, safeName);
+  if (!isStrictlyInsidePath(skillsRootUri.fsPath, skillPath.fsPath)) {
+    throw new Error(
+      `Refusing to install outside the skill root: ${skillPath.fsPath} (root: ${skillsRootUri.fsPath})`,
+    );
+  }
   await vscode.workspace.fs.createDirectory(skillPath);
 
   // インデックスからソース情報を取得
@@ -598,6 +793,7 @@ export async function installSkill(
         // 404エラーの場合はインストールをキャンセル（フォールバック作らない）
         if (errorMsg.includes("404")) {
           await handleSkillNotFound(
+            skillsRootUri,
             skillPath,
             skill,
             source,
@@ -654,6 +850,7 @@ export async function installSkill(
           );
           downloadErrors.push(...result.errors);
         }
+        skippedUnsafeEntries.push(...result.skippedUnsafeEntries);
       } catch (error) {
         console.error(`[Skill Ninja] Failed to download directory:`, error);
         const errorMsg = error instanceof Error ? error.message : String(error);
@@ -671,6 +868,7 @@ export async function installSkill(
         } else if (errorMsg.includes("404")) {
           const repoTreeUrl = `https://github.com/${owner}/${repo}/tree/${branch}/${remotePath}`;
           await handleSkillNotFound(
+            skillsRootUri,
             skillPath,
             skill,
             source,
@@ -770,6 +968,8 @@ export async function installSkill(
         : "ok",
     name: skill.name,
     errors: downloadErrors,
+    skippedUnsafeEntries:
+      skippedUnsafeEntries.length > 0 ? skippedUnsafeEntries : undefined,
   };
 
   const recovered = await reportInstallResult(
@@ -817,6 +1017,23 @@ async function reportInstallResult(
     interactive: boolean;
   },
 ): Promise<SkillInstallResult | undefined> {
+  const skipped = result.skippedUnsafeEntries ?? [];
+  if (skipped.length > 0) {
+    console.warn(
+      `[Skill Ninja] Skipped unsafe remote entries for "${skill.name}":`,
+      skipped,
+    );
+    if (options.interactive) {
+      vscode.window.showWarningMessage(
+        messages.installSkippedUnsafeEntries(
+          skill.name,
+          skipped.length,
+          skipped.slice(0, 5).join(", "),
+        ),
+      );
+    }
+  }
+
   if (result.status === "ok") {
     return undefined;
   }
@@ -856,13 +1073,16 @@ async function reportInstallResult(
       options.workspaceUri,
       options.context,
       options.targetRoot,
-      { allowRetry: false },
+      { allowRetry: false, interactive: options.interactive },
     );
   }
 
   if (choice === removeSkill) {
     try {
-      await vscode.workspace.fs.delete(skillPath, { recursive: true });
+      await deleteSkillDirectory(
+        resolveSkillsRootUri(options.workspaceUri, options.targetRoot?.rootUri),
+        skillPath,
+      );
     } catch (error) {
       console.error(
         `[Skill Ninja] Failed to remove incomplete skill "${skill.name}":`,
@@ -977,19 +1197,35 @@ export async function uninstallSkill(
 ): Promise<void> {
   const skillsPath = resolveSkillsRootUri(workspaceUri, skillsRootUri);
 
-  // まずそのままの名前で試す（既存の互換性）
-  let skillPath = vscode.Uri.joinPath(skillsPath, skillName);
+  // 区切りや相対参照を含む名前はサニタイズで別スキルへ化けるので受け付けない
+  if (typeof skillName !== "string" || /[\\/]/.test(skillName)) {
+    throw new Error(
+      `Refusing to delete skill with an unsafe name: ${JSON.stringify(skillName)}`,
+    );
+  }
+
+  // まずそのままの名前で試す（既存の互換性）、無ければサニタイズ名で試す
+  const candidates = [skillName, sanitizeSkillName(skillName)].filter(
+    (candidate) => isSafePathSegment(candidate),
+  );
+  if (candidates.length === 0) {
+    throw new Error(
+      `Refusing to delete skill with an unsafe folder name: ${JSON.stringify(skillName)}`,
+    );
+  }
+
+  let skillPath = vscode.Uri.joinPath(skillsPath, candidates[0]);
 
   try {
     await vscode.workspace.fs.stat(skillPath);
   } catch {
-    // 存在しない場合はサニタイズした名前で試す
-    const safeName = sanitizeSkillName(skillName);
-    skillPath = vscode.Uri.joinPath(skillsPath, safeName);
+    if (candidates[1]) {
+      skillPath = vscode.Uri.joinPath(skillsPath, candidates[1]);
+    }
   }
 
   try {
-    await vscode.workspace.fs.delete(skillPath, { recursive: true });
+    await deleteSkillDirectory(skillsPath, skillPath);
   } catch (error) {
     throw new Error(`Failed to delete skill directory: ${error}`);
   }
@@ -1004,14 +1240,11 @@ export async function uninstallSkillByPath(
   workspaceUri: vscode.Uri,
   skillsRootUri?: vscode.Uri,
 ): Promise<void> {
-  // relativePath は "folder/SKILL.md" 形式
-  // 親フォルダを取得
-  const folderPath = relativePath.replace(/\/SKILL\.md$/i, "");
   const basePath = resolveSkillsRootUri(workspaceUri, skillsRootUri);
-  const skillPath = vscode.Uri.joinPath(basePath, folderPath);
+  const skillPath = resolveManagedSkillDirUri(basePath, relativePath);
 
   try {
-    await vscode.workspace.fs.delete(skillPath, { recursive: true });
+    await deleteSkillDirectory(basePath, skillPath);
   } catch (error) {
     throw new Error(`Failed to delete skill directory: ${error}`);
   }
@@ -1077,32 +1310,43 @@ export interface SkillMeta {
 
 const FALLBACK_LOCAL_SOURCE = "local";
 
-function derivePackageMetadata(
-  name: string,
-  remotePath?: string,
-  relativePath?: string,
-): Pick<
-  SkillMeta,
-  | "installedVia"
-  | "packageParentName"
-  | "packageParentRemotePath"
-  | "packageParentRelativePath"
-> {
-  const normalizedRelativePath = relativePath?.replace(/\\/g, "/");
-  const relativeSegments = normalizedRelativePath
-    ? normalizedRelativePath.split("/").filter(Boolean)
-    : [];
-  const normalizedRemotePath = remotePath?.replace(/\\/g, "/");
-  const remoteSegments = normalizedRemotePath
-    ? normalizedRemotePath.split("/").filter(Boolean)
-    : [];
+/**
+ * ローカルの配置位置だけから導ける情報。
+ * 走査結果から常に再計算できるので、メタデータファイルの値を信用しない。
+ */
+function deriveLocalPackageMetadata(relativePath?: string): {
+  isPackageChild: boolean;
+  packageParentRelativePath?: string;
+} {
+  const segments = (relativePath ?? "")
+    .replace(/\\/g, "/")
+    .split("/")
+    .filter(Boolean);
 
-  if (relativeSegments.length > 1) {
+  if (segments.length > 1) {
     return {
-      installedVia: "packageChild",
-      packageParentRelativePath: relativeSegments.slice(0, -1).join("/"),
+      isPackageChild: true,
+      packageParentRelativePath: segments.slice(0, -1).join("/"),
     };
   }
+
+  return { isPackageChild: false };
+}
+
+/**
+ * 配布元リポジトリ側の情報。ローカル走査からは復元できない。
+ */
+function deriveRemotePackageMetadata(
+  name: string,
+  remotePath?: string,
+): Pick<
+  SkillMeta,
+  "installedVia" | "packageParentName" | "packageParentRemotePath"
+> {
+  const remoteSegments = (remotePath ?? "")
+    .replace(/\\/g, "/")
+    .split("/")
+    .filter(Boolean);
 
   const leafSegment = remoteSegments.at(-1);
   const parentSegment =
@@ -1125,22 +1369,71 @@ function derivePackageMetadata(
   };
 }
 
-export function enrichSkillMeta(meta: SkillMeta): SkillMeta {
-  const derived = derivePackageMetadata(
-    meta.name,
-    meta.remotePath,
-    meta.relativePath,
-  );
+function derivePackageMetadata(
+  name: string,
+  remotePath?: string,
+  relativePath?: string,
+): Pick<
+  SkillMeta,
+  | "installedVia"
+  | "packageParentName"
+  | "packageParentRemotePath"
+  | "packageParentRelativePath"
+> {
+  const local = deriveLocalPackageMetadata(relativePath);
+  if (local.isPackageChild) {
+    return {
+      installedVia: "packageChild",
+      packageParentRelativePath: local.packageParentRelativePath,
+    };
+  }
+
+  return deriveRemotePackageMetadata(name, remotePath);
+}
+
+/**
+ * @param trustedRelativePath 走査で確定したスキルルート相対パス。
+ *   渡された場合、ローカル位置由来のフィールドはこの値から再計算し、
+ *   メタデータファイルの値を採用しない。走査から復元できないリモート側の
+ *   情報（`packageParentName` / `packageParentRemotePath`）だけは残す。
+ */
+export function enrichSkillMeta(
+  meta: SkillMeta,
+  trustedRelativePath?: string,
+): SkillMeta {
+  if (trustedRelativePath === undefined) {
+    const derived = derivePackageMetadata(
+      meta.name,
+      meta.remotePath,
+      meta.relativePath,
+    );
+
+    return {
+      ...meta,
+      metadataVersion: 2,
+      installedVia: meta.installedVia ?? derived.installedVia,
+      packageParentName: meta.packageParentName ?? derived.packageParentName,
+      packageParentRemotePath:
+        meta.packageParentRemotePath ?? derived.packageParentRemotePath,
+      packageParentRelativePath:
+        meta.packageParentRelativePath ?? derived.packageParentRelativePath,
+    };
+  }
+
+  const local = deriveLocalPackageMetadata(trustedRelativePath);
+  const remote = deriveRemotePackageMetadata(meta.name, meta.remotePath);
 
   return {
     ...meta,
     metadataVersion: 2,
-    installedVia: meta.installedVia ?? derived.installedVia,
-    packageParentName: meta.packageParentName ?? derived.packageParentName,
+    relativePath: trustedRelativePath,
+    installedVia: local.isPackageChild
+      ? "packageChild"
+      : (meta.installedVia ?? remote.installedVia),
+    packageParentRelativePath: local.packageParentRelativePath,
+    packageParentName: meta.packageParentName ?? remote.packageParentName,
     packageParentRemotePath:
-      meta.packageParentRemotePath ?? derived.packageParentRemotePath,
-    packageParentRelativePath:
-      meta.packageParentRelativePath ?? derived.packageParentRelativePath,
+      meta.packageParentRemotePath ?? remote.packageParentRemotePath,
   };
 }
 
@@ -1225,6 +1518,43 @@ export async function findIncompleteInstalledSkills(
   }
 
   return incompleteNames;
+}
+
+/**
+ * 空文字フォルダ名バグの残骸が疑われる managed root を返す。
+ *
+ * 空文字へサニタイズされるスキル名でインストールすると、スキル本体が
+ * ルート直下へ展開され、`relativePath` が空のメタデータが書かれていた。
+ *
+ * ルート直下の `SKILL.md` 自体は、ルートを 1 スキルとして扱う正規構成でも
+ * 現れるので判定に使わない。バグ固有の証拠であるメタデータ側だけを見る。
+ * 復旧はユーザー判断が要るので検出だけ行う。
+ */
+export async function findRootLevelSkillArtifacts(
+  workspaceUri: vscode.Uri,
+): Promise<string[]> {
+  const roots = await getManagedSkillRoots(workspaceUri);
+  const affected: string[] = [];
+
+  for (const root of roots) {
+    const skillsRootUri = resolveSkillsRootUri(workspaceUri, root.rootUri);
+    try {
+      const content = await vscode.workspace.fs.readFile(
+        vscode.Uri.joinPath(skillsRootUri, ".skill-meta.json"),
+      );
+      const meta = JSON.parse(
+        Buffer.from(content).toString("utf-8"),
+      ) as Partial<SkillMeta>;
+      const recordedPath = (meta.relativePath ?? "").replace(/[\\/.]/g, "");
+      if (recordedPath.length === 0) {
+        affected.push(skillsRootUri.fsPath);
+      }
+    } catch {
+      // メタデータが無い、または読めない場合は残骸とみなさない
+    }
+  }
+
+  return affected;
 }
 
 export async function refreshManagedSkillMetadata(
@@ -1335,28 +1665,24 @@ export async function refreshSkillMetadata(
       return 0;
     }
 
-    const entries = await vscode.workspace.fs.readDirectory(skillsPath);
-    const dirs = entries.filter(
-      ([, type]) => type === vscode.FileType.Directory,
-    );
+    // ネストされたスキルも走査対象にし、書き戻すパスは走査結果から取る
+    const skillEntries: Array<{
+      folderName: string;
+      relativePath: string;
+      metaPath: vscode.Uri;
+      skillMdPath: vscode.Uri;
+    }> = [];
+    await scanSkillsRecursively(skillsPath, skillsPath, "", skillEntries);
 
-    for (const [folderName] of dirs) {
-      const metaPath = vscode.Uri.joinPath(
-        skillsPath,
-        folderName,
-        ".skill-meta.json",
-      );
-      const skillMdPath = vscode.Uri.joinPath(
-        skillsPath,
-        folderName,
-        "SKILL.md",
-      );
+    for (const entry of skillEntries) {
+      const { folderName, relativePath, metaPath, skillMdPath } = entry;
 
       try {
         // 既存のメタデータを読み込む
         const content = await vscode.workspace.fs.readFile(metaPath);
         const meta = enrichSkillMeta(
           JSON.parse(Buffer.from(content).toString("utf-8")) as SkillMeta,
+          relativePath,
         );
 
         // SKILL.md から description と whenToUse を再抽出
@@ -1390,10 +1716,14 @@ export async function refreshSkillMetadata(
             Buffer.from(JSON.stringify(meta, null, 2), "utf-8"),
           );
           updatedCount++;
-          console.log(`[Skill Ninja] Refreshed metadata for ${folderName}`);
+          console.log(`[Skill Ninja] Refreshed metadata for ${relativePath}`);
         }
       } catch {
-        // メタデータがない場合は新規作成
+        // メタデータがない場合は新規作成。
+        // 走査はネストも見るが、新規作成は従来どおり直下のスキルに限る
+        if (relativePath.includes("/")) {
+          continue;
+        }
         try {
           const { name, description } =
             await extractNameAndDescriptionFromSkillMd(skillMdPath, folderName);
@@ -1406,19 +1736,19 @@ export async function refreshSkillMetadata(
             whenToUse: whenToUse || undefined,
             categories: [],
             installedAt: new Date().toISOString(),
-            relativePath: folderName,
+            relativePath,
           };
 
           await vscode.workspace.fs.writeFile(
             metaPath,
             Buffer.from(
-              JSON.stringify(enrichSkillMeta(newMeta), null, 2),
+              JSON.stringify(enrichSkillMeta(newMeta, relativePath), null, 2),
               "utf-8",
             ),
           );
           updatedCount++;
           console.log(
-            `[Skill Ninja] Created metadata for ${folderName}: ${whenToUse}`,
+            `[Skill Ninja] Created metadata for ${relativePath}: ${whenToUse}`,
           );
         } catch {
           // SKILL.md もない場合はスキップ
@@ -1435,19 +1765,37 @@ export async function refreshSkillMetadata(
 /**
  * 単一スキルのメタデータを SKILL.md から再抽出して更新
  * @param skillMdUri SKILL.md ファイルの URI
+ * @param skillsRootUri このスキルが属する managed root。渡された場合、
+ *   位置関連フィールドを実在位置から再構成する。
  * @returns 更新されたかどうか
  */
 export async function refreshSingleSkillMetadata(
   skillMdUri: vscode.Uri,
+  skillsRootUri?: vscode.Uri,
 ): Promise<boolean> {
   // SKILL.md の親ディレクトリ（スキルフォルダ）を取得
   const skillPath = vscode.Uri.joinPath(skillMdUri, "..");
   const metaPath = vscode.Uri.joinPath(skillPath, ".skill-meta.json");
 
+  const trustedRelativePath = skillsRootUri
+    ? resolveTrustedRelativePath(skillsRootUri, skillPath)
+    : undefined;
+
+  // root を渡されたのに位置を確定できないなら、その URI は管理外
+  if (skillsRootUri && !trustedRelativePath) {
+    console.warn(
+      `[Skill Ninja] Refusing metadata update outside the skill root: ${skillPath.fsPath}`,
+    );
+    return false;
+  }
+
   try {
     // 既存のメタデータを読み込む
     const content = await vscode.workspace.fs.readFile(metaPath);
-    const meta = JSON.parse(Buffer.from(content).toString("utf-8"));
+    const meta = enrichSkillMeta(
+      JSON.parse(Buffer.from(content).toString("utf-8")) as SkillMeta,
+      trustedRelativePath,
+    );
 
     // SKILL.md から description と whenToUse を再抽出
     const newDescription = await extractDescriptionFromSkillMd(skillMdUri);
@@ -1515,13 +1863,12 @@ export async function getInstalledSkillsWithMeta(
     for (const entry of skillEntries) {
       try {
         const content = await vscode.workspace.fs.readFile(entry.metaPath);
+        // 走査で確定した位置を正とする。
+        // メタデータ側のパスは配布元が同梱できるので削除・書き込みに使わない。
         const meta = enrichSkillMeta(
           JSON.parse(Buffer.from(content).toString("utf-8")) as SkillMeta,
+          entry.relativePath,
         );
-        // relativePath を追加（メタデータにない場合）
-        if (!meta.relativePath) {
-          meta.relativePath = entry.relativePath;
-        }
         metas.push(meta);
       } catch {
         // メタデータがない場合は SKILL.md から name と description を読み取る
