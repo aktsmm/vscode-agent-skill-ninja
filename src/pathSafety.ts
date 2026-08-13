@@ -141,7 +141,9 @@ export function toSafeRelativeSegments(
  * `raw.githubusercontent.com/<owner>/<repo>/<branch>/<path>` の
  * owner / repo / branch を踏み越えて別リポジトリを取得できてしまう。
  */
-export function isSafeRemoteRepoPath(remotePath: unknown): remotePath is string {
+export function isSafeRemoteRepoPath(
+  remotePath: unknown,
+): remotePath is string {
   if (typeof remotePath !== "string" || remotePath.trim().length === 0) {
     return false;
   }

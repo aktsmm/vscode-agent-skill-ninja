@@ -636,11 +636,8 @@ export const messages = {
   installPartial: (name: string) => localize("installPartial", name),
   incompleteSkillsDetected: (count: number, names: string) =>
     localize("incompleteSkillsDetected", String(count), names),
-  installSkippedUnsafeEntries: (
-    name: string,
-    count: number,
-    names: string,
-  ) => localize("installSkippedUnsafeEntries", name, String(count), names),
+  installSkippedUnsafeEntries: (name: string, count: number, names: string) =>
+    localize("installSkippedUnsafeEntries", name, String(count), names),
   rootLevelSkillArtifactsDetected: (roots: string) =>
     localize("rootLevelSkillArtifactsDetected", roots),
   bulkUninstallSummary: (deleted: number, failed: number) =>

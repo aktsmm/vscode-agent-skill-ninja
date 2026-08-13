@@ -32,9 +32,7 @@ const {
   isStrictlyInsidePath,
   toSafeRelativeSegments,
   isSafeRemoteRepoPath,
-} = requireTypeScriptModule(
-  path.join(__dirname, "..", "src", "pathSafety.ts"),
-);
+} = requireTypeScriptModule(path.join(__dirname, "..", "src", "pathSafety.ts"));
 
 let failures = 0;
 

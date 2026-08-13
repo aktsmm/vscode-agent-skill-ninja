@@ -781,7 +781,9 @@ async function main() {
     );
     assert.deepStrictEqual(
       Array.from(
-        await healthy.installer.findRootLevelSkillArtifacts(makeUri(ROOT_POSIX)),
+        await healthy.installer.findRootLevelSkillArtifacts(
+          makeUri(ROOT_POSIX),
+        ),
       ),
       [],
     );

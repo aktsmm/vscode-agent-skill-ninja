@@ -827,7 +827,10 @@ test("README files document the path containment contract", () => {
   // 実装側の契約が消えたら README の記述も嘘になるので、両方を突き合わせる
   const implementationContract = [
     ["skippedUnsafeEntries", "unsafe entries are tracked separately"],
-    ["EXTENSION_OWNED_FILE_NAMES", "extension-owned metadata is not downloaded"],
+    [
+      "EXTENSION_OWNED_FILE_NAMES",
+      "extension-owned metadata is not downloaded",
+    ],
     ["HASHED_SKILL_FOLDER_PREFIX", "a hashed folder fallback exists"],
     ["isStrictlyInsidePath", "deletes are bounded to the skill root"],
     ["findRootLevelSkillArtifacts", "root-level leftovers are detected"],
@@ -909,7 +912,10 @@ test("every localized message key exists in both language tables", () => {
 
   const jaKeys = declaredKeys(jaTable);
   const enKeys = declaredKeys(enTable);
-  assert.ok(jaKeys.size > 100, `expected a populated ja table, got ${jaKeys.size}`);
+  assert.ok(
+    jaKeys.size > 100,
+    `expected a populated ja table, got ${jaKeys.size}`,
+  );
 
   // accessor 外の helper が localize を呼んでも見逃さないよう、ファイル全体を見る
   const usedKeys = [

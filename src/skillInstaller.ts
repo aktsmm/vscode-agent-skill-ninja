@@ -501,7 +501,11 @@ export function resolveSkillFolderName(skill: {
     return fromRemotePath;
   }
 
-  const identity = [skill.source || FALLBACK_LOCAL_SOURCE, skill.path || "", skill.name || ""]
+  const identity = [
+    skill.source || FALLBACK_LOCAL_SOURCE,
+    skill.path || "",
+    skill.name || "",
+  ]
     .map((part) => `${part.length}:${part}`)
     .join("|");
   const digest = createHash("sha256")
