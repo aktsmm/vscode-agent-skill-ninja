@@ -136,6 +136,19 @@ const jaMessages = {
     'スキル "{0}" のインストールが完了していません。SKILL.md の内容を取得できなかったため、仮の内容だけが保存されています。',
   installPartial:
     'スキル "{0}" の一部のファイルを取得できませんでした。SKILL.md は正常にインストールされています。',
+  installTargetConflictPrompt:
+    'インストール先フォルダ "{0}" は別のソース ({1}) のスキルが使用中です。上書きすると既存フォルダとローカルの変更は削除され、ソース {2} の内容で入れ直します。続行しますか？',
+  installTargetUnknownOwner: "不明",
+  retryFailedInstallsAction: "失敗した {0} 件を再試行",
+  retryingFailedInstallsTitle: "失敗したスキルを再試行中...",
+  retryingFailedInstalls: "{0} を再試行中...",
+  retryFailedInstallsSummary: "再試行: {0}/{1} 件をインストールしました",
+  repairIncompleteNoTargets: "修復が必要なスキルはありません",
+  repairIncompleteSummary: "修復: {0}/{1} 件のスキルを入れ直しました",
+  repairIncompleteTitle: "不完全なスキルを修復中...",
+  installTargetConflictOverwrite: "上書きする",
+  installTargetConflictBlocked:
+    'インストール先フォルダ "{0}" は別のソース ({1}) が所有しているため、ソース {2} のインストールを中止しました。',
   incompleteSkillsDetected:
     "内容が不完全なスキルが {0} 件あります: {1}。再インストールしてください。",
   installSkippedUnsafeEntries:
@@ -350,6 +363,19 @@ const enMessages: MessageDictionary = {
     'Skill "{0}" was not installed completely. SKILL.md content could not be downloaded, so only placeholder text was saved.',
   installPartial:
     'Some files for skill "{0}" could not be downloaded. SKILL.md was installed successfully.',
+  installTargetConflictPrompt:
+    'The install folder "{0}" is already used by a skill from another source ({1}). Overwriting deletes the existing folder and any local changes, then reinstalls it from source {2}. Continue?',
+  installTargetUnknownOwner: "unknown",
+  retryFailedInstallsAction: "Retry {0} failed",
+  retryingFailedInstallsTitle: "Retrying failed skills...",
+  retryingFailedInstalls: "Retrying {0}...",
+  retryFailedInstallsSummary: "Retry: installed {0}/{1}",
+  repairIncompleteNoTargets: "No skills need repair",
+  repairIncompleteSummary: "Repair: reinstalled {0}/{1} skill(s)",
+  repairIncompleteTitle: "Repairing incomplete skills...",
+  installTargetConflictOverwrite: "Overwrite",
+  installTargetConflictBlocked:
+    'The install folder "{0}" is owned by another source ({1}), so the install from source {2} was cancelled.',
   incompleteSkillsDetected:
     "{0} installed skill(s) have incomplete content: {1}. Reinstall them to restore the full content.",
   installSkippedUnsafeEntries:
@@ -634,6 +660,42 @@ export const messages = {
   actionRemoveSkill: () => localize("actionRemoveSkill"),
   installIncomplete: (name: string) => localize("installIncomplete", name),
   installPartial: (name: string) => localize("installPartial", name),
+  installTargetConflictPrompt: (
+    folderName: string,
+    existingSource: string,
+    newSource: string,
+  ) =>
+    localize(
+      "installTargetConflictPrompt",
+      folderName,
+      existingSource,
+      newSource,
+    ),
+  installTargetConflictOverwrite: () =>
+    localize("installTargetConflictOverwrite"),
+  installTargetUnknownOwner: () => localize("installTargetUnknownOwner"),
+  retryFailedInstallsAction: (count: number) =>
+    localize("retryFailedInstallsAction", String(count)),
+  retryingFailedInstallsTitle: () => localize("retryingFailedInstallsTitle"),
+  retryingFailedInstalls: (name: string) =>
+    localize("retryingFailedInstalls", name),
+  retryFailedInstallsSummary: (succeeded: number, total: number) =>
+    localize("retryFailedInstallsSummary", String(succeeded), String(total)),
+  repairIncompleteNoTargets: () => localize("repairIncompleteNoTargets"),
+  repairIncompleteSummary: (succeeded: number, total: number) =>
+    localize("repairIncompleteSummary", String(succeeded), String(total)),
+  repairIncompleteTitle: () => localize("repairIncompleteTitle"),
+  installTargetConflictBlocked: (
+    folderName: string,
+    existingSource: string,
+    newSource: string,
+  ) =>
+    localize(
+      "installTargetConflictBlocked",
+      folderName,
+      existingSource,
+      newSource,
+    ),
   incompleteSkillsDetected: (count: number, names: string) =>
     localize("incompleteSkillsDetected", String(count), names),
   installSkippedUnsafeEntries: (name: string, count: number, names: string) =>

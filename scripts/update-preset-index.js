@@ -630,9 +630,13 @@ async function main() {
   // 全ソースが同じ日に一斉 stale 化する。
   const indexedAt = new Date().toISOString();
   const updatedSourceIds = new Set(sourcesToUpdate.map((source) => source.id));
+  // source を絞った再生成は index 全体の鮮度ではないので lastUpdated を進めない
+  const scannedEverySource = SOURCE_FILTER.length === 0;
   const newIndex = {
     version: index.version,
-    lastUpdated: new Date().toISOString().split("T")[0],
+    lastUpdated: scannedEverySource
+      ? new Date().toISOString().split("T")[0]
+      : index.lastUpdated,
     sources: index.sources.map((source) =>
       updatedSourceIds.has(source.id)
         ? { ...source, lastIndexedAt: indexedAt }

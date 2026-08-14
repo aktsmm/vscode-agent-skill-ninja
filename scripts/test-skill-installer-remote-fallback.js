@@ -55,6 +55,22 @@ class FsBackedFs {
     return fs.readFileSync(uri.fsPath);
   }
 
+  async readDirectory(uri) {
+    try {
+      return fs
+        .readdirSync(uri.fsPath, { withFileTypes: true })
+        .map((entry) => [
+          entry.name,
+          entry.isDirectory() ? FileType.Directory : FileType.File,
+        ]);
+    } catch (error) {
+      // 実 VS Code の readDirectory は不在時に FileNotFound を投げる
+      const notFound = new Error(`FileNotFound: ${uri.fsPath}`);
+      notFound.code = error.code === "ENOENT" ? "FileNotFound" : error.code;
+      throw notFound;
+    }
+  }
+
   async writeFile(uri, content) {
     fs.mkdirSync(path.dirname(uri.fsPath), { recursive: true });
     fs.writeFileSync(uri.fsPath, content);
@@ -233,6 +249,12 @@ function loadModule(options = {}) {
               `Skill "${name}" was not installed completely.`,
             installPartial: (name) =>
               `Some files for skill "${name}" could not be downloaded.`,
+            installTargetUnknownOwner: () => "unknown",
+            installTargetConflictOverwrite: () => "Overwrite",
+            installTargetConflictPrompt: (folder, existing, incoming) =>
+              `The install folder "${folder}" is used by ${existing}. Overwrite with ${incoming}?`,
+            installTargetConflictBlocked: (folder, existing, incoming) =>
+              `The install folder "${folder}" is owned by ${existing}, so the install from ${incoming} was cancelled.`,
             actionClearStoredGitHubToken: () => "Clear Stored GitHub Token",
           },
         };

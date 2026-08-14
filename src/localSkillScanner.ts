@@ -14,6 +14,7 @@ import {
   isFallbackSkillMd,
   type SkillMeta,
 } from "./skillInstaller";
+import { needsRepair } from "./installedSkillIndex";
 import {
   getBuiltInSkillRoots,
   getExtensionSkillRoots,
@@ -420,11 +421,12 @@ async function parseLocalSkillFile(
     isReadOnly: root.isReadOnly,
     remotePath: meta?.remotePath,
     // Installs from before the flag existed are detected from the content instead
-    incomplete:
-      meta?.incomplete ??
-      (meta?.source
-        ? isFallbackSkillMd(normalizedText, meta.source)
-        : undefined),
+    incomplete: meta
+      ? needsRepair(meta) ||
+        (meta.source
+          ? isFallbackSkillMd(normalizedText, meta.source)
+          : undefined)
+      : undefined,
     reinstallDisabled: meta?.reinstallDisabled,
     reinstallDisabledReason: meta?.reinstallDisabledReason,
     reinstallDisabledAt: meta?.reinstallDisabledAt,

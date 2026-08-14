@@ -25,6 +25,29 @@ export function normalizeInstalledSkillSource(
   return normalizeRemotePath(remotePath) ? "unknown" : "local";
 }
 
+/**
+ * 修復対象かどうかの唯一の判定点。新規メタデータは `repairState`、
+ * 旧メタデータは `incomplete` を持つので両方を見る。
+ */
+export function needsRepair(
+  meta: Pick<SkillMeta, "incomplete" | "repairState">,
+): boolean {
+  return Boolean(meta.repairState) || Boolean(meta.incomplete);
+}
+
+/**
+ * インストール済み判定のキー。同名スキルは別ソースにも存在するため、
+ * 名前だけで比較すると片方のインストールで両方が installed に見える。
+ */
+export function buildInstalledSkillKey(
+  skill: Pick<SkillMeta, "name" | "source"> & { remotePath?: string },
+): string {
+  return `${normalizeInstalledSkillSource(
+    skill.source,
+    skill.remotePath,
+  ).toLowerCase()}|${skill.name.toLowerCase()}`;
+}
+
 export function resolveSingleAffectedSourceId(
   metas: Array<Pick<SkillMeta, "source" | "remotePath">>,
   availableSources: SourceLike[],

@@ -1498,7 +1498,8 @@ export async function updateSingleSource(
         result.source.repoId,
       ),
       skills: [...otherSkills, ...updatedSkills],
-      lastUpdated: getIndexDateStamp(),
+      // 単一 source の走査は index 全体の鮮度ではない
+      lastUpdated: currentIndex.lastUpdated,
     };
 
     // バンドル更新も処理
@@ -1650,10 +1651,17 @@ export async function updateIndexFromSources(
       !handledBundleKeys.has(createSourceBundleKey(b)),
   );
   const indexedAt = getSourceIndexedStamp();
+  // 全 source を走査して全部成功したときだけ index 全体の日付を進める。
+  // 部分失敗で進めると、未走査の source が fallback で新鮮に見える。
+  const scannedEverySource =
+    currentIndex.sources.length > 0 &&
+    updatedSourceIds.size === currentIndex.sources.length;
 
   const updatedIndex: SkillIndex = {
     ...currentIndex,
-    lastUpdated: getIndexDateStamp(),
+    lastUpdated: scannedEverySource
+      ? getIndexDateStamp()
+      : currentIndex.lastUpdated,
     sources: currentIndex.sources.map((source) =>
       updatedSourceIds.has(source.id)
         ? {
@@ -1784,7 +1792,8 @@ export async function updateIndexFromSingleSource(
 
   const updatedIndex: SkillIndex = {
     ...currentIndex,
-    lastUpdated: getIndexDateStamp(),
+    // 単一 source の走査は index 全体の鮮度ではない
+    lastUpdated: currentIndex.lastUpdated,
     sources: stampSourceIndexedAt(
       currentIndex.sources,
       sourceId,
@@ -1886,7 +1895,8 @@ export async function addSource(
 
   const updatedIndex: SkillIndex = {
     ...currentIndex,
-    lastUpdated: getIndexDateStamp(),
+    // 追加した source 以外は走査していない
+    lastUpdated: currentIndex.lastUpdated,
     sources: updatedSources,
     skills: updatedSkills,
     bundles: updatedBundles.length > 0 ? updatedBundles : currentIndex.bundles,
@@ -1931,7 +1941,8 @@ export async function removeSource(
 
   const updatedIndex: SkillIndex = {
     ...currentIndex,
-    lastUpdated: new Date().toISOString().split("T")[0],
+    // 削除だけでは残りの source を走査していない
+    lastUpdated: currentIndex.lastUpdated,
     sources: updatedSources,
     skills: updatedSkills,
     bundles: updatedBundles.length > 0 ? updatedBundles : undefined,

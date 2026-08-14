@@ -6,7 +6,10 @@ import * as path from "path";
 import { Skill, loadSkillIndex, Source, getSourceBranch } from "./skillIndex";
 import { isJapanese, messages } from "./i18n";
 import { getGitHubToken, hasStoredGitHubToken } from "./githubAuth";
-import { normalizeInstalledSkillSource } from "./installedSkillIndex";
+import {
+  needsRepair,
+  normalizeInstalledSkillSource,
+} from "./installedSkillIndex";
 import {
   getManagedSkillRoots,
   resolveWorkspaceSkillsRootUri,
@@ -14,12 +17,20 @@ import {
 } from "./skillLocations";
 import { fetchGitHubWithOptionalAuthRetry } from "./githubFetch";
 import {
+  classifyTransportError,
+  createGitHubResponseError,
+  GitHubResponseError,
+  isGitHubResponseError,
+  type GitHubFailureKind,
+} from "./githubResponse";
+import {
   GitHubDirectoryEntry,
   partitionGitHubDirectoryEntries,
   resolveSymlinkTargetPath,
 } from "./githubDirectoryTraversal";
 import {
   isContainedPath,
+  isRealPathStrictlyInside,
   isSafePathSegment,
   isSafeRemoteRepoPath,
   isStrictlyInsidePath,
@@ -31,6 +42,94 @@ function normalizeNewlines(text: string): string {
   return text.replace(/\r\n/g, "\n");
 }
 
+export type SkillInstallFailureKind =
+  | GitHubFailureKind
+  | "policy-limit"
+  | "filesystem"
+  | "cancelled"
+  | "unknown";
+
+export interface SkillInstallFailure {
+  message: string;
+  kind: SkillInstallFailureKind;
+  path?: string;
+}
+
+/**
+ * 再試行判定は message ではなく kind で行う。分類できない失敗は
+ * "unknown" のままにして、決定論的な失敗を再試行対象へ紛れ込ませない。
+ */
+export function classifySkillInstallFailure(
+  error: unknown,
+): SkillInstallFailureKind {
+  if (isGitHubResponseError(error)) {
+    return error.kind;
+  }
+
+  if (
+    typeof vscode.FileSystemError === "function" &&
+    error instanceof vscode.FileSystemError
+  ) {
+    return "filesystem";
+  }
+
+  return classifyTransportError(error) ?? "unknown";
+}
+
+const RETRYABLE_INSTALL_FAILURE_KINDS: ReadonlySet<SkillInstallFailureKind> =
+  new Set<SkillInstallFailureKind>(["server-error", "transport"]);
+
+/** 不在だけを不在として扱う。権限エラーなどを含めない。 */
+function isFileNotFoundError(error: unknown): boolean {
+  const code = (error as { code?: unknown } | undefined)?.code;
+  if (typeof code === "string") {
+    return code === "FileNotFound" || code === "ENOENT";
+  }
+
+  // code を持たない実装だけ message で判定する
+  const message = (error as { message?: unknown } | undefined)?.message;
+  return (
+    typeof message === "string" &&
+    /\b(ENOENT|FileNotFound|EntryNotFound)\b/i.test(message)
+  );
+}
+
+/**
+ * 一時的な失敗だけを再試行する positive allowlist。
+ * rate limit、認証、404、ポリシー上限、分類不能はここに入れない。
+ */
+export function isRetryableInstallFailure(
+  failures: readonly SkillInstallFailure[],
+): boolean {
+  return (
+    failures.length > 0 &&
+    failures.every((failure) =>
+      RETRYABLE_INSTALL_FAILURE_KINDS.has(failure.kind),
+    )
+  );
+}
+
+/**
+ * 直前の試行が書いたプレースホルダーを実体と誤認しないため、
+ * SKILL.md の存在ではなく中身で判定する。
+ */
+async function hasRealSkillMd(
+  skillPath: vscode.Uri,
+  skill: Pick<Skill, "source">,
+): Promise<boolean> {
+  try {
+    const existing = await vscode.workspace.fs.readFile(
+      vscode.Uri.joinPath(skillPath, "SKILL.md"),
+    );
+    return !isFallbackSkillMd(
+      Buffer.from(existing).toString("utf-8"),
+      skill.source,
+    );
+  } catch {
+    return false;
+  }
+}
+
 /**
  * スキルフォルダを再帰削除する前に、対象がルート配下の真部分であることを確認する。
  * ルート自身や外部パスを消さないための最後の砦。
@@ -39,7 +138,10 @@ async function deleteSkillDirectory(
   skillsRootUri: vscode.Uri,
   skillPath: vscode.Uri,
 ): Promise<void> {
-  if (!isStrictlyInsidePath(skillsRootUri.fsPath, skillPath.fsPath)) {
+  if (
+    !isStrictlyInsidePath(skillsRootUri.fsPath, skillPath.fsPath) ||
+    !isRealPathStrictlyInside(skillsRootUri.fsPath, skillPath.fsPath)
+  ) {
     throw new Error(
       `Refusing to delete outside the skill root: ${skillPath.fsPath} (root: ${skillsRootUri.fsPath})`,
     );
@@ -140,11 +242,17 @@ async function handleSkillNotFound(
   failedUrl: string,
   token?: string,
   resolvedBranch?: string,
+  interactive: boolean = true,
 ): Promise<never> {
   try {
     await deleteSkillDirectory(skillsRootUri, skillPath);
   } catch {
     // 削除失敗は無視
+  }
+
+  // 一括実行はサマリで報告するので、スキルごとのダイアログで止めない
+  if (!interactive) {
+    throw new Error(`Skill not found: ${skill.name}`);
   }
 
   const openSettings = messages.openSettings();
@@ -209,10 +317,21 @@ async function listGitHubDirectoryInternal(
     token,
   });
   if (!response.ok) {
+    const bodyText = await response.text().catch(() => "");
+    const failure = createGitHubResponseError(
+      response,
+      bodyText,
+      `Failed to list directory ${normalizedPath}`,
+    );
     if (response.status === 403) {
-      throw new Error(buildGitHub403Message(token));
+      throw new GitHubResponseError(
+        failure.kind,
+        failure.status,
+        buildGitHub403Message(token),
+        failure.resetAt,
+      );
     }
-    throw new Error(`Failed to list directory: ${response.status}`);
+    throw failure;
   }
   const data = (await response.json()) as
     | GitHubDirectoryEntry[]
@@ -280,6 +399,8 @@ function isExtensionOwnedFileName(name: string): boolean {
 
 export interface DownloadDirectoryResult {
   errors: string[];
+  /** リトライ可否を message ではなく kind で判定するための構造化失敗一覧 */
+  failures: SkillInstallFailure[];
   /** ポリシー違反で除外したリモートのファイル名 / ディレクトリ名 */
   skippedUnsafeEntries: string[];
 }
@@ -298,9 +419,20 @@ async function downloadDirectory(
   token?: string,
   depth: number = 0,
   downloadRoot: vscode.Uri = localPath,
+  isCancelled: () => boolean = () => false,
 ): Promise<DownloadDirectoryResult> {
   const errors: string[] = [];
+  const failures: SkillInstallFailure[] = [];
   const skippedUnsafeEntries: string[] = [];
+
+  const recordFailure = (
+    message: string,
+    kind: SkillInstallFailureKind,
+    failurePath?: string,
+  ) => {
+    errors.push(message);
+    failures.push({ message, kind, path: failurePath });
+  };
 
   // GitHub のファイル名はディレクトリ区切りを含みうる。
   // Uri.joinPath は POSIX 結合なので `..\..\x` は 1 セグメントのまま通り、
@@ -315,7 +447,11 @@ async function downloadDirectory(
     }
 
     const target = vscode.Uri.joinPath(localPath, entry.name);
-    if (!isContainedPath(downloadRoot.fsPath, target.fsPath)) {
+    if (
+      !isContainedPath(downloadRoot.fsPath, target.fsPath) ||
+      // 既存のサブフォルダがルート外を指すリンクでも書き込まない
+      !isRealPathStrictlyInside(downloadRoot.fsPath, target.fsPath)
+    ) {
       skippedUnsafeEntries.push(entry.name);
       console.warn(
         `[Skill Ninja] Skipping remote entry resolving outside the download root: ${target.fsPath}`,
@@ -374,12 +510,21 @@ async function downloadDirectory(
 
   // 1. ファイルを先にダウンロード
   for (const entry of files) {
+    if (isCancelled()) {
+      recordFailure(
+        `Install cancelled before ${entry.name}`,
+        "cancelled",
+        remotePath,
+      );
+      return { errors, failures, skippedUnsafeEntries };
+    }
+
     try {
       await downloadFileEntry(entry);
     } catch (error) {
       const msg = `Failed to download file ${entry.name}: ${error instanceof Error ? error.message : String(error)}`;
       console.error(`[Skill Ninja] ${msg}`);
-      errors.push(msg);
+      recordFailure(msg, classifySkillInstallFailure(error), entry.name);
     }
   }
 
@@ -388,8 +533,10 @@ async function downloadDirectory(
     console.warn(
       `[Skill Ninja] Too many subdirectories (${directoriesToTraverse.length}), limiting to ${MAX_SUBDIRECTORY_DOWNLOADS}`,
     );
-    errors.push(
+    recordFailure(
       `Skipped ${directoriesToTraverse.length - MAX_SUBDIRECTORY_DOWNLOADS} of ${directoriesToTraverse.length} subdirectories (limit: ${MAX_SUBDIRECTORY_DOWNLOADS})`,
+      "policy-limit",
+      remotePath,
     );
   }
 
@@ -399,6 +546,15 @@ async function downloadDirectory(
   );
 
   for (const entry of dirsToDownload) {
+    if (isCancelled()) {
+      recordFailure(
+        `Install cancelled before ${entry.name}`,
+        "cancelled",
+        remotePath,
+      );
+      return { errors, failures, skippedUnsafeEntries };
+    }
+
     const localFilePath = resolveEntryUri(entry);
     if (!localFilePath) {
       continue;
@@ -415,18 +571,20 @@ async function downloadDirectory(
         token,
         depth + 1,
         downloadRoot,
+        isCancelled,
       );
       errors.push(...subResult.errors);
+      failures.push(...subResult.failures);
       skippedUnsafeEntries.push(...subResult.skippedUnsafeEntries);
     } catch (error) {
       const msg = `Failed to download directory ${entry.name}: ${error instanceof Error ? error.message : String(error)}`;
       console.error(`[Skill Ninja] ${msg}`);
-      errors.push(msg);
+      recordFailure(msg, classifySkillInstallFailure(error), entry.name);
       // サブディレクトリのエラーは致命的ではない - 続行
     }
   }
 
-  return { errors, skippedUnsafeEntries };
+  return { errors, failures, skippedUnsafeEntries };
 }
 
 async function downloadPrimarySkillMd(
@@ -699,12 +857,18 @@ export interface SkillInstallResult {
   status: SkillInstallStatus;
   name: string;
   errors: string[];
+  /** リトライ可否を判定するための構造化失敗一覧 */
+  failures: SkillInstallFailure[];
   /**
    * 安全でない名前などで意図的に除外したリモートエントリ。
    * 転送失敗ではないので status を partial へ降格させないが、
    * 敵対的な配布元を無言で clean install に見せないため別途通知する。
    */
   skippedUnsafeEntries?: string[];
+  /** 実際に書き込んだスキルルート（fsPath）。呼び出し側が再計算しないための SSOT。 */
+  installedRoot: string;
+  /** スキルルート直下の実フォルダ名。skill.name とは一致しないことがある。 */
+  installedPath: string;
 }
 
 /**
@@ -715,10 +879,126 @@ export class SkillInstallIncompleteError extends Error {
   constructor(
     public readonly skillName: string,
     public readonly errors: string[],
+    public readonly failures: SkillInstallFailure[] = [],
   ) {
     super(`Skill install incomplete: ${skillName}`);
     this.name = "SkillInstallIncompleteError";
   }
+}
+
+/**
+ * Thrown when the install folder is already owned by a different source, so a
+ * same-named skill from another repository never silently overwrites it.
+ */
+export class SkillInstallTargetConflictError extends Error {
+  constructor(
+    public readonly skillName: string,
+    public readonly folderName: string,
+    public readonly existingSource: string,
+    public readonly incomingSource: string,
+  ) {
+    super(
+      messages.installTargetConflictBlocked(
+        folderName,
+        existingSource,
+        incomingSource,
+      ),
+    );
+    this.name = "SkillInstallTargetConflictError";
+  }
+}
+
+async function readInstallTargetOwner(
+  skillPath: vscode.Uri,
+): Promise<{ exists: boolean; owner?: string }> {
+  let entries: [string, vscode.FileType][];
+  try {
+    entries = await vscode.workspace.fs.readDirectory(skillPath);
+  } catch (error) {
+    // 不在以外の読み取り失敗（権限、provider 障害）を空き扱いしない
+    if (!isFileNotFoundError(error)) {
+      return { exists: true };
+    }
+    return { exists: false };
+  }
+
+  // 空フォルダは失敗した試行の残骸なので占有扱いしない
+  if (entries.length === 0) {
+    return { exists: false };
+  }
+
+  try {
+    const raw = await vscode.workspace.fs.readFile(
+      vscode.Uri.joinPath(skillPath, ".skill-meta.json"),
+    );
+    const meta = JSON.parse(Buffer.from(raw).toString("utf-8")) as {
+      source?: unknown;
+      remotePath?: unknown;
+    };
+    return {
+      exists: true,
+      owner: normalizeInstalledSkillSource(
+        typeof meta.source === "string" ? meta.source : undefined,
+        typeof meta.remotePath === "string" ? meta.remotePath : undefined,
+      ),
+    };
+  } catch {
+    return { exists: true };
+  }
+}
+
+/**
+ * インストール先が別ソースのスキルに占有されていないか確認する。
+ * 同名スキルは別リポジトリにも存在しうるため、所有者が違うときや
+ * 所有者を確認できないときは、明示的な上書き同意なしに書き込まない。
+ * 同意された場合だけ、呼び出し側へ既存フォルダの削除を指示する。
+ */
+async function ensureInstallTargetAvailable(
+  skillPath: vscode.Uri,
+  skill: Skill,
+  folderName: string,
+  incomingOwner: string,
+  interactive: boolean,
+  sources: Source[] = [],
+): Promise<{ replaceExisting: boolean }> {
+  const existing = await readInstallTargetOwner(skillPath);
+  if (!existing.exists) {
+    return { replaceExisting: false };
+  }
+
+  if (existing.owner?.toLowerCase() === incomingOwner.toLowerCase()) {
+    return { replaceExisting: false };
+  }
+
+  const describeOwner = (ownerId: string): string =>
+    sources.find((entry) => entry.id === ownerId)?.name || ownerId;
+  const existingOwnerLabel = existing.owner
+    ? describeOwner(existing.owner)
+    : messages.installTargetUnknownOwner();
+  const incomingOwnerLabel = describeOwner(incomingOwner);
+
+  if (interactive) {
+    const overwrite = messages.installTargetConflictOverwrite();
+    const choice = await vscode.window.showWarningMessage(
+      messages.installTargetConflictPrompt(
+        folderName,
+        existingOwnerLabel,
+        incomingOwnerLabel,
+      ),
+      { modal: true },
+      overwrite,
+    );
+    if (choice === overwrite) {
+      return { replaceExisting: true };
+    }
+  }
+
+  throw new SkillInstallTargetConflictError(
+    skill.name,
+    folderName,
+    existingOwnerLabel,
+    incomingOwnerLabel,
+  );
 }
 
 export async function installSkill(
@@ -726,7 +1006,11 @@ export async function installSkill(
   workspaceUri: vscode.Uri,
   context: vscode.ExtensionContext,
   targetRoot?: SkillRoot,
-  options?: { allowRetry?: boolean; interactive?: boolean },
+  options?: {
+    allowRetry?: boolean;
+    interactive?: boolean;
+    isCancelled?: () => boolean;
+  },
 ): Promise<SkillInstallResult> {
   if (targetRoot && (!targetRoot.isManaged || targetRoot.isReadOnly)) {
     throw new Error(
@@ -735,34 +1019,66 @@ export async function installSkill(
   }
 
   const downloadErrors: string[] = [];
+  const downloadFailures: SkillInstallFailure[] = [];
   const skippedUnsafeEntries: string[] = [];
   let usedFallback = false;
+  const interactive = options?.interactive !== false;
+
+  const recordInstallFailure = (
+    message: string,
+    kind: SkillInstallFailureKind,
+    failurePath?: string,
+  ) => {
+    downloadErrors.push(message);
+    downloadFailures.push({ message, kind, path: failurePath });
+  };
 
   const skillsRootUri = resolveSkillsRootUri(workspaceUri, targetRoot?.rootUri);
 
   // スキル名をサニタイズしてフォルダ名として使用
   const safeName = resolveSkillFolderName(skill);
   const skillPath = vscode.Uri.joinPath(skillsRootUri, safeName);
-  if (!isStrictlyInsidePath(skillsRootUri.fsPath, skillPath.fsPath)) {
+  if (
+    !isStrictlyInsidePath(skillsRootUri.fsPath, skillPath.fsPath) ||
+    !isRealPathStrictlyInside(skillsRootUri.fsPath, skillPath.fsPath)
+  ) {
     throw new Error(
       `Refusing to install outside the skill root: ${skillPath.fsPath} (root: ${skillsRootUri.fsPath})`,
     );
   }
-  await vscode.workspace.fs.createDirectory(skillPath);
 
-  // インデックスからソース情報を取得
+  // 所有者比較をメタデータ書き込み側と一致させるため、
+  // index / token / ダウンロード先はフォルダ作成より前に解決する
   const index = await loadSkillIndex(context);
   const source = index.sources.find((s: Source) => s.id === skill.source);
-
-  // GitHub Token を取得
   const token = await getGitHubToken();
   const downloadTarget = await resolveSkillDownloadTarget(skill, source, token);
+  const normalizedSourceId = inferInstalledSkillSourceId(
+    skill,
+    source,
+    index.sources,
+    downloadTarget,
+  );
+
+  const { replaceExisting } = await ensureInstallTargetAvailable(
+    skillPath,
+    skill,
+    safeName,
+    normalizedSourceId,
+    interactive,
+    index.sources,
+  );
+  if (replaceExisting) {
+    await deleteSkillDirectory(skillsRootUri, skillPath);
+  }
+  await vscode.workspace.fs.createDirectory(skillPath);
 
   if (!downloadTarget) {
     // ソースがない場合はフォールバック
     usedFallback = true;
-    downloadErrors.push(
+    recordInstallFailure(
       `Unable to resolve a download target for ${skill.name}`,
+      "unknown",
     );
     await createFallbackSkillMd(skillPath, skill);
   } else {
@@ -793,9 +1109,10 @@ export async function installSkill(
       } catch (error) {
         console.error(`[Skill Ninja] Failed to download ${rawUrl}:`, error);
         const errorMsg = error instanceof Error ? error.message : String(error);
+        const failureKind = classifySkillInstallFailure(error);
 
         // 404エラーの場合はインストールをキャンセル（フォールバック作らない）
-        if (errorMsg.includes("404")) {
+        if (failureKind === "not-found") {
           await handleSkillNotFound(
             skillsRootUri,
             skillPath,
@@ -804,12 +1121,13 @@ export async function installSkill(
             rawUrl,
             token,
             branch,
+            interactive,
           );
         }
 
         // その他のエラーは不完全インストールとして記録し、後段でまとめて通知する
         usedFallback = true;
-        downloadErrors.push(`${rawUrl}: ${errorMsg}`);
+        recordInstallFailure(`${rawUrl}: ${errorMsg}`, failureKind, remotePath);
         await createFallbackSkillMd(skillPath, skill);
       }
     } else {
@@ -822,14 +1140,22 @@ export async function installSkill(
           skillPath,
           branch,
           token,
+          0,
+          skillPath,
+          options?.isCancelled,
+        );
+
+        const cancelledDuringDownload = result.failures.some(
+          (failure) => failure.kind === "cancelled",
         );
 
         // SKILL.md がなければ作成
-        try {
-          await vscode.workspace.fs.stat(
-            vscode.Uri.joinPath(skillPath, "SKILL.md"),
-          );
-        } catch {
+        // 直前の試行が残したプレースホルダーは実体とみなさない
+        // 中断後は新しい取得も書き込みも始めない
+        if (
+          !cancelledDuringDownload &&
+          !(await hasRealSkillMd(skillPath, skill))
+        ) {
           if (
             !(await downloadPrimarySkillMd(
               owner,
@@ -841,7 +1167,11 @@ export async function installSkill(
             ))
           ) {
             usedFallback = true;
-            downloadErrors.push(`SKILL.md was not found under ${remotePath}`);
+            recordInstallFailure(
+              `SKILL.md was not found under ${remotePath}`,
+              "not-found",
+              remotePath,
+            );
             await createFallbackSkillMd(skillPath, skill);
           }
         }
@@ -853,11 +1183,23 @@ export async function installSkill(
             result.errors,
           );
           downloadErrors.push(...result.errors);
+          // 中断は階層ごとに記録されるので 1 件へ畳む
+          let keptCancelled = false;
+          for (const failure of result.failures) {
+            if (failure.kind === "cancelled") {
+              if (keptCancelled) {
+                continue;
+              }
+              keptCancelled = true;
+            }
+            downloadFailures.push(failure);
+          }
         }
         skippedUnsafeEntries.push(...result.skippedUnsafeEntries);
       } catch (error) {
         console.error(`[Skill Ninja] Failed to download directory:`, error);
         const errorMsg = error instanceof Error ? error.message : String(error);
+        const failureKind = classifySkillInstallFailure(error);
 
         const recoveredPrimarySkillMd = await downloadPrimarySkillMd(
           owner,
@@ -868,8 +1210,8 @@ export async function installSkill(
           token,
         );
         if (recoveredPrimarySkillMd) {
-          downloadErrors.push(errorMsg);
-        } else if (errorMsg.includes("404")) {
+          recordInstallFailure(errorMsg, failureKind, remotePath);
+        } else if (failureKind === "not-found") {
           const repoTreeUrl = `https://github.com/${owner}/${repo}/tree/${branch}/${remotePath}`;
           await handleSkillNotFound(
             skillsRootUri,
@@ -879,20 +1221,12 @@ export async function installSkill(
             repoTreeUrl,
             token,
             branch,
+            interactive,
           );
         } else {
           // Don't overwrite SKILL.md with fallback if it was already downloaded
-          const skillMdPath = vscode.Uri.joinPath(skillPath, "SKILL.md");
-          let skillMdExists = false;
-          try {
-            const existing = await vscode.workspace.fs.readFile(skillMdPath);
-            const existingText = Buffer.from(existing).toString("utf-8");
-            // A leftover placeholder from an earlier install must not count as real content
-            skillMdExists = !isFallbackSkillMd(existingText, skill.source);
-          } catch {
-            // File does not exist
-          }
-          downloadErrors.push(errorMsg);
+          const skillMdExists = await hasRealSkillMd(skillPath, skill);
+          recordInstallFailure(errorMsg, failureKind, remotePath);
           if (!skillMdExists) {
             usedFallback = true;
             await createFallbackSkillMd(skillPath, skill);
@@ -937,12 +1271,12 @@ export async function installSkill(
   }
 
   const normalizedRemotePath = downloadTarget?.remotePath || skill.path;
-  const normalizedSourceId = inferInstalledSkillSourceId(
-    skill,
-    source,
-    index.sources,
-    downloadTarget,
-  );
+
+  const status: SkillInstallStatus = usedFallback
+    ? "incomplete"
+    : downloadErrors.length > 0
+      ? "partial"
+      : "ok";
 
   const meta: SkillMeta = {
     name: skill.name,
@@ -957,6 +1291,13 @@ export async function installSkill(
     remotePath: normalizedRemotePath,
     registrationDisabled: existingRegistrationDisabled,
     incomplete: usedFallback || undefined,
+    // partial は再起動後も修復対象として残す必要があるので永続化する
+    repairState:
+      status === "incomplete"
+        ? "fallback"
+        : status === "partial"
+          ? "partial"
+          : undefined,
     ...derivePackageMetadata(skill.name, normalizedRemotePath, safeName),
   };
   await vscode.workspace.fs.writeFile(
@@ -965,15 +1306,14 @@ export async function installSkill(
   );
 
   const result: SkillInstallResult = {
-    status: usedFallback
-      ? "incomplete"
-      : downloadErrors.length > 0
-        ? "partial"
-        : "ok",
+    status,
     name: skill.name,
     errors: downloadErrors,
+    failures: downloadFailures,
     skippedUnsafeEntries:
       skippedUnsafeEntries.length > 0 ? skippedUnsafeEntries : undefined,
+    installedRoot: skillsRootUri.fsPath,
+    installedPath: safeName,
   };
 
   const recovered = await reportInstallResult(
@@ -988,7 +1328,7 @@ export async function installSkill(
       resolvedBranch: downloadTarget?.branch,
       hasToken: Boolean(token),
       allowRetry: options?.allowRetry !== false,
-      interactive: options?.interactive !== false,
+      interactive,
     },
   );
 
@@ -997,7 +1337,11 @@ export async function installSkill(
   }
 
   if (result.status === "incomplete") {
-    throw new SkillInstallIncompleteError(skill.name, result.errors);
+    throw new SkillInstallIncompleteError(
+      skill.name,
+      result.errors,
+      result.failures,
+    );
   }
 
   return result;
@@ -1220,18 +1564,55 @@ export async function uninstallSkill(
 
   let skillPath = vscode.Uri.joinPath(skillsPath, candidates[0]);
 
+  let exactExists = true;
   try {
     await vscode.workspace.fs.stat(skillPath);
   } catch {
-    if (candidates[1]) {
-      skillPath = vscode.Uri.joinPath(skillsPath, candidates[1]);
+    exactExists = false;
+  }
+
+  if (!exactExists && candidates[1] && candidates[1] !== candidates[0]) {
+    // サニタイズ名は別スキルやユーザー作成フォルダと衝突しうる。
+    // 実在するフォルダを消すのは、メタデータが同じスキルだと証明できるときだけ
+    const fallbackPath = vscode.Uri.joinPath(skillsPath, candidates[1]);
+    let fallbackExists = true;
+    try {
+      await vscode.workspace.fs.stat(fallbackPath);
+    } catch {
+      fallbackExists = false;
     }
+
+    if (fallbackExists) {
+      const fallbackOwner = await readInstalledSkillMetaName(fallbackPath);
+      if (fallbackOwner !== skillName) {
+        throw new Error(
+          `Refusing to delete ${JSON.stringify(candidates[1])}: it does not record skill ${JSON.stringify(skillName)}`,
+        );
+      }
+    }
+    skillPath = fallbackPath;
   }
 
   try {
     await deleteSkillDirectory(skillsPath, skillPath);
   } catch (error) {
     throw new Error(`Failed to delete skill directory: ${error}`);
+  }
+}
+
+async function readInstalledSkillMetaName(
+  skillPath: vscode.Uri,
+): Promise<string | undefined> {
+  try {
+    const raw = await vscode.workspace.fs.readFile(
+      vscode.Uri.joinPath(skillPath, ".skill-meta.json"),
+    );
+    const meta = JSON.parse(Buffer.from(raw).toString("utf-8")) as {
+      name?: unknown;
+    };
+    return typeof meta.name === "string" ? meta.name : undefined;
+  } catch {
+    return undefined;
   }
 }
 
@@ -1298,6 +1679,11 @@ export interface SkillMeta {
   registrationDisabled?: boolean;
   /** Set when only placeholder content could be written during install. */
   incomplete?: boolean;
+  /**
+   * 修復が必要な状態。新規書き込みではこちらが正本で、`incomplete` は
+   * 旧バージョンで書かれたメタデータを読むための互換入力として残す。
+   */
+  repairState?: "fallback" | "partial";
   reinstallDisabled?: boolean;
   reinstallDisabledReason?: string;
   reinstallDisabledAt?: string;
@@ -1489,17 +1875,31 @@ export async function getManagedInstalledSkillsWithMeta(
 
 /**
  * インストール済みスキルのうち、内容がプレースホルダーのままのものを返す。
- * `incomplete` フラグが無い旧バージョンでインストールされたものも検出する。
+ * 同名スキルが複数ルートに存在しうるので、root を保ったまま返す。
+ *
+ * `incomplete` / `repairState` を持たない旧バージョンの検出には SKILL.md 本文の
+ * 読み込みが要るため、起動時のように毎回走らせたくない経路では
+ * `includeLegacyContentScan: false` でメタデータだけを見る。
  */
 export async function findIncompleteInstalledSkills(
   workspaceUri: vscode.Uri,
-): Promise<string[]> {
+  options: {
+    includeLegacyContentScan?: boolean;
+    onContentReadError?: () => void;
+  } = {},
+): Promise<ManagedInstalledSkill[]> {
+  const includeLegacyContentScan = options.includeLegacyContentScan !== false;
   const entries = await getManagedInstalledSkillsWithMeta(workspaceUri);
-  const incompleteNames: string[] = [];
+  const incompleteEntries: ManagedInstalledSkill[] = [];
 
-  for (const { root, meta } of entries) {
-    if (meta.incomplete) {
-      incompleteNames.push(meta.name);
+  for (const entry of entries) {
+    const { root, meta } = entry;
+    if (needsRepair(meta)) {
+      incompleteEntries.push(entry);
+      continue;
+    }
+
+    if (!includeLegacyContentScan) {
       continue;
     }
 
@@ -1514,14 +1914,15 @@ export async function findIncompleteInstalledSkills(
       const content = await vscode.workspace.fs.readFile(skillMdPath);
       const text = Buffer.from(content).toString("utf-8");
       if (isFallbackSkillMd(text, meta.source)) {
-        incompleteNames.push(meta.name);
+        incompleteEntries.push(entry);
       }
     } catch {
       // 読めない SKILL.md はここでは判定しない
+      options.onContentReadError?.();
     }
   }
 
-  return incompleteNames;
+  return incompleteEntries;
 }
 
 /**
@@ -2395,8 +2796,11 @@ async function fetchFileContent(url: string, token?: string): Promise<string> {
     token,
   });
   if (!response.ok) {
-    throw new Error(
-      `HTTP ${response.status}: ${response.statusText} (URL: ${url})`,
+    const bodyText = await response.text().catch(() => "");
+    throw createGitHubResponseError(
+      response,
+      bodyText,
+      `Failed to download ${url}`,
     );
   }
   // 空ファイル（例: Python の __init__.py）も正常なので、

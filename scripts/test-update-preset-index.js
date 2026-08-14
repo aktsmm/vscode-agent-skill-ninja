@@ -139,6 +139,20 @@ test("skill names are unique across the index", () => {
   assert.deepStrictEqual(duplicates, [], `Duplicate skills: ${duplicates}`);
 });
 
+// runtime の bundle identity は source:id なので、検出単位も揃える
+test("bundle ids are unique per source", () => {
+  const seen = new Set();
+  const duplicates = [];
+  for (const bundle of skillIndex.bundles || []) {
+    const key = `${bundle.source}:${bundle.id}`.toLowerCase();
+    if (seen.has(key)) {
+      duplicates.push(key);
+    }
+    seen.add(key);
+  }
+  assert.deepStrictEqual(duplicates, [], `Duplicate bundle ids: ${duplicates}`);
+});
+
 function findDanglingBundleReferences(index) {
   const sourceIds = new Set(index.sources.map((source) => source.id));
   const skillNamesBySource = new Map();

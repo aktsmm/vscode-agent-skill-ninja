@@ -18,6 +18,7 @@ import {
   uninstallSkillByPath,
 } from "./skillInstaller";
 import { updateInstructionFileForRoot } from "./instructionManager";
+import { getSourceLastIndexedAt } from "./sourceIndexFreshness";
 import { searchGitHub, addSource, removeSource } from "./indexUpdater";
 import { isJapanese, messages } from "./i18n";
 import { getGitHubToken } from "./githubAuth";
@@ -100,6 +101,7 @@ function formatSourceRemoveError(error: SourceRemoveResolveError): string {
 
 /**
  * インデックス更新情報を取得
+ * source ごとに更新できるので、鮮度は最も古い source を基準にする
  */
 function getIndexUpdateInfo(index: SkillIndex): {
   lastUpdated: string;
@@ -107,7 +109,15 @@ function getIndexUpdateInfo(index: SkillIndex): {
   isOutdated: boolean;
   warning: string;
 } {
-  const lastUpdated = index.lastUpdated || "unknown";
+  const perSourceStamps = index.sources
+    .map((source) => getSourceLastIndexedAt(source, index))
+    .filter((stamp): stamp is string => Boolean(stamp))
+    .sort();
+  const lastUpdated =
+    perSourceStamps.length === index.sources.length &&
+    perSourceStamps.length > 0
+      ? perSourceStamps[0]
+      : index.lastUpdated || "unknown";
   let daysOld = 0;
   let isOutdated = false;
 
@@ -124,7 +134,12 @@ function getIndexUpdateInfo(index: SkillIndex): {
     ? `⚠️ **インデックスが古くなっています！** (${daysOld}日前)`
     : "";
 
-  return { lastUpdated, daysOld, isOutdated, warning };
+  return {
+    lastUpdated: lastUpdated.split("T")[0],
+    daysOld,
+    isOutdated,
+    warning,
+  };
 }
 
 /**
@@ -473,7 +488,12 @@ class SkillInstallTool implements vscode.LanguageModelTool<{
 
     // インストール実行
     try {
-      await installSkill(skill, workspaceFolder.uri, context, targetRoot);
+      const installResult = await installSkill(
+        skill,
+        workspaceFolder.uri,
+        context,
+        targetRoot,
+      );
 
       // インストラクションファイル (AGENTS.md) を更新（設定で有効な場合のみ）
       const config = vscode.workspace.getConfiguration("skillNinja");
@@ -490,18 +510,30 @@ class SkillInstallTool implements vscode.LanguageModelTool<{
 
       return new vscode.LanguageModelToolResult([
         new vscode.LanguageModelTextPart(
-          `✅ **${skill.name}** をインストールしました！
+          `${
+            installResult.status === "partial"
+              ? isJa
+                ? `⚠️ **${skill.name}** をインストールしましたが、一部のファイルを取得できませんでした。`
+                : `⚠️ **${skill.name}** was installed, but some files could not be downloaded.`
+              : isJa
+                ? `✅ **${skill.name}** をインストールしました！`
+                : `✅ **${skill.name}** installed successfully!`
+          }
 
 | 項目 | 内容 |
 |-----------|------|
 | スキル名 | ${skill.name} |
 | 説明 | ${desc || (isJa ? "説明なし" : "No description")} |
 | 信頼度 | ${trust} |
-| インストール先 | ${targetRoot.displayPath}/${skill.name}/ |
+| インストール先 | ${targetRoot.displayPath}/${installResult.installedPath}/ |
 
 ---
 **Agent Instructions:**
-- Report success with the table above
+- ${
+            installResult.status === "partial"
+              ? "Report the partial install with the table above and tell the user to reinstall the skill"
+              : "Report success with the table above"
+          }
 - If Community skill, add: "⚠️ コミュニティ製スキルは自己責任でご使用ください"
 
 **📋 Next Actions (show to user):**

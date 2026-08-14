@@ -4,6 +4,7 @@
 //
 // vscode に依存しないので、テストから素の Node で実体を検証できる
 
+import * as fs from "fs";
 import * as path from "path";
 
 /**
@@ -106,6 +107,82 @@ export function isStrictlyInsidePath(
     !relativePath.startsWith("..") &&
     !path.isAbsolute(relativePath)
   );
+}
+
+/**
+ * symlink / junction を解決したうえで、`targetPath` が `rootPath` の真の配下かを判定する。
+ *
+ * 文字列比較だけでは、ルート配下に作られたリンクがルート外を指していても通ってしまう。
+ * 対象がまだ存在しない場合は、実在する最も深い祖先を解決して判定する。
+ * リンクが無い環境では文字列判定と同じ結果になる。
+ *
+ * 検査と書き込みの間にリンクを差し替える競合は、この判定では防げない。
+ */
+export function isRealPathStrictlyInside(
+  rootPath: string,
+  targetPath: string,
+): boolean {
+  if (!isStrictlyInsidePath(rootPath, targetPath)) {
+    return false;
+  }
+
+  const realRoot = resolveExistingRealPath(rootPath);
+  if (!realRoot) {
+    // ルートを解決できない環境では、文字列判定より厳しくはしない
+    return true;
+  }
+
+  const normalizedTarget = path.resolve(targetPath);
+  const deepestExisting = resolveDeepestExistingAncestor(normalizedTarget);
+  const realTarget = resolveExistingRealPath(deepestExisting);
+  if (!realTarget) {
+    // 実体はあるのに解決できない場合は、リンク切れの疑いがあるので通さない
+    return false;
+  }
+
+  // 対象自身が存在しない場合は、実在する祖先までの残りを付け直して判定する
+  const unresolvedSuffix = path.relative(deepestExisting, normalizedTarget);
+  const candidate = unresolvedSuffix
+    ? path.join(realTarget, unresolvedSuffix)
+    : realTarget;
+
+  return isStrictlyInsidePath(realRoot, candidate);
+}
+
+/**
+ * リンク切れも「存在する」と数える。`existsSync` はリンク切れを不在と見なすため、
+ * 外部を指すリンク切れが未作成パス扱いで通ってしまう。
+ */
+function pathEntryExists(targetPath: string): boolean {
+  try {
+    fs.lstatSync(targetPath);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+function resolveDeepestExistingAncestor(targetPath: string): string {
+  let current = path.resolve(targetPath);
+  for (;;) {
+    if (pathEntryExists(current)) {
+      return current;
+    }
+    const parent = path.dirname(current);
+    if (parent === current) {
+      return current;
+    }
+    current = parent;
+  }
+}
+
+function resolveExistingRealPath(targetPath: string): string | undefined {
+  const existing = resolveDeepestExistingAncestor(targetPath);
+  try {
+    return fs.realpathSync.native(existing);
+  } catch {
+    return undefined;
+  }
 }
 
 /**

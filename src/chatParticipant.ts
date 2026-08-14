@@ -216,7 +216,7 @@ async function handleInstall(
   stream.progress(messages.installing(skill.name));
 
   // インストール実行
-  await installSkill(
+  const installResult = await installSkill(
     skill,
     workspaceFolder.uri,
     requireIndexContext(),
@@ -231,7 +231,11 @@ async function handleInstall(
     await updateInstructionFileForRoot(targetRoot, requireIndexContext());
   }
 
-  stream.markdown(messages.chatInstallSuccess(skill.name));
+  if (installResult.status === "partial") {
+    stream.markdown(`⚠️ ${messages.installPartial(skill.name)}\n\n`);
+  } else {
+    stream.markdown(messages.chatInstallSuccess(skill.name));
+  }
   stream.markdown(messages.chatInstallCheckFolder(targetRoot.displayPath));
 
   return { metadata: { command: "install", skill: skill.name } };

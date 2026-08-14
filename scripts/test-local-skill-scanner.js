@@ -47,6 +47,12 @@ function loadModule() {
       if (request === "./skillInstaller") {
         return {};
       }
+      if (request === "./installedSkillIndex") {
+        return {
+          needsRepair: (meta) =>
+            Boolean(meta?.repairState) || Boolean(meta?.incomplete),
+        };
+      }
       if (request === "./skillIndex") {
         return {};
       }

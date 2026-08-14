@@ -4,6 +4,8 @@ export type GitHubFailureKind =
   | "classic-pat-forbidden"
   | "auth-required"
   | "not-found"
+  | "server-error"
+  | "transport"
   | "other";
 
 export class GitHubResponseError extends Error {
@@ -29,7 +31,10 @@ export function classifyGitHubFailure(
   bodyText: string,
 ): GitHubFailureKind {
   const lowerBody = bodyText.toLowerCase();
-  const ssoHeader = response.headers.get("x-github-sso")?.toLowerCase() || "";
+  const headers = response.headers;
+  const readHeader = (name: string): string =>
+    typeof headers?.get === "function" ? headers.get(name) || "" : "";
+  const ssoHeader = readHeader("x-github-sso").toLowerCase();
 
   if (
     ssoHeader.includes("required") ||
@@ -47,7 +52,7 @@ export function classifyGitHubFailure(
 
   if (
     response.status === 429 ||
-    response.headers.get("x-ratelimit-remaining") === "0" ||
+    readHeader("x-ratelimit-remaining") === "0" ||
     lowerBody.includes("rate limit")
   ) {
     return "rate-limit";
@@ -61,13 +66,66 @@ export function classifyGitHubFailure(
     return "auth-required";
   }
 
+  if (response.status >= 500) {
+    return "server-error";
+  }
+
   return "other";
+}
+
+const TRANSPORT_ERROR_CODES = new Set([
+  "ECONNRESET",
+  "ECONNREFUSED",
+  "ETIMEDOUT",
+  "ENOTFOUND",
+  "EAI_AGAIN",
+  "EPIPE",
+  "UND_ERR_CONNECT_TIMEOUT",
+  "UND_ERR_SOCKET",
+  "UND_ERR_HEADERS_TIMEOUT",
+  "UND_ERR_BODY_TIMEOUT",
+]);
+
+/**
+ * fetch が Response を返さずに throw した場合だけ transient と見なす。
+ * 判別できないものは transport 扱いにしない（再試行対象を広げない）。
+ */
+export function classifyTransportError(
+  error: unknown,
+): "transport" | undefined {
+  if (!(error instanceof Error)) {
+    return undefined;
+  }
+
+  const codes: unknown[] = [
+    (error as NodeJS.ErrnoException).code,
+    (error.cause as NodeJS.ErrnoException | undefined)?.code,
+  ];
+  if (
+    codes.some(
+      (code) => typeof code === "string" && TRANSPORT_ERROR_CODES.has(code),
+    )
+  ) {
+    return "transport";
+  }
+
+  // undici は接続失敗を TypeError("fetch failed") + cause で表す
+  if (error.name === "TypeError" && /fetch failed/i.test(error.message)) {
+    return "transport";
+  }
+
+  return undefined;
 }
 
 function getRateLimitResetAt(
   response: Pick<Response, "headers">,
 ): string | undefined {
-  const resetSeconds = Number(response.headers.get("x-ratelimit-reset"));
+  const headers = response.headers;
+  if (typeof headers?.get !== "function") {
+    return undefined;
+  }
+
+  const resetSeconds = Number(headers.get("x-ratelimit-reset"));
   if (!Number.isFinite(resetSeconds) || resetSeconds <= 0) {
     return undefined;
   }
@@ -94,7 +152,9 @@ export function createGitHubResponseError(
             ? "GitHub authentication or repository permission is required"
             : kind === "not-found"
               ? "GitHub resource was not found"
-              : `GitHub API request failed (${response.status})`;
+              : kind === "server-error"
+                ? `GitHub API returned a server error (${response.status})`
+                : `GitHub API request failed (${response.status})`;
 
   return new GitHubResponseError(
     kind,

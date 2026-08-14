@@ -7,6 +7,28 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.9.38] - 2026-08-15
+
+### Security
+
+- 🔗 **Link-Aware Path Containment** - Creating a skill folder, writing any downloaded entry, and every recursive delete now resolve symlinks and junctions before trusting the path, so a link placed under a skill root can no longer redirect a write or a delete outside it. A broken link is refused instead of being treated as an unused name, and an entry that exists but cannot be resolved is refused rather than assumed safe / スキルフォルダの作成、ダウンロードした各エントリの書き込み、再帰削除のすべてで symlink / junction を解決してからパスを信用するよう変更（スキルルート配下に置かれたリンクでルート外へ書き込み・削除できないようにした）。リンク切れは「未使用の名前」ではなく拒否し、実体はあるのに解決できないエントリも安全とみなさず拒否する
+- 🗑️ **Uninstall By Name** - A name like `foo!` sanitizes to the folder `foo`. If that folder exists it is now deleted only when its `.skill-meta.json` records the same skill; a folder owned by another skill, a hand-made local skill without metadata, and unreadable metadata are all refused / `foo!` のような名前はフォルダ `foo` にサニタイズされる。そのフォルダが実在する場合は `.skill-meta.json` が同じスキルを記録しているときだけ削除し、別スキルのフォルダ、メタデータの無い手作りローカルスキル、壊れたメタデータはいずれも拒否するよう変更
+- 🏷️ **Install Target Ownership** - Before writing, an install compares the incoming source with the `.skill-meta.json` already in the target folder. A different or unidentifiable owner asks for confirmation, and confirming deletes the existing folder first; bulk runs count it as a failure instead of prompting / 書き込み前に、インストール先の `.skill-meta.json` が示す所有ソースとこれから入れるソースを比較するよう追加。所有者が違う、または特定できない場合は確認を求め、承認したときだけ既存フォルダを削除してから入れ直す（一括実行では確認を出さず失敗として数える）
+
+### Added
+
+- ♻️ **Retry Failed Installs** - After a bulk run, skills that failed with a `5xx` or a transport error are reinstalled in place exactly once, and whatever still fails offers a `Retry N failed` action that reruns only that subset. Rate limits, authentication failures, `404`, the subdirectory cap, cancellations, and unclassified errors are never retried automatically / 一括実行の後、`5xx` と通信エラーで失敗したスキルだけを削除せずその場で 1 回だけ入れ直し、それでも残る失敗には「失敗した N 件を再試行」を提示するよう追加（レート制限、認証失敗、`404`、サブディレクトリ上限、中断、分類できない失敗は自動リトライしない）
+- 🩺 **Repair Incomplete Skills** - A new command reinstalls only the skills recorded as incomplete or partially downloaded, and the activation notice now routes there instead of reinstalling everything. The notice is gated by a fingerprint of the repair target set, so a problem that appears later is still reported / 不完全 / 一部未取得と記録されたスキルだけを入れ直すコマンドを追加し、起動時の通知の遷移先を全件再インストールから変更。通知は対象集合の fingerprint で制御するため、後から発生した問題も通知される
+- ⏹️ **Cancellable Bulk Operations** - Reinstall All, per-root reinstall, multi-select reinstall, bundle install, Repair Incomplete Skills, and the retry action can all be cancelled. The current skill stops at the next file boundary and is recorded as incomplete, and each summary reports how many of the requested skills were actually processed / すべて再インストール、root 単位、複数選択、bundle インストール、不完全なスキルの修復、再試行のすべてをキャンセル可能にした。実行中のスキルは次のファイルの手前で止まり不完全として記録され、サマリには要求件数のうち実際に処理した件数を表示する
+
+### Fixed
+
+- ⚠️ **Partial Installs Reported Honestly** - When SKILL.md is real but other files could not be downloaded, the success notification is suppressed, the status bar shows the missing-file state, `.skill-meta.json` records `repairState`, and bulk summaries append how many skills installed with missing files. This now applies to every entry point including chat and the MCP tool / SKILL.md は取得できても他のファイルが落とせなかった場合、成功通知を出さず、ステータスバーに未取得がある旨を示し、`.skill-meta.json` に `repairState` を記録し、一括サマリに「一部ファイル未取得」の件数を加えるよう修正（チャットと MCP ツールを含む全経路に適用）
+- ⏱️ **Failure Classification** - A request timeout and an HTTP `5xx` from the installer now carry a structured kind instead of a flattened message, so retry decisions no longer depend on string matching. A guessed default branch is no longer cached for the session, which used to turn one transient failure into 404s for every later fetch / インストーラー由来のタイムアウトと HTTP `5xx` が、文字列化されたメッセージではなく構造化された種別を持つよう修正（リトライ判定が文字列一致に依存しなくなった）。推測したデフォルトブランチをセッション中キャッシュしないよう変更（1 回の一時的失敗がその後の全取得を 404 にしていた）
+- 🔍 **Browse Installed State** - The browse view now tracks installed skills per source, so a skill with the same name in another source is no longer shown as installed and can be installed / Browse ビューのインストール済み判定をソース単位にし、別ソースの同名スキルが installed 表示になってインストールできなくなる問題を修正
+- 📅 **Source Index Freshness** - The global index date now advances only when every source was scanned successfully, so updating one source no longer makes the others look freshly indexed / index 全体の更新日を、全ソースの走査が成功したときだけ進めるよう修正（1 ソースの更新で他のソースまで新しく見える問題を解消）
+- 🔕 **Bulk 404 Dialogs** - A bulk run no longer waits on a per-skill error dialog for each missing skill; those are reported in the final summary / 一括実行でスキルごとの 404 ダイアログを待たず、最後のサマリで報告するよう修正
+
 ## [0.9.37] - 2026-08-13
 
 ### Security

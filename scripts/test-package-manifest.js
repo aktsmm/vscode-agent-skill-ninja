@@ -947,6 +947,36 @@ test("every localized message key exists in both language tables", () => {
     [[], []],
     `language tables drifted. ja-only: ${jaOnly.join(", ")} / en-only: ${enOnly.join(", ")}`,
   );
+
+  // 片方だけ {1} を落とすと、その言語で引数が消えたまま表示される
+  const placeholderCounts = (table) => {
+    const counts = new Map();
+    for (const match of table.matchAll(
+      /(?:^|\n)\s{2}([A-Za-z0-9_]+):\s*([\s\S]*?)(?=\n\s{2}[A-Za-z0-9_]+:|\n\};)/g,
+    )) {
+      const indexes = new Set(
+        [...match[2].matchAll(/\{(\d+)\}/g)].map((hit) => hit[1]),
+      );
+      counts.set(match[1], [...indexes].sort().join(","));
+    }
+    return counts;
+  };
+
+  const jaPlaceholders = placeholderCounts(jaTable);
+  const enPlaceholders = placeholderCounts(enTable);
+  const placeholderMismatches = [...jaPlaceholders.entries()]
+    .filter(
+      ([key, value]) =>
+        enPlaceholders.has(key) && enPlaceholders.get(key) !== value,
+    )
+    .map(
+      ([key, value]) => `${key}: ja={${value}} en={${enPlaceholders.get(key)}}`,
+    );
+  assert.deepStrictEqual(
+    placeholderMismatches,
+    [],
+    `placeholder sets differ between languages: ${placeholderMismatches.join(" / ")}`,
+  );
 });
 
 test("built-in setting descriptions explain provider-based grouping", () => {
@@ -1677,9 +1707,49 @@ test("VSIX ignore rules keep demo docs out of the package", () => {
   assert.ok(readme.includes("docs/screenshots/demo.gif"));
 });
 
+// テストランナーは並列なので、固定パスへ書く script が 1 本でもあると
+// 落ち方が実行順に依存する。書き込む script は自前の temp を作ること
+test("regression scripts that touch the filesystem use their own temp dir", () => {
+  const mutatingApi =
+    /(?:fs|fsPromises|fs\.promises)\.(writeFileSync|writeFile|mkdirSync|mkdir|rmSync|rm|rmdirSync|appendFileSync|appendFile|copyFileSync|copyFile|cpSync|cp|symlinkSync|symlink|linkSync|renameSync|rename|unlinkSync|unlink|truncateSync|truncate|createWriteStream|openSync)\(/;
+  const offenders = [];
+  let checked = 0;
+
+  for (const entry of fs.readdirSync(path.join(root, "scripts"), {
+    withFileTypes: true,
+  })) {
+    if (
+      !entry.isFile() ||
+      !entry.name.startsWith("test-") ||
+      !entry.name.endsWith(".js")
+    ) {
+      continue;
+    }
+
+    const source = fs.readFileSync(
+      path.join(root, "scripts", entry.name),
+      "utf8",
+    );
+    if (!mutatingApi.test(source)) {
+      continue;
+    }
+
+    checked += 1;
+    if (!/mkdtempSync\(/.test(source)) {
+      offenders.push(entry.name);
+    }
+  }
+
+  assert.ok(checked > 0, "expected at least one filesystem-touching script");
+  assert.deepStrictEqual(
+    offenders,
+    [],
+    `these scripts mutate the filesystem without mkdtempSync: ${offenders.join(", ")}`,
+  );
+});
+
 test("npm test regression scripts are not excluded by .gitignore", () => {
   const npmTestCommand = pkg.scripts.test || "";
-
   // `test` が単一ランナーになってからは、コマンド文字列を読むだけでは
   // 実際に走る 20 本以上の script を 1 本も検査できない
   const entryScripts = [
@@ -1880,28 +1950,31 @@ test("one-shot activation notices own a distinct workspaceState gate", () => {
       .map((entry) => entry.identifier)
       .filter((identifier) => body.includes(identifier));
 
-    assert.strictEqual(
-      referenced.length,
-      1,
-      `${functionName} must reference exactly one state key, got ${referenced.length}`,
+    assert.ok(
+      referenced.length >= 1,
+      `${functionName} must reference at least one state key`,
     );
 
-    const [key] = referenced;
-    assert.ok(
-      !usedKeys.has(key),
-      `${functionName} shares ${key} with ${usedKeys.get(key)}`,
-    );
-    usedKeys.set(key, functionName);
+    // 通知ごとの gate は独立させる。補助的な scan gate の併用は許す
+    for (const key of referenced) {
+      assert.ok(
+        !usedKeys.has(key),
+        `${functionName} shares ${key} with ${usedKeys.get(key)}`,
+      );
+      usedKeys.set(key, functionName);
 
-    assert.ok(
-      new RegExp(`workspaceState\\.get<boolean>\\(\\s*${key}`).test(body),
-      `${functionName} must read ${key} so the notice stays one-shot`,
-    );
+      assert.ok(
+        new RegExp(
+          `workspaceState\\.get<(?:boolean|string)>\\(\\s*\n?\\s*${key}`,
+        ).test(body),
+        `${functionName} must read ${key} so the notice is gated (one-shot flag or fingerprint)`,
+      );
 
-    assert.ok(
-      new RegExp(`workspaceState\\.update\\(\\s*${key}`).test(body),
-      `${functionName} must persist ${key} so the notice stays one-shot`,
-    );
+      assert.ok(
+        new RegExp(`workspaceState\\.update\\(\\s*\n?\\s*${key}`).test(body),
+        `${functionName} must persist ${key} so the notice stays gated`,
+      );
+    }
   }
 });
 

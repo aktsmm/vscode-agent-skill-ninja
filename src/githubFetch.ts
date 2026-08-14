@@ -219,7 +219,11 @@ export async function fetchGitHubWithTimeout(
     return await fetch(url, { ...init, signal: controller.signal });
   } catch (error) {
     if (timedOut) {
-      throw new Error(`Request timeout: ${url}`);
+      // 分類器が transient と見分けられるよう code を付けて再 throw する
+      const timeoutError = new Error(`Request timeout: ${url}`);
+      timeoutError.name = "TimeoutError";
+      (timeoutError as NodeJS.ErrnoException).code = "ETIMEDOUT";
+      throw timeoutError;
     }
     throw error;
   } finally {

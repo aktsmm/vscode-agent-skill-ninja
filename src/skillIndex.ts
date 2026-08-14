@@ -560,12 +560,20 @@ export async function saveSkillIndex(
 // デフォルトブランチのキャッシュ（リポジトリURL → ブランチ名）
 const branchCache = new Map<string, string>();
 
+// 判定できなかった repo の短期ネガティブキャッシュ。
+// 推測を永続キャッシュするとセッション中 404 が固定され、
+// 毎回再探索すると一括実行で skill 数分のプローブが発生する。
+const UNRESOLVED_BRANCH_TTL_MS = 60_000;
+const unresolvedBranchCache = new Map<string, number>();
+
 export function clearResolvedBranchCache(): void {
   branchCache.clear();
+  unresolvedBranchCache.clear();
 }
 
 export function cacheResolvedBranch(repoUrl: string, branch: string): void {
   branchCache.set(repoUrl, branch);
+  unresolvedBranchCache.delete(repoUrl);
 }
 
 export function normalizeGitHubRepoUrl(repoUrl: string): string {
@@ -669,6 +677,14 @@ export async function getDefaultBranch(
     return branchCache.get(repoUrl)!;
   }
 
+  const unresolvedAt = unresolvedBranchCache.get(repoUrl);
+  if (unresolvedAt !== undefined) {
+    if (Date.now() - unresolvedAt < UNRESOLVED_BRANCH_TTL_MS) {
+      return "main";
+    }
+    unresolvedBranchCache.delete(repoUrl);
+  }
+
   const match = normalizeGitHubRepoUrl(repoUrl).match(
     /github\.com\/([^/]+)\/([^/]+)/,
   );
@@ -708,8 +724,9 @@ export async function getDefaultBranch(
     // API エラー時はフォールバック
   }
 
-  // フォールバック
-  cacheResolvedBranch(repoUrl, "main");
+  // 判定できなかった "main" は推測なので永続キャッシュしない。
+  // 一括実行中の再探索だけを押さえるため、短い TTL でだけ覚える。
+  unresolvedBranchCache.set(repoUrl, Date.now());
   return "main";
 }
 

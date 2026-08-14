@@ -21,7 +21,10 @@ import {
   SkillRoot,
   SkillScope,
 } from "./skillLocations";
-import { shouldCheckInstalledSkillAgainstIndex } from "./installedSkillIndex";
+import {
+  buildInstalledSkillKey,
+  shouldCheckInstalledSkillAgainstIndex,
+} from "./installedSkillIndex";
 
 /**
  * ワークスペーススキル情報（統合型）
@@ -1251,13 +1254,13 @@ export class BrowseSkillsProvider implements vscode.TreeDataProvider<SkillTreeIt
   >();
   readonly onDidChangeTreeData = this._onDidChangeTreeData.event;
   private skillIndex: SkillIndex | undefined;
-  private installedSkillNames: Set<string> = new Set();
+  private installedSkillKeys: Set<string> = new Set();
 
   constructor(private context: vscode.ExtensionContext) {}
 
   refresh(): void {
     this.skillIndex = undefined;
-    this.installedSkillNames.clear();
+    this.installedSkillKeys.clear();
     this._onDidChangeTreeData.fire();
   }
 
@@ -1266,15 +1269,16 @@ export class BrowseSkillsProvider implements vscode.TreeDataProvider<SkillTreeIt
    */
   setIndex(index: SkillIndex): void {
     this.skillIndex = index;
-    this.installedSkillNames.clear();
+    this.installedSkillKeys.clear();
     this._onDidChangeTreeData.fire();
   }
 
   /**
    * スキルがインストール済みかどうかを確認
+   * 同名スキルは別ソースにも存在するので source ごとに判定する
    */
-  isSkillInstalled(skillName: string): boolean {
-    return this.installedSkillNames.has(skillName.toLowerCase());
+  isSkillInstalled(skill: Pick<Skill, "name" | "source">): boolean {
+    return this.installedSkillKeys.has(buildInstalledSkillKey(skill));
   }
 
   getTreeItem(element: SkillTreeItem): vscode.TreeItem {
@@ -1299,7 +1303,7 @@ export class BrowseSkillsProvider implements vscode.TreeDataProvider<SkillTreeIt
     const categories = Array.isArray(index.categories) ? index.categories : [];
 
     // インストール済みスキルを取得（メタデータの name を使用）
-    if (this.installedSkillNames.size === 0) {
+    if (this.installedSkillKeys.size === 0) {
       const wsFolder = vscode.workspace.workspaceFolders?.[0];
       if (wsFolder) {
         const managedRoots = await getManagedSkillRoots(wsFolder.uri);
@@ -1309,7 +1313,7 @@ export class BrowseSkillsProvider implements vscode.TreeDataProvider<SkillTreeIt
             root.rootUri,
           );
           installedMeta.forEach((meta) =>
-            this.installedSkillNames.add(meta.name.toLowerCase()),
+            this.installedSkillKeys.add(buildInstalledSkillKey(meta)),
           );
         }
       }
@@ -1474,9 +1478,7 @@ export class BrowseSkillsProvider implements vscode.TreeDataProvider<SkillTreeIt
       }
 
       return bundleSkills.map((skill) => {
-        const isInstalled = this.installedSkillNames.has(
-          skill.name.toLowerCase(),
-        );
+        const isInstalled = this.isSkillInstalled(skill);
         const isCore = skill.name === element.bundle!.coreSkill;
         const prefix = isCore ? "⭐ " : skill.standalone === false ? "🔗 " : "";
 
@@ -1529,9 +1531,7 @@ export class BrowseSkillsProvider implements vscode.TreeDataProvider<SkillTreeIt
       );
 
       return favoriteSkills.map((skill) => {
-        const isInstalled = this.installedSkillNames.has(
-          skill.name.toLowerCase(),
-        );
+        const isInstalled = this.isSkillInstalled(skill);
         const item = new SkillTreeItem(
           isInstalled ? `✓ ${skill.name}` : skill.name,
           getLocalizedDescription(skill, isJa),
@@ -1572,9 +1572,7 @@ export class BrowseSkillsProvider implements vscode.TreeDataProvider<SkillTreeIt
       );
       const isJa = isJapanese();
       return sourceSkills.map((skill) => {
-        const isInstalled = this.installedSkillNames.has(
-          skill.name.toLowerCase(),
-        );
+        const isInstalled = this.isSkillInstalled(skill);
         const item = new SkillTreeItem(
           isInstalled ? `✓ ${skill.name}` : skill.name,
           getLocalizedDescription(skill, isJa),
