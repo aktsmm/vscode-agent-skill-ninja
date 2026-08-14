@@ -816,7 +816,8 @@ async function main() {
     );
   });
 
-  await test("every long bulk operation can be cancelled", () => {    const extensionSource = fs
+  await test("every long bulk operation can be cancelled", () => {
+    const extensionSource = fs
       .readFileSync(path.join(SRC_DIR, "extension.ts"), "utf8")
       .replace(/\r\n/g, "\n");
 
