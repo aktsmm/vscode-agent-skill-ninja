@@ -3,8 +3,11 @@ import { resolveGitHubTokenAfterFailure } from "./githubAuth";
 const GITHUB_USER_AGENT = "VSCode-SkillNinja";
 export const GITHUB_REQUEST_TIMEOUT_MS = 15000;
 export const GITHUB_RETRY_MAX_ATTEMPTS = 3;
+export const GITHUB_RETRY_ATTEMPTS_CAP = 10;
 export const GITHUB_RETRY_BASE_DELAY_MS = 1000;
 export const GITHUB_RETRY_MAX_DELAY_MS = 20000;
+/** Token sources are secret / env / gh-cli / config, so four walks exhaust them. */
+export const GITHUB_TOKEN_FALLBACK_MAX_ATTEMPTS = 4;
 
 /**
  * Retry policy for the single GitHub backoff layer. Callers must not add their
@@ -23,6 +26,16 @@ export function createAbortError(): Error {
   const error = new Error("Request aborted");
   error.name = "AbortError";
   return error;
+}
+
+/** Diagnostics keep only host and path so query strings never reach logs. */
+export function describeGitHubRequest(url: string): string {
+  try {
+    const parsed = new URL(url);
+    return `${parsed.host}${parsed.pathname}`;
+  } catch {
+    return "(unparsable url)";
+  }
 }
 
 /** 401/403/404 are excluded so retries never fight the auth fallback below. */
@@ -130,7 +143,10 @@ async function runWithGitHubRetry(
 ): Promise<Response> {
   const requestedAttempts = policy.maxAttempts ?? GITHUB_RETRY_MAX_ATTEMPTS;
   const maxAttempts = Number.isFinite(requestedAttempts)
-    ? Math.max(1, Math.floor(requestedAttempts))
+    ? Math.min(
+        GITHUB_RETRY_ATTEMPTS_CAP,
+        Math.max(1, Math.floor(requestedAttempts)),
+      )
     : GITHUB_RETRY_MAX_ATTEMPTS;
   const sleep = policy.sleep ?? defaultSleep;
   const now = policy.now ?? (() => Date.now());
@@ -172,6 +188,10 @@ async function runWithGitHubRetry(
     }
 
     await sleep(delayMs, policy.signal);
+    // 注入された sleep が signal を無視しても、中断後に次の試行を始めない
+    if (policy.signal?.aborted) {
+      throw createAbortError();
+    }
   }
 }
 
@@ -220,7 +240,9 @@ export async function fetchGitHubWithTimeout(
   } catch (error) {
     if (timedOut) {
       // 分類器が transient と見分けられるよう code を付けて再 throw する
-      const timeoutError = new Error(`Request timeout: ${url}`);
+      const timeoutError = new Error(
+        `Request timeout: ${describeGitHubRequest(url)}`,
+      );
       timeoutError.name = "TimeoutError";
       (timeoutError as NodeJS.ErrnoException).code = "ETIMEDOUT";
       throw timeoutError;
@@ -309,6 +331,7 @@ async function requestWithAuthFallback(
     }
   };
 
+  assertNotCancelled();
   let response = await request(url, {
     headers,
     method: options.method,
@@ -349,18 +372,23 @@ async function requestWithAuthFallback(
   }
 
   if ([401, 403, 404].includes(response.status) && Boolean(options.token)) {
-    const triedTokens: string[] = [options.token!];
+    const triedTokens = new Set<string>([options.token!]);
     let failingToken = options.token!;
 
     // Several stored credentials can be stale at once, so keep walking sources
-    while ([401, 403, 404].includes(response.status)) {
+    for (
+      let attempt = 0;
+      attempt < GITHUB_TOKEN_FALLBACK_MAX_ATTEMPTS &&
+      [401, 403, 404].includes(response.status);
+      attempt++
+    ) {
       assertNotCancelled();
 
       const fallback = await resolveGitHubTokenAfterFailure(
         failingToken,
-        triedTokens,
+        Array.from(triedTokens),
       );
-      if (!fallback) {
+      if (!fallback || triedTokens.has(fallback.token)) {
         break;
       }
 
@@ -380,7 +408,7 @@ async function requestWithAuthFallback(
         ...(isRawGitHubUrl(url) ? { redirect: "error" as const } : {}),
       });
 
-      triedTokens.push(fallback.token);
+      triedTokens.add(fallback.token);
       failingToken = fallback.token;
     }
   }

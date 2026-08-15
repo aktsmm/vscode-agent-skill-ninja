@@ -15,7 +15,10 @@ Module._load = function patchedLoad(request, parent, isMain) {
   }
   if (request === "./githubAuth") {
     return {
-      resolveGitHubTokenAfterFailure: async () => fallbackToken,
+      resolveGitHubTokenAfterFailure: async (failedToken, alreadyTried) =>
+        typeof fallbackToken === "function"
+          ? fallbackToken(failedToken, alreadyTried)
+          : fallbackToken,
     };
   }
   return originalLoad.call(this, request, parent, isMain);
@@ -358,6 +361,144 @@ async function main() {
         "extra headers must survive retries and auth fallbacks",
       );
     }
+  });
+
+  await test("bounds the credential walk when every source yields a new token", async () => {
+    const harness = createHarness([response(401)]);
+    let issued = 0;
+    fallbackToken = (failedToken, alreadyTried) => {
+      assert.ok(
+        Array.isArray(alreadyTried),
+        "resolveGitHubTokenAfterFailure must receive a plain array",
+      );
+      issued += 1;
+      // 供給を有限にして、上限が外れた場合もハングではなく失敗にする
+      return issued > 10
+        ? undefined
+        : { token: `rotating-${issued}`, source: "gh-cli" };
+    };
+
+    const result = await githubFetch.fetchGitHubWithOptionalAuthRetry(
+      "https://api.github.com/repos/o/r/contents/x",
+      {
+        accept: "application/vnd.github.v3+json",
+        token: "stale-token",
+        request: harness.request,
+        retry: harness.retry,
+      },
+    );
+
+    assert.strictEqual(result.status, 401);
+    assert.strictEqual(issued, githubFetch.GITHUB_TOKEN_FALLBACK_MAX_ATTEMPTS);
+    assert.strictEqual(
+      harness.attempts,
+      2 + githubFetch.GITHUB_TOKEN_FALLBACK_MAX_ATTEMPTS,
+      "initial request, anonymous retry, then a bounded number of credentials",
+    );
+  });
+
+  await test("stops the credential walk when a source repeats a token", async () => {
+    const harness = createHarness([response(403)]);
+    fallbackToken = () => ({ token: "repeat-token", source: "env" });
+
+    const result = await githubFetch.fetchGitHubWithOptionalAuthRetry(
+      "https://api.github.com/repos/o/r/contents/x",
+      {
+        accept: "application/vnd.github.v3+json",
+        token: "stale-token",
+        request: harness.request,
+        retry: harness.retry,
+      },
+    );
+
+    assert.strictEqual(result.status, 403);
+    assert.strictEqual(
+      harness.attempts,
+      3,
+      "a repeated token must end the walk instead of being retried",
+    );
+  });
+
+  await test("does not start a new attempt when the sleep ignores the signal", async () => {
+    const controller = new AbortController();
+    const harness = createHarness([response(429), response(200)], {
+      signal: controller.signal,
+      sleep: async () => {
+        controller.abort();
+      },
+    });
+
+    await assert.rejects(
+      githubFetch.fetchGitHubWithOptionalAuthRetry(
+        "https://api.github.com/repos/o/r/contents/x",
+        {
+          accept: "application/vnd.github.v3+json",
+          request: harness.request,
+          retry: harness.retry,
+        },
+      ),
+      (error) => error.name === "AbortError",
+    );
+
+    assert.strictEqual(
+      harness.attempts,
+      1,
+      "the retry must not run after the wait was cancelled",
+    );
+  });
+
+  await test("issues no request when the signal is already aborted", async () => {
+    const controller = new AbortController();
+    controller.abort();
+    const harness = createHarness([response(200)], {
+      signal: controller.signal,
+    });
+
+    await assert.rejects(
+      githubFetch.fetchGitHubWithOptionalAuthRetry(
+        "https://api.github.com/repos/o/r/contents/x",
+        {
+          accept: "application/vnd.github.v3+json",
+          token: "stale-token",
+          request: harness.request,
+          retry: harness.retry,
+        },
+      ),
+      (error) => error.name === "AbortError",
+    );
+
+    assert.strictEqual(harness.attempts, 0);
+  });
+
+  await test("clamps an oversized attempt limit", async () => {
+    const harness = createHarness([response(429, { "retry-after": "1" })], {
+      maxAttempts: 50,
+    });
+
+    const result = await githubFetch.fetchGitHubWithOptionalAuthRetry(
+      "https://api.github.com/repos/o/r/contents/x",
+      {
+        accept: "application/vnd.github.v3+json",
+        request: harness.request,
+        retry: harness.retry,
+      },
+    );
+
+    assert.strictEqual(result.status, 429);
+    assert.strictEqual(harness.attempts, githubFetch.GITHUB_RETRY_ATTEMPTS_CAP);
+  });
+
+  await test("describes requests without query strings or fragments", () => {
+    assert.strictEqual(
+      githubFetch.describeGitHubRequest(
+        "https://api.github.com/repos/o/r/contents/x?ref=private-branch#frag",
+      ),
+      "api.github.com/repos/o/r/contents/x",
+    );
+    assert.strictEqual(
+      githubFetch.describeGitHubRequest("not a url"),
+      "(unparsable url)",
+    );
   });
 
   console.log("GitHub retry tests passed.");

@@ -14,19 +14,14 @@ import {
 import messages, { isJapanese } from "./i18n";
 import { getGitHubToken } from "./githubAuth";
 import { fetchGitHubWithOptionalAuthRetry } from "./githubFetch";
+import { randomBytes } from "crypto";
 
 let previewPanel: vscode.WebviewPanel | undefined;
 let previewMessageListener: vscode.Disposable | undefined;
 let previewRequestCounter = 0;
 
 function getNonce(): string {
-  const alphabet =
-    "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
-  let result = "";
-  for (let i = 0; i < 32; i++) {
-    result += alphabet.charAt(Math.floor(Math.random() * alphabet.length));
-  }
-  return result;
+  return randomBytes(16).toString("hex");
 }
 
 function escapeHtml(text: string): string {
@@ -266,8 +261,10 @@ export function markdownToHtml(markdown: string): string {
 
   const placeholders = new Map<string, string>();
   let placeholderId = 0;
+  // 本文は untrusted なので、退避マーカーを書かれて別ブロックへ差し替えられないよう毎回変える
+  const markerToken = getNonce();
   const makePlaceholder = (html: string): string => {
-    const key = `@@SKILL_NINJA_PH_${placeholderId++}@@`;
+    const key = `@@SKILL_NINJA_PH_${markerToken}_${placeholderId++}@@`;
     placeholders.set(key, html);
     return key;
   };
@@ -510,7 +507,7 @@ function getWebviewContent(
     <strong>${messages.sourceLabel()}:</strong> ${safeSource} | 
     <strong>${messages.categoriesLabel()}:</strong> ${safeCategories || messages.noneLabel()}${
       skill.stars
-        ? ` | <strong>${messages.starsLabel()}:</strong> ⭐ ${skill.stars.toLocaleString()}`
+        ? ` | <strong>${messages.starsLabel()}:</strong> ⭐ ${escapeHtml(skill.stars.toLocaleString())}`
         : ""
     }${skill.isOrg ? ` | 🏢 ${messages.organizationLabel()}` : ""}${
       safeBundle

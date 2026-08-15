@@ -31,6 +31,7 @@ import {
   type SkillInstallStatus,
   type SkillMeta,
 } from "./skillInstaller";
+import { buildIssueUrl } from "./issueReport";
 import {
   updateAllInstructionFiles,
   updateInstructionFileForRoot,
@@ -4655,10 +4656,11 @@ Add examples here
           `- VS Code: ${vscode.version}\n` +
           `- OS: ${process.platform}\n`;
 
-      const params = new URLSearchParams();
-      params.set("title", issueTitle);
-      params.set("body", issueBody);
-      const issueUrl = `https://github.com/aktsmm/vscode-agent-skill-ninja/issues/new?${params.toString()}`;
+      const issueUrl = buildIssueUrl(
+        "https://github.com/aktsmm/vscode-agent-skill-ninja/issues/new",
+        issueTitle,
+        issueBody,
+      );
       await vscode.env.openExternal(vscode.Uri.parse(issueUrl));
     },
   );

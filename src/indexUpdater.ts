@@ -1163,6 +1163,29 @@ interface SearchIndexSkill {
   i: string; // install path
 }
 
+/** リモート index の値は型が保証されないので、star 数は有限な非負数だけ受ける。 */
+export function normalizeStarCount(value: unknown): number | undefined {
+  return typeof value === "number" && Number.isFinite(value) && value >= 0
+    ? value
+    : undefined;
+}
+
+/** 同上。文字列以外が来たら値が無かったものとして扱う。 */
+export function normalizeIndexText(value: unknown): string | undefined {
+  return typeof value === "string" && value.trim().length > 0
+    ? value
+    : undefined;
+}
+
+export function normalizeIndexTags(value: unknown): string[] {
+  if (!Array.isArray(value)) {
+    return [];
+  }
+  return value.filter(
+    (tag): tag is string => typeof tag === "string" && tag.trim().length > 0,
+  );
+}
+
 function parseSearchIndex(
   data: { v?: string; t?: number; s?: SearchIndexSkill[] },
   owner: string,
@@ -1193,19 +1216,26 @@ function parseSearchIndex(
     const skillsToProcess = data.s.slice(0, MAX_SKILLS);
 
     for (const item of skillsToProcess) {
-      if (!isSkillPathAllowed(item.i, sourceOptions)) {
+      const name = normalizeIndexText(item.n);
+      const installPath = normalizeIndexText(item.i);
+      if (!name || !installPath) {
         continue;
       }
-      const category = categoryMap[item.c] || item.c || "other";
-      const tags = item.g || [];
+      if (!isSkillPathAllowed(installPath, sourceOptions)) {
+        continue;
+      }
+      const categoryCode = normalizeIndexText(item.c);
+      const category =
+        (categoryCode && categoryMap[categoryCode]) || categoryCode || "other";
+      const tags = normalizeIndexTags(item.g);
 
       skills.push({
-        name: item.n,
+        name,
         source: sourceId,
-        path: item.i,
+        path: installPath,
         categories: [category, ...tags.slice(0, 3)],
-        description: item.d || "",
-        stars: item.r,
+        description: normalizeIndexText(item.d) || "",
+        stars: normalizeStarCount(item.r),
       });
     }
 
@@ -1258,21 +1288,29 @@ function parseRegistryJson(
     const skillsToProcess = data.skills.slice(0, MAX_SKILLS);
 
     for (const item of skillsToProcess) {
-      const resourcePath = item.install_path || item.path || item.repo || "";
+      const name = normalizeIndexText(item.name);
+      const resourcePath =
+        normalizeIndexText(item.install_path) ||
+        normalizeIndexText(item.path) ||
+        normalizeIndexText(item.repo);
+      if (!name || !resourcePath) {
+        continue;
+      }
       if (!isSkillPathAllowed(resourcePath, sourceOptions)) {
         continue;
       }
       const categories: string[] = [];
-      if (item.category) categories.push(item.category);
-      if (item.tags) categories.push(...item.tags.slice(0, 3));
+      const category = normalizeIndexText(item.category);
+      if (category) categories.push(category);
+      categories.push(...normalizeIndexTags(item.tags).slice(0, 3));
 
       skills.push({
-        name: item.name,
+        name,
         source: sourceId,
         path: resourcePath,
         categories: categories.length > 0 ? categories : ["other"],
-        description: item.description || "",
-        stars: item.stars,
+        description: normalizeIndexText(item.description) || "",
+        stars: normalizeStarCount(item.stars),
       });
     }
 

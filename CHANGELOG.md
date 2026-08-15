@@ -7,6 +7,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.9.40] - 2026-08-15
+
+### Security
+
+- 🛡️ **Preview Trusts Nothing From A Source Index** - A star count taken from a source's own `search-index.json` or `registry.json` is now accepted only when it really is a finite non-negative number, and it is escaped before it reaches the preview. Previously a source could put markup in that field and have it rendered into the preview panel; the content security policy blocked scripts, but the markup and any image request it triggered were not / ソース側の `search-index.json` / `registry.json` が返すスター数を、有限の非負数のときだけ受け付け、プレビューへ渡す前にエスケープするよう変更（従来はこのフィールドにマークアップを入れるとプレビューに描画されていた。CSP がスクリプトは止めていたが、マークアップと画像リクエストは通っていた）
+- 🎲 **Unguessable Preview Tokens** - The marker the renderer uses to park code blocks and links is now randomized per render, so a SKILL.md can no longer write that marker itself and have it replaced with another block of the same document. The webview nonce is generated with a cryptographic source instead of `Math.random` / レンダラがコードブロックやリンクを退避するマーカーを描画ごとにランダム化（SKILL.md 側が同じマーカーを書いて別ブロックの内容に差し替えることを防ぐ）。Webview の nonce も `Math.random` ではなく暗号論的乱数で生成する
+
+### Fixed
+
+- 🧩 **A Malformed Source Index No Longer Breaks Browsing** - Skill name, path, description, category and tags coming from a source's own index are accepted only as real strings, and an entry missing a usable name or path is skipped instead of being listed. Previously a wrong type in one entry could break the preview or the category list for the whole source / ソース側 index が返すスキル名、パス、説明、カテゴリ、タグを文字列のときだけ受け付け、名前かパスが使えないエントリは一覧に出さず読み飛ばすよう修正（従来は 1 件の型違いでソース全体のプレビューやカテゴリ表示が壊れることがあった）
+- 🧾 **Bug Report Stays Openable** - The generated `issues/new` URL is now capped, and an oversized report is truncated with a visible marker instead of producing a `414 URI Too Long` page. The failing URL is also no longer repeated twice in each recorded download error, which roughly halves the error section / 生成する `issues/new` URL に上限を設け、超える場合は本文を切り詰めて明示するよう修正（`414 URI Too Long` でバグ報告そのものが開けなくなるのを防ぐ）。ダウンロード失敗の記録に同じ URL が 2 回入っていた重複も解消し、エラー欄がおよそ半分になる
+- 🔑 **Bounded Credential Fallback** - The walk through stored credentials now stops after a fixed number of attempts and never retries a credential source that already returned the same token / 保存済み認証情報を順に試す処理に明示的な上限を設け、同じトークンを返したソースを繰り返し試さないよう修正
+- ⏹️ **No Request After Cancel** - A cancelled request no longer starts the first attempt, and a retry no longer begins after the wait was cancelled / 中断済みのリクエストは初回の取得を開始せず、待機中に中断された再試行も次の取得を始めないよう修正
+
+### Changed
+
+- 🔍 **Redacted Request Diagnostics** - A request timeout now reports the host and path only, so query strings stay out of the error text. The full URL is still included in the bug report body / リクエストのタイムアウト表示をホストとパスだけに変更（クエリ文字列をエラー文へ残さない）。バグ報告の本文には従来どおり完全な URL を含める
+
 ## [0.9.39] - 2026-08-15
 
 ### Fixed

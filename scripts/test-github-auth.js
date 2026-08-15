@@ -395,13 +395,12 @@ async function main() {
       await assert.rejects(
         () =>
           githubFetch.fetchGitHubWithTimeout(
-            "https://api.github.com/repos/owner/repo",
+            "https://api.github.com/repos/owner/repo?ref=secret-branch",
             {},
             5,
           ),
         (error) =>
-          error.message ===
-          "Request timeout: https://api.github.com/repos/owner/repo",
+          error.message === "Request timeout: api.github.com/repos/owner/repo",
       );
     } finally {
       global.fetch = originalFetch;

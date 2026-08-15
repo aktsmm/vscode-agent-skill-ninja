@@ -16,6 +16,7 @@ import {
   type SkillRoot,
 } from "./skillLocations";
 import { fetchGitHubWithOptionalAuthRetry } from "./githubFetch";
+import { buildIssueUrl } from "./issueReport";
 import {
   classifyTransportError,
   createGitHubResponseError,
@@ -1168,11 +1169,8 @@ export async function installSkill(
 
           // その他のエラーは不完全インストールとして記録し、後段でまとめて通知する
           usedFallback = true;
-          recordInstallFailure(
-            `${rawUrl}: ${errorMsg}`,
-            failureKind,
-            remotePath,
-          );
+          // errorMsg は既に対象 URL を含むので、ここで重複させない
+          recordInstallFailure(errorMsg, failureKind, remotePath);
           await createFallbackSkillMd(skillPath, skill);
         }
       }
@@ -1590,11 +1588,11 @@ async function openIncompleteInstallReport(
     `${result.errors.slice(0, 10).join("\n") || "none recorded"}\n` +
     "```";
 
-  const params = new URLSearchParams({
-    title: issueTitle,
-    body: issueBody,
-  });
-  const issueUrl = `https://github.com/aktsmm/vscode-agent-skill-ninja/issues/new?${params.toString()}`;
+  const issueUrl = buildIssueUrl(
+    "https://github.com/aktsmm/vscode-agent-skill-ninja/issues/new",
+    issueTitle,
+    issueBody,
+  );
   await vscode.env.openExternal(vscode.Uri.parse(issueUrl));
 }
 
@@ -2842,11 +2840,11 @@ async function openBugReport(
     `**Possible Cause**\n` +
     buildSkillNotFoundPossibleCause(hasToken);
 
-  const params = new URLSearchParams({
-    title: issueTitle,
-    body: issueBody,
-  });
-  const issueUrl = `https://github.com/aktsmm/vscode-agent-skill-ninja/issues/new?${params.toString()}`;
+  const issueUrl = buildIssueUrl(
+    "https://github.com/aktsmm/vscode-agent-skill-ninja/issues/new",
+    issueTitle,
+    issueBody,
+  );
   await vscode.env.openExternal(vscode.Uri.parse(issueUrl));
 }
 
