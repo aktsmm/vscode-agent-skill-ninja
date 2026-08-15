@@ -159,7 +159,11 @@ async function getDefaultManagedRoot(
 }
 
 function escapeMarkdownCell(value: string): string {
-  return value.replace(/\|/g, "\\|").replace(/\r?\n/g, "<br>");
+  // バックスラッシュを先に逃がさないと、`\|` 入力が `\\|` になって区切りとして再解釈される
+  return value
+    .replace(/\\/g, "\\\\")
+    .replace(/\|/g, "\\|")
+    .replace(/\r?\n/g, "<br>");
 }
 
 function renderMarkdownTable(headers: string[], rows: string[][]): string {
@@ -172,6 +176,21 @@ function renderMarkdownTable(headers: string[], rows: string[][]): string {
     `| ${headers.map(() => "---").join(" | ")} |`,
     ...normalizedRows.map((row) => `| ${row.join(" | ")} |`),
   ].join("\n");
+}
+
+/**
+ * 破壊的な tool の確認ダイアログを組み立てる。
+ * 値は tool 入力なので Markdown として解釈させない。
+ */
+function buildConfirmation(
+  title: string,
+  lead: string,
+  value: string,
+): { title: string; message: vscode.MarkdownString } {
+  const message = new vscode.MarkdownString();
+  message.appendMarkdown(`${lead}\n\n`);
+  message.appendText(value);
+  return { title, message };
 }
 
 /**
@@ -444,6 +463,28 @@ ${discoveryTable}
 class SkillInstallTool implements vscode.LanguageModelTool<{
   skillName: string;
 }> {
+  prepareInvocation(
+    options: vscode.LanguageModelToolInvocationPrepareOptions<{
+      skillName: string;
+    }>,
+  ): vscode.PreparedToolInvocation {
+    const skillName = options.input.skillName;
+    return {
+      invocationMessage: localizeMcpText(
+        "Installing skill",
+        "スキルをインストール中",
+      ),
+      confirmationMessages: buildConfirmation(
+        localizeMcpText("Install skill", "スキルをインストール"),
+        localizeMcpText(
+          "This writes skill files into the workspace skill root.",
+          "ワークスペースのスキルルートにスキルファイルを書き込みます。",
+        ),
+        skillName,
+      ),
+    };
+  }
+
   async invoke(
     options: vscode.LanguageModelToolInvocationOptions<{ skillName: string }>,
     _token: vscode.CancellationToken,
@@ -507,6 +548,18 @@ class SkillInstallTool implements vscode.LanguageModelTool<{
       const trust = getTrustBadge(skill.source || "");
       const isJa = isJapanese();
       const desc = getLocalizedDescription(skill, isJa);
+      const summaryTable = renderMarkdownTable(
+        ["項目", "内容"],
+        [
+          ["スキル名", skill.name],
+          ["説明", desc || (isJa ? "説明なし" : "No description")],
+          ["信頼度", trust],
+          [
+            "インストール先",
+            `${targetRoot.displayPath}/${installResult.installedPath}/`,
+          ],
+        ],
+      );
 
       return new vscode.LanguageModelToolResult([
         new vscode.LanguageModelTextPart(
@@ -520,12 +573,7 @@ class SkillInstallTool implements vscode.LanguageModelTool<{
                 : `✅ **${skill.name}** installed successfully!`
           }
 
-| 項目 | 内容 |
-|-----------|------|
-| スキル名 | ${skill.name} |
-| 説明 | ${desc || (isJa ? "説明なし" : "No description")} |
-| 信頼度 | ${trust} |
-| インストール先 | ${targetRoot.displayPath}/${installResult.installedPath}/ |
+${summaryTable}
 
 ---
 **Agent Instructions:**
@@ -826,34 +874,117 @@ ${discoveryTable}`,
 }
 
 /**
+ * アンインストール対象を解決する。入力は部分一致でも受けるので、
+ * 確認ダイアログと実際の削除対象がずれないよう同じ関数を両方で使う。
+ *
+ * 候補が複数のときは解決しない。同名スキルは別のスキルルートにも存在しうるので、
+ * 先に見つかった 1 件を消すと確認した対象と別の実体を削除しうる。
+ */
+async function resolveInstalledSkillToUninstall(skillName: string) {
+  const workspaceFolder = vscode.workspace.workspaceFolders?.[0];
+  if (!workspaceFolder) {
+    return undefined;
+  }
+
+  const installedEntries = await getManagedInstalledSkillsWithMeta(
+    workspaceFolder.uri,
+  );
+  const lowerName = skillName.toLowerCase();
+  const exactMatches = installedEntries.filter(
+    ({ meta }) => meta.name.toLowerCase() === lowerName,
+  );
+  const candidates =
+    exactMatches.length > 0
+      ? exactMatches
+      : installedEntries.filter(({ meta }) =>
+          meta.name.toLowerCase().includes(lowerName),
+        );
+
+  return {
+    workspaceFolder,
+    installedEntries,
+    matched: candidates.length === 1 ? candidates[0] : undefined,
+    ambiguousMatches: candidates.length > 1 ? candidates : [],
+  };
+}
+
+/** 同名スキルが別ルートにもありうるので、対象はルート付きで示す。 */
+function describeInstalledSkill(entry: {
+  meta: { name: string };
+  root: { displayPath: string };
+}): string {
+  return `${entry.meta.name} (${entry.root.displayPath})`;
+}
+
+/**
  * スキルアンインストールツール
  */
 class SkillUninstallTool implements vscode.LanguageModelTool<{
   skillName: string;
 }> {
+  async prepareInvocation(
+    options: vscode.LanguageModelToolInvocationPrepareOptions<{
+      skillName: string;
+    }>,
+  ): Promise<vscode.PreparedToolInvocation> {
+    const skillName = options.input.skillName;
+    const resolved = await resolveInstalledSkillToUninstall(skillName);
+    return {
+      invocationMessage: localizeMcpText(
+        "Uninstalling skill",
+        "スキルをアンインストール中",
+      ),
+      confirmationMessages: buildConfirmation(
+        localizeMcpText("Uninstall skill", "スキルをアンインストール"),
+        localizeMcpText(
+          "This moves the installed skill folder to the trash.",
+          "インストール済みのスキルフォルダをごみ箱へ移動します。",
+        ),
+        resolved?.matched
+          ? describeInstalledSkill(resolved.matched)
+          : skillName,
+      ),
+    };
+  }
+
   async invoke(
     options: vscode.LanguageModelToolInvocationOptions<{ skillName: string }>,
     _token: vscode.CancellationToken,
   ): Promise<vscode.LanguageModelToolResult> {
     const skillName = options.input.skillName;
 
-    const workspaceFolder = vscode.workspace.workspaceFolders?.[0];
-    if (!workspaceFolder) {
+    const resolved = await resolveInstalledSkillToUninstall(skillName);
+    if (!resolved) {
       return new vscode.LanguageModelToolResult([
         new vscode.LanguageModelTextPart(messages.chatNoWorkspaceFolderOpen()),
       ]);
     }
 
-    // インストール済みスキルを確認
-    const installedEntries = await getManagedInstalledSkillsWithMeta(
-      workspaceFolder.uri,
-    );
-    const lowerName = skillName.toLowerCase();
-    const matchedSkill = installedEntries.find(
-      ({ meta }) =>
-        meta.name.toLowerCase() === lowerName ||
-        meta.name.toLowerCase().includes(lowerName),
-    );
+    const {
+      workspaceFolder,
+      installedEntries,
+      matched: matchedSkill,
+      ambiguousMatches,
+    } = resolved;
+
+    if (ambiguousMatches.length > 0) {
+      return new vscode.LanguageModelToolResult([
+        new vscode.LanguageModelTextPart(
+          `❌ ${localizeMcpText(
+            `"${skillName}" matches several installed skills, so nothing was uninstalled.`,
+            `"${skillName}" は複数のインストール済みスキルに一致するため、何もアンインストールしていません。`,
+          )}
+
+${localizeMcpText("Candidates", "候補")}: ${ambiguousMatches
+            .map(describeInstalledSkill)
+            .join(", ")}
+
+---
+**Agent Instructions:**
+- Ask the user which exact skill name to uninstall, then call this tool again with that exact name`,
+        ),
+      ]);
+    }
 
     if (!matchedSkill) {
       return new vscode.LanguageModelToolResult([
@@ -901,20 +1032,25 @@ class SkillUninstallTool implements vscode.LanguageModelTool<{
       // ツリービューをリフレッシュ
       await vscode.commands.executeCommand("skillNinja.refresh");
 
+      const uninstallTable = renderMarkdownTable(
+        ["項目", "内容"],
+        [
+          ["スキル名", matchedSkill.meta.name],
+          ["ステータス", "ごみ箱へ移動"],
+          ["Instruction", "更新済み"],
+        ],
+      );
+
       return new vscode.LanguageModelToolResult([
         new vscode.LanguageModelTextPart(
           `✅ **${matchedSkill.meta.name}** をアンインストールしました！
 
-| 項目 | 内容 |
-|-----------|------|
-| スキル名 | ${matchedSkill.meta.name} |
-| ステータス | 削除完了 |
-| Instruction | 更新済み |
+${uninstallTable}
 
 ---
 **Agent Instructions:**
 - Report success
-- Remind user that the skill files have been removed
+- Remind user that the skill folder was moved to the trash and can be restored
 
 **📋 Next Actions:**
 1. 📋 List remaining skills? → use #listSkills
@@ -1137,6 +1273,27 @@ ${installFlowTable}`,
  * ソース追加ツール
  */
 class AddSourceTool implements vscode.LanguageModelTool<{ repoUrl: string }> {
+  prepareInvocation(
+    options: vscode.LanguageModelToolInvocationPrepareOptions<{
+      repoUrl: string;
+    }>,
+  ): vscode.PreparedToolInvocation {
+    return {
+      invocationMessage: localizeMcpText(
+        "Adding skill source",
+        "スキルソースを追加中",
+      ),
+      confirmationMessages: buildConfirmation(
+        localizeMcpText("Add skill source", "スキルソースを追加"),
+        localizeMcpText(
+          "This adds a repository to the skill index and fetches its skills.",
+          "リポジトリをスキルインデックスへ追加し、スキルを取得します。",
+        ),
+        options.input.repoUrl,
+      ),
+    };
+  }
+
   async invoke(
     options: vscode.LanguageModelToolInvocationOptions<{ repoUrl: string }>,
     _token: vscode.CancellationToken,
@@ -1299,6 +1456,26 @@ function resolveSourceToRemove(
  * ソース削除ツール
  */
 class RemoveSourceTool implements vscode.LanguageModelTool<RemoveSourceInput> {
+  prepareInvocation(
+    options: vscode.LanguageModelToolInvocationPrepareOptions<RemoveSourceInput>,
+  ): vscode.PreparedToolInvocation {
+    const input = options.input || {};
+    return {
+      invocationMessage: localizeMcpText(
+        "Removing skill source",
+        "スキルソースを削除中",
+      ),
+      confirmationMessages: buildConfirmation(
+        localizeMcpText("Remove skill source", "スキルソースを削除"),
+        localizeMcpText(
+          "This removes the repository and all of its skills from the index.",
+          "リポジトリとそのスキルをすべてインデックスから削除します。",
+        ),
+        input.sourceId || input.sourceName || input.repoUrl || "",
+      ),
+    };
+  }
+
   async invoke(
     options: vscode.LanguageModelToolInvocationOptions<RemoveSourceInput>,
     _token: vscode.CancellationToken,
@@ -1368,6 +1545,25 @@ interface LocalizeInput {
 }
 
 class LocalizeSkillsTool implements vscode.LanguageModelTool<LocalizeInput> {
+  prepareInvocation(
+    options: vscode.LanguageModelToolInvocationPrepareOptions<LocalizeInput>,
+  ): vscode.PreparedToolInvocation {
+    return {
+      invocationMessage: localizeMcpText(
+        "Updating skill descriptions",
+        "スキル説明を更新中",
+      ),
+      confirmationMessages: buildConfirmation(
+        localizeMcpText("Update skill description", "スキル説明を更新"),
+        localizeMcpText(
+          "This overwrites the stored description for the skill in the index.",
+          "インデックスに保存されているスキルの説明を上書きします。",
+        ),
+        options.input.skillName || "",
+      ),
+    };
+  }
+
   async invoke(
     options: vscode.LanguageModelToolInvocationOptions<LocalizeInput>,
     _token: vscode.CancellationToken,

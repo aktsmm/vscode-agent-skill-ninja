@@ -140,10 +140,14 @@ async function hasRealSkillMd(
 /**
  * スキルフォルダを再帰削除する前に、対象がルート配下の真部分であることを確認する。
  * ルート自身や外部パスを消さないための最後の砦。
+ *
+ * `useTrash` は「ユーザーの唯一のコピーを消す削除」だけ true にする。
+ * 未完了ダウンロードの後片付けまでごみ箱へ送ると、ごみ箱が残骸で埋まる。
  */
 async function deleteSkillDirectory(
   skillsRootUri: vscode.Uri,
   skillPath: vscode.Uri,
+  options: { useTrash: boolean } = { useTrash: false },
 ): Promise<void> {
   if (
     !isStrictlyInsidePath(skillsRootUri.fsPath, skillPath.fsPath) ||
@@ -153,7 +157,10 @@ async function deleteSkillDirectory(
       `Refusing to delete outside the skill root: ${skillPath.fsPath} (root: ${skillsRootUri.fsPath})`,
     );
   }
-  await vscode.workspace.fs.delete(skillPath, { recursive: true });
+  await vscode.workspace.fs.delete(skillPath, {
+    recursive: true,
+    useTrash: options.useTrash,
+  });
 }
 
 /**
@@ -250,9 +257,14 @@ async function handleSkillNotFound(
   token?: string,
   resolvedBranch?: string,
   interactive: boolean = true,
+  cleanupUsesTrash: boolean = false,
 ): Promise<never> {
   try {
-    await deleteSkillDirectory(skillsRootUri, skillPath);
+    // 新規ダウンロードの残骸なら直接削除。
+    // 既存フォルダへ上書きしていた場合はユーザーのコピーなのでごみ箱へ
+    await deleteSkillDirectory(skillsRootUri, skillPath, {
+      useTrash: cleanupUsesTrash,
+    });
   } catch {
     // 削除失敗は無視
   }
@@ -982,14 +994,14 @@ async function ensureInstallTargetAvailable(
   incomingOwner: string,
   interactive: boolean,
   sources: Source[] = [],
-): Promise<{ replaceExisting: boolean }> {
+): Promise<{ replaceExisting: boolean; existedBefore: boolean }> {
   const existing = await readInstallTargetOwner(skillPath);
   if (!existing.exists) {
-    return { replaceExisting: false };
+    return { replaceExisting: false, existedBefore: false };
   }
 
   if (existing.owner?.toLowerCase() === incomingOwner.toLowerCase()) {
-    return { replaceExisting: false };
+    return { replaceExisting: false, existedBefore: true };
   }
 
   const describeOwner = (ownerId: string): string =>
@@ -1011,7 +1023,8 @@ async function ensureInstallTargetAvailable(
       overwrite,
     );
     if (choice === overwrite) {
-      return { replaceExisting: true };
+      // 既存コピーはごみ箱へ送ってから作り直すので、以後の後片付けは新規分だけ
+      return { replaceExisting: true, existedBefore: false };
     }
   }
 
@@ -1089,7 +1102,7 @@ export async function installSkill(
     downloadTarget,
   );
 
-  const { replaceExisting } = await ensureInstallTargetAvailable(
+  const { replaceExisting, existedBefore } = await ensureInstallTargetAvailable(
     skillPath,
     skill,
     safeName,
@@ -1097,8 +1110,11 @@ export async function installSkill(
     interactive,
     index.sources,
   );
+  // 既存フォルダへ上書きインストールする場合、後片付けはユーザーの唯一のコピーを消しうる
+  const cleanupUsesTrash = existedBefore;
   if (replaceExisting) {
-    await deleteSkillDirectory(skillsRootUri, skillPath);
+    // 上書き前の既存コピーが唯一の実体になりうるので、ここだけごみ箱経由にする
+    await deleteSkillDirectory(skillsRootUri, skillPath, { useTrash: true });
   }
   await vscode.workspace.fs.createDirectory(skillPath);
 
@@ -1164,6 +1180,7 @@ export async function installSkill(
               token,
               branch,
               interactive,
+              cleanupUsesTrash,
             );
           }
 
@@ -1273,6 +1290,7 @@ export async function installSkill(
             token,
             branch,
             interactive,
+            cleanupUsesTrash,
           );
         } else {
           // Don't overwrite SKILL.md with fallback if it was already downloaded
@@ -1390,6 +1408,7 @@ export async function installSkill(
       hasToken: Boolean(token),
       allowRetry: options?.allowRetry !== false,
       interactive,
+      cleanupUsesTrash,
     },
   );
 
@@ -1424,6 +1443,8 @@ async function reportInstallResult(
     hasToken: boolean;
     allowRetry: boolean;
     interactive: boolean;
+    /** インストール前からあったフォルダなら、削除はユーザーのコピーを消すことになる */
+    cleanupUsesTrash: boolean;
   },
 ): Promise<SkillInstallResult | undefined> {
   const skipped = result.skippedUnsafeEntries ?? [];
@@ -1491,6 +1512,7 @@ async function reportInstallResult(
       await deleteSkillDirectory(
         resolveSkillsRootUri(options.workspaceUri, options.targetRoot?.rootUri),
         skillPath,
+        { useTrash: options.cleanupUsesTrash },
       );
     } catch (error) {
       console.error(
@@ -1655,7 +1677,7 @@ export async function uninstallSkill(
   }
 
   try {
-    await deleteSkillDirectory(skillsPath, skillPath);
+    await deleteSkillDirectory(skillsPath, skillPath, { useTrash: true });
   } catch (error) {
     throw new Error(`Failed to delete skill directory: ${error}`);
   }
@@ -1690,7 +1712,7 @@ export async function uninstallSkillByPath(
   const skillPath = resolveManagedSkillDirUri(basePath, relativePath);
 
   try {
-    await deleteSkillDirectory(basePath, skillPath);
+    await deleteSkillDirectory(basePath, skillPath, { useTrash: true });
   } catch (error) {
     throw new Error(`Failed to delete skill directory: ${error}`);
   }

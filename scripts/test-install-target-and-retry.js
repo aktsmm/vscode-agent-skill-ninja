@@ -117,6 +117,7 @@ function loadInstaller({
 } = {}) {
   const writes = [];
   const deletes = [];
+  const deleteCalls = [];
   const requestedUrls = [];
   const requestSignals = [];
   const createdDirs = [...existingDirs];
@@ -179,8 +180,9 @@ function loadInstaller({
       writes.push(uri.fsPath);
       files.set(uri.fsPath, Buffer.from(content).toString("utf-8"));
     },
-    async delete(uri) {
+    async delete(uri, options) {
       deletes.push(uri.fsPath);
+      deleteCalls.push({ path: uri.fsPath, options: { ...options } });
       for (const key of [...files.keys()]) {
         if (key.startsWith(uri.fsPath)) {
           files.delete(key);
@@ -332,6 +334,7 @@ function loadInstaller({
     installer: sandbox.module.exports,
     writes,
     deletes,
+    deleteCalls,
     createdDirs,
     files,
     modals,
@@ -631,6 +634,46 @@ async function main() {
       ),
       false,
       "permanent failures must never enter the retry set",
+    );
+  });
+
+  await test("failed-install cleanup only trashes a folder that already existed", async () => {
+    // ディレクトリ一覧も SKILL.md フォールバックも 404 にして not-found へ落とす
+    const missingRemote = { directories: {}, rawFiles: {} };
+
+    const freshHarness = loadInstaller(missingRemote);
+    await assert.rejects(
+      () => installDemo(freshHarness),
+      /Skill not found/,
+      "a missing remote skill must abort the install",
+    );
+    assert.deepStrictEqual(
+      freshHarness.deleteCalls.map(({ options }) => options.useTrash),
+      [false],
+      "cleanup of a folder this install created must not fill the trash",
+    );
+
+    const existingHarness = loadInstaller({
+      ...missingRemote,
+      existingDirs: [DEMO_DIR_FS],
+      existingFiles: {
+        [DEMO_META_FS]: JSON.stringify({
+          name: "demo",
+          source: "test-source",
+          relativePath: "demo",
+        }),
+        [DEMO_SKILL_MD_FS]: SKILL_MD,
+      },
+    });
+    await assert.rejects(
+      () => installDemo(existingHarness),
+      /Skill not found/,
+      "a missing remote skill must abort the reinstall too",
+    );
+    assert.deepStrictEqual(
+      existingHarness.deleteCalls.map(({ options }) => options.useTrash),
+      [true],
+      "the user's pre-existing copy must stay recoverable from the trash",
     );
   });
 

@@ -403,7 +403,7 @@ MCP ツールが不要な場合は、GitHub Copilot Chat のツール一覧か�
 |  11  | `skillNinja.language`                     | `auto`                     | UI 言語（auto / en / ja）                                                             |
 |  12  | `skillNinja.autoUpdateSkillsOnUpgrade`    | `prompt`                   | 拡張機能アップグレード後のスキル更新                                                  |
 |  13  | `skillNinja.staleSourceIndexUpdateMode`   | `prompt`                   | 30 日以上古い source index を起動時に更新（`always` / `prompt` / `never`）            |
-|  14  | `skillNinja.githubToken`                  | `""`                       | 互換用 GitHub Token 設定。設定時は SecretStorage にコピーして利用                     |
+|  14  | `skillNinja.githubToken`                  | `""`                       | 互換用 GitHub Token 設定（ユーザー設定のみ）。設定時は SecretStorage にコピーして利用 |
 |  15  | `skillNinja.singleClickInstall`           | `false`                    | リモートスキルをシングルクリックでインストール                                        |
 |  16  | `skillNinja.coexistenceMode`              | `auto`                     | Agent Resources Ninja との共存モード（`auto` / `independent`）                        |
 |  17  | `skillNinja.useSharedSourcesManifest`     | `false`                    | `~/.agent-ninja/sources.json` 経由で Agent Resources Ninja と source list SSOT を共有 |
@@ -440,6 +440,10 @@ MCP ツールが不要な場合は、GitHub Copilot Chat のツール一覧か�
 - **スキルルート直下の残骸は 1 回だけ通知します。** ルート直下にあり、インストール位置が空で記録された `.skill-meta.json` は、旧バージョンのフォルダ名不具合の痕跡です。警告で通知するだけで、自動削除は行いません。ルート直下の `SKILL.md` 単体はルートを 1 スキルとする正規構成なので対象外です。
 - **一括削除は実際の結果を報告します。** 全スキルを削除 / 複数スキルを削除では、実際に成功した件数を数え、削除できなかった件数を報告します。要求件数をそのまま削除済みとして表示することはありません。
 - **名前指定のアンインストールが別のスキルを消すことはありません。** `foo!` のような名前はフォルダ名 `foo` にサニタイズされますが、そのフォルダが実在する場合は `.skill-meta.json` が同じスキルを記録しているときだけ削除します。別スキルのフォルダ、メタデータの無い手作りのローカルスキル、壊れたメタデータは拒否します。
+- **再インストールが失敗しても唯一のコピーを失いません。** アンインストール、再インストール時の置き換え、既存フォルダへの上書きインストールが失敗したときの後片付けは、いずれもフォルダを OS のごみ箱へ移動するので復元できます。永久削除するのはそのインストールが自分で作ったフォルダだけで、確認ダイアログの文言も実際の削除方式に合わせています。
+- **破壊的なチャットツールは先に確認します。** `#installSkill`、`#uninstallSkill`、`#addSkillSource`、`#removeSkillSource`、`#localizeSkill` は実行前に確認ダイアログを出します。`#uninstallSkill` は解決済みのスキル名とスキルルートを確認し、複数のインストール済みスキルに一致する場合は何も削除しないため、確認した対象がそのまま削除対象になります。
+- **見えている操作は、動くか理由を返すかのどちらかです。** ツリービューのコンテキストメニューに出るコマンドは、その表示条件が許す全 context value に対して検査され、実行できない場合は無言で終わらず理由を表示します。
+- **起動時のプロンプトは止められます。** 起動中に出るダイアログはすべて再表示を止める手段を持ち、その選択を覚えます。`すべての設定をリセット（トークン含む）` で再表示できます。
 
 ### Agent Resources Ninja との共存
 
@@ -522,7 +526,7 @@ instruction file には **IMPORTANT プロンプト** と **Description 列** �
 
 > **重要**: Private source repository を使う場合は GitHub 認証が必要です。GitHub 検索でも認証を強く推奨します。未設定の場合、API レート制限（60 リクエスト/時間）により検索が失敗しやすくなります。
 
-検索機能と Private source repository を有効にするには GitHub 認証を設定してください。Agent Skills Ninja は VS Code SecretStorage、`GITHUB_TOKEN` / `GH_TOKEN`、`gh` CLI、互換用 `skillNinja.githubToken` 設定の順に token を解決します。
+検索機能と Private source repository を有効にするには GitHub 認証を設定してください。Agent Skills Ninja は VS Code SecretStorage、`GH_TOKEN` / `GITHUB_TOKEN`、`gh` CLI、互換用 `skillNinja.githubToken` 設定の順に token を解決します。
 
 ### 方法 1: GitHub CLI（推奨）
 
@@ -548,7 +552,9 @@ GitHub CLI が入っていれば token は自動取得され、拡張機能側�
 
 この互換用設定がある場合、Agent Skills Ninja は値を VS Code SecretStorage にコピーし、安全な保存先を優先して使います。この設定は後方互換と reset workflow のために残しています。
 
-SecretStorage の token が古い、または別アカウントのものになった場合は、`Agent Skills Ninja: GitHub トークンをクリア（SecretStorage のみ）` を実行してください。削除されるのは SecretStorage のコピーだけで、環境変数、`gh` CLI 認証、互換用設定は変更されません。互換用設定自体が古い場合は、VS Code を再読み込みする前に設定も削除または更新してください。
+`skillNinja.githubToken` は **machine scope** の設定なので、`.vscode/settings.json` 経由で repository にコミットされることはありません。旧い workspace に平文の entry が残っている場合は起動時に削除を提案します。手動で `.vscode/settings.json` から `skillNinja.githubToken` を削除しても構いません。repository へコミット済みの token は漏えいとみなして失効させてください。
+
+SecretStorage の token が古い、または別アカウントのものになった場合は、`Agent Skills Ninja: GitHub トークンをクリア（SecretStorage のみ）` を実行してください。SecretStorage のコピーと `settings.json` の平文コピーが削除され、環境変数と `gh` CLI 認証は変更されません。
 
 Private repository を読む場合は、対象 repository だけに限定した fine-grained personal access token に `Contents: read` を付与する構成を推奨します。classic personal access token では `repo` scope が必要です。
 

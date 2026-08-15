@@ -97,6 +97,13 @@ const jaMessages = {
   sourceIdNotFound: "ソース ID が見つかりません。",
   copiedToClipboard: "コピーしました",
   copiedToClipboardWithValue: "コピーしました: {0}",
+  copyUrlUnavailable:
+    "この項目にはコピーできる URL がありません。インデックスを更新して再試行してください。",
+  commandNeedsSkillSelection:
+    "Agent Skills Ninja のビューでスキルを選んでから実行してください。",
+  copyPathUnavailable: "この項目にはコピーできるローカルパスがありません。",
+  openInTerminalUnavailable:
+    "この項目にはターミナルで開けるフォルダーがありません。",
   enterRepoUrl:
     "GitHub リポジトリ URL、またはリポジトリ内のフォルダ/ファイル URL を入力してください",
   repoUrlPlaceholder: "https://github.com/owner/repo",
@@ -120,6 +127,7 @@ const jaMessages = {
   searchFailed: "検索失敗: {0}",
   actionInstall: "インストール",
   actionCancel: "キャンセル",
+  actionDontAskAgain: "今後表示しない",
   actionAddSourceRepo: "このリポジトリをソースに追加",
   actionOpenGitHub: "GitHub で開く",
   authRequired:
@@ -168,6 +176,15 @@ const jaMessages = {
   githubTokenCleared: "SecretStorage の GitHub トークンを削除しました。",
   githubTokenNotStored:
     "SecretStorage に保存された GitHub トークンはありません。",
+  githubTokenLegacyPlaintextFound:
+    "GitHub トークンを SecretStorage へ移行しました。settings.json に平文のコピーが残っています。",
+  githubTokenLegacyPlaintextOnly:
+    "settings.json に平文の GitHub トークンがあります。SecretStorage へは移行していないので、削除する前に値を控えてください。",
+  githubTokenRemoveLegacyPlaintext: "平文のコピーを削除",
+  githubTokenLegacyPlaintextRemoved:
+    "settings.json から GitHub トークンの平文コピーを削除しました。",
+  githubTokenLegacyPlaintextRemoveFailed:
+    "settings.json の平文コピーを削除できませんでした。skillNinja.githubToken を手動で削除してください。",
   githubTokenClearFailed:
     "SecretStorage の GitHub トークンを削除できませんでした。VS Code を再読み込みして再試行してください。",
   authWithGhCli: "gh CLIで認証",
@@ -218,6 +235,12 @@ const jaMessages = {
   localSkillRegistered: "✅ {0} を instruction file に登録しました",
   localSkillUnregistered: "✅ {0} を instruction file から削除しました",
   localSkillAlreadyRegistered: "{0} は既に登録されています",
+  localSkillActionUnavailable:
+    "この項目はローカルスキルではないため、instruction file への登録状態を変更できません。",
+  localSkillRegistrationFailed:
+    "{0} の登録状態を更新できませんでした。読み取り専用のスキルか、書き込みに失敗した可能性があります。",
+  skillStateUnavailable:
+    "この項目にはスキル情報がないため、状態を説明できません。",
   createSkillPrompt: "スキル名を入力してください",
   createSkillPlaceholder: "my-awesome-skill",
   skillCreated: "✅ {0} を作成しました",
@@ -324,6 +347,12 @@ const enMessages: MessageDictionary = {
   sourceIdNotFound: "Source ID not found.",
   copiedToClipboard: "Copied to clipboard",
   copiedToClipboardWithValue: "Copied: {0}",
+  copyUrlUnavailable:
+    "This item has no URL to copy. Update the index and try again.",
+  commandNeedsSkillSelection:
+    "Select a skill in the Agent Skills Ninja view first.",
+  copyPathUnavailable: "This item has no local path to copy.",
+  openInTerminalUnavailable: "This item has no folder to open in a terminal.",
   enterRepoUrl:
     "Enter a GitHub repository URL, or a folder/file URL inside the repository",
   repoUrlPlaceholder: "https://github.com/owner/repo",
@@ -347,6 +376,7 @@ const enMessages: MessageDictionary = {
   searchFailed: "Search failed: {0}",
   actionInstall: "Install",
   actionCancel: "Cancel",
+  actionDontAskAgain: "Don't ask again",
   actionAddSourceRepo: "Add this repository as source",
   actionOpenGitHub: "Open on GitHub",
   authRequired:
@@ -394,6 +424,15 @@ const enMessages: MessageDictionary = {
   resetComplete: "✅ Reset complete. Please restart VS Code.",
   githubTokenCleared: "Removed the GitHub token from SecretStorage.",
   githubTokenNotStored: "No GitHub token is stored in SecretStorage.",
+  githubTokenLegacyPlaintextFound:
+    "The GitHub token was migrated to SecretStorage. A plaintext copy is still in settings.json.",
+  githubTokenLegacyPlaintextOnly:
+    "A plaintext GitHub token is stored in settings.json. It was not migrated to SecretStorage, so copy the value before removing it.",
+  githubTokenRemoveLegacyPlaintext: "Remove plaintext copy",
+  githubTokenLegacyPlaintextRemoved:
+    "Removed the plaintext GitHub token from settings.json.",
+  githubTokenLegacyPlaintextRemoveFailed:
+    "Could not remove the plaintext copy. Please delete skillNinja.githubToken from settings.json manually.",
   githubTokenClearFailed:
     "Could not remove the GitHub token from SecretStorage. Reload VS Code and try again.",
   authWithGhCli: "Authenticate with gh CLI",
@@ -444,6 +483,12 @@ const enMessages: MessageDictionary = {
   localSkillRegistered: "✅ {0} registered in the instruction file",
   localSkillUnregistered: "✅ {0} removed from the instruction file",
   localSkillAlreadyRegistered: "{0} is already registered",
+  localSkillActionUnavailable:
+    "This item is not a local skill, so its instruction-file registration cannot be changed.",
+  localSkillRegistrationFailed:
+    "Could not update the registration state for {0}. The skill may be read-only, or the write failed.",
+  skillStateUnavailable:
+    "This item has no skill metadata, so its state cannot be explained.",
   createSkillPrompt: "Enter skill name",
   createSkillPlaceholder: "my-awesome-skill",
   skillCreated: "✅ {0} created",
@@ -617,6 +662,10 @@ export const messages = {
   copiedToClipboard: () => localize("copiedToClipboard"),
   copiedToClipboardWithValue: (value: string) =>
     localize("copiedToClipboardWithValue", value),
+  copyUrlUnavailable: () => localize("copyUrlUnavailable"),
+  commandNeedsSkillSelection: () => localize("commandNeedsSkillSelection"),
+  copyPathUnavailable: () => localize("copyPathUnavailable"),
+  openInTerminalUnavailable: () => localize("openInTerminalUnavailable"),
 
   // ソース追加
   enterRepoUrl: () => localize("enterRepoUrl"),
@@ -645,6 +694,7 @@ export const messages = {
   // アクション
   actionInstall: () => localize("actionInstall"),
   actionCancel: () => localize("actionCancel"),
+  actionDontAskAgain: () => localize("actionDontAskAgain"),
   actionAddSourceRepo: () => localize("actionAddSourceRepo"),
   actionOpenGitHub: () => localize("actionOpenGitHub"),
 
@@ -722,6 +772,16 @@ export const messages = {
   resetComplete: () => localize("resetComplete"),
   githubTokenCleared: () => localize("githubTokenCleared"),
   githubTokenNotStored: () => localize("githubTokenNotStored"),
+  githubTokenLegacyPlaintextFound: () =>
+    localize("githubTokenLegacyPlaintextFound"),
+  githubTokenLegacyPlaintextOnly: () =>
+    localize("githubTokenLegacyPlaintextOnly"),
+  githubTokenRemoveLegacyPlaintext: () =>
+    localize("githubTokenRemoveLegacyPlaintext"),
+  githubTokenLegacyPlaintextRemoved: () =>
+    localize("githubTokenLegacyPlaintextRemoved"),
+  githubTokenLegacyPlaintextRemoveFailed: () =>
+    localize("githubTokenLegacyPlaintextRemoveFailed"),
   githubTokenClearFailed: () => localize("githubTokenClearFailed"),
 
   // TreeView
@@ -786,6 +846,10 @@ export const messages = {
     localize("localSkillUnregistered", name),
   localSkillAlreadyRegistered: (name: string) =>
     localize("localSkillAlreadyRegistered", name),
+  localSkillActionUnavailable: () => localize("localSkillActionUnavailable"),
+  localSkillRegistrationFailed: (name: string) =>
+    localize("localSkillRegistrationFailed", name),
+  skillStateUnavailable: () => localize("skillStateUnavailable"),
   createSkillPrompt: () => localize("createSkillPrompt"),
   createSkillPlaceholder: () => localize("createSkillPlaceholder"),
   skillCreated: (name: string) => localize("skillCreated", name),

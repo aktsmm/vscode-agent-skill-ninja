@@ -132,6 +132,7 @@ function loadInstaller({
   const writes = [];
   const createdDirs = [];
   const deletes = [];
+  const deleteCalls = [];
   const files = new Map();
   const warnings = [];
   const requestedUrls = [];
@@ -162,8 +163,9 @@ function loadInstaller({
     async readDirectory() {
       return [];
     },
-    async delete(uri) {
+    async delete(uri, options) {
       deletes.push(uri.fsPath);
+      deleteCalls.push({ path: uri.fsPath, options });
     },
   };
 
@@ -290,6 +292,7 @@ function loadInstaller({
     writes,
     createdDirs,
     deletes,
+    deleteCalls,
     files,
     warnings,
     requestedUrls,
@@ -586,6 +589,14 @@ async function main() {
       normalizeForCompare(posixPathToFsPath(`${ROOT_POSIX}/demo`)),
       normalizeForCompare(posixPathToFsPath(`${ROOT_POSIX}/pkg/child`)),
     ]);
+    assert.deepStrictEqual(
+      harness.deleteCalls.map(({ options }) => ({ ...options })),
+      [
+        { recursive: true, useTrash: true },
+        { recursive: true, useTrash: true },
+      ],
+      "uninstall must stay recoverable from the trash",
+    );
   });
 
   await test("uninstallSkill refuses separators and degenerate names", async () => {
@@ -616,6 +627,10 @@ async function main() {
       normalizeForCompare(posixPathToFsPath(`${ROOT_POSIX}/スキル`)),
       normalizeForCompare(posixPathToFsPath(`${ROOT_POSIX}/docx-helper`)),
     ]);
+    assert.ok(
+      harness.deleteCalls.every(({ options }) => options?.useTrash === true),
+      "uninstall must stay recoverable from the trash",
+    );
   });
 
   await test("enrichSkillMeta canonicalizes local position fields", () => {

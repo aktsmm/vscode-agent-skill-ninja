@@ -90,7 +90,9 @@ import {
   deleteStoredGitHubToken,
   getGitHubToken,
   initializeGitHubAuth,
-  migrateConfiguredGitHubTokenToSecretStorage,
+  offerToRemoveLegacyPlaintextGitHubToken,
+  removeLegacyConfiguredGitHubTokens,
+  resetLegacyPlaintextPrompt,
   resolveGitHubToken,
 } from "./githubAuth";
 import {
@@ -132,6 +134,9 @@ const LAST_MANAGED_INSTRUCTION_PATHS_KEY =
   "skillNinja.lastManagedInstructionPaths";
 const LAST_STALE_SOURCE_INDEX_PROMPT_DATE_KEY =
   "skillNinja.lastStaleSourceIndexPromptDate";
+/** メタに書けなかったスキルの分まで「今後確認しない」を効かせるための退避先 */
+const MISSING_INDEX_WARNING_DISMISSED_KEY =
+  "skillNinja.missingIndexWarningDismissed";
 
 type StaleSourceIndexUpdateMode = "always" | "prompt" | "never";
 
@@ -496,7 +501,7 @@ export function activate(
   activeContext = context;
   extensionShuttingDown = false;
   initializeGitHubAuth(context);
-  migrateConfiguredGitHubTokenToSecretStorage().catch((err) => {
+  offerToRemoveLegacyPlaintextGitHubToken().catch((err) => {
     console.warn(
       "[Skill Ninja] Failed to migrate GitHub token to SecretStorage:",
       err,
@@ -673,7 +678,12 @@ export function activate(
         }
       }
 
-      if (missingEntries.length > 0) {
+      if (
+        missingEntries.length > 0 &&
+        !context.workspaceState.get<boolean>(
+          MISSING_INDEX_WARNING_DISMISSED_KEY,
+        )
+      ) {
         const missingSkills = missingEntries.map((entry) => entry.meta.name);
         const message = isJapanese()
           ? `⚠️ ${
@@ -687,13 +697,35 @@ export function activate(
               .slice(0, 3)
               .join(", ")}${missingSkills.length > 3 ? "..." : ""}`;
 
+        const updateIndexLabel = isJapanese()
+          ? "インデックスを更新"
+          : "Update Index";
+        // 起動ごとに出る警告なので、その場で永続的に止める選択肢を必ず添える
+        const stopCheckingLabel = isJapanese()
+          ? "今後確認しない"
+          : "Do Not Check Again";
         const action = await vscode.window.showWarningMessage(
           message,
-          isJapanese() ? "インデックスを更新" : "Update Index",
-          isJapanese() ? "無視" : "Ignore",
+          updateIndexLabel,
+          stopCheckingLabel,
+          isJapanese() ? "後で" : "Later",
         );
 
-        if (action === (isJapanese() ? "インデックスを更新" : "Update Index")) {
+        if (action === stopCheckingLabel) {
+          const result =
+            await disableMissingReinstallChecksWithFeedback(missingEntries);
+          // メタを書けなかった分があると次回も同じ警告が出るので、
+          // 「今後確認しない」は workspace 単位でも覚えておく
+          if (result.failed > 0) {
+            await context.workspaceState.update(
+              MISSING_INDEX_WARNING_DISMISSED_KEY,
+              true,
+            );
+          }
+          if (result.updated > 0) {
+            refreshInstalledViews();
+          }
+        } else if (action === updateIndexLabel) {
           const refreshedIndex = await refreshIndexForInstalledMetas(
             index,
             missingEntries.map((entry) => entry.meta),
@@ -1161,10 +1193,10 @@ export function activate(
   async function writeInstalledSkillMeta(
     entry: ReinstallEntry,
     nextMeta: SkillMeta,
-  ): Promise<void> {
+  ): Promise<boolean> {
     const relativePath = nextMeta.relativePath || entry.meta.relativePath;
     if (!relativePath) {
-      return;
+      return false;
     }
 
     const skillDirUri = resolveManagedSkillDirUri(
@@ -1175,6 +1207,37 @@ export function activate(
       vscode.Uri.joinPath(skillDirUri, ".skill-meta.json"),
       Buffer.from(JSON.stringify(enrichSkillMeta(nextMeta), null, 2), "utf-8"),
     );
+    return true;
+  }
+
+  /** インデックスに無いスキルを、以後の再インストール確認から外す。 */
+  async function disableMissingReinstallChecks(
+    entries: ReinstallEntry[],
+  ): Promise<{ updated: number; failed: number }> {
+    let updated = 0;
+    let failed = 0;
+    for (const entry of entries) {
+      const nextMeta: SkillMeta = {
+        ...entry.meta,
+        reinstallDisabled: true,
+        reinstallDisabledReason: "missing-from-index",
+        reinstallDisabledAt: new Date().toISOString(),
+      };
+      try {
+        if (await writeInstalledSkillMeta(entry, nextMeta)) {
+          updated += 1;
+        } else {
+          failed += 1;
+        }
+      } catch (error) {
+        failed += 1;
+        console.warn(
+          `[Skill Ninja] Could not disable reinstall checks for "${entry.meta.name}":`,
+          error,
+        );
+      }
+    }
+    return { updated, failed };
   }
 
   async function offerDisableMissingReinstallChecks(
@@ -1205,19 +1268,22 @@ export function activate(
       return 0;
     }
 
-    let updatedCount = 0;
-    for (const entry of entries) {
-      const nextMeta: SkillMeta = {
-        ...entry.meta,
-        reinstallDisabled: true,
-        reinstallDisabledReason: "missing-from-index",
-        reinstallDisabledAt: new Date().toISOString(),
-      };
-      await writeInstalledSkillMeta(entry, nextMeta);
-      updatedCount += 1;
-    }
+    return (await disableMissingReinstallChecksWithFeedback(entries)).updated;
+  }
 
-    return updatedCount;
+  /** 除外に失敗した分を黙って成功扱いにしない */
+  async function disableMissingReinstallChecksWithFeedback(
+    entries: ReinstallEntry[],
+  ): Promise<{ updated: number; failed: number }> {
+    const result = await disableMissingReinstallChecks(entries);
+    if (result.failed > 0) {
+      vscode.window.showWarningMessage(
+        isJapanese()
+          ? `${result.failed} 個のスキルを再インストール確認から除外できませんでした。`
+          : `Could not exclude ${result.failed} skill(s) from reinstall checks.`,
+      );
+    }
+    return result;
   }
 
   async function resolveReinstallEntriesFromIndex(
@@ -1947,6 +2013,7 @@ export function activate(
 
       const skill = item.skill;
       if (!skill?.name) {
+        vscode.window.showWarningMessage(messages.commandNeedsSkillSelection());
         return;
       }
       const config = vscode.workspace.getConfiguration("skillNinja");
@@ -1971,6 +2038,7 @@ export function activate(
           : undefined);
 
       if (!skillDirUri) {
+        vscode.window.showWarningMessage(messages.copyPathUnavailable());
         return;
       }
 
@@ -2954,8 +3022,8 @@ export function activate(
         }
         vscode.window.showErrorMessage(
           isJapanese()
-            ? `再インストール失敗: ${String(error)}`
-            : `Reinstall failed: ${String(error)}`,
+            ? `再インストール失敗: ${String(error)}（置き換え済みの場合、元のファイルはごみ箱から復元できます）`
+            : `Reinstall failed: ${String(error)} (if the old files were already replaced, they can be restored from the trash)`,
         );
       }
     },
@@ -2992,8 +3060,8 @@ export function activate(
 
       const confirm2 = await vscode.window.showWarningMessage(
         isJapanese()
-          ? `本当に全てのスキルを削除しますか？この操作は元に戻せません。`
-          : `Are you sure you want to delete ALL skills? This cannot be undone.`,
+          ? `本当に全てのスキルを削除しますか？削除したスキルはごみ箱へ移動します。`
+          : `Are you sure you want to delete ALL skills? They will be moved to the trash.`,
         { modal: true },
         isJapanese() ? "全て削除" : "Delete All",
       );
@@ -3191,8 +3259,8 @@ export function activate(
 
       const confirm = await vscode.window.showWarningMessage(
         isJapanese()
-          ? `${selected.length} 個のスキルを削除しますか？`
-          : `Delete ${selected.length} skills?`,
+          ? `${selected.length} 個のスキルを削除しますか？削除したスキルはごみ箱へ移動します。`
+          : `Delete ${selected.length} skills? They will be moved to the trash.`,
         { modal: true },
         isJapanese() ? "削除" : "Delete",
       );
@@ -4044,6 +4112,7 @@ export function activate(
       }
 
       if (!skill) {
+        vscode.window.showWarningMessage(messages.commandNeedsSkillSelection());
         return;
       }
 
@@ -4172,6 +4241,9 @@ export function activate(
       }
 
       if (!item?.skill || !("isLocal" in item.skill)) {
+        vscode.window.showWarningMessage(
+          messages.localSkillActionUnavailable(),
+        );
         return;
       }
 
@@ -4194,6 +4266,10 @@ export function activate(
           messages.localSkillRegistered(localSkill.name),
         );
         refreshInstalledViews();
+      } else {
+        vscode.window.showWarningMessage(
+          messages.localSkillRegistrationFailed(localSkill.name),
+        );
       }
     },
   );
@@ -4208,6 +4284,9 @@ export function activate(
       }
 
       if (!item?.skill || !("isLocal" in item.skill)) {
+        vscode.window.showWarningMessage(
+          messages.localSkillActionUnavailable(),
+        );
         return;
       }
 
@@ -4223,6 +4302,10 @@ export function activate(
           messages.localSkillUnregistered(localSkill.name),
         );
         refreshInstalledViews();
+      } else {
+        vscode.window.showWarningMessage(
+          messages.localSkillRegistrationFailed(localSkill.name),
+        );
       }
     },
   );
@@ -4468,20 +4551,30 @@ Add examples here
         );
       }
 
-      // トークンもリセット
+      // トークンもリセット（環境変数と gh CLI の credential は変更しない）
+      let plaintextTokensLeft = 0;
       if (selected.value === "all") {
         await deleteStoredGitHubToken();
-        await config.update(
-          "githubToken",
+        plaintextTokensLeft = (await removeLegacyConfiguredGitHubTokens())
+          .remaining;
+        await resetLegacyPlaintextPrompt();
+        await context.workspaceState.update(
+          MISSING_INDEX_WARNING_DISMISSED_KEY,
           undefined,
-          vscode.ConfigurationTarget.Global,
         );
       }
 
-      const restart = await vscode.window.showInformationMessage(
-        messages.resetComplete(),
-        "Reload Window",
-      );
+      // 平文の PAT が残っているのに reset 完了とは言わない
+      const restart =
+        plaintextTokensLeft > 0
+          ? await vscode.window.showWarningMessage(
+              messages.githubTokenLegacyPlaintextRemoveFailed(),
+              "Reload Window",
+            )
+          : await vscode.window.showInformationMessage(
+              messages.resetComplete(),
+              "Reload Window",
+            );
       if (restart === "Reload Window") {
         await vscode.commands.executeCommand("workbench.action.reloadWindow");
       }
@@ -4497,18 +4590,28 @@ Add examples here
   const copyUrlCmd = vscode.commands.registerCommand(
     "skillNinja.copyUrl",
     async (item: SkillTreeItem) => {
-      if (!item.skill) {
+      // メニューは source 行にも出るので、skill 専用にすると無言で何も起きない
+      if (!item?.skill && !item?.source) {
+        vscode.window.showWarningMessage(messages.commandNeedsSkillSelection());
         return;
       }
 
-      const currentIndex = await loadSkillIndex(context);
-      const url = await resolveSkillGitHubUrl(item.skill, currentIndex.sources);
-      if (url) {
-        await vscode.env.clipboard.writeText(url);
-        vscode.window.showInformationMessage(
-          messages.copiedToClipboardWithValue(url),
-        );
+      const url = item.skill
+        ? await resolveSkillGitHubUrl(
+            item.skill,
+            (await loadSkillIndex(context)).sources,
+          )
+        : item.source?.url;
+
+      if (!url) {
+        vscode.window.showWarningMessage(messages.copyUrlUnavailable());
+        return;
       }
+
+      await vscode.env.clipboard.writeText(url);
+      vscode.window.showInformationMessage(
+        messages.copiedToClipboardWithValue(url),
+      );
     },
   );
 
@@ -4516,13 +4619,16 @@ Add examples here
   const copyPathCmd = vscode.commands.registerCommand(
     "skillNinja.copyPath",
     async (item: SkillTreeItem) => {
-      if (item.resourceUri) {
-        const path = item.resourceUri.fsPath;
-        await vscode.env.clipboard.writeText(path);
-        vscode.window.showInformationMessage(
-          messages.copiedToClipboardWithValue(path),
-        );
+      if (!item?.resourceUri) {
+        vscode.window.showWarningMessage(messages.copyPathUnavailable());
+        return;
       }
+
+      const path = item.resourceUri.fsPath;
+      await vscode.env.clipboard.writeText(path);
+      vscode.window.showInformationMessage(
+        messages.copiedToClipboardWithValue(path),
+      );
     },
   );
 
@@ -4530,15 +4636,19 @@ Add examples here
   const openInTerminalCmd = vscode.commands.registerCommand(
     "skillNinja.openInTerminal",
     async (item: SkillTreeItem) => {
-      if (item.resourceUri) {
-        const filePath = item.resourceUri.fsPath;
-        const folderPath = filePath.replace(/[/\\]SKILL\.md$/i, "");
-        const terminal = vscode.window.createTerminal({
-          name: `Skill: ${item.label}`,
-          cwd: folderPath,
-        });
-        terminal.show();
+      if (!item?.resourceUri) {
+        vscode.window.showWarningMessage(messages.openInTerminalUnavailable());
+        return;
       }
+
+      const filePath = item.resourceUri.fsPath;
+      // ファイルパスをそのまま cwd に渡すとターミナルが開けないので親フォルダへ寄せる
+      const folderPath = filePath.replace(/[/\\]SKILL\.md$/i, "");
+      const terminal = vscode.window.createTerminal({
+        name: `Skill: ${item.label}`,
+        cwd: folderPath,
+      });
+      terminal.show();
     },
   );
 
@@ -4546,6 +4656,7 @@ Add examples here
     "skillNinja.explainSkillState",
     async (item: SkillTreeItem) => {
       if (!item?.skill) {
+        vscode.window.showWarningMessage(messages.skillStateUnavailable());
         return;
       }
 

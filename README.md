@@ -392,25 +392,25 @@ If you don't need MCP tools, you can disable them from GitHub Copilot Chat:
 
 ## ⚙️ Settings
 
-| Order | Setting                                   | Default                    | Description                                                                          |
-| :---: | ----------------------------------------- | -------------------------- | ------------------------------------------------------------------------------------ |
-|   1   | `skillNinja.autoUpdateInstruction`        | `true`                     | **Auto-update instruction file on install**                                          |
-|   2   | `skillNinja.instructionFile`              | `AGENTS.md`                | Instruction file format _(requires Auto Update)_                                     |
-|   3   | `skillNinja.customInstructionPath`        | `""`                       | Custom path _(only when 'custom' selected)_                                          |
-|   4   | `skillNinja.skillsDirectory`              | `.github/skills`           | Primary directory to install and manage workspace skills                             |
-|   5   | `skillNinja.additionalSkillRoots`         | `[]`                       | Additional workspace skill roots, for example `copilot-skills/skills`                |
-|   6   | `skillNinja.useVsCodeAgentSkillLocations` | `true`                     | Discover standard personal roots and extra user/global skill roots                   |
-|   7   | `skillNinja.showBuiltInSkills`            | `true`                     | Show read-only built-in skills                                                       |
-|   8   | `skillNinja.outputFormat`                 | `ref`                      | Output format (ref / full / compact / legacy)                                        |
-|   9   | `skillNinja.refCatalogPath`               | `.github/skills/README.md` | Catalog file path used by the `ref` format                                           |
-|  10   | `skillNinja.refCatalogFormat`             | `full`                     | Catalog detail format used when `outputFormat` is `ref`                              |
-|  11   | `skillNinja.language`                     | `auto`                     | UI language (auto / en / ja)                                                         |
-|  12   | `skillNinja.autoUpdateSkillsOnUpgrade`    | `prompt`                   | Update installed skills after extension upgrade                                      |
-|  13   | `skillNinja.staleSourceIndexUpdateMode`   | `prompt`                   | Refresh source indexes older than 30 days on startup (`always` / `prompt` / `never`) |
-|  14   | `skillNinja.githubToken`                  | `""`                       | Legacy GitHub Token setting; copied to SecretStorage when present                    |
-|  15   | `skillNinja.singleClickInstall`           | `false`                    | Install remote skills with single click                                              |
-|  16   | `skillNinja.coexistenceMode`              | `auto`                     | Coexistence with Agent Resources Ninja (`auto` / `independent`)                      |
-|  17   | `skillNinja.useSharedSourcesManifest`     | `false`                    | Share source-list SSOT with Agent Resources Ninja via `~/.agent-ninja/sources.json`  |
+| Order | Setting                                   | Default                    | Description                                                                            |
+| :---: | ----------------------------------------- | -------------------------- | -------------------------------------------------------------------------------------- |
+|   1   | `skillNinja.autoUpdateInstruction`        | `true`                     | **Auto-update instruction file on install**                                            |
+|   2   | `skillNinja.instructionFile`              | `AGENTS.md`                | Instruction file format _(requires Auto Update)_                                       |
+|   3   | `skillNinja.customInstructionPath`        | `""`                       | Custom path _(only when 'custom' selected)_                                            |
+|   4   | `skillNinja.skillsDirectory`              | `.github/skills`           | Primary directory to install and manage workspace skills                               |
+|   5   | `skillNinja.additionalSkillRoots`         | `[]`                       | Additional workspace skill roots, for example `copilot-skills/skills`                  |
+|   6   | `skillNinja.useVsCodeAgentSkillLocations` | `true`                     | Discover standard personal roots and extra user/global skill roots                     |
+|   7   | `skillNinja.showBuiltInSkills`            | `true`                     | Show read-only built-in skills                                                         |
+|   8   | `skillNinja.outputFormat`                 | `ref`                      | Output format (ref / full / compact / legacy)                                          |
+|   9   | `skillNinja.refCatalogPath`               | `.github/skills/README.md` | Catalog file path used by the `ref` format                                             |
+|  10   | `skillNinja.refCatalogFormat`             | `full`                     | Catalog detail format used when `outputFormat` is `ref`                                |
+|  11   | `skillNinja.language`                     | `auto`                     | UI language (auto / en / ja)                                                           |
+|  12   | `skillNinja.autoUpdateSkillsOnUpgrade`    | `prompt`                   | Update installed skills after extension upgrade                                        |
+|  13   | `skillNinja.staleSourceIndexUpdateMode`   | `prompt`                   | Refresh source indexes older than 30 days on startup (`always` / `prompt` / `never`)   |
+|  14   | `skillNinja.githubToken`                  | `""`                       | Legacy GitHub Token setting (user settings only); copied to SecretStorage when present |
+|  15   | `skillNinja.singleClickInstall`           | `false`                    | Install remote skills with single click                                                |
+|  16   | `skillNinja.coexistenceMode`              | `auto`                     | Coexistence with Agent Resources Ninja (`auto` / `independent`)                        |
+|  17   | `skillNinja.useSharedSourcesManifest`     | `false`                    | Share source-list SSOT with Agent Resources Ninja via `~/.agent-ninja/sources.json`    |
 
 > Settings are displayed in the order above
 
@@ -444,6 +444,10 @@ Installing, cleaning up, and removing skills all report what actually happened:
 - **Leftover files directly in a skill root are reported once.** A root-level `.skill-meta.json` that records an empty install location is a symptom of that older folder-name problem. It is reported with a warning and never deleted automatically. A plain `SKILL.md` at a root is a supported single-skill layout and is not flagged.
 - **Bulk delete reports what actually happened.** Uninstall All Skills and Uninstall Multiple Skills count real successes and report how many could not be deleted, instead of always claiming the full requested count.
 - **Uninstalling by name never deletes a different skill.** A name like `foo!` sanitizes to the folder `foo`. If that folder exists, it is only removed when its `.skill-meta.json` records the same skill; a folder owned by another skill, a hand-made local skill with no metadata, or unreadable metadata is refused instead.
+- **A failed reinstall does not destroy your only copy.** Uninstall, the replace step of a reinstall, and cleanup after a failed install into a folder that already existed all move the folder to the OS trash, so it can be restored. Only a folder the install itself created is deleted permanently, and the confirmation wording matches which of the two will happen.
+- **A destructive chat tool asks first.** `#installSkill`, `#uninstallSkill`, `#addSkillSource`, `#removeSkillSource` and `#localizeSkill` show a confirmation before running. `#uninstallSkill` confirms the resolved skill together with its skill root, and refuses to act when the name matches more than one installed skill, so the confirmed target is the one that is removed.
+- **A visible action either acts or says why it cannot.** Every command shown in a tree view context menu is exercised against each context value its menu condition admits; one that cannot act reports the reason instead of doing nothing silently.
+- **A startup prompt can be turned off.** Every dialog shown during activation offers a way to stop it returning, and the choice is remembered. `Reset Settings (including token)` brings the suppressed prompts back.
 
 ### Coexistence with Agent Resources Ninja
 
@@ -526,7 +530,7 @@ The instruction file contains a managed section with **IMPORTANT prompt** and **
 
 > **Important**: GitHub authentication is required for private source repositories and strongly recommended for GitHub Search. Without it, API rate limits (60 requests/hour) will be exhausted quickly and searches may fail.
 
-Set up GitHub authentication to enable full search functionality and private source repositories. Agent Skills Ninja resolves tokens in this order: VS Code SecretStorage, `GITHUB_TOKEN` / `GH_TOKEN`, `gh` CLI, then the legacy `skillNinja.githubToken` setting.
+Set up GitHub authentication to enable full search functionality and private source repositories. Agent Skills Ninja resolves tokens in this order: VS Code SecretStorage, `GH_TOKEN` / `GITHUB_TOKEN`, `gh` CLI, then the legacy `skillNinja.githubToken` setting.
 
 ### Option 1: GitHub CLI (Recommended)
 
@@ -552,7 +556,9 @@ Find `Agent Skills Ninja: GitHub Token` in settings and enter your token:
 
 When this legacy setting is present, Agent Skills Ninja copies the value into VS Code SecretStorage and uses the secure copy first. The setting is retained for backward compatibility and reset workflows.
 
-If the SecretStorage token becomes stale or belongs to another account, run `Agent Skills Ninja: Clear GitHub Token (SecretStorage only)`. This removes only the SecretStorage copy; environment variables, `gh` CLI authentication, and the legacy setting remain unchanged. If the legacy setting itself is stale, clear or update it before reloading VS Code.
+`skillNinja.githubToken` is a **machine-scoped** setting, so it cannot be committed through `.vscode/settings.json`. If an older workspace already contains a plaintext entry, Agent Skills Ninja offers to remove it on startup; you can also delete `skillNinja.githubToken` from `.vscode/settings.json` manually. Treat any token that was committed to a repository as leaked and revoke it.
+
+If the SecretStorage token becomes stale or belongs to another account, run `Agent Skills Ninja: Clear GitHub Token (SecretStorage only)`. This removes the SecretStorage copy and any plaintext copy in `settings.json`; environment variables and `gh` CLI authentication remain unchanged.
 
 For private repositories, prefer a fine-grained personal access token limited to the selected repositories with `Contents: read`. Classic personal access tokens need the `repo` scope to read private repositories.
 

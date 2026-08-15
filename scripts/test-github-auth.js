@@ -8,14 +8,22 @@ const ts = require("typescript");
 
 const secrets = new Map();
 let configToken = "";
+let workspaceConfigToken = "";
+let folderConfigTokens = new Map();
+let workspaceFolders = [];
+let configUpdates = [];
 let execCalls = [];
 let execBehavior = "error";
 let githubAuthModule;
 let informationMessages = [];
 let errorMessages = [];
 let secretDeleteError;
+let warningMessages = [];
+let warningChoice;
+let globalStateStore = new Map();
 
 const vscodeMock = {
+  ConfigurationTarget: { Global: 1, Workspace: 2, WorkspaceFolder: 3 },
   window: {
     async showInformationMessage(message) {
       informationMessages.push(message);
@@ -25,16 +33,56 @@ const vscodeMock = {
       errorMessages.push(message);
       return undefined;
     },
+    async showWarningMessage(message, ...actions) {
+      warningMessages.push({ message, actions });
+      return warningChoice;
+    },
   },
   workspace: {
-    getConfiguration(section) {
+    get workspaceFolders() {
+      return workspaceFolders;
+    },
+    getConfiguration(section, scope) {
       assert.strictEqual(section, "skillNinja");
+      const folderKey = scope?.fsPath;
       return {
         get(key) {
           if (key === "githubToken") {
             return configToken;
           }
           return undefined;
+        },
+        inspect(key) {
+          if (key !== "githubToken") {
+            return undefined;
+          }
+          return {
+            key: "skillNinja.githubToken",
+            defaultValue: "",
+            globalValue: configToken || undefined,
+            workspaceValue: workspaceConfigToken || undefined,
+            // resource scope なしでは folder の値は解決できない
+            workspaceFolderValue: folderKey
+              ? folderConfigTokens.get(folderKey) || undefined
+              : undefined,
+          };
+        },
+        async update(key, value, target) {
+          configUpdates.push({ key, value, target, folder: folderKey });
+          if (key !== "githubToken" || value !== undefined) {
+            return;
+          }
+          if (target === vscodeMock.ConfigurationTarget.WorkspaceFolder) {
+            assert.ok(
+              folderKey,
+              "a workspace-folder update needs the folder's resource scope",
+            );
+            folderConfigTokens.delete(folderKey);
+          } else if (target === vscodeMock.ConfigurationTarget.Workspace) {
+            workspaceConfigToken = "";
+          } else {
+            configToken = "";
+          }
         },
       };
     },
@@ -47,6 +95,13 @@ const i18nMock = {
     githubTokenCleared: () => "token cleared",
     githubTokenNotStored: () => "token not stored",
     githubTokenClearFailed: () => "token clear failed",
+    githubTokenRemoveLegacyPlaintext: () => "remove plaintext",
+    githubTokenLegacyPlaintextFound: () => "migrated, copy remains",
+    githubTokenLegacyPlaintextOnly: () => "not migrated, copy it first",
+    githubTokenLegacyPlaintextRemoved: () => "plaintext removed",
+    githubTokenLegacyPlaintextRemoveFailed: () => "plaintext remove failed",
+    actionCancel: () => "cancel",
+    actionDontAskAgain: () => "dont ask again",
   },
 };
 
@@ -65,9 +120,23 @@ Module._load = function patchedLoad(request, parent, isMain) {
     return {
       exec(command, options, callback) {
         execCalls.push({ command, options });
-        assert.strictEqual(command, "gh auth token");
+        assert.strictEqual(command, "gh auth token --hostname github.com");
         assert.strictEqual(options.timeout, 5000);
         assert.strictEqual(options.windowsHide, true);
+        assert.ok(
+          options.env && typeof options.env === "object",
+          "gh CLI must run with an explicit env",
+        );
+        assert.strictEqual(
+          options.env.GH_TOKEN,
+          undefined,
+          "stale GH_TOKEN must not leak into gh auth token",
+        );
+        assert.strictEqual(
+          options.env.GITHUB_TOKEN,
+          undefined,
+          "stale GITHUB_TOKEN must not leak into gh auth token",
+        );
 
         switch (execBehavior) {
           case "token":
@@ -107,10 +176,17 @@ async function test(name, fn) {
   try {
     secrets.clear();
     configToken = "";
+    workspaceConfigToken = "";
+    folderConfigTokens = new Map();
+    workspaceFolders = [];
+    configUpdates = [];
     execCalls = [];
     execBehavior = "error";
     informationMessages = [];
     errorMessages = [];
+    warningMessages = [];
+    warningChoice = undefined;
+    globalStateStore = new Map();
     secretDeleteError = undefined;
     delete process.env.GITHUB_TOKEN;
     delete process.env.GH_TOKEN;
@@ -142,6 +218,25 @@ async function main() {
           throw secretDeleteError;
         }
         secrets.delete(key);
+      },
+    },
+    globalState: {
+      get: () => undefined,
+      update: async () => {
+        throw new Error(
+          "the plaintext prompt is per-workspace, so it must not use globalState",
+        );
+      },
+    },
+    workspaceState: {
+      get: (key, fallback) =>
+        globalStateStore.has(key) ? globalStateStore.get(key) : fallback,
+      update: async (key, value) => {
+        if (value === undefined) {
+          globalStateStore.delete(key);
+        } else {
+          globalStateStore.set(key, value);
+        }
       },
     },
   };
@@ -237,6 +332,105 @@ async function main() {
     });
   });
 
+  await test("GH_TOKEN wins over GITHUB_TOKEN", async () => {
+    process.env.GITHUB_TOKEN = "github-token-var";
+    process.env.GH_TOKEN = "gh-token-var";
+
+    const result = await auth.resolveGitHubToken();
+    assert.deepStrictEqual(result, {
+      token: "gh-token-var",
+      source: "env",
+    });
+  });
+
+  await test("stale env token still yields the gh CLI credential", async () => {
+    process.env.GH_TOKEN = "stale-env-token";
+    execBehavior = "token";
+
+    const fallback =
+      await auth.resolveGitHubTokenAfterFailure("stale-env-token");
+    assert.deepStrictEqual(fallback, {
+      token: "gh-token",
+      source: "gh-cli",
+    });
+  });
+
+  await test("rate limited token is not reported as unauthenticated", async () => {
+    await context.secrets.store("skillNinja.githubToken", "secret-token");
+    execBehavior = "token";
+    const requests = [];
+    const originalFetch = global.fetch;
+    global.fetch = async (url, options) => {
+      requests.push({ url, options });
+      return {
+        ok: false,
+        status: 403,
+        headers: new Map([["x-ratelimit-remaining", "0"]]),
+      };
+    };
+
+    try {
+      const result = await auth.checkGitHubAuth();
+      assert.strictEqual(result.authenticated, true);
+      assert.strictEqual(result.method, "secret");
+      assert.strictEqual(result.reason, "rate-limited");
+      assert.strictEqual(
+        requests.length,
+        1,
+        "rate limit must not burn other credentials",
+      );
+    } finally {
+      global.fetch = originalFetch;
+    }
+  });
+
+  await test("SSO and policy failures are not collapsed into one reason", async () => {
+    const originalFetch = global.fetch;
+    const cases = [
+      { headers: [["x-github-sso", "required"]], reason: "sso-required" },
+      { headers: [], reason: "forbidden" },
+      // secondary rate limit は remaining が 0 にならず retry-after だけ付く
+      { headers: [["retry-after", "60"]], reason: "rate-limited" },
+    ];
+
+    try {
+      for (const testCase of cases) {
+        await context.secrets.store("skillNinja.githubToken", "secret-token");
+        process.env.GH_TOKEN = "another-token";
+        execBehavior = "token";
+        let requestCount = 0;
+        global.fetch = async () => {
+          requestCount += 1;
+          return {
+            ok: false,
+            status: 403,
+            headers: new Map(testCase.headers),
+          };
+        };
+
+        const result = await auth.checkGitHubAuth();
+        assert.strictEqual(result.reason, testCase.reason);
+        assert.strictEqual(
+          result.authenticated,
+          testCase.reason === "rate-limited",
+        );
+        assert.strictEqual(
+          requestCount,
+          1,
+          `${testCase.reason} must not burn the other credentials`,
+        );
+        assert.ok(
+          !JSON.stringify(result).includes("secret-token"),
+          "auth status must not echo the token value",
+        );
+      }
+    } finally {
+      global.fetch = originalFetch;
+      secrets.clear();
+      delete process.env.GH_TOKEN;
+    }
+  });
+
   await test("legacy config token is copied to SecretStorage", async () => {
     configToken = "config-token";
 
@@ -250,6 +444,241 @@ async function main() {
     const migratedAgain =
       await auth.migrateConfiguredGitHubTokenToSecretStorage();
     assert.strictEqual(migratedAgain, false);
+  });
+
+  await test("workspace plaintext token is migrated even at machine scope", async () => {
+    workspaceConfigToken = "workspace-token";
+
+    assert.deepStrictEqual(auth.inspectLegacyConfiguredTokens(), [
+      { scope: "workspace", token: "workspace-token" },
+    ]);
+
+    const migrated = await auth.migrateConfiguredGitHubTokenToSecretStorage();
+    assert.strictEqual(migrated, true);
+    assert.strictEqual(
+      await context.secrets.get("skillNinja.githubToken"),
+      "workspace-token",
+    );
+  });
+
+  await test("resolution keeps the pre-machine-scope order and ignores folder values", async () => {
+    const folderUri = { fsPath: "/repo/pkg-a" };
+    workspaceFolders = [{ uri: folderUri }];
+    folderConfigTokens.set(folderUri.fsPath, "folder-token");
+    workspaceConfigToken = "workspace-token";
+    configToken = "global-token";
+
+    // 検出は全スコープ、解決は resource なしの get() が返していた値だけ
+    assert.deepStrictEqual(
+      auth.inspectLegacyConfiguredTokens().map(({ scope }) => scope),
+      ["workspaceFolder", "workspace", "global"],
+    );
+
+    const resolved = await auth.resolveGitHubToken();
+    assert.deepStrictEqual(resolved, {
+      token: "workspace-token",
+      source: "config",
+    });
+
+    const migrated = await auth.migrateConfiguredGitHubTokenToSecretStorage();
+    assert.strictEqual(migrated, true);
+    assert.strictEqual(
+      await context.secrets.get("skillNinja.githubToken"),
+      "workspace-token",
+    );
+  });
+
+  await test("a folder-only plaintext token is never promoted to SecretStorage", async () => {
+    const folderA = { fsPath: "/repo/pkg-a" };
+    const folderB = { fsPath: "/repo/pkg-b" };
+    workspaceFolders = [{ uri: folderA }, { uri: folderB }];
+    folderConfigTokens.set(folderA.fsPath, "folder-a-token");
+    folderConfigTokens.set(folderB.fsPath, "folder-b-token");
+
+    assert.deepStrictEqual(await auth.resolveGitHubToken(), {
+      token: undefined,
+      source: "none",
+    });
+    assert.strictEqual(
+      await auth.migrateConfiguredGitHubTokenToSecretStorage(),
+      false,
+      "one folder's PAT must not become the machine-wide credential",
+    );
+    assert.strictEqual(
+      await context.secrets.get("skillNinja.githubToken"),
+      undefined,
+    );
+    // 平文としては残っているので、検出と削除の対象からは外さない
+    assert.strictEqual(auth.inspectLegacyConfiguredTokens().length, 2);
+  });
+
+  await test("a plaintext value that was not migrated is reported as unmigrated", async () => {
+    const folder = { fsPath: "/repo/pkg-a" };
+    workspaceFolders = [{ uri: folder }];
+    folderConfigTokens.set(folder.fsPath, "folder-token");
+    workspaceConfigToken = "workspace-token";
+
+    assert.strictEqual(
+      await auth.migrateConfiguredGitHubTokenToSecretStorage(),
+      true,
+    );
+    assert.strictEqual(
+      await auth.hasUnmigratedLegacyPlaintextToken(),
+      true,
+      "a distinct folder PAT is about to be deleted without being saved anywhere",
+    );
+
+    folderConfigTokens.delete(folder.fsPath);
+    assert.strictEqual(
+      await auth.hasUnmigratedLegacyPlaintextToken(),
+      false,
+      "the remaining plaintext is the value now held in SecretStorage",
+    );
+  });
+
+  await test("multi-root folder plaintext copies are found and removed", async () => {
+    const folderA = { fsPath: "/repo/pkg-a" };
+    const folderB = { fsPath: "/repo/pkg-b" };
+    workspaceFolders = [{ uri: folderA }, { uri: folderB }];
+    folderConfigTokens.set(folderA.fsPath, "folder-a-token");
+    folderConfigTokens.set(folderB.fsPath, "folder-b-token");
+
+    assert.deepStrictEqual(
+      auth.inspectLegacyConfiguredTokens().map(({ token }) => token),
+      ["folder-a-token", "folder-b-token"],
+    );
+
+    const result = await auth.removeLegacyConfiguredGitHubTokens();
+    assert.deepStrictEqual(
+      { removed: [...result.removed], remaining: result.remaining },
+      { removed: ["workspaceFolder", "workspaceFolder"], remaining: 0 },
+    );
+    assert.deepStrictEqual(auth.inspectLegacyConfiguredTokens(), []);
+  });
+
+  await test("clearing removes the plaintext copies in every settings scope", async () => {
+    configToken = "config-token";
+    workspaceConfigToken = "workspace-token";
+
+    const result = await auth.removeLegacyConfiguredGitHubTokens();
+    assert.deepStrictEqual(
+      { removed: [...result.removed], remaining: result.remaining },
+      { removed: ["workspace", "global"], remaining: 0 },
+    );
+    assert.deepStrictEqual(auth.inspectLegacyConfiguredTokens(), []);
+    assert.deepStrictEqual(
+      configUpdates.map(({ key, value, target }) => ({ key, value, target })),
+      [
+        { key: "githubToken", value: undefined, target: 2 },
+        { key: "githubToken", value: undefined, target: 1 },
+      ],
+    );
+  });
+
+  await test("a plaintext copy that survives removal is not reported as cleared", async () => {
+    const stubborn = { fsPath: "/repo/locked" };
+    workspaceFolders = [{ uri: stubborn }];
+    folderConfigTokens.set(stubborn.fsPath, "stuck-token");
+    workspaceConfigToken = "workspace-token";
+    const originalDelete = folderConfigTokens.delete.bind(folderConfigTokens);
+    folderConfigTokens.delete = () => {
+      throw new Error("settings.json is read-only");
+    };
+
+    try {
+      const result = await auth.removeLegacyConfiguredGitHubTokens();
+      assert.deepStrictEqual([...result.removed], ["workspace"]);
+      assert.strictEqual(result.remaining, 1);
+
+      await auth.clearStoredGitHubTokenWithFeedback();
+      assert.deepStrictEqual(informationMessages, []);
+      assert.deepStrictEqual(errorMessages, ["token clear failed"]);
+    } finally {
+      folderConfigTokens.delete = originalDelete;
+    }
+  });
+
+  await test("clear command reports success when only plaintext existed", async () => {
+    workspaceConfigToken = "workspace-token";
+
+    await auth.clearStoredGitHubTokenWithFeedback();
+    assert.deepStrictEqual(informationMessages, ["token cleared"]);
+    assert.deepStrictEqual(auth.inspectLegacyConfiguredTokens(), []);
+  });
+
+  await test("no plaintext means no startup prompt", async () => {
+    await auth.offerToRemoveLegacyPlaintextGitHubToken();
+    assert.deepStrictEqual(warningMessages, []);
+  });
+
+  await test("cancelling the plaintext prompt keeps asking next startup", async () => {
+    workspaceConfigToken = "workspace-token";
+    warningChoice = "cancel";
+
+    await auth.offerToRemoveLegacyPlaintextGitHubToken();
+    assert.strictEqual(warningMessages.length, 1);
+    assert.deepStrictEqual(warningMessages[0].actions, [
+      "remove plaintext",
+      "dont ask again",
+      "cancel",
+    ]);
+    assert.strictEqual(
+      auth.inspectLegacyConfiguredTokens().length,
+      1,
+      "cancelling must not delete the plaintext copy",
+    );
+
+    await auth.offerToRemoveLegacyPlaintextGitHubToken();
+    assert.strictEqual(
+      warningMessages.length,
+      2,
+      "a security nudge must survive an accidental dismiss",
+    );
+  });
+
+  await test("dismissing the plaintext prompt stops the startup nag", async () => {
+    workspaceConfigToken = "workspace-token";
+    warningChoice = "dont ask again";
+
+    await auth.offerToRemoveLegacyPlaintextGitHubToken();
+    assert.strictEqual(warningMessages.length, 1);
+    assert.strictEqual(
+      globalStateStore.get("skillNinja.legacyPlaintextTokenPromptDismissed"),
+      true,
+    );
+
+    warningChoice = undefined;
+    await auth.offerToRemoveLegacyPlaintextGitHubToken();
+    assert.strictEqual(
+      warningMessages.length,
+      1,
+      "a dismissed prompt must not return on every window",
+    );
+
+    await auth.resetLegacyPlaintextPrompt();
+    await auth.offerToRemoveLegacyPlaintextGitHubToken();
+    assert.strictEqual(
+      warningMessages.length,
+      2,
+      "Reset Settings must be able to bring the prompt back",
+    );
+  });
+
+  await test("accepting the plaintext prompt removes every copy", async () => {
+    const folder = { fsPath: "/repo/pkg-a" };
+    workspaceFolders = [{ uri: folder }];
+    folderConfigTokens.set(folder.fsPath, "folder-token");
+    workspaceConfigToken = "workspace-token";
+    warningChoice = "remove plaintext";
+
+    await auth.offerToRemoveLegacyPlaintextGitHubToken();
+    assert.strictEqual(
+      warningMessages[0].message,
+      "not migrated, copy it first",
+      "a distinct folder PAT is deleted without being saved, so say so",
+    );
+    assert.deepStrictEqual(auth.inspectLegacyConfiguredTokens(), []);
+    assert.deepStrictEqual(informationMessages, ["plaintext removed"]);
   });
 
   await test("gh CLI token uses bounded exec options", async () => {

@@ -209,6 +209,68 @@ function main() {
       "recursive delete must resolve links before trusting the path",
     );
   });
+
+  test("only user-owned deletes go to the trash", () => {
+    const installerSource = fs.readFileSync(
+      path.join(__dirname, "..", "src", "skillInstaller.ts"),
+      "utf8",
+    );
+
+    const readFunctionBody = (signature) => {
+      const start = installerSource.indexOf(signature);
+      assert.notStrictEqual(start, -1, `missing ${signature}`);
+      return installerSource.slice(
+        start,
+        installerSource.indexOf("\n}", start),
+      );
+    };
+
+    assert.ok(
+      /deleteSkillDirectory\([\s\S]{0,200}?options:\s*\{\s*useTrash:\s*boolean\s*\}\s*=\s*\{\s*useTrash:\s*false\s*\}/.test(
+        installerSource,
+      ),
+      "the helper must default to a permanent delete so every trash use is explicit",
+    );
+
+    for (const signature of [
+      "export async function uninstallSkill(",
+      "export async function uninstallSkillByPath(",
+    ]) {
+      assert.ok(
+        /deleteSkillDirectory\([^)]*useTrash:\s*true/s.test(
+          readFunctionBody(signature),
+        ),
+        `${signature} must delete via the trash so a failed reinstall stays recoverable`,
+      );
+    }
+
+    // 上書きインストールの置き換えも、ユーザーの唯一のコピーを消しうる
+    assert.ok(
+      /if \(replaceExisting\) \{[\s\S]{0,300}?deleteSkillDirectory\([^;]*useTrash: true/.test(
+        installerSource,
+      ),
+      "replacing an existing install must go through the trash",
+    );
+
+    // 未完了ダウンロードの後片付けは、既存フォルダへ上書きしていたときだけごみ箱へ送る
+    for (const [signature, expected] of [
+      ["async function handleSkillNotFound(", "useTrash: cleanupUsesTrash"],
+      [
+        "async function reportInstallResult(",
+        "useTrash: options.cleanupUsesTrash",
+      ],
+    ]) {
+      const body = readFunctionBody(signature);
+      assert.ok(
+        body.includes(expected),
+        `${signature} must pass through the pre-existing-folder flag, not a constant`,
+      );
+      assert.ok(
+        !/useTrash:\s*(true|false)/.test(body),
+        `${signature} must not hardcode the deletion method`,
+      );
+    }
+  });
 }
 
 main();
