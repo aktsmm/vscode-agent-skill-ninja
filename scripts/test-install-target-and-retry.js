@@ -117,6 +117,8 @@ function loadInstaller({
 } = {}) {
   const writes = [];
   const deletes = [];
+  const requestedUrls = [];
+  const requestSignals = [];
   const createdDirs = [...existingDirs];
   const files = new Map(Object.entries(existingFiles));
   const modals = [];
@@ -215,6 +217,7 @@ function loadInstaller({
 
   const fetchStub = async (url) => {
     const key = String(url);
+    requestedUrls.push(key);
 
     if (Object.prototype.hasOwnProperty.call(rawThrows, key)) {
       throw rawThrows[key]();
@@ -310,7 +313,10 @@ function loadInstaller({
       if (request === "./githubFetch") {
         return {
           createGitHubHeaders: () => ({}),
-          fetchGitHubWithOptionalAuthRetry: async (url) => fetchStub(url),
+          fetchGitHubWithOptionalAuthRetry: async (url, fetchOptions) => {
+            requestSignals.push(fetchOptions?.retry?.signal);
+            return fetchStub(url);
+          },
         };
       }
       if (request.startsWith("./")) {
@@ -329,6 +335,8 @@ function loadInstaller({
     createdDirs,
     files,
     modals,
+    requestedUrls,
+    requestSignals,
   };
 }
 
@@ -728,10 +736,14 @@ async function main() {
       "the bulk flows must delegate retry control to the tested plan helper",
     );
     assert.ok(
-      /installBulkItem\(item, context, workspaceUri, allowUninstall, isCancelled\)/.test(
+      /installBulkItem\(\s*item,\s*context,\s*workspaceUri,\s*allowUninstall,\s*isCancelled,/.test(
         extensionSource,
       ),
       "the plan must decide whether an attempt may uninstall first",
+    );
+    assert.ok(
+      /abortController\.signal/.test(extensionSource),
+      "cancelling must also abort the in-flight request, not just the next boundary",
     );
 
     const manualRetry = extensionSource.slice(
@@ -801,18 +813,201 @@ async function main() {
       },
     });
 
-    // 最初のファイルへ進む前に中断する。SKILL.md 補完へ進んではいけない
-    const result = await installDemo(harness, {}, { isCancelled: () => true });
+    // 最初のファイルへ進む前に中断する。実体が 1 つも無いので incomplete となる
+    const error = await installDemo(
+      harness,
+      {},
+      { isCancelled: () => true },
+    ).then(
+      () => undefined,
+      (thrown) => thrown,
+    );
 
-    assert.strictEqual(result.status, "partial");
-    assert.deepStrictEqual(
-      Array.from(result.failures).map((failure) => failure.kind),
-      ["cancelled"],
+    assert.strictEqual(error?.name, "SkillInstallIncompleteError");
+    assert.ok(
+      Array.from(error.failures).some(
+        (failure) => failure.kind === "cancelled",
+      ),
     );
     assert.strictEqual(
-      Array.from(harness.writes).some((target) => target.endsWith("SKILL.md")),
+      harness.requestedUrls.filter((url) => url.endsWith("notes.md")).length,
+      0,
+      "no remote content may be fetched after the cancellation is observed",
+    );
+  });
+
+  await test("a cancelled install stops at the next file boundary", async () => {
+    const harness = loadInstaller(demoSources());
+
+    let downloadedFiles = 0;
+    const result = await installDemo(
+      harness,
+      {},
+      {
+        isCancelled: () => {
+          // SKILL.md を 1 本取り終えた時点で中断要求が立つ
+          downloadedFiles = harness.writes.filter((target) =>
+            /skill\.md$/i.test(target),
+          ).length;
+          return downloadedFiles > 0;
+        },
+      },
+    );
+
+    assert.strictEqual(
+      result.status,
+      "partial",
+      "a cancelled install must not be reported as complete",
+    );
+    assert.ok(
+      Array.from(result.failures).some(
+        (failure) => failure.kind === "cancelled",
+      ),
+      "the cancellation must be recorded as a structured failure",
+    );
+    assert.strictEqual(
+      harness.installer.isRetryableInstallFailure(Array.from(result.failures)),
       false,
-      "no primary SKILL.md fallback may run after a cancellation",
+      "a cancelled install must never be retried automatically",
+    );
+    assert.strictEqual(
+      harness.requestedUrls.filter((url) => url.endsWith("extra.md")).length,
+      0,
+      "no further file may be fetched after the cancellation is observed",
+    );
+  });
+
+  await test("a cancelled install stays repairable", async () => {
+    const harness = loadInstaller(demoSources());
+
+    await installDemo(harness, {}, { isCancelled: () => true }).catch(
+      () => undefined,
+    );
+
+    const meta = JSON.parse(harness.files.get(DEMO_META_FS));
+    assert.ok(
+      meta.repairState,
+      "Repair Incomplete Skills must be able to find a cancelled install",
+    );
+    // 走査は SKILL.md のあるフォルダしか登録しないので、これが検出の前提になる
+    assert.ok(
+      harness.files.has(DEMO_SKILL_MD_FS),
+      "a cancelled install must still leave a SKILL.md so the repair scan sees it",
+    );
+  });
+
+  await test("cancelling stops before descending into a subdirectory", async () => {
+    const harness = loadInstaller({
+      directories: {
+        "skills/demo": [
+          remoteFile("SKILL.md", "skills/demo/SKILL.md"),
+          { name: "nested", type: "dir", download_url: null },
+        ],
+        "skills/demo/nested": [
+          remoteFile("inner.md", "skills/demo/nested/inner.md"),
+        ],
+      },
+      rawFiles: {
+        [`${RAW}/owner/repo/main/skills/demo/SKILL.md`]: SKILL_MD,
+        [`${RAW}/owner/repo/main/skills/demo/nested/inner.md`]: "inner",
+      },
+    });
+
+    const result = await installDemo(
+      harness,
+      {},
+      {
+        isCancelled: () =>
+          harness.writes.some((target) => /skill\.md$/i.test(target)),
+      },
+    );
+
+    assert.strictEqual(result.status, "partial");
+    assert.strictEqual(
+      harness.requestedUrls.filter((url) => url.includes("nested")).length,
+      0,
+      "a cancelled install must not list or fetch a subdirectory",
+    );
+  });
+
+  await test("a single-file skill honours cancellation too", async () => {
+    const harness = loadInstaller({
+      rawFiles: {
+        [`${RAW}/owner/repo/main/skills/demo/SKILL.md`]: SKILL_MD,
+      },
+    });
+
+    const error = await installDemo(
+      harness,
+      { path: "skills/demo/SKILL.md" },
+      { isCancelled: () => true },
+    ).then(
+      () => undefined,
+      (thrown) => thrown,
+    );
+
+    assert.ok(
+      Array.from(error.failures).some(
+        (failure) => failure.kind === "cancelled",
+      ),
+      "the single-file path must observe cancellation before fetching",
+    );
+    assert.strictEqual(
+      harness.requestedUrls.filter((url) =>
+        url.endsWith("skills/demo/SKILL.md"),
+      ).length,
+      0,
+      "no content may be fetched after the cancellation is observed",
+    );
+  });
+
+  await test("every install request carries the abort signal", async () => {
+    const harness = loadInstaller({
+      // symlink 経由の再帰でも signal を落とさないことを同時に見る
+      directories: {
+        "skills/demo": [
+          remoteFile("SKILL.md", "skills/demo/SKILL.md"),
+          { name: "linked", type: "symlink", target: "../shared" },
+        ],
+        "skills/shared": [remoteFile("inner.md", "skills/shared/inner.md")],
+      },
+      rawFiles: {
+        [`${RAW}/owner/repo/main/skills/demo/SKILL.md`]: SKILL_MD,
+        [`${RAW}/owner/repo/main/skills/shared/inner.md`]: "inner",
+      },
+    });
+    const controller = new AbortController();
+
+    await installDemo(harness, {}, { signal: controller.signal });
+
+    assert.ok(
+      harness.requestSignals.length >= 3,
+      `listing, recursion and file downloads must all go through the fetch layer, got ${harness.requestSignals.length}`,
+    );
+    assert.deepStrictEqual(
+      Array.from(harness.requestSignals).filter(
+        (signal) => signal !== controller.signal,
+      ),
+      [],
+      "an in-flight request must be abortable, not only the next boundary",
+    );
+  });
+
+  await test("an aborted request is treated as cancelled, not transient", () => {
+    const harness = loadInstaller(demoSources());
+    const abortError = new Error("Request aborted");
+    abortError.name = "AbortError";
+
+    assert.strictEqual(
+      harness.installer.classifySkillInstallFailure(abortError),
+      "cancelled",
+      "an abort must not be mistaken for a retryable network blip",
+    );
+    assert.strictEqual(
+      harness.installer.isRetryableInstallFailure([
+        { message: "aborted", kind: "cancelled" },
+      ]),
+      false,
     );
   });
 

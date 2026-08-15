@@ -66,6 +66,12 @@ export function classifySkillInstallFailure(
     return error.kind;
   }
 
+  // 中断による abort を一時障害と見なさない。realm をまたぐと
+  // instanceof が効かないので name で判定する
+  if ((error as { name?: unknown } | undefined)?.name === "AbortError") {
+    return "cancelled";
+  }
+
   if (
     typeof vscode.FileSystemError === "function" &&
     error instanceof vscode.FileSystemError
@@ -300,6 +306,7 @@ async function listGitHubDirectoryInternal(
   branch: string = "main",
   token?: string,
   visitedPaths: Set<string> = new Set(),
+  signal?: AbortSignal,
 ): Promise<GitHubDirectoryEntry[]> {
   const normalizedPath = path.replace(/^\/+|\/+$/g, "");
   if (visitedPaths.has(normalizedPath)) {
@@ -315,6 +322,7 @@ async function listGitHubDirectoryInternal(
   const response = await fetchGitHubWithOptionalAuthRetry(url, {
     accept: "application/vnd.github.v3+json",
     token,
+    retry: { signal },
   });
   if (!response.ok) {
     const bodyText = await response.text().catch(() => "");
@@ -353,6 +361,7 @@ async function listGitHubDirectoryInternal(
       branch,
       token,
       visitedPaths,
+      signal,
     );
   }
 
@@ -366,6 +375,7 @@ export async function listGitHubDirectory(
   branch: string = "main",
   token?: string,
   visitedPaths: Set<string> = new Set(),
+  signal?: AbortSignal,
 ): Promise<GitHubDirectoryEntry[]> {
   return await listGitHubDirectoryInternal(
     owner,
@@ -374,6 +384,7 @@ export async function listGitHubDirectory(
     branch,
     token,
     visitedPaths,
+    signal,
   );
 }
 
@@ -420,6 +431,7 @@ async function downloadDirectory(
   depth: number = 0,
   downloadRoot: vscode.Uri = localPath,
   isCancelled: () => boolean = () => false,
+  signal?: AbortSignal,
 ): Promise<DownloadDirectoryResult> {
   const errors: string[] = [];
   const failures: SkillInstallFailure[] = [];
@@ -483,7 +495,7 @@ async function downloadDirectory(
     }
 
     console.log(`[Skill Ninja] Downloading file: ${entry.name}`);
-    const content = await fetchFileContent(entry.download_url, token);
+    const content = await fetchFileContent(entry.download_url, token, signal);
     await vscode.workspace.fs.writeFile(
       localFilePath,
       Buffer.from(content, "utf-8"),
@@ -500,6 +512,8 @@ async function downloadDirectory(
     remotePath,
     branch,
     token,
+    undefined,
+    signal,
   );
   console.log(`[Skill Ninja] Found ${entries.length} entries`);
 
@@ -572,6 +586,7 @@ async function downloadDirectory(
         depth + 1,
         downloadRoot,
         isCancelled,
+        signal,
       );
       errors.push(...subResult.errors);
       failures.push(...subResult.failures);
@@ -594,6 +609,7 @@ async function downloadPrimarySkillMd(
   remotePath: string,
   localPath: vscode.Uri,
   token?: string,
+  signal?: AbortSignal,
 ): Promise<boolean> {
   const normalizedRemotePath = remotePath.replace(/^\/+|\/+$/g, "");
   if (!normalizedRemotePath || normalizedRemotePath.endsWith(".md")) {
@@ -603,7 +619,7 @@ async function downloadPrimarySkillMd(
   const rawUrl = `https://raw.githubusercontent.com/${owner}/${repo}/${branch}/${normalizedRemotePath}/SKILL.md`;
   try {
     console.log(`[Skill Ninja] Trying primary SKILL.md fallback: ${rawUrl}`);
-    const content = await fetchFileContent(rawUrl, token);
+    const content = await fetchFileContent(rawUrl, token, signal);
     const skillMdPath = vscode.Uri.joinPath(localPath, "SKILL.md");
     await vscode.workspace.fs.writeFile(
       skillMdPath,
@@ -612,6 +628,10 @@ async function downloadPrimarySkillMd(
     console.log(`[Skill Ninja] Saved primary SKILL.md fallback`);
     return true;
   } catch (error) {
+    // 中断は「見つからなかった」ではないので、呼び出し側へそのまま返す
+    if (classifySkillInstallFailure(error) === "cancelled") {
+      throw error;
+    }
     console.warn(
       `[Skill Ninja] Primary SKILL.md fallback failed: ${error instanceof Error ? error.message : String(error)}`,
     );
@@ -802,6 +822,7 @@ async function resolveSkillDownloadTarget(
   skill: Skill,
   source: Source | undefined,
   token?: string,
+  signal?: AbortSignal,
 ): Promise<
   | { owner: string; repo: string; branch: string; remotePath: string }
   | undefined
@@ -824,7 +845,7 @@ async function resolveSkillDownloadTarget(
     const match = source.url.match(/github\.com\/([^/]+)\/([^/]+)/);
     if (match) {
       const [, owner, repo] = match;
-      const branch = await getSourceBranch(source, token, skill.path);
+      const branch = await getSourceBranch(source, token, skill.path, signal);
       return {
         owner,
         repo: repo.replace(/\.git$/, ""),
@@ -1010,6 +1031,8 @@ export async function installSkill(
     allowRetry?: boolean;
     interactive?: boolean;
     isCancelled?: () => boolean;
+    /** 中断時に実行中の HTTP 取得ごと止める */
+    signal?: AbortSignal;
   },
 ): Promise<SkillInstallResult> {
   if (targetRoot && (!targetRoot.isManaged || targetRoot.isReadOnly)) {
@@ -1052,7 +1075,12 @@ export async function installSkill(
   const index = await loadSkillIndex(context);
   const source = index.sources.find((s: Source) => s.id === skill.source);
   const token = await getGitHubToken();
-  const downloadTarget = await resolveSkillDownloadTarget(skill, source, token);
+  const downloadTarget = await resolveSkillDownloadTarget(
+    skill,
+    source,
+    token,
+    options?.signal,
+  );
   const normalizedSourceId = inferInstalledSkillSourceId(
     skill,
     source,
@@ -1094,41 +1122,59 @@ export async function installSkill(
     if (remotePath.endsWith(".md")) {
       // 単独ファイルをダウンロード → SKILL.md として保存
       const rawUrl = `https://raw.githubusercontent.com/${owner}/${repo}/${branch}/${remotePath}`;
-      console.log(`[Skill Ninja] Downloading single file: ${rawUrl}`);
-      try {
-        const content = await fetchFileContent(rawUrl, token);
-        console.log(`[Skill Ninja] Downloaded ${content.length} bytes`);
-
-        // SKILL.md として保存（メインファイル）
-        const skillMdPath = vscode.Uri.joinPath(skillPath, "SKILL.md");
-        await vscode.workspace.fs.writeFile(
-          skillMdPath,
-          Buffer.from(content, "utf-8"),
+      if (options?.isCancelled?.()) {
+        // 配布形式によらず、取得を始める前に中断を見る
+        recordInstallFailure(
+          `Install cancelled before ${remotePath}`,
+          "cancelled",
+          remotePath,
         );
-        console.log(`[Skill Ninja] Saved as SKILL.md`);
-      } catch (error) {
-        console.error(`[Skill Ninja] Failed to download ${rawUrl}:`, error);
-        const errorMsg = error instanceof Error ? error.message : String(error);
-        const failureKind = classifySkillInstallFailure(error);
-
-        // 404エラーの場合はインストールをキャンセル（フォールバック作らない）
-        if (failureKind === "not-found") {
-          await handleSkillNotFound(
-            skillsRootUri,
-            skillPath,
-            skill,
-            source,
+      } else {
+        console.log(`[Skill Ninja] Downloading single file: ${rawUrl}`);
+        try {
+          const content = await fetchFileContent(
             rawUrl,
             token,
-            branch,
-            interactive,
+            options?.signal,
           );
-        }
+          console.log(`[Skill Ninja] Downloaded ${content.length} bytes`);
 
-        // その他のエラーは不完全インストールとして記録し、後段でまとめて通知する
-        usedFallback = true;
-        recordInstallFailure(`${rawUrl}: ${errorMsg}`, failureKind, remotePath);
-        await createFallbackSkillMd(skillPath, skill);
+          // SKILL.md として保存（メインファイル）
+          const skillMdPath = vscode.Uri.joinPath(skillPath, "SKILL.md");
+          await vscode.workspace.fs.writeFile(
+            skillMdPath,
+            Buffer.from(content, "utf-8"),
+          );
+          console.log(`[Skill Ninja] Saved as SKILL.md`);
+        } catch (error) {
+          console.error(`[Skill Ninja] Failed to download ${rawUrl}:`, error);
+          const errorMsg =
+            error instanceof Error ? error.message : String(error);
+          const failureKind = classifySkillInstallFailure(error);
+
+          // 404エラーの場合はインストールをキャンセル（フォールバック作らない）
+          if (failureKind === "not-found") {
+            await handleSkillNotFound(
+              skillsRootUri,
+              skillPath,
+              skill,
+              source,
+              rawUrl,
+              token,
+              branch,
+              interactive,
+            );
+          }
+
+          // その他のエラーは不完全インストールとして記録し、後段でまとめて通知する
+          usedFallback = true;
+          recordInstallFailure(
+            `${rawUrl}: ${errorMsg}`,
+            failureKind,
+            remotePath,
+          );
+          await createFallbackSkillMd(skillPath, skill);
+        }
       }
     } else {
       // フォルダ全体をダウンロード
@@ -1143,6 +1189,7 @@ export async function installSkill(
           0,
           skillPath,
           options?.isCancelled,
+          options?.signal,
         );
 
         const cancelledDuringDownload = result.failures.some(
@@ -1164,6 +1211,7 @@ export async function installSkill(
               remotePath,
               skillPath,
               token,
+              options?.signal,
             ))
           ) {
             usedFallback = true;
@@ -1201,14 +1249,19 @@ export async function installSkill(
         const errorMsg = error instanceof Error ? error.message : String(error);
         const failureKind = classifySkillInstallFailure(error);
 
-        const recoveredPrimarySkillMd = await downloadPrimarySkillMd(
-          owner,
-          repo,
-          branch,
-          remotePath,
-          skillPath,
-          token,
-        );
+        // 中断後は回復用の取得も始めない
+        const recoveredPrimarySkillMd =
+          failureKind === "cancelled"
+            ? false
+            : await downloadPrimarySkillMd(
+                owner,
+                repo,
+                branch,
+                remotePath,
+                skillPath,
+                token,
+                options?.signal,
+              );
         if (recoveredPrimarySkillMd) {
           recordInstallFailure(errorMsg, failureKind, remotePath);
         } else if (failureKind === "not-found") {
@@ -1249,6 +1302,16 @@ export async function installSkill(
     if (extractedDesc) {
       description = extractedDesc;
     }
+  }
+
+  // 中断で SKILL.md すら無いフォルダは走査に載らず修復対象から消えるので、
+  // プレースホルダーだけ置いて「不完全」として見つかる状態にする
+  if (
+    downloadFailures.some((failure) => failure.kind === "cancelled") &&
+    !(await hasRealSkillMd(skillPath, skill))
+  ) {
+    usedFallback = true;
+    await createFallbackSkillMd(skillPath, skill);
   }
 
   // "When to Use" セクションを抽出
@@ -2790,10 +2853,16 @@ async function openBugReport(
 /**
  * URL からファイル内容を取得
  */
-async function fetchFileContent(url: string, token?: string): Promise<string> {
+async function fetchFileContent(
+  url: string,
+  token?: string,
+  signal?: AbortSignal,
+): Promise<string> {
   const response = await fetchGitHubWithOptionalAuthRetry(url, {
     accept: "text/plain",
     token,
+    // 中断時に実行中の取得と retry 待機をその場で止める
+    retry: { signal },
   });
   if (!response.ok) {
     const bodyText = await response.text().catch(() => "");

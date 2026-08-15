@@ -74,6 +74,7 @@ import {
 import {
   getManagedSkillRoots,
   isInsidePath,
+  normalizeFileSystemPath,
   resolveConfiguredPathToUri,
   resolveWorkspaceSkillRootUris,
   resolveWorkspaceSkillsRootUri,
@@ -231,6 +232,7 @@ async function installBulkItem(
   workspaceUri: vscode.Uri,
   allowUninstall: boolean,
   isCancelled: () => boolean = () => false,
+  signal?: AbortSignal,
 ): Promise<BulkAttemptResult> {
   try {
     if (allowUninstall && item.uninstallRelativePath) {
@@ -246,7 +248,7 @@ async function installBulkItem(
       workspaceUri,
       context,
       item.root,
-      { interactive: false, isCancelled },
+      { interactive: false, isCancelled, signal },
     );
 
     return {
@@ -283,26 +285,46 @@ async function runBulkInstall(
   progress: vscode.Progress<{ message?: string; increment?: number }>,
   options: { autoRetry: boolean; token?: vscode.CancellationToken },
 ): Promise<BulkInstallOutcome[]> {
-  const outcomes = await runBulkInstallPlan(
-    items,
-    async (item, { allowUninstall, isCancelled }) =>
-      installBulkItem(item, context, workspaceUri, allowUninstall, isCancelled),
-    {
-      autoRetry: options.autoRetry,
-      label: (item) => item.label,
-      reportProgress: (message, increment) =>
-        progress.report({ message, increment }),
-      retryMessage: (label) => messages.retryingFailedInstalls(label),
-      isCancelled: () => options.token?.isCancellationRequested === true,
-    },
+  // Cancel を押した瞬間に、実行中の HTTP 取得も止める
+  const abortController = new AbortController();
+  const cancelBridge = options.token?.onCancellationRequested(() =>
+    abortController.abort(),
   );
+  if (options.token?.isCancellationRequested) {
+    abortController.abort();
+  }
 
-  return outcomes.map((outcome) => ({
-    item: outcome.item,
-    status: outcome.status,
-    retryable: outcome.retryable,
-    unsafeSkips: outcome.unsafeSkips,
-  }));
+  try {
+    const outcomes = await runBulkInstallPlan(
+      items,
+      async (item, { allowUninstall, isCancelled }) =>
+        installBulkItem(
+          item,
+          context,
+          workspaceUri,
+          allowUninstall,
+          isCancelled,
+          abortController.signal,
+        ),
+      {
+        autoRetry: options.autoRetry,
+        label: (item) => item.label,
+        reportProgress: (message, increment) =>
+          progress.report({ message, increment }),
+        retryMessage: (label) => messages.retryingFailedInstalls(label),
+        isCancelled: () => options.token?.isCancellationRequested === true,
+      },
+    );
+
+    return outcomes.map((outcome) => ({
+      item: outcome.item,
+      status: outcome.status,
+      retryable: outcome.retryable,
+      unsafeSkips: outcome.unsafeSkips,
+    }));
+  } finally {
+    cancelBridge?.dispose();
+  }
 }
 
 function summarizeBulkInstall(outcomes: BulkInstallOutcome[]): {
@@ -555,7 +577,11 @@ export function activate(
     deferredInstructionRoots.clear();
 
     for (const rootPath of pendingRootPaths) {
-      const root = roots.find((candidate) => candidate.rootPath === rootPath);
+      const root = roots.find(
+        (candidate) =>
+          normalizeFileSystemPath(candidate.rootPath) ===
+          normalizeFileSystemPath(rootPath),
+      );
       if (!root) {
         continue;
       }
@@ -1253,7 +1279,8 @@ export function activate(
 
     const uniqueRoots = new Map<string, SkillRoot>();
     for (const root of roots) {
-      uniqueRoots.set(root.rootPath, root);
+      // Windows は大文字小文字を区別しないので、同じルートを二重に書き換えない
+      uniqueRoots.set(normalizeFileSystemPath(root.rootPath), root);
     }
 
     for (const root of uniqueRoots.values()) {
@@ -2231,7 +2258,9 @@ export function activate(
               const root = getSkillRootFromItem(treeItem);
               return (
                 treeItem.skill?.name === skill.name &&
-                root?.rootPath === targetRoot.rootPath
+                root !== undefined &&
+                normalizeFileSystemPath(root.rootPath) ===
+                  normalizeFileSystemPath(targetRoot.rootPath)
               );
             });
             if (installedItem) {
@@ -5167,7 +5196,7 @@ export function buildRepairFingerprint(
   return entries
     .map((entry) =>
       [
-        entry.root.rootPath,
+        normalizeFileSystemPath(entry.root.rootPath),
         entry.meta.relativePath || entry.meta.name,
         entry.meta.repairState || "legacy",
         entry.meta.source,

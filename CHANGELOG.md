@@ -7,6 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.9.39] - 2026-08-15
+
+### Fixed
+
+- ⏹️ **Cancel Stops Work Immediately** - Cancelling a bulk install now aborts the request that is already in flight, instead of waiting for it to finish. The signal reaches default-branch discovery, directory listing including symlink recursion, every file download, and the SKILL.md fallbacks, and an aborted probe ends branch discovery rather than falling through to the next branch and the repository API / 一括インストールのキャンセルが、実行中のリクエストを完了まで待たず中断するよう修正。中断はデフォルトブランチの探索、symlink 再帰を含むディレクトリ一覧、各ファイルの取得、SKILL.md のフォールバックまで届き、探索中の中断は次のブランチやリポジトリ API へ進まずその場で終了する
+- ⏮️ **Cancel Stops At The Next File** - The skill being installed now stops at the next file or subdirectory boundary and is recorded as repairable, so `Repair Incomplete Skills` can finish it later. A cancelled install always leaves a SKILL.md, because the scanner only registers folders that have one / インストール中のスキルが次のファイルまたはサブディレクトリの手前で止まり、修復可能として記録されるよう修正（後から「不完全なスキルを修復」で仕上げられる）。走査は SKILL.md のあるフォルダしか登録しないため、中断しても SKILL.md は必ず残す
+- 🔐 **Cancel Stops The Credential Walk** - A cancelled request no longer triggers the anonymous retry or the walk through the remaining stored credentials / 中断したリクエストから、匿名再試行や残りの認証情報を順に試す処理へ進まないよう修正
+- 🗂️ **Windows Path Identity** - Skill root comparisons fold case on Windows, so a root written as `C:\Skills` and `c:\skills` is one root for the instruction-file update, the post-install reveal, and the repair notice / スキルルートの比較を Windows で大文字小文字を統一して行うよう修正（instruction ファイル更新、インストール後の選択、修復通知で同じルートとして扱われる）
+
 ## [0.9.38] - 2026-08-15
 
 ### Security

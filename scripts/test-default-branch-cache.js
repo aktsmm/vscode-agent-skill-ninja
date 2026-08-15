@@ -211,6 +211,27 @@ async function main() {
     );
   });
 
+  await test("an aborted probe ends discovery instead of trying the next branch", async () => {
+    const { module, requests } = loadSkillIndexModule({
+      respond: () => {
+        const error = new Error("Request aborted");
+        error.name = "AbortError";
+        throw error;
+      },
+    });
+
+    await assert.rejects(
+      () => module.getDefaultBranch(REPO_URL),
+      (error) => error.name === "AbortError",
+      "a cancelled probe must not be swallowed as 'branch not found'",
+    );
+    assert.strictEqual(
+      requests.length,
+      1,
+      "discovery must stop at the first aborted probe, not fall through to master and the API",
+    );
+  });
+
   await test("a later successful resolution replaces the negative entry", async () => {
     let branchExists = false;
     const { module } = loadSkillIndexModule({

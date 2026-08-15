@@ -647,15 +647,28 @@ export function getCachedSourceBranch(source: Source): string | undefined {
 /**
  * URL が存在するか HEAD リクエストで確認
  */
-async function checkUrlExists(url: string, token?: string): Promise<boolean> {
+/** 中断は探索の終端なので、失敗と同じように握り潰さない */
+function isAbortError(error: unknown): boolean {
+  return (error as { name?: unknown } | undefined)?.name === "AbortError";
+}
+
+async function checkUrlExists(
+  url: string,
+  token?: string,
+  signal?: AbortSignal,
+): Promise<boolean> {
   try {
     const response = await fetchGitHubWithOptionalAuthRetry(url, {
       accept: "*/*",
       token,
       method: "HEAD",
+      retry: { signal },
     });
     return response.ok;
-  } catch {
+  } catch (error) {
+    if (isAbortError(error)) {
+      throw error;
+    }
     return false;
   }
 }
@@ -671,6 +684,7 @@ export async function getDefaultBranch(
   repoUrl: string,
   token?: string,
   testPath?: string, // 存在確認用のパス（例: "skills/xxx/SKILL.md"）
+  signal?: AbortSignal,
 ): Promise<string> {
   // キャッシュチェック
   if (branchCache.has(repoUrl)) {
@@ -701,7 +715,7 @@ export async function getDefaultBranch(
     const testFile = testPath || "README.md";
     const rawUrl = `https://raw.githubusercontent.com/${owner}/${repo}/${branch}/${testFile}`;
 
-    if (await checkUrlExists(rawUrl, token)) {
+    if (await checkUrlExists(rawUrl, token, signal)) {
       cacheResolvedBranch(repoUrl, branch);
       return branch;
     }
@@ -713,6 +727,7 @@ export async function getDefaultBranch(
     const response = await fetchGitHubWithOptionalAuthRetry(apiUrl, {
       accept: "application/vnd.github.v3+json",
       token,
+      retry: { signal },
     });
     if (response.ok) {
       const data = (await response.json()) as { default_branch?: string };
@@ -720,7 +735,10 @@ export async function getDefaultBranch(
       cacheResolvedBranch(repoUrl, branch);
       return branch;
     }
-  } catch {
+  } catch (error) {
+    if (isAbortError(error)) {
+      throw error;
+    }
     // API エラー時はフォールバック
   }
 
@@ -737,6 +755,7 @@ export async function getSourceBranch(
   source: Source,
   token?: string,
   skillPath?: string, // 存在確認用のスキルパス
+  signal?: AbortSignal,
 ): Promise<string> {
   // skill-index.json に明示的に設定されていればそれを使用
   if (source.branch) {
@@ -748,7 +767,7 @@ export async function getSourceBranch(
   if (skillPath) {
     testPath = skillPath.endsWith(".md") ? skillPath : `${skillPath}/SKILL.md`;
   }
-  return await getDefaultBranch(source.url, token, testPath);
+  return await getDefaultBranch(source.url, token, testPath, signal);
 }
 
 /**

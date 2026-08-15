@@ -302,6 +302,12 @@ async function requestWithAuthFallback(
     options.extraHeaders,
   );
   const signal = init?.signal ?? undefined;
+  // 中断後はどのフォールバックも新しいリクエストを始めない
+  const assertNotCancelled = () => {
+    if (signal?.aborted) {
+      throw createAbortError();
+    }
+  };
 
   let response = await request(url, {
     headers,
@@ -314,6 +320,7 @@ async function requestWithAuthFallback(
     Boolean(options.token) &&
     isRawGitHubUrl(url)
   ) {
+    assertNotCancelled();
     response = await request(url, {
       headers: {
         ...headers,
@@ -329,6 +336,7 @@ async function requestWithAuthFallback(
     (response.status === 401 || response.status === 403) &&
     Boolean(headers.Authorization)
   ) {
+    assertNotCancelled();
     response = await request(url, {
       headers: {
         Accept: options.accept,
@@ -346,6 +354,8 @@ async function requestWithAuthFallback(
 
     // Several stored credentials can be stale at once, so keep walking sources
     while ([401, 403, 404].includes(response.status)) {
+      assertNotCancelled();
+
       const fallback = await resolveGitHubTokenAfterFailure(
         failingToken,
         triedTokens,

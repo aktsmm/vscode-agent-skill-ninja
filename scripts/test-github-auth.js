@@ -529,6 +529,40 @@ async function main() {
     }
   });
 
+  await test("cancelling stops the credential walk", async () => {
+    const requests = [];
+    const controller = new AbortController();
+    const originalFetch = global.fetch;
+    global.fetch = async (url, options) => {
+      requests.push({ url, options });
+      // 最初の応答で中断が入る。次の資格情報を試してはいけない
+      controller.abort();
+      return { ok: false, status: 401 };
+    };
+
+    try {
+      await assert.rejects(
+        () =>
+          githubFetch.fetchGitHubWithOptionalAuthRetry(
+            "https://api.github.com/repos/owner/repo",
+            {
+              accept: "application/vnd.github.v3+json",
+              token: "stale-token",
+              retry: { signal: controller.signal },
+            },
+          ),
+        (error) => error.name === "AbortError",
+      );
+      assert.strictEqual(
+        requests.length,
+        1,
+        "no further credential may be tried after the cancellation",
+      );
+    } finally {
+      global.fetch = originalFetch;
+    }
+  });
+
   await test("private raw content retries with authentication", async () => {
     const requests = [];
     const originalFetch = global.fetch;
