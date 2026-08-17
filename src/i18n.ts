@@ -35,12 +35,23 @@ const jaMessages = {
   staleSourceIndexPartialFailed:
     "source index の更新結果: 更新 {0}/{2}、失敗 {1}、未試行 {5}。失敗: {3}。理由: {4}",
   sourceIndexSkillsUpdatedProgress: "{0} スキルを更新しました",
+  sourceIndexNotIndexed: "未インデックス",
+  sourceIndexRateLimitDeferred:
+    "レート制限のため {0} 件の source 更新を中断しました。{1} 以降に再開できます",
+  sourceIndexRateLimitResumeStarted:
+    "中断していた {0} 件の source 更新を再開します",
+  sourceIndexRateLimitResumeNothing: "再開待ちの source 更新はありません",
+  sourceIndexRateLimitResumeNotReady:
+    "まだレート制限の解除時刻前です。{0} 以降に再開してください",
+  actionResumeNow: "今すぐ再開",
   sourceIndexEmptyScanKept:
     "取得結果が 0 件だったため更新を中止し、既存の {0} スキルを保持しました",
   sourceIndexRepositoryIdentityChanged:
     "URL の参照先が別のリポジトリに変わっています（repository ID {0} → {1}）。意図した変更なら、このソースを削除してから追加し直してください",
   sourceIndexRepositoryIdentitySkipped:
     "⚠️ 参照先が別のリポジトリに変わったため更新をスキップしました: {0}",
+  sourceIndexRateLimitStopped:
+    "⚠️ {0} でレート制限に達したため、残り {1} 件の source を走査せずに中断しました。既存のスキルはそのまま保持しています",
   sourceIndexUpdated: "✅ {0} を更新しました: {1} → {2} スキル ({3})",
   githubRateLimitReason: "GitHub API のレート制限に達しました",
   githubRateLimitResetAt: "再試行可能時刻: {0}",
@@ -285,12 +296,22 @@ const enMessages: MessageDictionary = {
   staleSourceIndexPartialFailed:
     "Source index update result: {0}/{2} updated, {1} failed, {5} not attempted. Failed: {3}. Reason: {4}",
   sourceIndexSkillsUpdatedProgress: "Updated {0} skill(s)",
+  sourceIndexNotIndexed: "not indexed",
+  sourceIndexRateLimitDeferred:
+    "Rate limit stopped {0} source update(s). They can resume after {1}",
+  sourceIndexRateLimitResumeStarted: "Resuming {0} deferred source update(s)",
+  sourceIndexRateLimitResumeNothing: "No deferred source updates to resume",
+  sourceIndexRateLimitResumeNotReady:
+    "The rate limit has not reset yet. Resume after {0}",
+  actionResumeNow: "Resume now",
   sourceIndexEmptyScanKept:
     "The scan returned 0 skills, so the update was cancelled and the existing {0} skill(s) were kept",
   sourceIndexRepositoryIdentityChanged:
     "This URL now resolves to a different repository (repository ID {0} -> {1}). If the change is intentional, remove this source and add it again",
   sourceIndexRepositoryIdentitySkipped:
     "⚠️ Skipped updating source(s) whose URL now resolves to a different repository: {0}",
+  sourceIndexRateLimitStopped:
+    "⚠️ Hit the rate limit on {0} and stopped before scanning {1} more source(s). Existing skills are kept",
   sourceIndexUpdated: "✅ Updated {0}: {1} → {2} skill(s) ({3})",
   githubRateLimitReason: "GitHub API rate limit exceeded",
   githubRateLimitResetAt: "retry after {0}",
@@ -601,12 +622,24 @@ export const messages = {
     ),
   sourceIndexSkillsUpdatedProgress: (count: number) =>
     localize("sourceIndexSkillsUpdatedProgress", count),
+  sourceIndexNotIndexed: () => localize("sourceIndexNotIndexed"),
+  sourceIndexRateLimitDeferred: (count: number, resetAt: string) =>
+    localize("sourceIndexRateLimitDeferred", count, resetAt),
+  sourceIndexRateLimitResumeStarted: (count: number) =>
+    localize("sourceIndexRateLimitResumeStarted", count),
+  sourceIndexRateLimitResumeNothing: () =>
+    localize("sourceIndexRateLimitResumeNothing"),
+  sourceIndexRateLimitResumeNotReady: (resetAt: string) =>
+    localize("sourceIndexRateLimitResumeNotReady", resetAt),
+  actionResumeNow: () => localize("actionResumeNow"),
   sourceIndexEmptyScanKept: (count: number) =>
     localize("sourceIndexEmptyScanKept", count),
   sourceIndexRepositoryIdentityChanged: (stored: number, scanned: number) =>
     localize("sourceIndexRepositoryIdentityChanged", stored, scanned),
   sourceIndexRepositoryIdentitySkipped: (sourceNames: string) =>
     localize("sourceIndexRepositoryIdentitySkipped", sourceNames),
+  sourceIndexRateLimitStopped: (sourceId: string, remaining: number) =>
+    localize("sourceIndexRateLimitStopped", sourceId, remaining),
   sourceIndexUpdated: (
     source: string,
     oldCount: number,

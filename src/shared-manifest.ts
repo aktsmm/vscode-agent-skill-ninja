@@ -11,6 +11,7 @@ export type SourceEntry = Pick<
   | "type"
   | "branch"
   | "lastIndexedAt"
+  | "lastIndexedBy"
   | "description"
   | "description_ja"
   | "includePaths"
@@ -34,6 +35,27 @@ export const SHARED_STORE_LOCK_FILE = "index.lock";
 export const SHARED_STORE_RETRY_DELAY_MS = 100;
 export const SHARED_STORE_LOCK_RETRY_COUNT = 5;
 export const SHARED_STORE_LOCK_STALE_MS = 60 * 1000;
+// 所有プロセスが生きていてもここまで古ければ回収する。PID 再利用で恒久停止しないため
+export const SHARED_STORE_LOCK_HARD_STALE_MS = 10 * 60 * 1000;
+export const SHARED_STORE_LOCK_HEARTBEAT_MS = 15 * 1000;
+
+// 共有ストアは他拡張・第三者も書き込める untrusted input として扱う
+export const SHARED_SOURCES_MANIFEST_MAX_BYTES = 2 * 1024 * 1024;
+export const SHARED_SOURCES_MANIFEST_MAX_ENTRIES = 500;
+export const SHARED_SOURCE_TEXT_MAX_LENGTH = 512;
+export const SHARED_SOURCE_PATH_LIST_MAX_ENTRIES = 64;
+export const SHARED_SOURCE_PATH_MAX_LENGTH = 256;
+export const SHARED_SOURCE_ID_PATTERN = /^[A-Za-z0-9][A-Za-z0-9._-]{0,127}$/;
+export const SHARED_SOURCE_URL_PATTERN =
+  /^https:\/\/github\.com\/[A-Za-z0-9._-]+\/[A-Za-z0-9._-]+$/;
+export const SHARED_SOURCE_BRANCH_PATTERN = /^[A-Za-z0-9._\-/]{1,255}$/;
+export const SHARED_SOURCE_TYPE_PATTERN = /^[A-Za-z0-9._-]{1,64}$/;
+export const SHARED_SOURCE_SCANNERS = [
+  "skill-md",
+  "claude-commands",
+  "top-level-dirs",
+  "registry-json",
+] as const;
 
 export function getAgentNinjaSharedDirectoryPath(): string {
   if (process.platform === "win32") {

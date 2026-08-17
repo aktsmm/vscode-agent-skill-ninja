@@ -267,26 +267,25 @@ ext install yamapan.agent-skill-ninja
 
 ### コマンドパレット
 
-| コマンド                                                            | 説明                                                                                                                          |
-| ------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------- |
-| `Agent Skills Ninja: スキルを検索`                                  | スキルを検索してインストール                                                                                                  |
-| `Agent Skills Ninja: インデックスを更新`                            | 全ソースからインデックスを更新                                                                                                |
-| `Agent Skills Ninja: GitHub で検索`                                 | GitHub でスキルを検索                                                                                                         |
-| `Agent Skills Ninja: ソースリポジトリを追加`                        | 新しいソースリポジトリを追加                                                                                                  |
-| `Agent Skills Ninja: ソースリポジトリを削除`                        | ソースリポジトリを削除                                                                                                        |
-| `Agent Skills Ninja: スキルをアンインストール`                      | スキルをアンインストール                                                                                                      |
-| `Agent Skills Ninja: インストール済みスキルを表示`                  | インストール済みスキルを表示                                                                                                  |
-| `Agent Skills Ninja: 新規スキル作成`                                | 新規ワークスペーススキルを作成                                                                                                |
-| `Agent Skills Ninja: 全スキルを再インストール`                      | 全スキルを最新ソースから再インストール                                                                                        |
-| `Agent Skills Ninja: 不完全なスキルを修復`                          | 不完全 / 一部未取得と記録されたスキルだけを入れ直す                                                                           |
-| `Agent Skills Ninja: 全スキルを削除`                                | 全スキルを削除（確認ダイアログあり）                                                                                          |
-| `Agent Skills Ninja: 複数スキルを削除`                              | 複数スキルを選択して削除                                                                                                      |
-| `Agent Skills Ninja: 複数スキルを再インストール`                    | 複数スキルを選択して再インストール                                                                                            |
-| `Agent Skills Ninja: スキル出力を開く`                              | managed root を選んで、`ref` ではリンク先 catalog、それ以外では instruction file を開く                                       |
-| `Agent Skills Ninja: スキル出力を再生成`                            | 選択した root のスキル出力ファイルを手動で再生成 (`AGENTS.md` / `copilot-instructions.md` / `CLAUDE.md` または `ref` catalog) |
-| `Agent Skills Ninja: スキルフォルダを開く`                          | インストール済みスキルのフォルダを開く                                                                                        |
-| `Agent Skills Ninja: GitHub トークンをクリア（SecretStorage のみ）` | VS Code SecretStorage の GitHub token だけを削除し、ほかの認証元で再試行できるようにする                                      |
-| `Agent Skills Ninja: スキル状態を診断`                              | token 値を表示せず、スキルの登録状態と現在の GitHub token source を表示する                                                   |
+| コマンド                                           | 説明                                                                                                                          |
+| -------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------- | --- | ---------------------------------------------- | ---------------------------------------------------------------------------- | --- | ------------------------------------------------------------------- | ---------------------------------------------------------------------------------------- |
+| `Agent Skills Ninja: スキルを検索`                 | スキルを検索してインストール                                                                                                  |
+| `Agent Skills Ninja: インデックスを更新`           | 全ソースからインデックスを更新                                                                                                |
+| `Agent Skills Ninja: GitHub で検索`                | GitHub でスキルを検索                                                                                                         |
+| `Agent Skills Ninja: ソースリポジトリを追加`       | 新しいソースリポジトリを追加                                                                                                  |
+| `Agent Skills Ninja: ソースリポジトリを削除`       | ソースリポジトリを削除                                                                                                        |
+| `Agent Skills Ninja: スキルをアンインストール`     | スキルをアンインストール                                                                                                      |
+| `Agent Skills Ninja: インストール済みスキルを表示` | インストール済みスキルを表示                                                                                                  |
+| `Agent Skills Ninja: 新規スキル作成`               | 新規ワークスペーススキルを作成                                                                                                |
+| `Agent Skills Ninja: 全スキルを再インストール`     | 全スキルを最新ソースから再インストール                                                                                        |
+| `Agent Skills Ninja: 不完全なスキルを修復`         | 不完全 / 一部未取得と記録されたスキルだけを入れ直す                                                                           |
+| `Agent Skills Ninja: 全スキルを削除`               | 全スキルを削除（確認ダイアログあり）                                                                                          |
+| `Agent Skills Ninja: 複数スキルを削除`             | 複数スキルを選択して削除                                                                                                      |
+| `Agent Skills Ninja: 複数スキルを再インストール`   | 複数スキルを選択して再インストール                                                                                            |
+| `Agent Skills Ninja: スキル出力を開く`             | managed root を選んで、`ref` ではリンク先 catalog、それ以外では instruction file を開く                                       |
+| `Agent Skills Ninja: スキル出力を再生成`           | 選択した root のスキル出力ファイルを手動で再生成 (`AGENTS.md` / `copilot-instructions.md` / `CLAUDE.md` または `ref` catalog) |
+| `Agent Skills Ninja: スキルフォルダを開く`         | インストール済みスキルのフォルダを開く                                                                                        |     | `Agent Skills Ninja: 中断したソース更新を再開` | GitHub のレート制限や 1 回あたりの更新上限で持ち越した source 更新を再開する |     | `Agent Skills Ninja: GitHub トークンをクリア（SecretStorage のみ）` | VS Code SecretStorage の GitHub token だけを削除し、ほかの認証元で再試行できるようにする |
+| `Agent Skills Ninja: スキル状態を診断`             | token 値を表示せず、スキルの登録状態と現在の GitHub token source を表示する                                                   |
 
 ### クイックスタート
 
@@ -457,6 +456,8 @@ Resources Ninja が管理する workspace skill で、`.skill-meta.json` に `re
 姉妹拡張がアンインストールされた場合、`vscode.extensions.onDidChange` を契機に Skill Ninja が同じ共通ブロックの owner に昇格 — 並列ブロックも孤児マーカーも残らず、通常は手動掃除不要です。
 
 任意の shared source list: `skillNinja.useSharedSourcesManifest` を有効にすると、Skill Ninja と Agent Resources Ninja が `~/.agent-ninja/sources.json` の同じ remote source 定義を使います。共有されるのは source 一覧だけで、各拡張の index 本体や scan cache までは共有しません。
+
+走査履歴も共有しません。姉妹拡張が登録しただけで Skill Ninja が一度も走査していない source は、`0 skills` ではなく `未インデックス` と表示され、鮮度も他拡張の時刻ではなく Skill Ninja 自身の走査で判定します。`このソースを更新` を実行するか、古い source index の確認に任せると埋まります。共有ファイル内の entry が検証に落ちた場合はスキップされ、何件スキップしたかは `スキル状態を診断` で確認できます。
 
 #### 注: Skill Ninja アンインストール後の `resourceNinja.kindsExcluded` の挙動
 

@@ -280,6 +280,7 @@ test("stale source startup prompt flow is guarded in extension runtime", () => {
     "LAST_STALE_SOURCE_INDEX_PROMPT_DATE_KEY",
     "normalizeStaleSourceIndexUpdateMode",
     'config.get<string>("staleSourceIndexUpdateMode")',
+    "decideStaleSourceIndexAction(",
     "messages.staleSourceIndexPrompt(",
     "messages.actionUpdateNow()",
     "messages.actionLater()",
@@ -296,8 +297,14 @@ test("stale source startup prompt flow is guarded in extension runtime", () => {
     extensionSource.includes('return "prompt";'),
     "invalid stale source update mode should fall back to prompt",
   );
+
+  // 判断そのものは activate() の外の純関数に置き、テストできる形にしている
+  const freshnessSource = fs.readFileSync(
+    path.join(root, "src", "sourceIndexFreshness.ts"),
+    "utf8",
+  );
   assert.ok(
-    extensionSource.includes("lastPromptDate === today"),
+    freshnessSource.includes("input.lastPromptDate === input.today"),
     "prompt mode should avoid repeated daily prompts",
   );
 });
@@ -1266,6 +1273,11 @@ test("GitHub auth recovery exposes token reset and token source diagnostics", ()
   assert.ok(
     extensionSource.includes("GitHub Auth Help : skillNinja.clearGitHubToken"),
   );
+  // console を開かない利用者にも、共有ストアで捨てた source が伝わること
+  assert.match(
+    extensionSource,
+    /getLastRejectedSharedSources\(\)[\s\S]*?Shared Src Drops/,
+  );
   assert.ok(
     readme.includes(
       "Agent Skills Ninja: Clear GitHub Token (SecretStorage only)",
@@ -1278,6 +1290,41 @@ test("GitHub auth recovery exposes token reset and token source diagnostics", ()
     ),
   );
   assert.ok(readmeJa.includes("Agent Skills Ninja: スキル状態を診断"));
+});
+
+test("a deferred source index update stays resumable", () => {
+  const command = pkg.contributes.commands.find(
+    (entry) => entry.command === "skillNinja.resumeSourceIndexUpdate",
+  );
+  assert.ok(command, "the resume command must be contributed");
+  assert.strictEqual(command.title, "%command.resumeSourceIndexUpdate%");
+  assert.ok(packageNls["command.resumeSourceIndexUpdate"]);
+  assert.ok(packageNlsJa["command.resumeSourceIndexUpdate"]);
+
+  assert.match(
+    extensionSource,
+    /registerCommand\(\s*"skillNinja\.resumeSourceIndexUpdate",[\s\S]*?resumeRateLimitedSourceIndexUpdate\(/,
+  );
+  assert.match(
+    extensionSource,
+    /context\.subscriptions\.push\([\s\S]*?\bresumeSourceIndexUpdateCmd\b[\s\S]*?\);/,
+  );
+
+  // 1 回あたりの上限で溢れた分も持ち越す。渡さないと約束した再開が消える
+  assert.match(
+    extensionSource,
+    /saveRateLimitResumeStateFromBatch\(\s*batchResult,\s*deferred,?\s*\)/,
+  );
+  // 走らせる前に state を捨てると、上限超過分が取りこぼされる
+  assert.doesNotMatch(
+    extensionSource,
+    /toStaleSourceInfos\(index, state\.sourceIds\);\s*await writeRateLimitResumeState\(undefined\);/,
+  );
+
+  assert.ok(
+    readme.includes("Agent Skills Ninja: Resume Deferred Source Index Update"),
+  );
+  assert.ok(readmeJa.includes("Agent Skills Ninja: 中断したソース更新を再開"));
 });
 
 test("all views expose create skill and settings in the title bar", () => {

@@ -108,6 +108,8 @@ function compileTsModule(entryPath, stubs = {}) {
       fetch: stubs.fetch || global.fetch,
       setTimeout,
       clearTimeout,
+      setInterval,
+      clearInterval,
       require(request) {
         if (request === "vscode") {
           return vscodeStub;
@@ -307,9 +309,10 @@ async function run() {
       );
 
       const index = await loadSkillIndex(context);
-      assert.deepStrictEqual(
-        JSON.parse(JSON.stringify(index.sources[0].lastIndexedAt)),
-        "2026-05-20T00:00:00.000Z",
+      // 走査履歴はローカル index が正。別拡張が書いた時刻を自分の鮮度に採用しない
+      assert.strictEqual(
+        index.sources[0].lastIndexedAt,
+        "2026-05-16T00:00:00.000Z",
       );
       assert.deepStrictEqual(
         JSON.parse(JSON.stringify(index.sources[0].includePaths)),

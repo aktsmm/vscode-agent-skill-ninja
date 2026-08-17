@@ -13,7 +13,11 @@ import {
 import { messages } from "./i18n";
 import { getGitHubToken, hasStoredGitHubToken } from "./githubAuth";
 export { checkGitHubAuth } from "./githubAuth";
-import { LICENSE_EXTRACTION, INDEX_LIMITS } from "./constants";
+import {
+  LICENSE_EXTRACTION,
+  INDEX_LIMITS,
+  SELF_EXTENSION_ID,
+} from "./constants";
 import {
   createGitHubResponseError,
   isGitHubResponseError,
@@ -35,10 +39,6 @@ import {
 const FETCH_CONCURRENCY = 8;
 const GITHUB_API_VERSION = "2022-11-28";
 
-function getIndexDateStamp(): string {
-  return new Date().toISOString().split("T")[0];
-}
-
 function getSourceIndexedStamp(): string {
   return new Date().toISOString();
 }
@@ -57,6 +57,7 @@ function stampSourceIndexedAt(
           url: canonicalUrl || source.url,
           repoId: repoId ?? source.repoId,
           lastIndexedAt: indexedAt,
+          lastIndexedBy: SELF_EXTENSION_ID,
         }
       : source,
   );
@@ -1613,6 +1614,8 @@ export async function updateIndexFromSources(
   const resolvedRepoIds = new Map<string, number>();
   const identityMismatchedSources: string[] = [];
   const totalSources = currentIndex.sources.length;
+  let rateLimitedSourceId: string | undefined;
+  let unscannedSourceCount = 0;
 
   for (const source of currentIndex.sources) {
     handledSourceIds.add(source.id);
@@ -1695,6 +1698,28 @@ export async function updateIndexFromSources(
       // 更新に失敗したソースの既存スキルとBundlesは保持
       updatedSkills.push(...existingSkillsForSource);
       updatedBundles.push(...existingBundlesForSource);
+
+      // rate limit に当たった後は残りも必ず失敗する。走査を続けても
+      // 無駄なリクエストを積むだけなので、未走査分は既存データのまま残す
+      if (isGitHubResponseError(error) && error.kind === "rate-limit") {
+        rateLimitedSourceId = source.id;
+        const remainingSources = currentIndex.sources.slice(
+          currentIndex.sources.indexOf(source) + 1,
+        );
+        unscannedSourceCount = remainingSources.length;
+        for (const remaining of remainingSources) {
+          handledSourceIds.add(remaining.id);
+          updatedSkills.push(
+            ...currentIndex.skills.filter((s) => s.source === remaining.id),
+          );
+          updatedBundles.push(
+            ...(currentIndex.bundles || []).filter(
+              (b) => b.source === remaining.id,
+            ),
+          );
+        }
+        break;
+      }
     }
   }
 
@@ -1714,9 +1739,8 @@ export async function updateIndexFromSources(
 
   const updatedIndex: SkillIndex = {
     ...currentIndex,
-    lastUpdated: scannedEverySource
-      ? getIndexDateStamp()
-      : currentIndex.lastUpdated,
+    // lastUpdated はカタログ発行日なので走査では動かさない
+    lastScannedAt: scannedEverySource ? indexedAt : currentIndex.lastScannedAt,
     sources: currentIndex.sources.map((source) =>
       updatedSourceIds.has(source.id)
         ? {
@@ -1724,6 +1748,7 @@ export async function updateIndexFromSources(
             url: canonicalSourceUrls.get(source.id) || source.url,
             repoId: resolvedRepoIds.get(source.id) ?? source.repoId,
             lastIndexedAt: indexedAt,
+            lastIndexedBy: SELF_EXTENSION_ID,
           }
         : source,
     ),
@@ -1738,6 +1763,15 @@ export async function updateIndexFromSources(
     vscode.window.showWarningMessage(
       messages.sourceIndexRepositoryIdentitySkipped(
         identityMismatchedSources.join(", "),
+      ),
+    );
+  }
+
+  if (rateLimitedSourceId) {
+    vscode.window.showWarningMessage(
+      messages.sourceIndexRateLimitStopped(
+        rateLimitedSourceId,
+        unscannedSourceCount,
       ),
     );
   }

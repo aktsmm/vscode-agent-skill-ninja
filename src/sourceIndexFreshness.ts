@@ -38,19 +38,42 @@ function parseDate(value: string | undefined): Date | undefined {
   return Number.isNaN(date.getTime()) ? undefined : date;
 }
 
-export function getSourceLastIndexedAt(
-  source: Source,
-  index: Pick<SkillIndex, "lastUpdated">,
-): string | undefined {
-  return source.lastIndexedAt || index.lastUpdated || undefined;
+/**
+ * source 単位の鮮度に index 全体の日付を流用しない。
+ * 1 つ走査しただけで全 source が新鮮扱いになる。
+ */
+export function getSourceLastIndexedAt(source: Source): string | undefined {
+  return source.lastIndexedAt || undefined;
+}
+
+/**
+ * 走査日時は「そのデータをいつ取得したか」なので、古い方で上書きしない。
+ * bundled catalog の stamp がローカルの新しい走査を巻き戻すのを防ぐ。
+ */
+export function pickNewerIndexedSource<
+  T extends Pick<Source, "lastIndexedAt" | "lastIndexedBy">,
+>(local: T, bundled: T): T | undefined {
+  const localAt = local.lastIndexedAt ? Date.parse(local.lastIndexedAt) : NaN;
+  const bundledAt = bundled.lastIndexedAt
+    ? Date.parse(bundled.lastIndexedAt)
+    : NaN;
+
+  if (!Number.isFinite(localAt)) {
+    return Number.isFinite(bundledAt) ? bundled : undefined;
+  }
+
+  if (!Number.isFinite(bundledAt)) {
+    return local;
+  }
+
+  return bundledAt > localAt ? bundled : local;
 }
 
 export function getSourceIndexAgeDays(
   source: Source,
-  index: Pick<SkillIndex, "lastUpdated">,
   now: Date = new Date(),
 ): { lastIndexedAt?: string; daysOld: number; isUnknown: boolean } {
-  const lastIndexedAt = getSourceLastIndexedAt(source, index);
+  const lastIndexedAt = getSourceLastIndexedAt(source);
   const lastDate = parseDate(lastIndexedAt);
 
   if (!lastDate) {
@@ -74,7 +97,7 @@ export function getSourceIndexAgeDays(
 }
 
 export function getStaleSources(
-  index: Pick<SkillIndex, "lastUpdated" | "sources">,
+  index: Pick<SkillIndex, "sources">,
   thresholdDays: number = STALE_SOURCE_INDEX_THRESHOLD_DAYS,
   now: Date = new Date(),
 ): StaleSourceInfo[] {
@@ -82,7 +105,7 @@ export function getStaleSources(
 
   return index.sources
     .map((source) => {
-      const age = getSourceIndexAgeDays(source, index, now);
+      const age = getSourceIndexAgeDays(source, now);
       return { source, ...age };
     })
     .filter((entry) => {
@@ -98,4 +121,43 @@ export function getStaleSources(
       return now.getTime() - lastDate.getTime() > thresholdMs;
     })
     .sort((left, right) => right.daysOld - left.daysOld);
+}
+
+export type StaleSourceIndexUpdateMode = "always" | "prompt" | "never";
+
+export type StaleSourceIndexAction =
+  | {
+      kind: "skip";
+      reason: "mode-never" | "no-stale-sources" | "prompted-today";
+    }
+  | { kind: "prompt" }
+  | { kind: "update" };
+
+/**
+ * activate() 内に置くとテストできないため、判断だけを純関数へ出す。
+ * タイマー・I/O・globalState 更新・通知は呼び出し側に残す。
+ */
+export function decideStaleSourceIndexAction(input: {
+  mode: StaleSourceIndexUpdateMode;
+  staleSourceCount: number;
+  lastPromptDate?: string;
+  today: string;
+}): StaleSourceIndexAction {
+  if (input.mode === "never") {
+    return { kind: "skip", reason: "mode-never" };
+  }
+
+  if (input.staleSourceCount <= 0) {
+    return { kind: "skip", reason: "no-stale-sources" };
+  }
+
+  if (input.mode === "always") {
+    return { kind: "update" };
+  }
+
+  if (input.lastPromptDate === input.today) {
+    return { kind: "skip", reason: "prompted-today" };
+  }
+
+  return { kind: "prompt" };
 }

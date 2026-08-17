@@ -3,10 +3,12 @@
 
 import * as vscode from "vscode";
 import { fetchGitHubWithOptionalAuthRetry } from "./githubFetch";
+import { applyRetiredSources, getRetiredSourceIds } from "./retiredSources";
+import { pickNewerIndexedSource } from "./sourceIndexFreshness";
 import {
   applySharedSourcesManifestToSkillIndex,
   bootstrapSharedSourcesManifest,
-  readSharedSourcesManifest,
+  readSharedSourcesManifestResult,
   syncSharedSourcesManifestFromSources,
 } from "./shared-sources-manifest-store";
 
@@ -81,6 +83,7 @@ export interface Source {
   type: string;
   branch?: string; // デフォルトブランチ（省略時は"main"）
   lastIndexedAt?: string; // 最後にこのソースをスキャンしてインデックス化した日時（ISO 8601）
+  lastIndexedBy?: string; // lastIndexedAt を書いた拡張 ID。別拡張の走査時刻を自分の鮮度に使わないため
   description: string;
   description_ja?: string; // 日本語説明（オプション）
   includePaths?: string[]; // 取り込むパス prefix の限定
@@ -110,14 +113,22 @@ export interface Bundle {
   coreSkill?: string; // コアスキル（最初にインストール必須）
 }
 
+// 配布を終了した preset source。merge 時にローカル index から取り除く
+export interface RetiredSource {
+  id: string;
+  supersededBy?: string;
+}
+
 // インデックス全体の型定義
 export interface SkillIndex {
   version: string;
-  lastUpdated: string;
+  lastUpdated: string; // カタログ（bundled index）の発行日。端末の走査時刻ではない
+  lastScannedAt?: string; // この端末で全ソースを走査し終えた日時（ISO 8601）
   sources: Source[];
   skills: Skill[];
   categories: Category[];
   bundles?: Bundle[]; // Bundle一覧
+  retiredSources?: RetiredSource[]; // 退役した preset source
 }
 
 function createSkillKey(skill: Pick<Skill, "source" | "name">): string {
@@ -132,10 +143,15 @@ function normalizeSkillIndex(index: Partial<SkillIndex>): SkillIndex {
   return {
     version: index.version || "1.0.0",
     lastUpdated: index.lastUpdated || new Date().toISOString().split("T")[0],
+    lastScannedAt:
+      typeof index.lastScannedAt === "string" ? index.lastScannedAt : undefined,
     sources: Array.isArray(index.sources) ? index.sources : [],
     skills: Array.isArray(index.skills) ? index.skills : [],
     categories: Array.isArray(index.categories) ? index.categories : [],
     bundles: Array.isArray(index.bundles) ? index.bundles : [],
+    retiredSources: Array.isArray(index.retiredSources)
+      ? index.retiredSources
+      : undefined,
   };
 }
 
@@ -169,9 +185,24 @@ async function loadSharedSourcesIntoSkillIndex(
     return currentIndex;
   }
 
-  const manifest = await readSharedSourcesManifest();
-  if (manifest) {
-    return applySharedSourcesManifestToSkillIndex(currentIndex, manifest);
+  const retiredSourceIds = getRetiredSourceIds(currentIndex.retiredSources);
+  const result = await readSharedSourcesManifestResult();
+  if (result.status === "valid") {
+    return applySharedSourcesManifestToSkillIndex(
+      currentIndex,
+      result.manifest,
+      {
+        retiredSourceIds,
+      },
+    );
+  }
+
+  // 採用できないだけで中身はある。bootstrap で上書きすると sibling の登録が消える
+  if (result.status === "rejected") {
+    console.warn(
+      `[Skill Ninja] Keeping the shared sources manifest untouched (${result.reason})`,
+    );
+    return currentIndex;
   }
 
   try {
@@ -313,9 +344,16 @@ function mergeSkillIndexes(
   const updatedSources = localIndex.sources.map((localSource) => {
     const bundledSource = bundledSourcesById.get(localSource.id);
     if (bundledSource) {
+      // 走査日時は「そのデータをいつ取得したか」なので、古い方で上書きしない
+      const newerStampOwner = pickNewerIndexedSource(
+        localSource,
+        bundledSource,
+      );
       return {
         ...localSource,
         ...bundledSource,
+        lastIndexedAt: newerStampOwner?.lastIndexedAt,
+        lastIndexedBy: newerStampOwner?.lastIndexedBy,
         description_ja:
           bundledSource.description_ja || localSource.description_ja,
       };
@@ -398,15 +436,21 @@ function mergeSkillIndexes(
       return localBundle;
     });
 
-  return {
-    ...localIndex,
-    version: bundledIndex.version,
-    lastUpdated: bundledIndex.lastUpdated,
-    sources: [...updatedSources, ...newSources],
-    categories: [...updatedCategories, ...newCategories],
-    skills: [...updatedSkills, ...newSkills],
-    bundles: [...updatedBundles, ...newBundles],
-  };
+  return applyRetiredSources(
+    {
+      ...localIndex,
+      version: bundledIndex.version,
+      lastUpdated: bundledIndex.lastUpdated,
+      // lastScannedAt はこの端末の走査履歴なので、カタログ側の値で上書きしない
+      lastScannedAt: localIndex.lastScannedAt,
+      retiredSources: bundledIndex.retiredSources,
+      sources: [...updatedSources, ...newSources],
+      categories: [...updatedCategories, ...newCategories],
+      skills: [...updatedSkills, ...newSkills],
+      bundles: [...updatedBundles, ...newBundles],
+    },
+    bundledIndex.retiredSources,
+  );
 }
 
 function areStringArraysEqual(left?: string[], right?: string[]): boolean {
@@ -546,9 +590,15 @@ export async function saveSkillIndex(
   }
 
   try {
-    await syncSharedSourcesManifestFromSources(
+    const outcome = await syncSharedSourcesManifestFromSources(
       index.sources.map((source) => ({ ...source })),
+      { preservedIds: getRetiredSourceIds(index.retiredSources) },
     );
+    if (outcome === "refused") {
+      console.warn(
+        "[Skill Ninja] The shared sources manifest was left unchanged; this index was not shared",
+      );
+    }
   } catch (error) {
     console.warn(
       "[Skill Ninja] Failed to sync shared sources manifest:",

@@ -38,3 +38,31 @@ export async function runSourceIndexUpdateBatch<TEntry, TValue>(
 
   return { value, succeeded, failures, skipped };
 }
+
+/**
+ * 再試行集合は failures ∪ skipped。
+ * rate limit を起こした要素は failures 側に入るので、skipped だけから作ると原因要素を落とす。
+ */
+export function getSourceIndexUpdateRetryEntries<TEntry, TValue>(
+  result: Pick<
+    SourceIndexUpdateBatchResult<TEntry, TValue>,
+    "failures" | "skipped"
+  >,
+): TEntry[] {
+  const entries: TEntry[] = [];
+  const seen = new Set<TEntry>();
+
+  for (const entry of [
+    ...result.failures.map((failure) => failure.entry),
+    ...result.skipped,
+  ]) {
+    if (seen.has(entry)) {
+      continue;
+    }
+
+    seen.add(entry);
+    entries.push(entry);
+  }
+
+  return entries;
+}

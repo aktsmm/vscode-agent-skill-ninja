@@ -110,14 +110,14 @@ function getIndexUpdateInfo(index: SkillIndex): {
   warning: string;
 } {
   const perSourceStamps = index.sources
-    .map((source) => getSourceLastIndexedAt(source, index))
+    .map((source) => getSourceLastIndexedAt(source))
     .filter((stamp): stamp is string => Boolean(stamp))
     .sort();
   const lastUpdated =
     perSourceStamps.length === index.sources.length &&
     perSourceStamps.length > 0
       ? perSourceStamps[0]
-      : index.lastUpdated || "unknown";
+      : index.lastScannedAt || "unknown";
   let daysOld = 0;
   let isOutdated = false;
 

@@ -13,7 +13,7 @@ import {
 } from "./skillIndex";
 import { getInstalledSkillsWithMeta } from "./skillInstaller";
 import { LocalSkill, scanVisibleSkills } from "./localSkillScanner";
-import { isJapanese } from "./i18n";
+import { isJapanese, messages } from "./i18n";
 import { getSkillId } from "./skillPreview";
 import {
   getManagedSkillRoots,
@@ -364,6 +364,21 @@ export function getSkillRootGroupDescription(
     ? `${skillCount} 件のスキル`
     : `${skillCount} skills`;
   return `${countText} • ${root.displayPath}`;
+}
+
+/**
+ * 0 件のとき「走査した結果 0 件」と「まだ走査していない」を区別する。
+ * 共有マニフェスト経由で入ってきた source は、こちらでは未走査のことがある。
+ */
+export function formatSourceDescription(
+  skillCount: number,
+  source: Pick<Source, "lastIndexedAt">,
+): string {
+  if (skillCount === 0 && !source.lastIndexedAt) {
+    return messages.sourceIndexNotIndexed();
+  }
+
+  return `${skillCount} skills`;
 }
 
 function getSkillRootGroupCollapsibleState(
@@ -1357,7 +1372,10 @@ export class BrowseSkillsProvider implements vscode.TreeDataProvider<SkillTreeIt
       const createSourceItem = (source: Source) => {
         const item = new SkillTreeItem(
           source.name,
-          `${this.getSkillCountForSource(source.id)} skills`,
+          formatSourceDescription(
+            this.getSkillCountForSource(source.id),
+            source,
+          ),
           vscode.TreeItemCollapsibleState.Collapsed,
           "source",
           undefined,

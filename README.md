@@ -289,6 +289,7 @@ Preset index includes skills from official, curated, and community sources out o
 | `Agent Skills Ninja: Open Skill Output`                       | Choose a managed root, then open the linked catalog in `ref`, or the instruction file in other formats                                        |
 | `Agent Skills Ninja: Regenerate Skill Output`                 | Regenerate the selected root's skill output files manually (`AGENTS.md`, `copilot-instructions.md`, `CLAUDE.md`, or the linked `ref` catalog) |
 | `Agent Skills Ninja: Open Skill Folder`                       | Open installed skill folder in OS                                                                                                             |
+| `Agent Skills Ninja: Resume Deferred Source Index Update`     | Resume the source updates a GitHub rate limit or the per-run update cap left pending                                                          |
 | `Agent Skills Ninja: Clear GitHub Token (SecretStorage only)` | Remove only the GitHub token stored in VS Code SecretStorage so other authentication sources can be retried                                   |
 | `Agent Skills Ninja: Explain Skill State`                     | Show skill registration details and the active GitHub token source without revealing the token value                                          |
 
@@ -461,6 +462,8 @@ Local workspace skills managed by Resources Ninja keep `source: "local"` metadat
 If the sibling extension is uninstalled, Skill Ninja takes over the same shared block on the next `vscode.extensions.onDidChange` event — no parallel blocks, no orphan markers, no manual cleanup needed in the normal case.
 
 Optional shared source list: enable `skillNinja.useSharedSourcesManifest` when you want Skill Ninja and Agent Resources Ninja to reuse the same remote source definitions through `~/.agent-ninja/sources.json`. This shares the source list only; each extension still refreshes and stores its own index contents.
+
+Scan history is not shared. A source the sibling registered but Skill Ninja has never scanned is shown as `not indexed` rather than `0 skills`, and its freshness is judged from Skill Ninja's own scan, not from the other extension's timestamp. Run `Update This Source` on it, or let the stale-source check pick it up, to fill it in. If an entry in the shared file fails validation it is skipped, and `Explain Skill State` reports how many were skipped.
 
 #### Note: `resourceNinja.kindsExcluded` after uninstalling Skill Ninja
 

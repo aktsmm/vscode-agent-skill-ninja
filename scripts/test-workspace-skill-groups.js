@@ -71,6 +71,10 @@ function loadTreeProviderExports(japanese = false) {
       if (request === "./i18n") {
         return {
           isJapanese: () => japanese,
+          messages: {
+            sourceIndexNotIndexed: () =>
+              japanese ? "未インデックス" : "not indexed",
+          },
         };
       }
       if (request === "./skillPreview") {
@@ -127,6 +131,7 @@ const {
   getManagedSkillTreeItemLabel,
   getManagedSkillTreeItemDescription,
   setViewRegistrationContext,
+  formatSourceDescription,
 } = englishExports;
 
 const {
@@ -642,5 +647,19 @@ test("localizes root labels and descriptions for Japanese UI", () => {
       isRegistered: false,
     }),
     "instructions/custom-skill • 未登録",
+  );
+});
+
+test("a source that this extension has never scanned reads as not indexed", () => {
+  // 走査した結果 0 件と、まだ走査していないのは別状態
+  assert.strictEqual(formatSourceDescription(0, {}), "not indexed");
+  assert.strictEqual(
+    formatSourceDescription(0, { lastIndexedAt: "2026-08-17T00:00:00.000Z" }),
+    "0 skills",
+  );
+  assert.strictEqual(formatSourceDescription(12, {}), "12 skills");
+  assert.strictEqual(
+    japaneseExports.formatSourceDescription(0, {}),
+    "未インデックス",
   );
 });

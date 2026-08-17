@@ -96,13 +96,26 @@ import {
   resolveGitHubToken,
 } from "./githubAuth";
 import {
+  decideStaleSourceIndexAction,
+  getSourceIndexAgeDays,
   getStaleSources,
   selectStaleSourcesForRun,
   type StaleSourceInfo,
 } from "./sourceIndexFreshness";
+import {
+  createRateLimitResumeState,
+  isRateLimitResumeExpired,
+  normalizeRateLimitResumeState,
+  shouldResumeRateLimitedUpdate,
+  type RateLimitResumeState,
+} from "./rateLimitResume";
 import { GitHubResponseError, isGitHubResponseError } from "./githubResponse";
 import { resetGitHubSsoCache } from "./githubFetch";
-import { runSourceIndexUpdateBatch } from "./sourceIndexUpdateBatch";
+import {
+  getSourceIndexUpdateRetryEntries,
+  runSourceIndexUpdateBatch,
+  type SourceIndexUpdateBatchResult,
+} from "./sourceIndexUpdateBatch";
 import {
   formatSourceIndexResetAt,
   getSourceIndexUpdateNotificationKind,
@@ -120,7 +133,10 @@ import {
   MIGRATION_GUARD_DELAY_MS,
   AgentNinjaExtensionApi,
 } from "./coexistence";
-import { readSharedSourcesManifest } from "./shared-sources-manifest-store";
+import {
+  getLastRejectedSharedSources,
+  readSharedSourcesManifest,
+} from "./shared-sources-manifest-store";
 
 // 現在の拡張機能バージョン
 const EXTENSION_VERSION =
@@ -135,6 +151,9 @@ const LAST_MANAGED_INSTRUCTION_PATHS_KEY =
   "skillNinja.lastManagedInstructionPaths";
 const LAST_STALE_SOURCE_INDEX_PROMPT_DATE_KEY =
   "skillNinja.lastStaleSourceIndexPromptDate";
+/** rate limit で中断した source 更新の再開待ち state */
+const SOURCE_INDEX_RATE_LIMIT_RESUME_KEY =
+  "skillNinja.sourceIndexRateLimitResume";
 /** メタに書けなかったスキルの分まで「今後確認しない」を効かせるための退避先 */
 const MISSING_INDEX_WARNING_DISMISSED_KEY =
   "skillNinja.missingIndexWarningDismissed";
@@ -846,28 +865,29 @@ export function activate(
     staleSourceIndexCheckCompletedThisSession = true;
 
     try {
+      const resumedIndex = await resumeRateLimitedSourceIndexUpdate(index);
+
       const config = vscode.workspace.getConfiguration("skillNinja");
       const mode = normalizeStaleSourceIndexUpdateMode(
         config.get<string>("staleSourceIndexUpdateMode"),
       );
-      if (mode === "never") {
-        return index;
-      }
 
-      const staleSources = getStaleSources(index);
-      if (staleSources.length === 0) {
-        return index;
-      }
-
-      if (mode === "prompt") {
-        const today = getUtcDateKey();
-        const lastPromptDate = context.globalState.get<string>(
+      const staleSources = getStaleSources(resumedIndex);
+      const today = getUtcDateKey();
+      const decision = decideStaleSourceIndexAction({
+        mode,
+        staleSourceCount: staleSources.length,
+        lastPromptDate: context.globalState.get<string>(
           LAST_STALE_SOURCE_INDEX_PROMPT_DATE_KEY,
-        );
-        if (lastPromptDate === today) {
-          return index;
-        }
+        ),
+        today,
+      });
 
+      if (decision.kind === "skip") {
+        return resumedIndex;
+      }
+
+      if (decision.kind === "prompt") {
         await context.globalState.update(
           LAST_STALE_SOURCE_INDEX_PROMPT_DATE_KEY,
           today,
@@ -882,15 +902,112 @@ export function activate(
           messages.actionLater(),
         );
         if (action !== messages.actionUpdateNow()) {
-          return index;
+          return resumedIndex;
         }
       }
 
-      return await updateStaleSourceIndexes(index, staleSources);
+      return await updateStaleSourceIndexes(resumedIndex, staleSources);
     } catch (error) {
       console.warn("[Skill Ninja] Stale source index check failed:", error);
       return index;
     }
+  }
+
+  function readRateLimitResumeState(): RateLimitResumeState | undefined {
+    return normalizeRateLimitResumeState(
+      context.globalState.get<unknown>(SOURCE_INDEX_RATE_LIMIT_RESUME_KEY),
+    );
+  }
+
+  function formatRateLimitResetAt(resetAt: string | undefined): string {
+    return resetAt
+      ? formatSourceIndexResetAt(resetAt, vscode.env.language)
+      : "-";
+  }
+
+  async function writeRateLimitResumeState(
+    state: RateLimitResumeState | undefined,
+  ): Promise<void> {
+    await context.globalState.update(SOURCE_INDEX_RATE_LIMIT_RESUME_KEY, state);
+  }
+
+  function toStaleSourceInfos(
+    index: SkillIndex,
+    sourceIds: readonly string[],
+  ): StaleSourceInfo[] {
+    const sourcesById = new Map(
+      index.sources.map((source) => [source.id, source]),
+    );
+
+    return sourceIds
+      .map((sourceId) => sourcesById.get(sourceId))
+      .filter((source): source is Source => Boolean(source))
+      .map((source) => ({ source, ...getSourceIndexAgeDays(source) }));
+  }
+
+  /**
+   * rate limit で中断した更新を、reset 後に再開する。
+   * バックグラウンドで約束した action なので、成功も失敗も可視面へ出す。
+   */
+  async function resumeRateLimitedSourceIndexUpdate(
+    index: SkillIndex,
+    options: { manual?: boolean } = {},
+  ): Promise<SkillIndex> {
+    const state = readRateLimitResumeState();
+    if (!state) {
+      if (options.manual) {
+        vscode.window.showInformationMessage(
+          messages.sourceIndexRateLimitResumeNothing(),
+        );
+      }
+      return index;
+    }
+
+    // 期限切れを残すと、手動再開が永久に not ready のままになる
+    if (isRateLimitResumeExpired(state)) {
+      await writeRateLimitResumeState(undefined);
+      if (options.manual) {
+        vscode.window.showInformationMessage(
+          messages.sourceIndexRateLimitResumeNothing(),
+        );
+      }
+      return index;
+    }
+
+    if (!shouldResumeRateLimitedUpdate(state)) {
+      if (options.manual) {
+        vscode.window.showWarningMessage(
+          messages.sourceIndexRateLimitResumeNotReady(
+            formatRateLimitResetAt(state.resetAt),
+          ),
+        );
+      }
+      return index;
+    }
+
+    const pending = toStaleSourceInfos(index, state.sourceIds);
+    if (pending.length === 0) {
+      await writeRateLimitResumeState(undefined);
+      if (options.manual) {
+        vscode.window.showInformationMessage(
+          messages.sourceIndexRateLimitResumeNothing(),
+        );
+      }
+      return index;
+    }
+
+    sourceIndexChannel.appendLine(
+      `[${new Date().toISOString()}] ${messages.sourceIndexRateLimitResumeStarted(
+        pending.length,
+      )}`,
+    );
+    if (options.manual) {
+      vscode.window.showInformationMessage(
+        messages.sourceIndexRateLimitResumeStarted(pending.length),
+      );
+    }
+
+    return await updateStaleSourceIndexes(index, pending);
   }
 
   async function updateStaleSourceIndexes(
@@ -968,6 +1085,8 @@ export function activate(
       skillIndex = nextIndex;
     }
 
+    await saveRateLimitResumeStateFromBatch(batchResult, deferred);
+
     const notificationKind = getSourceIndexUpdateNotificationKind(
       failures.length,
     );
@@ -1015,6 +1134,70 @@ export function activate(
     }
 
     return nextIndex;
+  }
+
+  /**
+   * 再試行集合は failures ∪ skipped。skipped だけだと rate limit を起こした source が漏れる。
+   * 1 回あたりの上限で溢れた分も同じ state に残し、約束した再開を取りこぼさない。
+   */
+  async function saveRateLimitResumeStateFromBatch(
+    batchResult: SourceIndexUpdateBatchResult<StaleSourceInfo, SkillIndex>,
+    deferred: StaleSourceInfo[],
+  ): Promise<void> {
+    const rateLimitFailure = batchResult.failures.find(
+      (failure) =>
+        isGitHubResponseError(failure.error) &&
+        failure.error.kind === "rate-limit",
+    );
+
+    const pendingIds = [
+      ...(rateLimitFailure
+        ? getSourceIndexUpdateRetryEntries(batchResult).map(
+            (entry) => entry.source.id,
+          )
+        : []),
+      ...deferred.map((entry) => entry.source.id),
+    ];
+
+    const resetAt =
+      rateLimitFailure && isGitHubResponseError(rateLimitFailure.error)
+        ? rateLimitFailure.error.resetAt
+        : undefined;
+    const state = createRateLimitResumeState(pendingIds, {
+      reason: rateLimitFailure ? "rate-limit" : "deferred",
+      resetAt,
+    });
+
+    await writeRateLimitResumeState(state);
+    if (!state) {
+      return;
+    }
+
+    if (!rateLimitFailure) {
+      sourceIndexChannel.appendLine(`[PENDING] ${state.sourceIds.join(", ")}`);
+      return;
+    }
+
+    sourceIndexChannel.appendLine(
+      `[DEFERRED-RATE-LIMIT] ${state.sourceIds.join(", ")}`,
+    );
+
+    const resumeAction = messages.actionResumeNow();
+    const action = await vscode.window.showWarningMessage(
+      messages.sourceIndexRateLimitDeferred(
+        state.sourceIds.length,
+        formatRateLimitResetAt(state.resetAt),
+      ),
+      resumeAction,
+      messages.actionShowDetails(),
+    );
+    if (action === resumeAction) {
+      await vscode.commands.executeCommand(
+        "skillNinja.resumeSourceIndexUpdate",
+      );
+    } else if (action === messages.actionShowDetails()) {
+      sourceIndexChannel.show(true);
+    }
   }
 
   function markRecentlyInstalled(skill: Skill): void {
@@ -3704,6 +3887,18 @@ export function activate(
     },
   );
 
+  // Command: Resume a source index update deferred by GitHub rate limiting
+  const resumeSourceIndexUpdateCmd = vscode.commands.registerCommand(
+    "skillNinja.resumeSourceIndexUpdate",
+    async () => {
+      const currentIndex = await getRemoteSourceIndex();
+      skillIndex = await resumeRateLimitedSourceIndexUpdate(currentIndex, {
+        manual: true,
+      });
+      browseProvider.setIndex(skillIndex);
+    },
+  );
+
   // Command: Add source
   const addSourceCmd = vscode.commands.registerCommand(
     "skillNinja.addSource",
@@ -4776,6 +4971,13 @@ Add examples here
         lines.push("GitHub Auth Help : skillNinja.clearGitHubToken");
       }
 
+      const rejectedSharedSources = getLastRejectedSharedSources();
+      if (rejectedSharedSources.length > 0) {
+        lines.push(
+          `Shared Src Drops : ${rejectedSharedSources.length} (${rejectedSharedSources.join(", ")})`,
+        );
+      }
+
       skillStateChannel.clear();
       skillStateChannel.appendLine(lines.join("\n"));
       skillStateChannel.show(true);
@@ -5028,6 +5230,7 @@ Add examples here
     openSkillFileCmd,
     updateIndexCmd,
     updateSourceIndexCmd,
+    resumeSourceIndexUpdateCmd,
     addSourceCmd,
     webSearchCmd,
     removeSourceCmd,

@@ -45,7 +45,9 @@ function test(name, fn) {
 }
 
 const {
+  decideStaleSourceIndexAction,
   getSourceIndexAgeDays,
+  pickNewerIndexedSource,
   getStaleSources,
   selectStaleSourcesForRun,
   MAX_STALE_SOURCE_UPDATES_PER_RUN,
@@ -165,7 +167,8 @@ test("sources at or under the 30 day threshold are not stale", () => {
   assert.deepStrictEqual(getStaleSources(index, 30, now), []);
 });
 
-test("missing per-source timestamp falls back to global lastUpdated", () => {
+test("per-source freshness never falls back to the catalog date", () => {
+  // index.lastUpdated はカタログ発行日。これを流用すると未走査 source が新鮮扱いになる
   const staleIndex = createIndex({
     lastUpdated: "2026-05-01",
     sources: [
@@ -183,7 +186,7 @@ test("missing per-source timestamp falls back to global lastUpdated", () => {
     ["fallback-old"],
   );
 
-  const freshIndex = createIndex({
+  const freshCatalogIndex = createIndex({
     lastUpdated: "2026-06-20",
     sources: [
       {
@@ -195,7 +198,10 @@ test("missing per-source timestamp falls back to global lastUpdated", () => {
       },
     ],
   });
-  assert.deepStrictEqual(getStaleSources(freshIndex, 30, now), []);
+  assert.deepStrictEqual(
+    getStaleSources(freshCatalogIndex, 30, now).map((entry) => entry.source.id),
+    ["fallback-new"],
+  );
 });
 
 test("invalid timestamps are reported as unknown stale sources", () => {
@@ -233,8 +239,80 @@ test("future timestamps are treated as fresh", () => {
   });
 
   assert.deepStrictEqual(getStaleSources(index, 30, now), []);
-  const age = getSourceIndexAgeDays(index.sources[0], index, now);
+  const age = getSourceIndexAgeDays(index.sources[0], now);
   assert.strictEqual(age.lastIndexedAt, "2026-07-01T00:00:00.000Z");
   assert.strictEqual(age.daysOld, 0);
   assert.strictEqual(age.isUnknown, false);
+});
+
+test("stale source action is decided outside activate()", () => {
+  assert.deepStrictEqual(
+    {
+      ...decideStaleSourceIndexAction({
+        mode: "never",
+        staleSourceCount: 3,
+        today: "2026-06-24",
+      }),
+    },
+    { kind: "skip", reason: "mode-never" },
+  );
+
+  assert.deepStrictEqual(
+    {
+      ...decideStaleSourceIndexAction({
+        mode: "prompt",
+        staleSourceCount: 0,
+        today: "2026-06-24",
+      }),
+    },
+    { kind: "skip", reason: "no-stale-sources" },
+  );
+
+  assert.deepStrictEqual(
+    {
+      ...decideStaleSourceIndexAction({
+        mode: "prompt",
+        staleSourceCount: 2,
+        lastPromptDate: "2026-06-24",
+        today: "2026-06-24",
+      }),
+    },
+    { kind: "skip", reason: "prompted-today" },
+  );
+
+  assert.deepStrictEqual(
+    {
+      ...decideStaleSourceIndexAction({
+        mode: "prompt",
+        staleSourceCount: 2,
+        lastPromptDate: "2026-06-23",
+        today: "2026-06-24",
+      }),
+    },
+    { kind: "prompt" },
+  );
+
+  assert.deepStrictEqual(
+    {
+      ...decideStaleSourceIndexAction({
+        mode: "always",
+        staleSourceCount: 2,
+        lastPromptDate: "2026-06-24",
+        today: "2026-06-24",
+      }),
+    },
+    { kind: "update" },
+  );
+});
+
+test("a bundled catalog stamp never rewinds a newer local scan", () => {
+  const older = { lastIndexedAt: "2026-08-01T00:00:00.000Z", lastIndexedBy: "catalog" };
+  const newer = { lastIndexedAt: "2026-08-17T00:00:00.000Z", lastIndexedBy: "yamapan.agent-skill-ninja" };
+
+  assert.strictEqual(pickNewerIndexedSource(newer, older), newer);
+  assert.strictEqual(pickNewerIndexedSource(older, newer), newer);
+  assert.strictEqual(pickNewerIndexedSource({}, newer), newer);
+  assert.strictEqual(pickNewerIndexedSource(newer, {}), newer);
+  assert.strictEqual(pickNewerIndexedSource({}, {}), undefined);
+  assert.strictEqual(pickNewerIndexedSource({ lastIndexedAt: "nope" }, newer), newer);
 });

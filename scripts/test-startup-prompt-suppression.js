@@ -53,6 +53,10 @@ const REVIEWED_STARTUP_DIALOGS = {
     mechanical: false,
     why: "reached only from checkStaleSourceIndexesOnStartup, which is already throttled, or from an explicit user command",
   },
+  saveRateLimitResumeStateFromBatch: {
+    mechanical: false,
+    why: "reached only from updateStaleSourceIndexes, and only when a run actually hit the rate limit; the resume it offers refuses to rerun before the reset time, so it cannot loop",
+  },
   offerDisableMissingReinstallChecks: {
     mechanical: false,
     why: "itself the permanent-exit offer, reached only after the user chose Update Index on the throttled index warning",

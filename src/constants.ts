@@ -2,6 +2,9 @@
  * 共通定数定義
  */
 
+/** この拡張の identifier。共有ストアへ「誰が書いたか」を記録するのに使う */
+export const SELF_EXTENSION_ID = "yamapan.agent-skill-ninja";
+
 /** スキル説明の長さ制限 */
 export const SKILL_DESCRIPTION_LIMITS = {
   /** 合計最大文字数 */

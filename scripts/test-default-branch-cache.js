@@ -103,6 +103,22 @@ function loadSkillIndexModule({ respond, clock }) {
           syncSharedSourcesManifestFromSources: async () => undefined,
         };
       }
+      if (request === "./retiredSources") {
+        return {
+          applyRetiredSources: (index) => index,
+          getRetiredSourceIds: () => new Set(),
+        };
+      }
+      if (request === "./sourceIndexFreshness") {
+        return {
+          pickNewerIndexedSource: (local, bundled) =>
+            local.lastIndexedAt
+              ? local
+              : bundled.lastIndexedAt
+                ? bundled
+                : undefined,
+        };
+      }
       return require(request);
     },
   };
