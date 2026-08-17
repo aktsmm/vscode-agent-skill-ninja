@@ -50,6 +50,7 @@ const jaMessages = {
   githubAuthRequiredReason: "GitHub の認証またはリポジトリ権限が必要です",
   actionShowDetails: "詳細を表示",
   actionConfigureGitHubAuth: "GitHub 認証を設定",
+  actionOpenGitHubSso: "SSO セッションを開く",
   actionClearStoredGitHubToken:
     "保存済み GitHub トークンをクリア（SecretStorage のみ）",
   actionUpdateNow: "今すぐ更新",
@@ -300,6 +301,7 @@ const enMessages: MessageDictionary = {
     "GitHub authentication or repository permission is required",
   actionShowDetails: "Show Details",
   actionConfigureGitHubAuth: "Configure GitHub Authentication",
+  actionOpenGitHubSso: "Open SSO Session",
   actionClearStoredGitHubToken:
     "Clear Stored GitHub Token (SecretStorage only)",
   actionUpdateNow: "Update Now",
@@ -620,6 +622,7 @@ export const messages = {
   githubAuthRequiredReason: () => localize("githubAuthRequiredReason"),
   actionShowDetails: () => localize("actionShowDetails"),
   actionConfigureGitHubAuth: () => localize("actionConfigureGitHubAuth"),
+  actionOpenGitHubSso: () => localize("actionOpenGitHubSso"),
   actionClearStoredGitHubToken: () => localize("actionClearStoredGitHubToken"),
   actionUpdateNow: () => localize("actionUpdateNow"),
   actionLater: () => localize("actionLater"),

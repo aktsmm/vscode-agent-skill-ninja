@@ -1237,7 +1237,24 @@ test("GitHub auth recovery exposes token reset and token source diagnostics", ()
   );
   assert.match(
     extensionSource,
-    /registerCommand\(\s*"skillNinja\.clearGitHubToken",\s*clearStoredGitHubTokenWithFeedback,\s*\)/,
+    /registerCommand\(\s*"skillNinja\.clearGitHubToken",[\s\S]*?clearStoredGitHubTokenWithFeedback\(\);[\s\S]*?resetGitHubSsoCache\(\);/,
+  );
+  assert.match(
+    extensionSource,
+    /initializeGitHubAuth\(context\);\s*resetGitHubSsoCache\(\);/,
+  );
+  // SSO を認可しに行った直後は、ブロック判定を持ち越さない
+  assert.match(
+    extensionSource,
+    /openExternal\(vscode\.Uri\.parse\(ssoUrl\)\);[\s\S]*?resetGitHubSsoCache\(\);/,
+  );
+  // 手動更新と source 追加の失敗にも、文字列一致ではなく分類で導線を出す
+  const recoveryCallSites = extensionSource.match(
+    /await offerGitHubFailureRecovery\(/g,
+  );
+  assert.ok(
+    recoveryCallSites && recoveryCallSites.length >= 3,
+    "every GitHub command failure path must offer the classified recovery",
   );
   assert.match(
     extensionSource,

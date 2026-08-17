@@ -20,14 +20,21 @@ const sandbox = {
   exports: {},
   module: { exports: {} },
   require,
+  // 新しい vm context には Node の global が無いので、使うものだけ渡す
+  URL,
+  Date,
 };
 
 vm.runInNewContext(transpiled.outputText, sandbox, {
   filename: sourcePath,
 });
 
-const { classifyGitHubFailure, retryGitHubRequestAnonymously } =
-  sandbox.exports;
+const {
+  classifyGitHubFailure,
+  createGitHubResponseError,
+  extractSsoAuthorizationUrl,
+  retryGitHubRequestAnonymously,
+} = sandbox.exports;
 
 let resolvedToken;
 const originalLoad = Module._load;
@@ -331,6 +338,120 @@ async function main() {
       assert.strictEqual(requests[0].headers.Authorization, undefined);
     } finally {
       global.fetch = originalFetch;
+    }
+  });
+
+  await test("keeps the authorization_request out of the stored SSO url", async () => {
+    const result = response(403, "SAML enforcement", {
+      "x-github-sso":
+        "required; url=https://github.com/enterprises/acme/sso?authorization_request=SECRET",
+    });
+
+    assert.strictEqual(
+      extractSsoAuthorizationUrl(result),
+      "https://github.com/enterprises/acme/sso",
+    );
+  });
+
+  await test("rejects SSO urls outside the github.com sso paths", async () => {
+    const cases = [
+      "required; url=https://evil.example.com/orgs/acme/sso",
+      "required; url=http://github.com/orgs/acme/sso",
+      "required; url=https://github.com/acme/repo",
+      "required; url=https://github.com/orgs/acme/sso/extra",
+      // userinfo / port / 別ホスト埋め込みは host allowlist をすり抜けやすい
+      "required; url=https://github.com@evil.example.com/orgs/acme/sso",
+      "required; url=https://github.com.evil.example.com/orgs/acme/sso",
+      "required; url=https://github.com:8443/orgs/acme/sso",
+      "required; url=javascript:alert(1)",
+      "required",
+    ];
+
+    for (const header of cases) {
+      assert.strictEqual(
+        extractSsoAuthorizationUrl(
+          response(403, "SAML enforcement", { "x-github-sso": header }),
+        ),
+        undefined,
+        `must reject ${header}`,
+      );
+    }
+  });
+
+  await test("never carries the authorization_request into the error", async () => {
+    const failure = createGitHubResponseError(
+      response(403, "Resource protected by organization SAML enforcement", {
+        "x-github-sso":
+          "required; url=https://github.com/orgs/acme/sso?authorization_request=SECRET",
+      }),
+      "Resource protected by organization SAML enforcement",
+      "GitHub tree request failed for acme/widgets",
+    );
+
+    assert.strictEqual(failure.kind, "sso-required");
+    assert.strictEqual(
+      failure.ssoAuthorizationUrl,
+      "https://github.com/orgs/acme/sso",
+    );
+    // console.warn は error 本体を出すので、どのフィールドにも残さない
+    for (const value of Object.values(failure)) {
+      if (typeof value === "string") {
+        assert.ok(
+          !value.includes("authorization_request") && !value.includes("SECRET"),
+          `authorization_request must not survive in ${value}`,
+        );
+      }
+    }
+    assert.ok(!failure.message.includes("github.com"));
+  });
+
+  await test("every GitHub index entry point re-verifies blocked credentials", async () => {
+    // 呼び出し側ではなく定義側に置くことで、新しい入口が漏れない
+    const ast = ts.createSourceFile(
+      indexUpdaterPath,
+      indexUpdaterSource,
+      ts.ScriptTarget.ES2022,
+      true,
+    );
+
+    const findCallPosition = (node, callee) => {
+      let position = -1;
+      const visit = (current) => {
+        if (
+          position < 0 &&
+          ts.isCallExpression(current) &&
+          ts.isIdentifier(current.expression) &&
+          current.expression.text === callee
+        ) {
+          position = current.getStart(ast);
+        }
+        ts.forEachChild(current, visit);
+      };
+      visit(node);
+      return position;
+    };
+
+    const entryPoints = [
+      "updateIndexFromSources",
+      "updateIndexFromSingleSource",
+      "updateSingleSource",
+      "addSource",
+    ];
+
+    for (const name of entryPoints) {
+      const declaration = ast.statements.find(
+        (statement) =>
+          ts.isFunctionDeclaration(statement) && statement.name?.text === name,
+      );
+      assert.ok(declaration?.body, `${name} must exist`);
+
+      const resetAt = findCallPosition(declaration.body, "resetGitHubSsoCache");
+      const tokenAt = findCallPosition(declaration.body, "getGitHubToken");
+      assert.ok(resetAt >= 0, `${name} must re-verify SSO-blocked credentials`);
+      assert.ok(
+        tokenAt < 0 || resetAt < tokenAt,
+        `${name} must reset before resolving a credential`,
+      );
     }
   });
 

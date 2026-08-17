@@ -1,4 +1,9 @@
+import { createHash } from "crypto";
 import { resolveGitHubTokenAfterFailure } from "./githubAuth";
+import {
+  classifyGitHubFailure,
+  type GitHubFailureKind,
+} from "./githubResponse";
 
 const GITHUB_USER_AGENT = "VSCode-SkillNinja";
 export const GITHUB_REQUEST_TIMEOUT_MS = 15000;
@@ -258,6 +263,102 @@ function isRawGitHubUrl(url: string): boolean {
   return url.startsWith("https://raw.githubusercontent.com/");
 }
 
+/** SSO でブロックされた (owner, token) の組。token は生値ではなくハッシュで持つ。 */
+const ssoBlockedOwnerTokens = new Map<string, Set<string>>();
+
+/** 認証状態が変わったとき、古いブロック判定を引きずらないよう捨てる。 */
+export function resetGitHubSsoCache(): void {
+  ssoBlockedOwnerTokens.clear();
+}
+
+/** owner を持たない endpoint（search など）は undefined を返し、キャッシュ対象外にする。 */
+function getGitHubOwner(url: string): string | undefined {
+  try {
+    const parsed = new URL(url);
+    const segments = parsed.pathname.split("/").filter(Boolean);
+
+    if (parsed.host === "raw.githubusercontent.com") {
+      return segments[0]?.toLowerCase();
+    }
+
+    if (parsed.host === "api.github.com" && segments[0] === "repos") {
+      return segments[1]?.toLowerCase();
+    }
+
+    return undefined;
+  } catch {
+    return undefined;
+  }
+}
+
+function hashGitHubToken(token: string): string {
+  return createHash("sha256").update(token).digest("hex").slice(0, 16);
+}
+
+function isSsoBlockedToken(url: string, token: string): boolean {
+  const owner = getGitHubOwner(url);
+  if (!owner) {
+    return false;
+  }
+
+  return Boolean(ssoBlockedOwnerTokens.get(owner)?.has(hashGitHubToken(token)));
+}
+
+function rememberSsoBlockedToken(url: string, token: string): void {
+  const owner = getGitHubOwner(url);
+  if (!owner) {
+    return;
+  }
+
+  const blocked = ssoBlockedOwnerTokens.get(owner) ?? new Set<string>();
+  const hash = hashGitHubToken(token);
+  if (!blocked.has(hash)) {
+    // 資格情報を外したことを黙って行わない。token 自体は出さない
+    console.warn(
+      `[Skill Ninja] GitHub rejected the credential for ${owner} with SAML SSO; sending later requests to that owner anonymously`,
+    );
+  }
+
+  blocked.add(hash);
+  ssoBlockedOwnerTokens.set(owner, blocked);
+}
+
+function isAuthFailureStatus(status: number): boolean {
+  return status === 401 || status === 403;
+}
+
+/** 注入された stub は clone を持たないので、本文なしでも分類できるようにする。 */
+async function readFailureKind(
+  response: Response,
+): Promise<GitHubFailureKind | undefined> {
+  if (typeof response.headers?.get !== "function") {
+    return undefined;
+  }
+
+  const bodyText =
+    typeof response.clone === "function"
+      ? await response
+          .clone()
+          .text()
+          .catch(() => "")
+      : "";
+
+  return classifyGitHubFailure(response, bodyText);
+}
+
+/** 先頭ほど根本原因に近い。通知に出す理由をこの順で選ぶ。 */
+const AUTH_FAILURE_PRIORITY: GitHubFailureKind[] = [
+  "sso-required",
+  "classic-pat-forbidden",
+  "auth-required",
+  "rate-limit",
+];
+
+function getAuthFailureRank(kind: GitHubFailureKind | undefined): number {
+  const rank = kind ? AUTH_FAILURE_PRIORITY.indexOf(kind) : -1;
+  return rank < 0 ? AUTH_FAILURE_PRIORITY.length : rank;
+}
+
 function shouldAttachGitHubToken(url: string, token?: string): boolean {
   if (!token) {
     return false;
@@ -265,7 +366,12 @@ function shouldAttachGitHubToken(url: string, token?: string): boolean {
 
   // Public raw content works without auth, and authenticated raw requests can
   // fail in some environments even when the repository is public.
-  return !isRawGitHubUrl(url);
+  if (isRawGitHubUrl(url)) {
+    return false;
+  }
+
+  // SSO 未認可の token は public repo でも 403 になるので、匿名で取りに行く
+  return !isSsoBlockedToken(url, token);
 }
 
 export function createGitHubHeaders(
@@ -331,17 +437,50 @@ async function requestWithAuthFallback(
     }
   };
 
+  // 試行順の最後ではなく、最も根本原因に近い 401/403 を報告できるようにする
+  let rootAuthFailure: Response | undefined;
+  let rootAuthFailureRank = AUTH_FAILURE_PRIORITY.length;
+  let lastAuthFailureRank = AUTH_FAILURE_PRIORITY.length;
+  const observeAuthFailure = async (
+    candidate: Response,
+    sentToken?: string,
+  ): Promise<void> => {
+    if (!isAuthFailureStatus(candidate.status)) {
+      return;
+    }
+
+    const kind = await readFailureKind(candidate);
+    if (
+      sentToken &&
+      (kind === "sso-required" || kind === "classic-pat-forbidden")
+    ) {
+      rememberSsoBlockedToken(url, sentToken);
+    }
+
+    lastAuthFailureRank = getAuthFailureRank(kind);
+    if (lastAuthFailureRank < rootAuthFailureRank) {
+      rootAuthFailureRank = lastAuthFailureRank;
+      rootAuthFailure = candidate;
+    }
+  };
+
   assertNotCancelled();
   let response = await request(url, {
     headers,
     method: options.method,
     signal,
   });
+  await observeAuthFailure(
+    response,
+    headers.Authorization ? options.token : undefined,
+  );
 
   if (
     response.status === 404 &&
     Boolean(options.token) &&
-    isRawGitHubUrl(url)
+    isRawGitHubUrl(url) &&
+    // ブロック済み token を強制すると、本来 404 の応答が 403 に化ける
+    !isSsoBlockedToken(url, options.token!)
   ) {
     assertNotCancelled();
     response = await request(url, {
@@ -353,12 +492,10 @@ async function requestWithAuthFallback(
       redirect: "error",
       signal,
     });
+    await observeAuthFailure(response, options.token);
   }
 
-  if (
-    (response.status === 401 || response.status === 403) &&
-    Boolean(headers.Authorization)
-  ) {
+  if (isAuthFailureStatus(response.status) && Boolean(headers.Authorization)) {
     assertNotCancelled();
     response = await request(url, {
       headers: {
@@ -369,6 +506,7 @@ async function requestWithAuthFallback(
       method: options.method,
       signal,
     });
+    await observeAuthFailure(response);
   }
 
   if ([401, 403, 404].includes(response.status) && Boolean(options.token)) {
@@ -392,25 +530,40 @@ async function requestWithAuthFallback(
         break;
       }
 
+      triedTokens.add(fallback.token);
+      failingToken = fallback.token;
+
       const fallbackHeaders = createGitHubHeaders(
         url,
         options.accept,
         fallback.token,
         options.extraHeaders,
       );
-      if (isRawGitHubUrl(url)) {
+      if (isRawGitHubUrl(url) && !isSsoBlockedToken(url, fallback.token)) {
         fallbackHeaders.Authorization = `token ${fallback.token}`;
       }
+      // SSO でブロック済みの token を外すと、直前と同じ匿名リクエストになるだけ
+      if (!fallbackHeaders.Authorization) {
+        continue;
+      }
+
       response = await request(url, {
         headers: fallbackHeaders,
         method: options.method,
         signal,
         ...(isRawGitHubUrl(url) ? { redirect: "error" as const } : {}),
       });
-
-      triedTokens.add(fallback.token);
-      failingToken = fallback.token;
+      await observeAuthFailure(response, fallback.token);
     }
+  }
+
+  // 404 の意味論（ブランチ fallback など）は変えず、401/403 のときだけ差し替える
+  if (
+    isAuthFailureStatus(response.status) &&
+    rootAuthFailure &&
+    rootAuthFailureRank < lastAuthFailureRank
+  ) {
+    return rootAuthFailure;
   }
 
   return response;

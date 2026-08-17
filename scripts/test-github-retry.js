@@ -7,11 +7,20 @@ const path = require("path");
 const ts = require("typescript");
 
 let fallbackToken;
+let githubResponseModule;
 
 const originalLoad = Module._load;
 Module._load = function patchedLoad(request, parent, isMain) {
   if (request === "vscode") {
     return {};
+  }
+  if (request === "./githubResponse") {
+    if (!githubResponseModule) {
+      githubResponseModule = requireTypeScriptModule(
+        path.join(__dirname, "..", "src", "githubResponse.ts"),
+      );
+    }
+    return githubResponseModule;
   }
   if (request === "./githubAuth") {
     return {

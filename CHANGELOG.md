@@ -7,6 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.9.42] - 2026-08-17
+
+### Fixed
+
+- 🔓 **A Token Without SAML SSO Authorization No Longer Blocks Public Sources** - When an organization rejects a credential with SAML SSO, that owner and token pair is remembered and the token is left off the following requests, so a public source such as MicrosoftDocs keeps updating anonymously instead of failing with `SSO authorization is required`. Other stored credentials are still tried, a credential already known to be blocked no longer repeats the same anonymous request nor gets forced onto raw content, and `404` responses keep their meaning so branch fallback is unaffected. Each index update entry point re-verifies a blocked credential once, so authorizing SSO elsewhere recovers without a reload, and the first credential dropped for an owner is logged by owner name without the token / organization が SAML SSO で credential を拒否したとき、その owner と token の組を覚えて以降のリクエストから token を外すよう修正し、MicrosoftDocs のような public source が `SSO 認可が必要です` で失敗せず匿名で更新できるようにした。他の保存済み credential は従来どおり試し、ブロック済みと分かっている credential で同じ匿名リクエストを繰り返さず raw content へも強制せず、`404` の意味も変えないのでブランチ fallback に影響しない。インデックス更新の各入口がブロック済み credential を 1 度再検証するため、別経路で SSO を認可すればリロードなしで回復し、owner ごとの初回の除外は token を含めず owner 名だけをログに残す
+- 🧭 **The Reported Reason Is The Root Cause, Not The Last Attempt** - A credential walk that ends on a rate limit no longer hides the SAML SSO rejection that started it. The most root-causal `401` / `403` is the one reported / credential を順に試して最後が rate limit で終わっても、起点の SAML SSO 拒否が隠れないよう修正（最も根本原因に近い `401` / `403` を報告する）
+- 📄 **License Lookups Stop Probing Files That Do Not Exist** - The repository tree is already complete when skills are scanned, so a license file missing from the tree is no longer requested. A large source no longer spends hundreds of requests on guaranteed `404`s / スキル走査時点で repository tree は完全なので、tree にない license ファイルを取得しないよう修正（大きい source で確定 `404` に数百リクエストを使わない）
+
+### Added
+
+- 🔑 **Open SSO Session From The Failure Notice** - A source index failure caused by SAML SSO now offers `Open SSO Session`, on the automatic stale-source update as well as the manual index update, single source update, and add source commands. Those command failures are now classified from the GitHub response instead of matching words in the message text. The link is taken from the `X-GitHub-SSO` header, validated against `https://github.com/orgs/.../sso` and `https://github.com/enterprises/.../sso`, and its `authorization_request` is dropped so the short-lived value is never stored or logged / SAML SSO で source index 更新が失敗したときに `SSO セッションを開く` を提示するよう追加。自動の stale source 更新に加えて、手動のインデックス更新、単一ソース更新、ソース追加コマンドでも表示する。これらのコマンドの失敗はメッセージ文字列の一致ではなく GitHub 応答の分類で判定するようにした。リンクは `X-GitHub-SSO` ヘッダーから取得し、`https://github.com/orgs/.../sso` と `https://github.com/enterprises/.../sso` で検証し、短命な `authorization_request` は保存もログ出力もしないよう落とす
+
 ## [0.9.41] - 2026-08-16
 
 ### Security

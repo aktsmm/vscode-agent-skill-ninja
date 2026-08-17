@@ -15,6 +15,7 @@ let configUpdates = [];
 let execCalls = [];
 let execBehavior = "error";
 let githubAuthModule;
+let githubResponseModule;
 let informationMessages = [];
 let errorMessages = [];
 let secretDeleteError;
@@ -115,6 +116,14 @@ Module._load = function patchedLoad(request, parent, isMain) {
   }
   if (request === "./githubAuth" && githubAuthModule) {
     return githubAuthModule;
+  }
+  if (request === "./githubResponse") {
+    if (!githubResponseModule) {
+      githubResponseModule = requireTypeScriptModule(
+        path.join(__dirname, "..", "src", "githubResponse.ts"),
+      );
+    }
+    return githubResponseModule;
   }
   if (request === "child_process") {
     return {

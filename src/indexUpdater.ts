@@ -22,6 +22,7 @@ import {
   fetchGitHubWithOptionalAuthRetry,
   fetchGitHubWithRetry,
   fetchGitHubWithTimeout,
+  resetGitHubSsoCache,
   GITHUB_REQUEST_TIMEOUT_MS,
 } from "./githubFetch";
 import {
@@ -178,17 +179,24 @@ async function fetchAndExtractLicense(
   skillDir: string,
   branch: string,
   token?: string,
+  repositoryBlobPaths?: ReadonlySet<string>,
 ): Promise<string | null> {
   // 試すファイル名のリスト
   const licenseFiles = LICENSE_EXTRACTION.FILE_NAMES;
 
   for (const filename of licenseFiles) {
+    const filePath = joinRepositoryPath(skillDir, filename);
+    // truncated tree は拒否済みなので、tree に無いファイルは確実に 404 になる
+    if (repositoryBlobPaths && !repositoryBlobPaths.has(filePath)) {
+      continue;
+    }
+
     try {
       const content = await fetchRepositoryTextFile(
         owner,
         repo,
         branch,
-        joinRepositoryPath(skillDir, filename),
+        filePath,
         token,
       );
       if (content) {
@@ -743,6 +751,10 @@ async function processTreeResponse(
     return { skills: composioSkills, source };
   }
 
+  const repositoryBlobPaths = new Set(
+    data.tree.filter((item) => item.type === "blob").map((item) => item.path),
+  );
+
   const skills = await mapWithConcurrency(
     skillFiles,
     FETCH_CONCURRENCY,
@@ -794,6 +806,7 @@ async function processTreeResponse(
             skillDir,
             branch,
             token,
+            repositoryBlobPaths,
           );
           if (extractedLicense) {
             license = extractedLicense;
@@ -1467,6 +1480,8 @@ export async function updateSingleSource(
   sourceId: string,
   progress?: vscode.Progress<{ message?: string; increment?: number }>,
 ): Promise<{ index: SkillIndex; addedSkills: number; removedSkills: number }> {
+  // 別経路で SSO を認可されても回復できるよう、run ごとに再検証する
+  resetGitHubSsoCache();
   const token = await getGitHubToken();
 
   const source = currentIndex.sources.find((s) => s.id === sourceId);
@@ -1577,6 +1592,8 @@ export async function updateIndexFromSources(
   currentIndex: SkillIndex,
   progress?: vscode.Progress<{ message?: string; increment?: number }>,
 ): Promise<SkillIndex> {
+  // 別経路で SSO を認可されても回復できるよう、run ごとに再検証する
+  resetGitHubSsoCache();
   const token = await getGitHubToken();
 
   // 既存スキルの説明をマップとして保持（ローカライズされた説明を保持するため）
@@ -1737,6 +1754,8 @@ export async function updateIndexFromSingleSource(
   sourceId: string,
   progress?: vscode.Progress<{ message?: string; increment?: number }>,
 ): Promise<SkillIndex> {
+  // 別経路で SSO を認可されても回復できるよう、run ごとに再検証する
+  resetGitHubSsoCache();
   const token = await getGitHubToken();
 
   const source = currentIndex.sources.find((s) => s.id === sourceId);
@@ -1862,6 +1881,8 @@ export async function addSource(
     throw new Error("repoUrl must be a valid string");
   }
 
+  // 別経路で SSO を認可されても回復できるよう、run ごとに再検証する
+  resetGitHubSsoCache();
   const token = await getGitHubToken();
 
   const result = await scanRepositoryForSkills(repoUrl, token);

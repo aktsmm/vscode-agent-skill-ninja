@@ -101,6 +101,7 @@ import {
   type StaleSourceInfo,
 } from "./sourceIndexFreshness";
 import { GitHubResponseError, isGitHubResponseError } from "./githubResponse";
+import { resetGitHubSsoCache } from "./githubFetch";
 import { runSourceIndexUpdateBatch } from "./sourceIndexUpdateBatch";
 import {
   formatSourceIndexResetAt,
@@ -494,6 +495,41 @@ function shouldOfferGitHubAuth(error: unknown): error is GitHubResponseError {
   );
 }
 
+/**
+ * 文字列一致ではなく分類で GitHub の失敗を扱う。扱えなければ false を返し、
+ * 呼び出し側の既定処理へ戻す。
+ */
+async function offerGitHubFailureRecovery(
+  error: unknown,
+  formatMessage: (reason: string) => string,
+): Promise<boolean> {
+  if (!shouldOfferGitHubAuth(error)) {
+    return false;
+  }
+
+  const ssoUrl = error.ssoAuthorizationUrl;
+  if (!ssoUrl) {
+    await showAuthHelp();
+    return true;
+  }
+
+  const ssoAction = messages.actionOpenGitHubSso();
+  const authAction = messages.actionConfigureGitHubAuth();
+  const action = await vscode.window.showWarningMessage(
+    formatMessage(formatStaleSourceFailureReason(error)),
+    ssoAction,
+    authAction,
+  );
+  if (action === ssoAction) {
+    await vscode.env.openExternal(vscode.Uri.parse(ssoUrl));
+    resetGitHubSsoCache();
+  } else if (action === authAction) {
+    await showAuthHelp();
+  }
+
+  return true;
+}
+
 export function activate(
   context: vscode.ExtensionContext,
 ): AgentNinjaExtensionApi {
@@ -501,6 +537,7 @@ export function activate(
   activeContext = context;
   extensionShuttingDown = false;
   initializeGitHubAuth(context);
+  resetGitHubSsoCache();
   offerToRemoveLegacyPlaintextGitHubToken().catch((err) => {
     console.warn(
       "[Skill Ninja] Failed to migrate GitHub token to SecretStorage:",
@@ -945,8 +982,12 @@ export function activate(
       const reason = formatStaleSourceFailureReason(firstFailure.error);
       const detailAction = messages.actionShowDetails();
       const authAction = messages.actionConfigureGitHubAuth();
+      const ssoAction = messages.actionOpenGitHubSso();
+      const ssoUrl = isGitHubResponseError(firstFailure.error)
+        ? firstFailure.error.ssoAuthorizationUrl
+        : undefined;
       const actions = shouldOfferGitHubAuth(firstFailure.error)
-        ? [detailAction, authAction]
+        ? [detailAction, ...(ssoUrl ? [ssoAction] : []), authAction]
         : [detailAction];
       const action = await vscode.window.showWarningMessage(
         messages.staleSourceIndexPartialFailed(
@@ -964,6 +1005,10 @@ export function activate(
       );
       if (action === detailAction) {
         sourceIndexChannel.show(true);
+      } else if (action === ssoAction && ssoUrl) {
+        await vscode.env.openExternal(vscode.Uri.parse(ssoUrl));
+        // 認可した credential を次の更新で試せるよう、ブロック判定を捨てる
+        resetGitHubSsoCache();
       } else if (action === authAction) {
         await showAuthHelp();
       }
@@ -3572,6 +3617,9 @@ export function activate(
         );
         browseProvider.refresh();
       } catch (error: unknown) {
+        if (await offerGitHubFailureRecovery(error, messages.updateFailed)) {
+          return;
+        }
         const errorMessage =
           error instanceof Error ? error.message : String(error);
         if (
@@ -3639,6 +3687,9 @@ export function activate(
         );
         browseProvider.refresh();
       } catch (error: unknown) {
+        if (await offerGitHubFailureRecovery(error, messages.updateFailed)) {
+          return;
+        }
         const errorMessage =
           error instanceof Error ? error.message : String(error);
         if (
@@ -3725,6 +3776,9 @@ export function activate(
         // 更新されたインデックスを直接設定
         browseProvider.setIndex(skillIndex);
       } catch (error: unknown) {
+        if (await offerGitHubFailureRecovery(error, messages.addSourceFailed)) {
+          return;
+        }
         const errorMessage =
           error instanceof Error ? error.message : String(error);
         if (
@@ -4558,6 +4612,7 @@ Add examples here
         plaintextTokensLeft = (await removeLegacyConfiguredGitHubTokens())
           .remaining;
         await resetLegacyPlaintextPrompt();
+        resetGitHubSsoCache();
         await context.workspaceState.update(
           MISSING_INDEX_WARNING_DISMISSED_KEY,
           undefined,
@@ -4583,7 +4638,10 @@ Add examples here
 
   const clearGitHubTokenCmd = vscode.commands.registerCommand(
     "skillNinja.clearGitHubToken",
-    clearStoredGitHubTokenWithFeedback,
+    async () => {
+      await clearStoredGitHubTokenWithFeedback();
+      resetGitHubSsoCache();
+    },
   );
 
   // Command: Copy URL (for Browse view)

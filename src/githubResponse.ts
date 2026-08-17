@@ -14,6 +14,7 @@ export class GitHubResponseError extends Error {
     public readonly status: number,
     message: string,
     public readonly resetAt?: string,
+    public readonly ssoAuthorizationUrl?: string,
   ) {
     super(message);
     this.name = "GitHubResponseError";
@@ -117,6 +118,39 @@ export function classifyTransportError(
   return undefined;
 }
 
+/**
+ * `X-GitHub-SSO: required; url=...` から SSO 認可先を取る。
+ * `authorization_request` は短命の capability なので保持せず、query を落とす。
+ */
+export function extractSsoAuthorizationUrl(
+  response: Pick<Response, "headers">,
+): string | undefined {
+  const headers = response.headers;
+  const header =
+    typeof headers?.get === "function" ? headers.get("x-github-sso") || "" : "";
+  const match = /url="?([^\s;,"]+)"?/i.exec(header);
+  if (!match) {
+    return undefined;
+  }
+
+  let parsed: URL;
+  try {
+    parsed = new URL(match[1]);
+  } catch {
+    return undefined;
+  }
+
+  if (parsed.protocol !== "https:" || parsed.host !== "github.com") {
+    return undefined;
+  }
+
+  if (!/^\/(orgs|enterprises)\/[^/]+\/sso$/.test(parsed.pathname)) {
+    return undefined;
+  }
+
+  return `https://github.com${parsed.pathname}`;
+}
+
 function getRateLimitResetAt(
   response: Pick<Response, "headers">,
 ): string | undefined {
@@ -161,6 +195,7 @@ export function createGitHubResponseError(
     response.status,
     `${context}: ${detail}`,
     resetAt,
+    kind === "sso-required" ? extractSsoAuthorizationUrl(response) : undefined,
   );
 }
 
