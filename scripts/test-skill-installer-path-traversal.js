@@ -408,11 +408,16 @@ async function main() {
       },
     });
 
-    await installDemo(harness);
+    const result = await installDemo(harness);
 
     const metaFsPath = posixPathToFsPath(`${ROOT_POSIX}/demo/.skill-meta.json`);
     const written = harness.files.get(metaFsPath);
     assert.ok(written, "the extension must write its own metadata");
+    assert.deepStrictEqual(
+      result.skippedUnsafeEntries,
+      undefined,
+      "extension-owned metadata must not be reported as an unsafe file name",
+    );
 
     const parsed = JSON.parse(written);
     assert.strictEqual(

@@ -875,6 +875,7 @@ test("README files document the path containment contract", () => {
   for (const phrase of [
     "Unsafe file names from a source are skipped",
     "cannot ship its own",
+    "silently ignored rather than counted as an unsafe file name",
     "still gets its own folder",
     "Leftover files directly in a skill root are reported once",
     "Bulk delete reports what actually happened",
@@ -885,6 +886,7 @@ test("README files document the path containment contract", () => {
   for (const phrase of [
     "安全でないファイル名は、インストールせずに除外します",
     "配布元が同梱した `.skill-meta.json` は使いません",
+    "安全でないファイル名として数えず静かに無視し",
     "専用フォルダを作ります",
     "スキルルート直下の残骸は 1 回だけ通知します",
     "一括削除は実際の結果を報告します",

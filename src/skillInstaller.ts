@@ -495,7 +495,6 @@ async function downloadDirectory(
     }
 
     if (isExtensionOwnedFileName(entry.name)) {
-      skippedUnsafeEntries.push(entry.name);
       console.warn(
         `[Skill Ninja] Skipping extension-owned metadata shipped by the source: ${entry.name}`,
       );

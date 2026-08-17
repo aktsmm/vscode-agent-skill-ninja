@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.9.44] - 2026-08-18
+
+### Fixed
+
+- ⚠️ **Source Metadata No Longer Looks Like An Unsafe File Name** - A source-provided `.skill-meta.json` is still ignored and replaced with extension-owned metadata, but it no longer triggers the unsafe-file warning, telemetry count, or bulk-install excluded count. Genuinely unsafe path segments continue to be rejected and reported / 配布元が同梱した `.skill-meta.json` は従来どおり無視し、拡張が管理するメタデータへ置き換える一方、安全でないファイル名の警告・telemetry・一括インストールの除外件数には数えないよう修正。実際に危険なパスセグメントは引き続き拒否して報告する
+- 🧭 **Preset Updates Keep Installable Paths And Stable Ownership** - The preset generator now excludes repository-root `SKILL.md` files that the installer cannot target, rejects empty paths in the bundled index, and prevents a partial source refresh from stealing a duplicate skill name from an untouched source. Index `v1.28.0` contains 1851 installable skills across 13 sources / preset generator でインストーラーが対象化できないリポジトリルートの `SKILL.md` を除外し、bundled index の空 path を拒否するとともに、source 限定更新が未更新 source の同名 skill を奪わないよう修正。index `v1.28.0` は13 source・1851件のインストール可能なskillを収録
+
 ## [0.9.43] - 2026-08-17
 
 ### Security

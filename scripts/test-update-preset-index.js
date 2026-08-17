@@ -8,6 +8,7 @@ const {
   isSkillPathAllowed,
   processTree,
   assertNoUnexpectedShrink,
+  mergeUpdatedSkills,
 } = require("./update-preset-index.js");
 
 const pending = [];
@@ -126,6 +127,17 @@ test("every source contributes at least one skill", () => {
   assert.deepStrictEqual(empty, [], `Sources without skills: ${empty}`);
 });
 
+test("every bundled skill has a non-empty install path", () => {
+  const emptyPaths = skillIndex.skills
+    .filter((skill) => !String(skill.path || "").trim())
+    .map((skill) => `${skill.source}:${skill.name}`);
+  assert.deepStrictEqual(
+    emptyPaths,
+    [],
+    `Skills with empty paths: ${emptyPaths}`,
+  );
+});
+
 test("skill names are unique across the index", () => {
   const seen = new Set();
   const duplicates = [];
@@ -241,6 +253,17 @@ test("the preset index generator refuses truncated GitHub trees", async () => {
   );
 });
 
+test("the preset index generator skips a repository-root SKILL.md", async () => {
+  const skills = await processTree(
+    { tree: [{ type: "blob", path: "SKILL.md" }] },
+    "example",
+    "demo",
+    "main",
+    { id: "demo" },
+  );
+  assert.deepStrictEqual(skills, []);
+});
+
 test("the preset index generator refuses scanners it cannot run", async () => {
   await assert.rejects(
     () =>
@@ -266,6 +289,27 @@ test("the generator refuses a sharp per-source skill drop", () => {
   assert.ok(assertNoUnexpectedShrink(source, 850, 100));
   assert.strictEqual(assertNoUnexpectedShrink(source, 850, 840), undefined);
   assert.strictEqual(assertNoUnexpectedShrink(source, 0, 0), undefined);
+});
+
+test("a partial update cannot steal a name from an untouched source", () => {
+  const merged = mergeUpdatedSkills(
+    [
+      { name: "shared", source: "updated", path: "skills/shared" },
+      { name: "new", source: "updated", path: "skills/new" },
+    ],
+    [
+      { name: "shared", source: "untouched", path: "skills/shared" },
+      { name: "old", source: "updated", path: "skills/old" },
+    ],
+    new Set(["updated"]),
+  );
+
+  assert.strictEqual(
+    merged.find((skill) => skill.name === "shared").source,
+    "untouched",
+  );
+  assert.ok(merged.some((skill) => skill.name === "new"));
+  assert.ok(!merged.some((skill) => skill.name === "old"));
 });
 
 test("regenerated sources carry a lastIndexedAt stamp", () => {

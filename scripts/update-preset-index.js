@@ -251,6 +251,25 @@ function assertNoUnexpectedShrink(source, previousCount, nextCount) {
   return undefined;
 }
 
+function mergeUpdatedSkills(updatedSkills, existingSkills, updatedSourceIds) {
+  const candidates = [
+    ...existingSkills.filter((skill) => !updatedSourceIds.has(skill.source)),
+    ...updatedSkills,
+  ];
+  const uniqueSkills = [];
+  const seenSkills = new Set();
+
+  for (const skill of candidates) {
+    const key = skill.name.toLowerCase();
+    if (!seenSkills.has(key)) {
+      seenSkills.add(key);
+      uniqueSkills.push(skill);
+    }
+  }
+
+  return uniqueSkills;
+}
+
 /**
  * リポジトリ内の SKILL.md ファイルを検索
  */
@@ -306,8 +325,7 @@ async function processTree(data, owner, repoName, branch, source) {
     if (item.type !== "blob") return false;
     const lowerPath = item.path.toLowerCase();
     return (
-      (lowerPath === "skill.md" || lowerPath.endsWith("/skill.md")) &&
-      isSkillPathAllowed(item.path, source)
+      lowerPath.endsWith("/skill.md") && isSkillPathAllowed(item.path, source)
     );
   });
 
@@ -602,25 +620,15 @@ async function main() {
     process.exit(1);
   }
 
-  if (SOURCE_FILTER.length > 0) {
-    const untouchedSkills = index.skills.filter(
-      (skill) => !SOURCE_FILTER.includes(skill.source),
-    );
-    allSkills.push(...untouchedSkills);
-  }
-
   // 重複を除去（name で判定）
   // インストール先ディレクトリは skill name ベースのため、
   // 同名スキルを複数残すと上書き衝突を起こす。
-  const uniqueSkills = [];
-  const seenSkills = new Set();
-  for (const skill of allSkills) {
-    const key = skill.name.toLowerCase();
-    if (!seenSkills.has(key)) {
-      seenSkills.add(key);
-      uniqueSkills.push(skill);
-    }
-  }
+  const updatedSourceIds = new Set(sourcesToUpdate.map((source) => source.id));
+  const uniqueSkills = mergeUpdatedSkills(
+    allSkills,
+    index.skills,
+    updatedSourceIds,
+  );
 
   // ソート
   uniqueSkills.sort((a, b) => a.name.localeCompare(b.name));
@@ -629,7 +637,6 @@ async function main() {
   // 再生成したソースには lastIndexedAt を刻む。無いと index.lastUpdated が代用され、
   // 全ソースが同じ日に一斉 stale 化する。
   const indexedAt = new Date().toISOString();
-  const updatedSourceIds = new Set(sourcesToUpdate.map((source) => source.id));
   // source を絞った再生成は index 全体の鮮度ではないので lastUpdated を進めない
   const scannedEverySource = SOURCE_FILTER.length === 0;
   const newIndex = {
@@ -673,4 +680,5 @@ module.exports = {
   isSkillPathAllowed,
   processTree,
   assertNoUnexpectedShrink,
+  mergeUpdatedSkills,
 };
