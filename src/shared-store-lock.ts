@@ -8,6 +8,7 @@ import {
   SHARED_STORE_LOCK_HARD_STALE_MS,
   SHARED_STORE_LOCK_HEARTBEAT_MS,
   SHARED_STORE_LOCK_MAX_BYTES,
+  SHARED_STORE_LOCK_RECLAIM_SUFFIX,
   SHARED_STORE_LOCK_RETRY_COUNT,
   SHARED_STORE_LOCK_STALE_MS,
   SHARED_STORE_RETRY_DELAY_MS,
@@ -40,6 +41,52 @@ export class SharedStoreLeaseLostError extends Error {
     super(`Shared store lease was lost (generation: ${generation})`);
     this.name = "SharedStoreLeaseLostError";
   }
+}
+
+export const SHARED_STORE_LOCK_UNAVAILABLE_MESSAGE =
+  "Failed to acquire shared store lock";
+
+/**
+ * 共有ストアを他ツールと共有する以上、lock を取れないのは想定内の結果。
+ * 呼び出し側が message 一致を書かなくて済むよう、ここで分類する。
+ */
+export function describeSharedStoreLockFailure(
+  error: unknown,
+): "lease-lost" | "lock-unavailable" | undefined {
+  if (error instanceof SharedStoreLeaseLostError) {
+    return "lease-lost";
+  }
+  if (!(error instanceof Error)) {
+    return undefined;
+  }
+  return error.message === SHARED_STORE_LOCK_UNAVAILABLE_MESSAGE
+    ? "lock-unavailable"
+    : undefined;
+}
+
+interface SharedStoreLockRuntime {
+  now(): number;
+  isProcessAlive(pid: number): boolean;
+  createGeneration(): string;
+}
+
+const DEFAULT_RUNTIME: SharedStoreLockRuntime = {
+  now: () => Date.now(),
+  isProcessAlive: isProcessAliveBySignal,
+  createGeneration: () => crypto.randomUUID(),
+};
+
+let runtime: SharedStoreLockRuntime = { ...DEFAULT_RUNTIME };
+
+/** 時刻・生存・世代は環境であって振る舞いではないので、テストから差し替えられるようにする。 */
+export function configureSharedStoreLockRuntime(
+  overrides: Partial<SharedStoreLockRuntime>,
+): void {
+  runtime = { ...runtime, ...overrides };
+}
+
+export function resetSharedStoreLockRuntime(): void {
+  runtime = { ...DEFAULT_RUNTIME };
 }
 
 async function delay(milliseconds: number): Promise<void> {
@@ -118,7 +165,7 @@ async function readLockPayload(
 }
 
 /** 記録された pid が生きているなら、その所有者はまだ動いている可能性が高い */
-function isProcessAlive(pid: number): boolean {
+function isProcessAliveBySignal(pid: number): boolean {
   if (!Number.isInteger(pid) || pid <= 0) {
     return false;
   }
@@ -156,14 +203,14 @@ async function removeStaleLock(lockPath: string): Promise<void> {
       return;
     }
 
-    const age = Date.now() - acquiredAt;
+    const age = runtime.now() - acquiredAt;
     if (age <= SHARED_STORE_LOCK_STALE_MS) {
       return;
     }
 
     if (
       age <= SHARED_STORE_LOCK_HARD_STALE_MS &&
-      isProcessAlive(state.payload.pid)
+      runtime.isProcessAlive(state.payload.pid)
     ) {
       return;
     }
@@ -183,7 +230,7 @@ async function removeStaleLock(lockPath: string): Promise<void> {
   }
   if (
     state.mtimeMs === undefined ||
-    Date.now() - state.mtimeMs <= SHARED_STORE_LOCK_STALE_MS
+    runtime.now() - state.mtimeMs <= SHARED_STORE_LOCK_STALE_MS
   ) {
     return;
   }
@@ -205,7 +252,7 @@ async function removeStaleLock(lockPath: string): Promise<void> {
  * rename を奪われた所有者は heartbeat の世代不一致で lease 喪失を検知して書き込みを止める。
  */
 async function reclaimLockFile(lockPath: string): Promise<void> {
-  const reclaimPath = `${lockPath}.reclaim-${crypto.randomUUID()}`;
+  const reclaimPath = `${lockPath}${SHARED_STORE_LOCK_RECLAIM_SUFFIX}${runtime.createGeneration()}`;
   try {
     await fs.rename(lockPath, reclaimPath);
   } catch {
@@ -289,10 +336,10 @@ export async function withSharedStoreLock<T>(
   await fs.mkdir(sharedDir, { recursive: true });
 
   for (let attempt = 0; attempt < SHARED_STORE_LOCK_RETRY_COUNT; attempt += 1) {
-    const generation = crypto.randomUUID();
+    const generation = runtime.createGeneration();
     const payload: SharedStoreLockPayload = {
       pid: typeof process.pid === "number" ? process.pid : -1,
-      acquiredAt: new Date().toISOString(),
+      acquiredAt: new Date(runtime.now()).toISOString(),
       extensionId,
       generation,
     };
@@ -340,7 +387,7 @@ export async function withSharedStoreLock<T>(
         await fs.writeFile(
           refreshPath,
           JSON.stringify(
-            { ...current, acquiredAt: new Date().toISOString() },
+            { ...current, acquiredAt: new Date(runtime.now()).toISOString() },
             null,
             2,
           ),
@@ -387,5 +434,5 @@ export async function withSharedStoreLock<T>(
     }
   }
 
-  throw new Error("Failed to acquire shared store lock");
+  throw new Error(SHARED_STORE_LOCK_UNAVAILABLE_MESSAGE);
 }

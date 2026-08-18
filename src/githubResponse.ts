@@ -233,33 +233,3 @@ export function createGitHubResponseError(
     kind === "sso-required" ? extractSsoAuthorizationUrl(response) : undefined,
   );
 }
-
-export async function retryGitHubRequestAnonymously(
-  response: Response,
-  hasToken: boolean,
-  requestWithoutToken: () => Promise<Response>,
-): Promise<Response> {
-  if (!hasToken || response.ok) {
-    return response;
-  }
-
-  const bodyText = await response
-    .clone()
-    .text()
-    .catch(() => "");
-  const failureKind = classifyGitHubFailure(response, bodyText);
-  if (
-    failureKind !== "sso-required" &&
-    failureKind !== "classic-pat-forbidden" &&
-    failureKind !== "auth-required"
-  ) {
-    return response;
-  }
-
-  try {
-    const retryResponse = await requestWithoutToken();
-    return retryResponse.ok ? retryResponse : response;
-  } catch {
-    return response;
-  }
-}

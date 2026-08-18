@@ -32,6 +32,8 @@ export const SHARED_AGENT_NINJA_DIR_WINDOWS = "agent-ninja";
 export const SHARED_SOURCES_MANIFEST_FILE = "sources.json";
 export const SHARED_SOURCES_MANIFEST_TEMP_FILE = "sources.json.tmp";
 export const SHARED_STORE_LOCK_FILE = "index.lock";
+// 回収は削除ではなく rename なので、遷移先の prefix も sibling との契約に含む
+export const SHARED_STORE_LOCK_RECLAIM_SUFFIX = ".reclaim-";
 export const SHARED_STORE_RETRY_DELAY_MS = 100;
 export const SHARED_STORE_LOCK_RETRY_COUNT = 5;
 export const SHARED_STORE_LOCK_STALE_MS = 60 * 1000;

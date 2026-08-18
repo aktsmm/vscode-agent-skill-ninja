@@ -210,7 +210,7 @@ const jaMessages = {
     "gh CLI のアクティブアカウント「{0}」が GitHub API の制限に達しています。トークン自体は有効なので、削除しないでください。",
   ghSwitchAccountAction: "「{0}」に切り替えて再試行",
   ghSwitchAccountConfirm:
-    "gh CLI のアクティブアカウントを「{0}」へ切り替えます。この変更は VS Code 内だけでなく、端末の gh コマンド全体に適用されます。続行しますか？",
+    "gh CLI のアクティブアカウントを「{0}」へ切り替えます。この変更は VS Code 内だけでなく、保存済みの github.com 資格情報を使う gh コマンド全体に適用されます。続行しますか？",
   ghSwitchAccountConfirmAction: "切り替える",
   ghSwitchAccountSucceeded:
     "gh CLI のアクティブアカウントを「{0}」へ切り替えました。",
@@ -485,7 +485,7 @@ const enMessages: MessageDictionary = {
     'The active gh CLI account "{0}" hit the GitHub API rate limit. The token itself is still valid, so do not delete it.',
   ghSwitchAccountAction: 'Switch to "{0}" and retry',
   ghSwitchAccountConfirm:
-    'This switches the active gh CLI account to "{0}". The change applies to every gh command on this machine, not just VS Code. Continue?',
+    'This switches the active gh CLI account to "{0}". The change applies to every gh command that uses the stored github.com credential, not just VS Code. Continue?',
   ghSwitchAccountConfirmAction: "Switch",
   ghSwitchAccountSucceeded: 'Switched the active gh CLI account to "{0}".',
   ghSwitchAccountFailed:

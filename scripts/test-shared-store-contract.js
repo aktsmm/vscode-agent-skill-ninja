@@ -71,21 +71,23 @@ require.cache[VSCODE_STUB_ID] = {
     ConfigurationTarget: { Global: 1, Workspace: 2, WorkspaceFolder: 3 },
   },
 };
+const fsPromisesStub = {
+  ...realFsPromises,
+  async link(...args) {
+    if (forcedLinkErrorCode) {
+      const error = new Error(`forced ${forcedLinkErrorCode}`);
+      error.code = forcedLinkErrorCode;
+      throw error;
+    }
+    return realFsPromises.link(...args);
+  },
+};
+
 require.cache[FS_PROMISES_STUB_ID] = {
   id: FS_PROMISES_STUB_ID,
   filename: FS_PROMISES_STUB_ID,
   loaded: true,
-  exports: {
-    ...realFsPromises,
-    async link(...args) {
-      if (forcedLinkErrorCode) {
-        const error = new Error(`forced ${forcedLinkErrorCode}`);
-        error.code = forcedLinkErrorCode;
-        throw error;
-      }
-      return realFsPromises.link(...args);
-    },
-  },
+  exports: fsPromisesStub,
 };
 
 const srcDir = path.join(__dirname, "..", "src");
@@ -192,9 +194,247 @@ async function run() {
     });
   });
 
-  await test("stale locks are reclaimed by rename, not deletion (source pin)", () => {
-    // rename 後に reclaim path を消すので観測可能な痕跡が残らない。ここだけ source 固定
-    assert.match(lockSource, /\.reclaim-\$\{/);
+  await test("stale locks are reclaimed by rename, not deletion", async () => {
+    await cleanSharedDir();
+
+    assert.strictEqual(
+      sharedManifest.SHARED_STORE_LOCK_RECLAIM_SUFFIX,
+      ".reclaim-",
+    );
+
+    // 「削除ではなく rename」なので、観測点は rename そのものにする
+    const realRename = realFsPromises.rename;
+    const renames = [];
+    fsPromisesStub.rename = async (from, to, ...rest) => {
+      renames.push({ from: String(from), to: String(to) });
+      return realRename(from, to, ...rest);
+    };
+
+    try {
+      const staleAt = new Date(Date.now() - 30 * 60 * 1000).toISOString();
+      await fs.promises.writeFile(
+        lockPath,
+        JSON.stringify({
+          pid: 999999,
+          acquiredAt: staleAt,
+          extensionId: "gone",
+          generation: "stale-generation",
+        }),
+        "utf8",
+      );
+
+      let acquired = false;
+      await withSharedStoreLock("contract-test", async () => {
+        acquired = true;
+      });
+
+      assert.ok(acquired, "a stale lock must be reclaimed");
+
+      const reclaimRenames = renames.filter(
+        (entry) =>
+          entry.from === lockPath &&
+          entry.to.startsWith(
+            `${lockPath}${sharedManifest.SHARED_STORE_LOCK_RECLAIM_SUFFIX}`,
+          ),
+      );
+      assert.strictEqual(
+        reclaimRenames.length,
+        1,
+        `the stale lock must be renamed aside, not deleted: ${JSON.stringify(renames)}`,
+      );
+    } finally {
+      fsPromisesStub.rename = realRename;
+    }
+  });
+
+  await test("a lock held by a live owner is kept until the hard stale cutoff", async () => {
+    const lockModule = require(path.join(srcDir, "shared-store-lock.ts"));
+    let clock = Date.parse("2026-08-18T00:00:00.000Z");
+
+    // 実時間を待たず stale / hard-stale の両側を通す
+    lockModule.configureSharedStoreLockRuntime({
+      now: () => clock,
+      isProcessAlive: () => true,
+    });
+
+    try {
+      await cleanSharedDir();
+      await fs.promises.writeFile(
+        lockPath,
+        JSON.stringify({
+          pid: 4242,
+          acquiredAt: new Date(clock).toISOString(),
+          extensionId: "live-owner",
+          generation: "live-generation",
+        }),
+        "utf8",
+      );
+
+      // stale を超えても、所有者が生きている間は奪わない
+      clock += sharedManifest.SHARED_STORE_LOCK_STALE_MS + 60 * 1000;
+      await assert.rejects(
+        withSharedStoreLock("contract-test", async () => undefined),
+        new RegExp(lockModule.SHARED_STORE_LOCK_UNAVAILABLE_MESSAGE),
+      );
+
+      // hard stale を超えたら pid 再利用に備えて回収する
+      clock += sharedManifest.SHARED_STORE_LOCK_HARD_STALE_MS;
+      let acquired = false;
+      await withSharedStoreLock("contract-test", async () => {
+        acquired = true;
+      });
+      assert.ok(
+        acquired,
+        "the hard stale cutoff must reclaim a live-looking owner",
+      );
+    } finally {
+      lockModule.resetSharedStoreLockRuntime();
+    }
+  });
+
+  await test("a dead owner is reclaimed as soon as it is stale", async () => {
+    const lockModule = require(path.join(srcDir, "shared-store-lock.ts"));
+    const startedAt = Date.parse("2026-08-18T00:00:00.000Z");
+    let clock = startedAt;
+
+    // 生存判定を実際に使っていなければ、この窓では回収されない
+    lockModule.configureSharedStoreLockRuntime({
+      now: () => clock,
+      isProcessAlive: () => false,
+    });
+
+    try {
+      await cleanSharedDir();
+      await fs.promises.writeFile(
+        lockPath,
+        JSON.stringify({
+          pid: 4242,
+          acquiredAt: new Date(clock).toISOString(),
+          extensionId: "dead-owner",
+          generation: "dead-generation",
+        }),
+        "utf8",
+      );
+
+      // stale は超えるが hard stale には届かない窓に置く
+      clock += sharedManifest.SHARED_STORE_LOCK_STALE_MS + 60 * 1000;
+      assert.ok(
+        clock - startedAt < sharedManifest.SHARED_STORE_LOCK_HARD_STALE_MS,
+        "the fixture must stay inside the hard stale window",
+      );
+
+      let acquired = false;
+      await withSharedStoreLock("contract-test", async () => {
+        acquired = true;
+      });
+      assert.ok(
+        acquired,
+        "a stale lock whose owner is gone must be reclaimed before the hard cutoff",
+      );
+    } finally {
+      lockModule.resetSharedStoreLockRuntime();
+    }
+  });
+
+  await test("lock failures are classified without message matching", () => {
+    const lockModule = require(path.join(srcDir, "shared-store-lock.ts"));
+
+    assert.strictEqual(
+      lockModule.describeSharedStoreLockFailure(
+        new Error(lockModule.SHARED_STORE_LOCK_UNAVAILABLE_MESSAGE),
+      ),
+      "lock-unavailable",
+    );
+    assert.strictEqual(
+      lockModule.describeSharedStoreLockFailure(
+        new lockModule.SharedStoreLeaseLostError("gen"),
+      ),
+      "lease-lost",
+    );
+    assert.strictEqual(
+      lockModule.describeSharedStoreLockFailure(new Error("disk full")),
+      undefined,
+    );
+    assert.strictEqual(
+      lockModule.describeSharedStoreLockFailure("nope"),
+      undefined,
+    );
+  });
+
+  await test("the real acquisition failure classifies as lock-unavailable", async () => {
+    const lockModule = require(path.join(srcDir, "shared-store-lock.ts"));
+    const clock = Date.parse("2026-08-18T00:00:00.000Z");
+
+    // 構築した Error ではなく、実際に withSharedStoreLock が投げたものを分類する
+    lockModule.configureSharedStoreLockRuntime({
+      now: () => clock,
+      isProcessAlive: () => true,
+    });
+
+    try {
+      await cleanSharedDir();
+      await fs.promises.writeFile(
+        lockPath,
+        JSON.stringify({
+          pid: 4242,
+          acquiredAt: new Date(clock).toISOString(),
+          extensionId: "live-owner",
+          generation: "held-generation",
+        }),
+        "utf8",
+      );
+
+      let thrown;
+      try {
+        await withSharedStoreLock("contract-test", async () => undefined);
+      } catch (error) {
+        thrown = error;
+      }
+
+      assert.ok(thrown, "acquisition should fail while the lock is held");
+      assert.strictEqual(
+        lockModule.describeSharedStoreLockFailure(thrown),
+        "lock-unavailable",
+      );
+    } finally {
+      lockModule.resetSharedStoreLockRuntime();
+    }
+  });
+
+  await test("a lease stolen mid-task is detected before the commit", async () => {
+    await cleanSharedDir();
+
+    let fenceOutcome;
+    await withSharedStoreLock("contract-test", async (lease) => {
+      lease.assertHeld();
+
+      // 別プロセスが取り直した状況を、世代の違う payload で再現する
+      await fs.promises.writeFile(
+        lockPath,
+        JSON.stringify({
+          pid: process.pid,
+          acquiredAt: new Date().toISOString(),
+          extensionId: "other-extension",
+          generation: "stolen-generation",
+        }),
+        "utf8",
+      );
+
+      try {
+        await lease.assertStillOwned();
+        fenceOutcome = "not-detected";
+      } catch (error) {
+        fenceOutcome = require(
+          path.join(srcDir, "shared-store-lock.ts"),
+        ).describeSharedStoreLockFailure(error);
+      }
+    });
+
+    assert.strictEqual(
+      fenceOutcome,
+      "lease-lost",
+      "commit-time fence must reject a lease taken over by another writer",
+    );
   });
 
   await test("an oversized lock body is ignored instead of being parsed", async () => {

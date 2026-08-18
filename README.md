@@ -544,6 +544,10 @@ gh auth login
 
 If GitHub CLI is installed, the token is automatically retrieved and no extension setting is required.
 
+> **Multiple gh accounts**: the extension reads the credential with `gh auth token`, without `--user`, so it always gets the **active** account. If you are signed in to several accounts and the active one has an expired or revoked token, authentication fails even though `gh auth status` shows another account as healthy. Run `gh auth status` to see which account is active, then `gh auth refresh -h github.com` or `gh auth switch -h github.com -u <account>`.
+>
+> When this happens the extension names the active account in the error, tells apart an invalid credential from a rate limit, and offers to switch to another signed-in account. Confirming changes the stored `github.com` credential that every `gh` command uses, not just VS Code, and the operation that failed is retried for you. `GH_TOKEN` and `GITHUB_TOKEN` still take precedence where they are set.
+
 ### Option 2: Environment Variable
 
 Set `GITHUB_TOKEN` or `GH_TOKEN` in your shell or OS environment. This avoids storing credentials in VS Code settings.

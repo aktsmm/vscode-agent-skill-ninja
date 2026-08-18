@@ -529,6 +529,41 @@ function isGitHubAuthFailure(error: unknown): boolean {
   );
 }
 
+// 再試行中の失敗からさらに再試行を提案すると、同じ操作を無限に往復できてしまう
+let authRecoveryRetryInFlight = false;
+
+/**
+ * 認証を直せたときだけ、失敗した操作そのものを 1 回だけやり直す。
+ * command を再実行すると入力を再要求するので、呼び出し側は捕捉済みの引数を閉じ込めた
+ * closure を渡す。
+ */
+async function showAuthHelpWithRetry(
+  retryFailedOperation: () => Promise<void>,
+): Promise<void> {
+  await runAuthHelp(retryFailedOperation);
+}
+
+/** onRecoveredを持たない呼び出しも同じ再入防止を通るよう、ここへ集める */
+async function runAuthHelp(
+  retryFailedOperation?: () => Promise<void>,
+): Promise<void> {
+  if (!retryFailedOperation || authRecoveryRetryInFlight) {
+    await showAuthHelp();
+    return;
+  }
+
+  await showAuthHelp({
+    onRecovered: async () => {
+      authRecoveryRetryInFlight = true;
+      try {
+        await retryFailedOperation();
+      } finally {
+        authRecoveryRetryInFlight = false;
+      }
+    },
+  });
+}
+
 /**
  * 文字列一致ではなく分類で GitHub の失敗を扱う。扱えなければ false を返し、
  * 呼び出し側の既定処理へ戻す。
@@ -544,7 +579,7 @@ async function offerGitHubFailureRecovery(
 
   const ssoUrl = error.ssoAuthorizationUrl;
   if (!ssoUrl) {
-    await showAuthHelp({ onRecovered });
+    await runAuthHelp(onRecovered);
     return true;
   }
 
@@ -559,7 +594,7 @@ async function offerGitHubFailureRecovery(
     await vscode.env.openExternal(vscode.Uri.parse(ssoUrl));
     resetGitHubSsoCache();
   } else if (action === authAction) {
-    await showAuthHelp({ onRecovered });
+    await runAuthHelp(onRecovered);
   }
 
   return true;
@@ -2529,7 +2564,8 @@ export function activate(
         return;
       }
 
-      try {
+      // 対象 skill と targetRoot を閉じ込めておき、再試行で選び直させない
+      const runInstall = async () => {
         let installStatus: SkillInstallStatus = "ok";
         await vscode.window.withProgress(
           {
@@ -2613,6 +2649,10 @@ export function activate(
             error,
           );
         }
+      };
+
+      try {
+        await runInstall();
       } catch (error) {
         // 不完全インストールは installSkill 側で回復手段付きの通知済み
         if (error instanceof SkillInstallIncompleteError) {
@@ -2622,7 +2662,7 @@ export function activate(
         const errorMessage =
           error instanceof Error ? error.message : String(error);
         if (isGitHubAuthFailure(error)) {
-          await showAuthHelp();
+          await showAuthHelpWithRetry(runInstall);
         } else {
           vscode.window.showErrorMessage(messages.installFailed(errorMessage));
         }
@@ -3811,7 +3851,7 @@ export function activate(
 
       const oldCount = skillIndex.skills.length;
 
-      try {
+      const runIndexUpdate = async () => {
         await vscode.window.withProgress(
           {
             location: vscode.ProgressLocation.Notification,
@@ -3827,21 +3867,32 @@ export function activate(
             );
           },
         );
-        const newCount = skillIndex.skills.length;
+        const updatedIndex = await getRemoteSourceIndex();
+        const newCount = updatedIndex.skills.length;
         const diff = newCount - oldCount;
         const diffText = diff > 0 ? `+${diff}` : diff === 0 ? "±0" : `${diff}`;
         vscode.window.showInformationMessage(
           messages.indexUpdated(oldCount, newCount, diffText),
         );
         browseProvider.refresh();
+      };
+
+      try {
+        await runIndexUpdate();
       } catch (error: unknown) {
-        if (await offerGitHubFailureRecovery(error, messages.updateFailed)) {
+        if (
+          await offerGitHubFailureRecovery(
+            error,
+            messages.updateFailed,
+            runIndexUpdate,
+          )
+        ) {
           return;
         }
         const errorMessage =
           error instanceof Error ? error.message : String(error);
         if (isGitHubAuthFailure(error)) {
-          await showAuthHelp();
+          await showAuthHelpWithRetry(runIndexUpdate);
         } else {
           vscode.window.showErrorMessage(messages.updateFailed(errorMessage));
         }
@@ -3870,7 +3921,8 @@ export function activate(
         (s) => s.source === sourceId,
       ).length;
 
-      try {
+      // 対象 sourceId を閉じ込めておき、再試行で対象を選び直させない
+      const runSourceUpdate = async () => {
         await vscode.window.withProgress(
           {
             location: vscode.ProgressLocation.Notification,
@@ -3887,7 +3939,8 @@ export function activate(
             );
           },
         );
-        const newCount = skillIndex.skills.filter(
+        const updatedIndex = await getRemoteSourceIndex();
+        const newCount = updatedIndex.skills.filter(
           (s) => s.source === sourceId,
         ).length;
         const diff = newCount - oldCount;
@@ -3901,14 +3954,24 @@ export function activate(
           ),
         );
         browseProvider.refresh();
+      };
+
+      try {
+        await runSourceUpdate();
       } catch (error: unknown) {
-        if (await offerGitHubFailureRecovery(error, messages.updateFailed)) {
+        if (
+          await offerGitHubFailureRecovery(
+            error,
+            messages.updateFailed,
+            runSourceUpdate,
+          )
+        ) {
           return;
         }
         const errorMessage =
           error instanceof Error ? error.message : String(error);
         if (isGitHubAuthFailure(error)) {
-          await showAuthHelp();
+          await showAuthHelpWithRetry(runSourceUpdate);
         } else {
           vscode.window.showErrorMessage(messages.updateFailed(errorMessage));
         }
@@ -3980,7 +4043,8 @@ export function activate(
 
       skillIndex = await getRemoteSourceIndex();
 
-      try {
+      // 入力済みの repoUrl を閉じ込めておき、再試行で URL を聞き直さない
+      const runAddSource = async () => {
         const result = await vscode.window.withProgress(
           {
             location: vscode.ProgressLocation.Notification,
@@ -3999,14 +4063,24 @@ export function activate(
         );
         // 更新されたインデックスを直接設定
         browseProvider.setIndex(skillIndex);
+      };
+
+      try {
+        await runAddSource();
       } catch (error: unknown) {
-        if (await offerGitHubFailureRecovery(error, messages.addSourceFailed)) {
+        if (
+          await offerGitHubFailureRecovery(
+            error,
+            messages.addSourceFailed,
+            runAddSource,
+          )
+        ) {
           return;
         }
         const errorMessage =
           error instanceof Error ? error.message : String(error);
         if (isGitHubAuthFailure(error)) {
-          await showAuthHelp();
+          await showAuthHelpWithRetry(runAddSource);
         } else if (errorMessage.includes("No skills found")) {
           vscode.window.showWarningMessage(messages.noSkillsInRepo());
         } else {

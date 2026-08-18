@@ -161,6 +161,122 @@ test("status codes are never matched as bare substrings", () => {
   }
 });
 
+test("auth recovery re-runs the failed operation instead of stopping", () => {
+  // 認証を直せた直後にユーザーへ同じ操作をやり直させない
+  const wired = extensionSource.match(/showAuthHelpWithRetry\(/g) || [];
+  assert.ok(
+    wired.length >= 4,
+    `command handlers should retry after recovery (found ${wired.length})`,
+  );
+
+  // 再試行中の失敗からさらに再試行を提案すると同じ操作を往復できる
+  assert.match(extensionSource, /authRecoveryRetryInFlight/);
+
+  // command 再実行だと入力を聞き直すので、捕捉済みの引数を閉じ込める
+  for (const closure of [
+    "runInstall",
+    "runIndexUpdate",
+    "runSourceUpdate",
+    "runAddSource",
+  ]) {
+    assert.match(
+      extensionSource,
+      new RegExp(`showAuthHelpWithRetry\\(${closure}\\)`),
+      `${closure} should be reused as the retry closure`,
+    );
+  }
+
+  // 分類済みエラーは offerGitHubFailureRecovery が先に処理して return するため、
+  // そちらへ closure を渡さないと retry へ到達しない
+  const recoveryCalls =
+    extensionSource.match(
+      /await offerGitHubFailureRecovery\([\s\S]*?\n\s*\)/g,
+    ) || [];
+  assert.ok(
+    recoveryCalls.length >= 3,
+    `expected the classified-error path at three call sites (found ${recoveryCalls.length})`,
+  );
+  for (const call of recoveryCalls) {
+    assert.match(
+      call,
+      /run(IndexUpdate|SourceUpdate|AddSource)/,
+      `classified auth failures must retry too: ${call.replace(/\s+/g, " ")}`,
+    );
+  }
+});
+
+test("both READMEs document the multi-account gh pitfall", () => {
+  // active でないアカウントが健全でも認証は通らない。実際に踏んだので手順を残す
+  const root = path.join(__dirname, "..");
+  for (const [file, marker] of [
+    ["README.md", "gh auth switch"],
+    ["README_ja.md", "gh auth switch"],
+  ]) {
+    const source = fs
+      .readFileSync(path.join(root, file), "utf8")
+      .replace(/\r\n/g, "\n");
+    assert.ok(
+      source.includes(marker),
+      `${file} should tell the reader how to change the active gh account`,
+    );
+    assert.ok(
+      source.includes("gh auth status"),
+      `${file} should tell the reader how to see which gh account is active`,
+    );
+  }
+});
+
+test("shipped auth helpers stay reachable from production code", () => {
+  // 「配線した」と書いたのに実経路から呼ばれていない、を 2 回続けたので機械で止める
+  const testOnlySeams = new Set([
+    "configureSharedStoreLockRuntime",
+    "resetSharedStoreLockRuntime",
+  ]);
+  const sources = new Map(
+    ["githubAuth.ts", "githubResponse.ts", "shared-store-lock.ts"].map(
+      (file) => [file, readNormalized(file)],
+    ),
+  );
+
+  const exported = [];
+  for (const [file, source] of sources) {
+    for (const match of source.matchAll(
+      /^export (?:async )?function ([A-Za-z0-9_]+)/gm,
+    )) {
+      exported.push({ file, name: match[1] });
+    }
+  }
+  assert.ok(exported.length > 0, "no exported helpers were discovered");
+
+  const consumers = [
+    "extension.ts",
+    "indexUpdater.ts",
+    "skillInstaller.ts",
+    "shared-sources-manifest-store.ts",
+    "githubFetch.ts",
+  ]
+    .concat([...sources.keys()])
+    .map((file) => readNormalized(file))
+    .join("\n");
+
+  for (const { file, name } of exported) {
+    if (testOnlySeams.has(name)) {
+      continue;
+    }
+    const uses = consumers
+      .split("\n")
+      .filter(
+        (line) =>
+          new RegExp(`\\b${name}\\b`).test(line) &&
+          !new RegExp(`export (?:async )?function ${name}\\b`).test(line),
+      );
+    assert.ok(
+      uses.length > 0,
+      `${file} exports ${name} but nothing calls or imports it`,
+    );
+  }
+});
+
 test("maintenance scripts keep ref escaping identical to the shipped helper", () => {
   // .js スクリプトは src の TS を require できないので複製が必要。挙動一致だけは固定する
   const scriptsDir = path.join(__dirname);

@@ -538,6 +538,10 @@ gh auth login
 
 GitHub CLI が入っていれば token は自動取得され、拡張機能側の設定は不要です。
 
+> **gh のアカウントが複数ある場合**: 拡張機能は `gh auth token` を `--user` なしで呼ぶため、常に **active** なアカウントの credential を取得します。複数ログインしていて active 側の token が期限切れ・失効していると、`gh auth status` で他のアカウントが正常に見えていても認証に失敗します。`gh auth status` で active を確認し、`gh auth refresh -h github.com` または `gh auth switch -h github.com -u <account>` を実行してください。
+>
+> この状態では、拡張機能のエラー表示に active なアカウント名が出ます。無効な資格情報とレート制限を区別し、別のログイン済みアカウントへの切り替えを提案します。確認すると、VS Code だけでなく `gh` コマンドが使う `github.com` の保存済み credential が切り替わり、失敗した操作は自動でやり直します。`GH_TOKEN` / `GITHUB_TOKEN` を設定している場合はそちらが優先されます。
+
 ### 方法 2: 環境変数
 
 `GITHUB_TOKEN` または `GH_TOKEN` を shell や OS の環境変数に設定します。VS Code settings に credential を保存せずに済みます。

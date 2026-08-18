@@ -33,7 +33,6 @@ const {
   classifyGitHubFailure,
   createGitHubResponseError,
   extractSsoAuthorizationUrl,
-  retryGitHubRequestAnonymously,
 } = sandbox.exports;
 
 let resolvedToken;
@@ -157,84 +156,6 @@ async function main() {
       classifyGitHubFailure(result, await result.clone().text()),
       "sso-required",
     );
-  });
-
-  await test("retries SAML failures without a token", async () => {
-    const initial = response(
-      403,
-      "Resource protected by organization SAML enforcement",
-    );
-    let retryCount = 0;
-    const result = await retryGitHubRequestAnonymously(
-      initial,
-      true,
-      async () => {
-        retryCount += 1;
-        return response(200, "ok");
-      },
-    );
-
-    assert.strictEqual(result.status, 200);
-    assert.strictEqual(retryCount, 1);
-  });
-
-  await test("retries invalid-token failures anonymously", async () => {
-    const initial = response(401, "Bad credentials");
-    let retryCount = 0;
-    const result = await retryGitHubRequestAnonymously(
-      initial,
-      true,
-      async () => {
-        retryCount += 1;
-        return response(200, "public content");
-      },
-    );
-
-    assert.strictEqual(result.status, 200);
-    assert.strictEqual(retryCount, 1);
-  });
-
-  await test("keeps the authenticated failure when anonymous retry fails", async () => {
-    const initial = response(
-      403,
-      "Resource protected by organization SAML enforcement",
-    );
-    const result = await retryGitHubRequestAnonymously(
-      initial,
-      true,
-      async () => response(404, "Not Found"),
-    );
-
-    assert.strictEqual(result, initial);
-  });
-
-  await test("keeps private repository auth failures when anonymous access fails", async () => {
-    const initial = response(401, "Bad credentials");
-    const result = await retryGitHubRequestAnonymously(
-      initial,
-      true,
-      async () => response(404, "Not Found"),
-    );
-
-    assert.strictEqual(result, initial);
-  });
-
-  await test("does not retry rate limit failures", async () => {
-    const initial = response(403, "API rate limit exceeded", {
-      "x-ratelimit-remaining": "0",
-    });
-    let retryCount = 0;
-    const result = await retryGitHubRequestAnonymously(
-      initial,
-      true,
-      async () => {
-        retryCount += 1;
-        return response(200, "ok");
-      },
-    );
-
-    assert.strictEqual(result, initial);
-    assert.strictEqual(retryCount, 0);
   });
 
   await test("reports a 429 as a rate-limit failure", async () => {

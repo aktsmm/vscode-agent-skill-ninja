@@ -22,6 +22,7 @@ import {
   type SourceEntry,
 } from "./shared-manifest";
 import {
+  describeSharedStoreLockFailure,
   withSharedStoreLock,
   type SharedStoreLease,
 } from "./shared-store-lock";
@@ -401,34 +402,47 @@ export async function updateSharedSourcesManifest(
     current: SharedSourcesManifest | undefined,
   ) => SharedSourcesManifest | undefined,
 ): Promise<SharedSourcesManifest | undefined> {
-  return await withSharedStoreLock(SELF_EXTENSION_ID, async (lease) => {
-    const result = await readSharedSourcesManifestResult();
+  try {
+    return await withSharedStoreLock(SELF_EXTENSION_ID, async (lease) => {
+      const result = await readSharedSourcesManifestResult();
 
-    // 採用できないだけで中身はある。上書きすると sibling の登録が消える
-    if (result.status === "rejected") {
-      console.warn(
-        `[Skill Ninja] Refused to write the shared sources manifest (${result.reason})`,
-      );
-      return undefined;
+      // 採用できないだけで中身はある。上書きすると sibling の登録が消える
+      if (result.status === "rejected") {
+        console.warn(
+          `[Skill Ninja] Refused to write the shared sources manifest (${result.reason})`,
+        );
+        return undefined;
+      }
+
+      // 検証で落とした entry を書き戻すと sibling の登録を消すので、直るまで同期しない
+      if (result.status === "valid" && result.rejectedEntries.length > 0) {
+        console.warn(
+          "[Skill Ninja] Refused to write the shared sources manifest because some entries could not be validated",
+        );
+        return undefined;
+      }
+
+      const current = result.status === "valid" ? result.manifest : undefined;
+      const next = mutate(current);
+      if (!next) {
+        return current;
+      }
+
+      await writeSharedSourcesManifestUnderLease(next, lease);
+      return next;
+    });
+  } catch (error) {
+    // 共有ストアを他ツールと共有する以上、lock を取れない・奪われるのは想定内
+    const lockFailure = describeSharedStoreLockFailure(error);
+    if (!lockFailure) {
+      throw error;
     }
 
-    // 検証で落とした entry を書き戻すと sibling の登録を消すので、直るまで同期しない
-    if (result.status === "valid" && result.rejectedEntries.length > 0) {
-      console.warn(
-        "[Skill Ninja] Refused to write the shared sources manifest because some entries could not be validated",
-      );
-      return undefined;
-    }
-
-    const current = result.status === "valid" ? result.manifest : undefined;
-    const next = mutate(current);
-    if (!next) {
-      return current;
-    }
-
-    await writeSharedSourcesManifestUnderLease(next, lease);
-    return next;
-  });
+    console.warn(
+      `[Skill Ninja] Skipped the shared sources manifest update (${lockFailure})`,
+    );
+    return undefined;
+  }
 }
 
 /** 共有ストアへ実際に書けたかどうか。拒否は呼び出し元にも伝える */

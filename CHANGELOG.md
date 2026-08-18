@@ -7,6 +7,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.9.46] - 2026-08-18
+
+### Added
+
+- 🔁 **Failed Work Is Retried After You Fix Authentication** - Switching the active `gh` CLI account from the error notification now re-runs the operation that failed, instead of leaving you to repeat it. Install, Update Index, Update Source, and Add Source each hand back the arguments you already supplied, so nothing is asked twice, and a failure raised by the retry never offers another retry / エラー通知から `gh` CLI のアクティブアカウントを切り替えたとき、失敗した操作を自動でやり直すよう追加。インストール、インデックス更新、ソース更新、ソース追加は入力済みの引数をそのまま再利用するため同じ入力を求めず、再試行で発生した失敗からさらに再試行を提案することもない
+
+### Changed
+
+- 🔒 **Shared Store Lock Diagnostics And Test Seams** - The reclaim file prefix is now a named cross-extension contract constant, losing or failing to take the lock is classified as lease-lost or lock-unavailable and handled as an expected outcome by the shared manifest update instead of propagating as a crash, and the clock, process-liveness and generation sources can be injected so the stale and hard-stale windows are verified without waiting in real time. These designs are aligned with the sibling Agent Resources Ninja implementation / 回収時のファイル接頭辞を拡張機能間の契約定数として明示し、lock の喪失・取得失敗を lease 喪失／取得失敗として分類したうえで共有マニフェスト更新側が想定内の結果として扱うようにし（従来は例外がそのまま伝播）、時刻・プロセス生存・世代の生成元を差し替え可能にして stale と hard stale の窓を実時間待ちなしで検証できるようにしました。いずれも姉妹拡張 Agent Resources Ninja の実装に合わせています
+
+### Removed
+
+- 🧹 **Anonymous-Retry Helper That Nothing Called** - `retryGitHubRequestAnonymously` and the five tests that exercised only it were removed. The anonymous retry that actually runs lives in the shared GitHub fetch layer and keeps its own coverage, so the duplicate gave false confidence in a path the extension never took. A new guard fails the build when an exported helper in the authentication modules has no production caller / 本番から呼ばれていなかった `retryGitHubRequestAnonymously` と、それだけを検証していた 5 件のテストを削除。実際に動く匿名リトライは共通の GitHub fetch 層にあり別途テストされているため、重複は「通らない経路」への誤った安心感になっていました。認証系モジュールの export に本番呼び出し元が無い場合はビルドを落とすガードを追加しています
+
 ## [0.9.45] - 2026-08-18
 
 ### Fixed
@@ -18,7 +32,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
-- 🔁 **Switch The Active gh CLI Account And Retry** - When the active `gh` account's credential cannot be used, the notification now names that account, distinguishes a rate limit from an invalid token, and offers to switch to another signed-in account after a confirmation that states the change applies to every `gh` command on the machine. The switch is verified before the failed source update is retried / アクティブな `gh` アカウントの資格情報が使えない場合に、そのアカウント名を示し、レート制限と無効なトークンを区別したうえで、別のログイン済みアカウントへの切り替えを提案するよう追加。切り替えが端末の `gh` コマンド全体に適用されることを明示した確認を経て実行し、成否を検証してから失敗したソース更新を再試行する
+- 🔁 **Switch The Active gh CLI Account And Retry** - When the active `gh` account's credential cannot be used, the notification now names that account, distinguishes a rate limit from an invalid token, and offers to switch to another signed-in account after a confirmation that states the change applies to every `gh` command using the stored `github.com` credential, not just VS Code. `GH_TOKEN` and `GITHUB_TOKEN` still take precedence where they are set. The switch is verified before the failed source update is retried / アクティブな `gh` アカウントの資格情報が使えない場合に、そのアカウント名を示し、レート制限と無効なトークンを区別したうえで、別のログイン済みアカウントへの切り替えを提案するよう追加。切り替えが VS Code だけでなく、保存済みの `github.com` 資格情報を使う `gh` コマンド全体に適用されることを明示した確認を経て実行する（`GH_TOKEN` / `GITHUB_TOKEN` を設定している場合はそちらが優先）。成否を検証してから失敗したソース更新を再試行する
 
 ## [0.9.44] - 2026-08-18
 
