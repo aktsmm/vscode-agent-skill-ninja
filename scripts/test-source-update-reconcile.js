@@ -11,8 +11,15 @@ const repoRoot = path.resolve(__dirname, "..");
 const reconcilePath = path.join(repoRoot, "src", "sourceUpdateReconcile.ts");
 const skillIndexPath = path.join(repoRoot, "src", "skillIndex.ts");
 
+const warnings = [];
+
 const vscodeStub = {
   __configBySection: {},
+  window: {
+    showWarningMessage(message) {
+      warnings.push(message);
+    },
+  },
   Uri: {
     file(filePath) {
       return {
@@ -211,12 +218,15 @@ async function run() {
       useSharedSourcesManifest: false,
     };
 
-    const { loadSkillIndex } = compileTsModule(skillIndexPath, {
-      "./githubFetch": {
-        createGitHubHeaders: () => ({}),
-        fetchGitHubWithOptionalAuthRetry: async () => ({ ok: false }),
+    const { loadSkillIndex, normalizeGitHubRepoUrl } = compileTsModule(
+      skillIndexPath,
+      {
+        "./githubFetch": {
+          createGitHubHeaders: () => ({}),
+          fetchGitHubWithOptionalAuthRetry: async () => ({ ok: false }),
+        },
       },
-    });
+    );
 
     const context = {
       globalStorageUri: vscodeStub.Uri.file(
@@ -368,7 +378,11 @@ async function run() {
     let repoInfoStatus = 200;
 
     const indexUpdaterStubs = {
-      "./skillIndex": { saveSkillIndex: async () => {} },
+      "./skillIndex": {
+        saveSkillIndex: async () => {},
+        // 実装を書き写さず同じ関数を渡す
+        normalizeGitHubRepoUrl,
+      },
       "./githubAuth": {
         checkGitHubAuth: async () => ({}),
         getGitHubToken: async () => undefined,
@@ -379,6 +393,10 @@ async function run() {
           updatingSource: () => "updating",
           sourceIndexEmptyScanKept: (count) => `kept ${count}`,
           sourceIndexSkillsUpdatedProgress: (count) => `updated ${count}`,
+          sourceIndexForeignScannerKept: (scanner) =>
+            `cannot run scanner ${scanner}`,
+          sourceIndexForeignScannerSkipped: (count, sources) =>
+            `skipped ${count} (${sources})`,
         },
       },
       "./constants": {
@@ -626,6 +644,111 @@ async function run() {
         "preset",
       );
       assert.strictEqual(viaSingleSource.sources[0].repoId, 42);
+    });
+
+    await test("a foreign scanner is kept but never scanned", async () => {
+      clearRepositoryResolutionCache();
+      const before = {
+        version: "1.0.0",
+        lastUpdated: "2026-07-01",
+        categories: [],
+        sources: [
+          {
+            id: "sibling",
+            name: "Sibling",
+            url: "https://github.com/example/sibling",
+            type: "community",
+            branch: "main",
+            description: "sibling",
+            // 別拡張だけが実装している scanner
+            scanner: "auto",
+          },
+        ],
+        skills: [
+          {
+            name: "sibling-skill",
+            source: "sibling",
+            path: "skills/sibling",
+            categories: [],
+            description: "sibling",
+          },
+        ],
+        bundles: [bundle("sibling-bundle", "sibling", ["sibling-skill"])],
+      };
+
+      const requestsBefore = requestedUrls.length;
+      const warningsBefore = warnings.length;
+      const after = await updateIndexFromSources({}, before);
+
+      assert.strictEqual(
+        requestedUrls.length,
+        requestsBefore,
+        "a foreign scanner must not trigger any repository request",
+      );
+      assert.ok(
+        warnings.slice(warningsBefore).some((text) => text.includes("sibling")),
+        "the skipped source must be reported, not silently ignored",
+      );
+      assert.strictEqual(after.skills.length, 1);
+      assert.strictEqual(after.skills[0].name, "sibling-skill");
+      assert.strictEqual(
+        (after.bundles || []).map((item) => `${item.source}:${item.id}`).join(),
+        "sibling:sibling-bundle",
+      );
+      assert.strictEqual(after.sources[0].scanner, "auto");
+      assert.strictEqual(after.sources[0].lastIndexedAt, undefined);
+      assert.strictEqual(after.lastScannedAt, undefined);
+
+      // 単一更新も同じ境界を守る。呼び出し元はこちらだけを使う
+      const { updateIndexFromSingleSource: singleUpdate } = compileTsModule(
+        indexUpdaterPath,
+        indexUpdaterStubs,
+      );
+      const requestsBeforeSingle = requestedUrls.length;
+      await assert.rejects(singleUpdate({}, before, "sibling"), /auto/);
+      assert.strictEqual(
+        requestedUrls.length,
+        requestsBeforeSingle,
+        "single-source update must not scan a foreign scanner either",
+      );
+
+      // 登録済み source の再追加も同じ境界を守る
+      const { addSource } = compileTsModule(
+        indexUpdaterPath,
+        indexUpdaterStubs,
+      );
+      const requestsBeforeAdd = requestedUrls.length;
+      await assert.rejects(
+        addSource({}, before, "https://github.com/example/sibling"),
+        /auto/,
+      );
+      assert.strictEqual(
+        requestedUrls.length,
+        requestsBeforeAdd,
+        "re-adding a foreign-scanner source must not scan it",
+      );
+
+      // URL 表記が違って事前判定を外れても、解決後の id 一致で上書きを止める
+      const resolvedElsewhere = {
+        ...before,
+        sources: [
+          {
+            ...before.sources[0],
+            id: "new-owner-new-repo",
+            url: "https://github.com/other/alias",
+          },
+        ],
+        skills: [{ ...before.skills[0], source: "new-owner-new-repo" }],
+      };
+      await assert.rejects(
+        addSource({}, resolvedElsewhere, "https://github.com/new-owner/new-repo"),
+        /auto/,
+      );
+      assert.strictEqual(
+        resolvedElsewhere.skills.length,
+        1,
+        "the existing skills must survive a blocked re-add",
+      );
     });
   } finally {
     if (originalAppData === undefined) {

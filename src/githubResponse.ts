@@ -27,6 +27,41 @@ export function isGitHubResponseError(
   return error instanceof GitHubResponseError;
 }
 
+/**
+ * 分類済み error を作れなかった経路のための最後の手段。日本語 UI では自前の文言が
+ * 英語マーカーを含まないので、両言語の目印を 1 か所に集める。
+ */
+const GITHUB_AUTH_MESSAGE_MARKERS = [
+  "rate limit",
+  "authentication",
+  "unauthorized",
+  "forbidden",
+  "認証",
+  "アクセスが拒否",
+  "制限に達し",
+];
+
+/**
+ * status code は裸の部分一致で拾わない。`4291` バイトや `azure-403-troubleshoot`
+ * のようなスキル名まで認証エラー扱いになる。
+ */
+export function containsHttpStatus(
+  message: string,
+  ...statuses: readonly number[]
+): boolean {
+  return statuses.some((status) =>
+    new RegExp(`(?<![\\w-])${status}(?![\\w-])`).test(message),
+  );
+}
+
+export function looksLikeGitHubAuthMessage(message: string): boolean {
+  const normalized = message.toLowerCase();
+  return (
+    GITHUB_AUTH_MESSAGE_MARKERS.some((marker) => normalized.includes(marker)) ||
+    containsHttpStatus(message, 401, 403, 429)
+  );
+}
+
 export function classifyGitHubFailure(
   response: Pick<Response, "status" | "headers">,
   bodyText: string,

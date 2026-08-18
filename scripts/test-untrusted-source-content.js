@@ -25,6 +25,12 @@ Module._load = function patchedLoad(request, parent, isMain) {
   if (STUBBED.has(request)) {
     return {};
   }
+  // vscode 非依存の純粋ヘルパーは実モジュールを使う。書き写すと実装と乖離する
+  if (request === "./sourceRefs") {
+    return requireTypeScriptModule(
+      path.join(__dirname, "..", "src", "sourceRefs.ts"),
+    );
+  }
   return originalLoad.call(this, request, parent, isMain);
 };
 

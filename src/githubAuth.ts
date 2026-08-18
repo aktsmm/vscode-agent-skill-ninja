@@ -293,6 +293,113 @@ function buildGhCliEnv(): NodeJS.ProcessEnv {
   return env;
 }
 
+export interface GhCliAccount {
+  login: string;
+  active: boolean;
+  /** gh が資格情報の検証に成功したか。false でも「トークンが無効」とは限らない */
+  healthy: boolean;
+  /** 検証に失敗した理由。rate limit と無効トークンを混同しないため生文言を保持する */
+  error?: string;
+}
+
+function runGhCli(args: string): Promise<string> {
+  return new Promise<string>((resolve, reject) => {
+    void import("child_process").then(({ exec }) => {
+      exec(
+        `gh ${args}`,
+        {
+          timeout: GITHUB_AUTH_TIMEOUT_MS,
+          windowsHide: true,
+          env: buildGhCliEnv(),
+        },
+        (error: Error | null, stdout: string) => {
+          if (error) {
+            reject(error);
+          } else {
+            resolve(stdout.trim());
+          }
+        },
+      );
+    }, reject);
+  });
+}
+
+// exec へ渡す前に形を確かめる。gh 由来の値でもシェルへ素通しにしない
+const GH_LOGIN_PATTERN = /^[A-Za-z0-9](?:[A-Za-z0-9-]{0,38})$/;
+const GH_HOSTNAME_PATTERN = /^[A-Za-z0-9.-]{1,253}$/;
+
+/** rate limit を「トークンが無効」と案内すると、有効な資格情報を捨てさせる */
+export function isRateLimitAccountError(error: string | undefined): boolean {
+  return typeof error === "string" && /rate limit/i.test(error);
+}
+
+/**
+ * gh が知っているアカウントを列挙する。`gh auth token` は active なアカウントの値しか
+ * 返さないので、active が壊れているだけなのかを見分けるにはこちらが要る。
+ */
+export async function listGhCliAccounts(
+  hostname: string = "github.com",
+): Promise<GhCliAccount[]> {
+  if (!GH_HOSTNAME_PATTERN.test(hostname)) {
+    return [];
+  }
+
+  let raw: string;
+  try {
+    raw = await runGhCli(`auth status --hostname ${hostname} --json hosts`);
+  } catch {
+    return [];
+  }
+
+  try {
+    const parsed = JSON.parse(raw) as {
+      hosts?: Record<string, unknown>;
+    };
+    const entries = parsed.hosts?.[hostname];
+    if (!Array.isArray(entries)) {
+      return [];
+    }
+
+    return entries
+      .map((entry) => entry as Record<string, unknown>)
+      .filter((entry) => typeof entry.login === "string")
+      .map((entry) => ({
+        login: entry.login as string,
+        active: entry.active === true,
+        healthy: entry.state === "success",
+        error: typeof entry.error === "string" ? entry.error : undefined,
+      }));
+  } catch {
+    return [];
+  }
+}
+
+/** 切替候補は「有効かつ現在 active でない」ものだけ。無効な候補を勧めない */
+export function selectGhCliSwitchCandidates(
+  accounts: readonly GhCliAccount[],
+): GhCliAccount[] {
+  return accounts.filter((account) => account.healthy && !account.active);
+}
+
+export async function switchGhCliAccount(
+  login: string,
+  hostname: string = "github.com",
+): Promise<boolean> {
+  if (!GH_LOGIN_PATTERN.test(login) || !GH_HOSTNAME_PATTERN.test(hostname)) {
+    return false;
+  }
+
+  try {
+    await runGhCli(`auth switch --hostname ${hostname} --user ${login}`);
+  } catch {
+    return false;
+  }
+
+  // 切替は gh 全体の状態を変えるので、成功を自己申告ではなく実状態で確かめる
+  const accounts = await listGhCliAccounts(hostname);
+  return accounts.some((account) => account.active && account.login === login);
+}
+
 /** gh CLI からトークンを取得 */
 export async function getGhCliToken(): Promise<string | null> {
   try {

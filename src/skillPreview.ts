@@ -11,6 +11,7 @@ import {
   Skill,
   Source,
 } from "./skillIndex";
+import { encodeGitRef } from "./sourceRefs";
 import messages, { isJapanese } from "./i18n";
 import { getGitHubToken } from "./githubAuth";
 import { fetchGitHubWithOptionalAuthRetry } from "./githubFetch";
@@ -229,9 +230,9 @@ async function fetchSkillContent(
         const branch = await getSourceBranch(sourceInfo, token, skill.path);
         // パスが .md で終わる場合はそのまま使用、そうでなければ /SKILL.md を追加
         if (skill.path.endsWith(".md")) {
-          rawUrl = `https://raw.githubusercontent.com/${ownerRepo}/${branch}/${skill.path}`;
+          rawUrl = `https://raw.githubusercontent.com/${ownerRepo}/${encodeGitRef(branch)}/${skill.path}`;
         } else {
-          rawUrl = `https://raw.githubusercontent.com/${ownerRepo}/${branch}/${skill.path}/SKILL.md`;
+          rawUrl = `https://raw.githubusercontent.com/${ownerRepo}/${encodeGitRef(branch)}/${skill.path}/SKILL.md`;
         }
       } else {
         throw new Error(`Invalid source URL: ${sourceInfo.url}`);

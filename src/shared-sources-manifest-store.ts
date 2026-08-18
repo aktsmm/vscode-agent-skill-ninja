@@ -1,7 +1,7 @@
 import * as fs from "fs/promises";
 
 import { SELF_EXTENSION_ID } from "./constants";
-import type { SkillIndex, SourceScanner } from "./skillIndex";
+import type { SkillIndex } from "./skillIndex";
 import {
   createEmptySharedSourcesManifest,
   getAgentNinjaSharedDirectoryPath,
@@ -11,7 +11,7 @@ import {
   SHARED_SOURCE_ID_PATTERN,
   SHARED_SOURCE_PATH_LIST_MAX_ENTRIES,
   SHARED_SOURCE_PATH_MAX_LENGTH,
-  SHARED_SOURCE_SCANNERS,
+  SHARED_SOURCE_SCANNER_PATTERN,
   SHARED_SOURCE_TEXT_MAX_LENGTH,
   SHARED_SOURCE_TYPE_PATTERN,
   SHARED_SOURCE_URL_PATTERN,
@@ -122,11 +122,17 @@ function sanitizeSourceType(value: unknown): string {
     : DEFAULT_SOURCE_TYPE;
 }
 
-function sanitizeScanner(value: unknown): SourceScanner | undefined {
-  return typeof value === "string" &&
-    (SHARED_SOURCE_SCANNERS as readonly string[]).includes(value)
-    ? (value as SourceScanner)
-    : undefined;
+/**
+ * scanner は別拡張が自分だけ実行できる値を書くので、type と同じく書式だけ制限して残す。
+ * 未知値を落とすと、書き戻すたびに相手の登録を壊す。走査側は isSourceScanner で弾く。
+ */
+function sanitizeScanner(value: unknown): string | undefined {
+  if (typeof value !== "string") {
+    return undefined;
+  }
+
+  const trimmed = value.trim();
+  return SHARED_SOURCE_SCANNER_PATTERN.test(trimmed) ? trimmed : undefined;
 }
 
 function sanitizeIsoDate(value: unknown): string | undefined {

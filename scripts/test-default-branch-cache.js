@@ -25,6 +25,22 @@ const transpiled = ts.transpileModule(fs.readFileSync(sourcePath, "utf8"), {
 
 let failures = 0;
 
+/** vscode に依存しない src モジュールを、実装そのまま読み込む */
+function loadPureTsModule(filePath) {
+  const output = ts.transpileModule(fs.readFileSync(filePath, "utf8"), {
+    compilerOptions: {
+      module: ts.ModuleKind.CommonJS,
+      target: ts.ScriptTarget.ES2022,
+    },
+    fileName: filePath,
+  }).outputText;
+
+  const sandbox = { module: { exports: {} }, exports: {}, require };
+  sandbox.exports = sandbox.module.exports;
+  vm.runInNewContext(output, sandbox, { filename: filePath });
+  return sandbox.module.exports;
+}
+
 function test(name, fn) {
   return Promise.resolve()
     .then(fn)
@@ -118,6 +134,10 @@ function loadSkillIndexModule({ respond, clock }) {
                 ? bundled
                 : undefined,
         };
+      }
+      // vscode 非依存の純粋ヘルパーは実モジュールを使う。書き写すと実装と乖離する
+      if (request === "./sourceRefs") {
+        return loadPureTsModule(path.join(SRC_DIR, "sourceRefs.ts"));
       }
       return require(request);
     },

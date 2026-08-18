@@ -43,7 +43,9 @@ Module._load = function patchedLoad(request, parent, isMain) {
     return {};
   }
   if (request === "./skillIndex") {
-    return { saveSkillIndex: async () => {} };
+    return {
+      saveSkillIndex: async () => {},
+    };
   }
   if (request === "./i18n") {
     return { messages: {} };
@@ -88,6 +90,12 @@ Module._load = function patchedLoad(request, parent, isMain) {
   if (request === "./sourceUpdateReconcile") {
     return requireTypeScriptModule(
       path.join(__dirname, "..", "src", "sourceUpdateReconcile.ts"),
+    );
+  }
+  // vscode 非依存の純粋ヘルパーは実モジュールを使う。書き写すと実装と乖離する
+  if (request === "./sourceRefs") {
+    return requireTypeScriptModule(
+      path.join(__dirname, "..", "src", "sourceRefs.ts"),
     );
   }
   return originalLoad.call(this, request, parent, isMain);

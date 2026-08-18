@@ -12,6 +12,7 @@ import {
   getSkillGitHubUrl,
   getSkillGitHubUrlAsync,
 } from "./skillIndex";
+import { encodeGitRef } from "./sourceRefs";
 import { searchSkills, SkillQuickPickItem } from "./skillSearch";
 import {
   installSkill,
@@ -109,7 +110,11 @@ import {
   shouldResumeRateLimitedUpdate,
   type RateLimitResumeState,
 } from "./rateLimitResume";
-import { GitHubResponseError, isGitHubResponseError } from "./githubResponse";
+import {
+  GitHubResponseError,
+  isGitHubResponseError,
+  looksLikeGitHubAuthMessage,
+} from "./githubResponse";
 import { resetGitHubSsoCache } from "./githubFetch";
 import {
   getSourceIndexUpdateRetryEntries,
@@ -514,6 +519,16 @@ function shouldOfferGitHubAuth(error: unknown): error is GitHubResponseError {
   );
 }
 
+/** 分類できない error も認証導線へ入れる。個別 command で条件を書き分けない */
+function isGitHubAuthFailure(error: unknown): boolean {
+  return (
+    shouldOfferGitHubAuth(error) ||
+    looksLikeGitHubAuthMessage(
+      error instanceof Error ? error.message : String(error),
+    )
+  );
+}
+
 /**
  * 文字列一致ではなく分類で GitHub の失敗を扱う。扱えなければ false を返し、
  * 呼び出し側の既定処理へ戻す。
@@ -521,6 +536,7 @@ function shouldOfferGitHubAuth(error: unknown): error is GitHubResponseError {
 async function offerGitHubFailureRecovery(
   error: unknown,
   formatMessage: (reason: string) => string,
+  onRecovered?: () => Promise<void>,
 ): Promise<boolean> {
   if (!shouldOfferGitHubAuth(error)) {
     return false;
@@ -528,7 +544,7 @@ async function offerGitHubFailureRecovery(
 
   const ssoUrl = error.ssoAuthorizationUrl;
   if (!ssoUrl) {
-    await showAuthHelp();
+    await showAuthHelp({ onRecovered });
     return true;
   }
 
@@ -543,7 +559,7 @@ async function offerGitHubFailureRecovery(
     await vscode.env.openExternal(vscode.Uri.parse(ssoUrl));
     resetGitHubSsoCache();
   } else if (action === authAction) {
-    await showAuthHelp();
+    await showAuthHelp({ onRecovered });
   }
 
   return true;
@@ -1129,7 +1145,21 @@ export function activate(
         // 認可した credential を次の更新で試せるよう、ブロック判定を捨てる
         resetGitHubSsoCache();
       } else if (action === authAction) {
-        await showAuthHelp();
+        // 認証を直せたら、全件ではなく落ちた source だけを引き直す
+        await showAuthHelp({
+          onRecovered: async () => {
+            const retryEntries = toStaleSourceInfos(
+              nextIndex,
+              failures.map((failure) => failure.entry.source.id),
+            );
+            if (retryEntries.length > 0) {
+              skillIndex = await updateStaleSourceIndexes(
+                nextIndex,
+                retryEntries,
+              );
+            }
+          },
+        });
       }
     }
 
@@ -1392,26 +1422,35 @@ export function activate(
       }
     }
 
-    await vscode.window.withProgress(
-      {
-        location: vscode.ProgressLocation.Notification,
-        title: affectedSource
-          ? messages.updatingSource(affectedSource.name || affectedSourceId!)
-          : isJapanese()
-            ? "インデックスを更新中..."
-            : "Updating index...",
-      },
-      async (progress) => {
-        index = affectedSourceId
-          ? await updateIndexFromSingleSource(
-              context,
-              index,
-              affectedSourceId,
-              progress,
-            )
-          : await updateIndexFromSources(context, index, progress);
-      },
-    );
+    try {
+      await vscode.window.withProgress(
+        {
+          location: vscode.ProgressLocation.Notification,
+          title: affectedSource
+            ? messages.updatingSource(affectedSource.name || affectedSourceId!)
+            : isJapanese()
+              ? "インデックスを更新中..."
+              : "Updating index...",
+        },
+        async (progress) => {
+          index = affectedSourceId
+            ? await updateIndexFromSingleSource(
+                context,
+                index,
+                affectedSourceId,
+                progress,
+              )
+            : await updateIndexFromSources(context, index, progress);
+        },
+      );
+    } catch (error) {
+      // 起動直後の経路からも呼ばれるので、未処理 rejection にせず理由を見せる
+      vscode.window.showWarningMessage(
+        messages.updateFailed(
+          error instanceof Error ? error.message : String(error),
+        ),
+      );
+    }
 
     return index;
   }
@@ -2582,11 +2621,7 @@ export function activate(
         }
         const errorMessage =
           error instanceof Error ? error.message : String(error);
-        if (
-          errorMessage.includes("rate limit") ||
-          errorMessage.includes("403") ||
-          errorMessage.includes("authentication")
-        ) {
+        if (isGitHubAuthFailure(error)) {
           await showAuthHelp();
         } else {
           vscode.window.showErrorMessage(messages.installFailed(errorMessage));
@@ -3805,10 +3840,7 @@ export function activate(
         }
         const errorMessage =
           error instanceof Error ? error.message : String(error);
-        if (
-          errorMessage.includes("rate limit") ||
-          errorMessage.includes("authentication")
-        ) {
+        if (isGitHubAuthFailure(error)) {
           await showAuthHelp();
         } else {
           vscode.window.showErrorMessage(messages.updateFailed(errorMessage));
@@ -3875,10 +3907,7 @@ export function activate(
         }
         const errorMessage =
           error instanceof Error ? error.message : String(error);
-        if (
-          errorMessage.includes("rate limit") ||
-          errorMessage.includes("authentication")
-        ) {
+        if (isGitHubAuthFailure(error)) {
           await showAuthHelp();
         } else {
           vscode.window.showErrorMessage(messages.updateFailed(errorMessage));
@@ -3976,10 +4005,7 @@ export function activate(
         }
         const errorMessage =
           error instanceof Error ? error.message : String(error);
-        if (
-          errorMessage.includes("rate limit") ||
-          errorMessage.includes("authentication")
-        ) {
+        if (isGitHubAuthFailure(error)) {
           await showAuthHelp();
         } else if (errorMessage.includes("No skills found")) {
           vscode.window.showWarningMessage(messages.noSkillsInRepo());
@@ -4194,7 +4220,7 @@ export function activate(
                 description: selected.result.description || "",
                 source: selected.result.repo,
                 url: `${selected.result.repoUrl}/blob/${branch}/${urlPath}`,
-                rawUrl: `https://raw.githubusercontent.com/${selected.result.repo}/${branch}/${urlPath}`,
+                rawUrl: `https://raw.githubusercontent.com/${selected.result.repo}/${encodeGitRef(branch)}/${urlPath}`,
                 path: selected.result.path,
                 categories: [],
                 stars: selected.result.stars,
@@ -4231,10 +4257,7 @@ export function activate(
         } catch (error: unknown) {
           const errorMessage =
             error instanceof Error ? error.message : String(error);
-          if (
-            errorMessage.includes("rate limit") ||
-            errorMessage.includes("authentication")
-          ) {
+          if (isGitHubAuthFailure(error)) {
             await showAuthHelp();
           } else {
             vscode.window.showErrorMessage(messages.searchFailed(errorMessage));

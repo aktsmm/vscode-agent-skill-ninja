@@ -46,6 +46,10 @@ const jaMessages = {
   actionResumeNow: "今すぐ再開",
   sourceIndexEmptyScanKept:
     "取得結果が 0 件だったため更新を中止し、既存の {0} スキルを保持しました",
+  sourceIndexForeignScannerKept:
+    "このソースはこの拡張が実行できない scanner（{0}）を宣言しています。別の基準で上書きしないよう、走査を見送り既存のインデックスを保持しました",
+  sourceIndexForeignScannerSkipped:
+    "実行できない scanner を宣言している {0} 個のソースは走査を見送りました（{1}）",
   sourceIndexRepositoryIdentityChanged:
     "URL の参照先が別のリポジトリに変わっています（repository ID {0} → {1}）。意図した変更なら、このソースを削除してから追加し直してください",
   sourceIndexRepositoryIdentitySkipped:
@@ -200,6 +204,18 @@ const jaMessages = {
   githubTokenClearFailed:
     "SecretStorage の GitHub トークンを削除できませんでした。VS Code を再読み込みして再試行してください。",
   authWithGhCli: "gh CLIで認証",
+  ghAccountInvalid:
+    "gh CLI のアクティブアカウント「{0}」の資格情報が使えません。他のアカウントにログイン済みでも、拡張機能はアクティブなアカウントだけを使います。",
+  ghAccountRateLimited:
+    "gh CLI のアクティブアカウント「{0}」が GitHub API の制限に達しています。トークン自体は有効なので、削除しないでください。",
+  ghSwitchAccountAction: "「{0}」に切り替えて再試行",
+  ghSwitchAccountConfirm:
+    "gh CLI のアクティブアカウントを「{0}」へ切り替えます。この変更は VS Code 内だけでなく、端末の gh コマンド全体に適用されます。続行しますか？",
+  ghSwitchAccountConfirmAction: "切り替える",
+  ghSwitchAccountSucceeded:
+    "gh CLI のアクティブアカウントを「{0}」へ切り替えました。",
+  ghSwitchAccountFailed:
+    "gh CLI のアカウント切替に失敗しました。ターミナルで gh auth switch を実行してください。",
   installedFolder: "インストール済み",
   rateLimitExceeded:
     "GitHub API の制限に達しました。GitHub トークンで認証してください。",
@@ -306,6 +322,10 @@ const enMessages: MessageDictionary = {
   actionResumeNow: "Resume now",
   sourceIndexEmptyScanKept:
     "The scan returned 0 skills, so the update was cancelled and the existing {0} skill(s) were kept",
+  sourceIndexForeignScannerKept:
+    "This source declares a scanner this extension cannot run ({0}). The scan was skipped and the existing index was kept so it is not overwritten under different semantics",
+  sourceIndexForeignScannerSkipped:
+    "Skipped {0} source(s) that declare a scanner this extension cannot run ({1})",
   sourceIndexRepositoryIdentityChanged:
     "This URL now resolves to a different repository (repository ID {0} -> {1}). If the change is intentional, remove this source and add it again",
   sourceIndexRepositoryIdentitySkipped:
@@ -459,6 +479,17 @@ const enMessages: MessageDictionary = {
   githubTokenClearFailed:
     "Could not remove the GitHub token from SecretStorage. Reload VS Code and try again.",
   authWithGhCli: "Authenticate with gh CLI",
+  ghAccountInvalid:
+    'The credential for the active gh CLI account "{0}" cannot be used. Even if other accounts are signed in, this extension only uses the active one.',
+  ghAccountRateLimited:
+    'The active gh CLI account "{0}" hit the GitHub API rate limit. The token itself is still valid, so do not delete it.',
+  ghSwitchAccountAction: 'Switch to "{0}" and retry',
+  ghSwitchAccountConfirm:
+    'This switches the active gh CLI account to "{0}". The change applies to every gh command on this machine, not just VS Code. Continue?',
+  ghSwitchAccountConfirmAction: "Switch",
+  ghSwitchAccountSucceeded: 'Switched the active gh CLI account to "{0}".',
+  ghSwitchAccountFailed:
+    "Could not switch the gh CLI account. Run gh auth switch in a terminal.",
   installedFolder: "Installed",
   rateLimitExceeded:
     "GitHub API rate limit exceeded. Please authenticate with a GitHub token.",
@@ -634,6 +665,10 @@ export const messages = {
   actionResumeNow: () => localize("actionResumeNow"),
   sourceIndexEmptyScanKept: (count: number) =>
     localize("sourceIndexEmptyScanKept", count),
+  sourceIndexForeignScannerKept: (scanner: string) =>
+    localize("sourceIndexForeignScannerKept", scanner),
+  sourceIndexForeignScannerSkipped: (count: number, sources: string) =>
+    localize("sourceIndexForeignScannerSkipped", String(count), sources),
   sourceIndexRepositoryIdentityChanged: (stored: number, scanned: number) =>
     localize("sourceIndexRepositoryIdentityChanged", stored, scanned),
   sourceIndexRepositoryIdentitySkipped: (sourceNames: string) =>
@@ -798,6 +833,17 @@ export const messages = {
       : localize("bulkUninstallSummary", String(deleted)),
   openSettings: () => localize("openSettings"),
   authWithGhCli: () => localize("authWithGhCli"),
+  ghAccountInvalid: (login: string) => localize("ghAccountInvalid", login),
+  ghAccountRateLimited: (login: string) =>
+    localize("ghAccountRateLimited", login),
+  ghSwitchAccountAction: (login: string) =>
+    localize("ghSwitchAccountAction", login),
+  ghSwitchAccountConfirm: (login: string) =>
+    localize("ghSwitchAccountConfirm", login),
+  ghSwitchAccountConfirmAction: () => localize("ghSwitchAccountConfirmAction"),
+  ghSwitchAccountSucceeded: (login: string) =>
+    localize("ghSwitchAccountSucceeded", login),
+  ghSwitchAccountFailed: () => localize("ghSwitchAccountFailed"),
 
   // 初期化
   resetSettingsTitle: () => localize("resetSettingsTitle"),

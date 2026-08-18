@@ -7,6 +7,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.9.45] - 2026-08-18
+
+### Fixed
+
+- 🤝 **Sibling Extension Source Settings Are No Longer Erased** - A `scanner` value written by another Agent Ninja extension is now preserved verbatim on write-back instead of being dropped, and a source that declares a scanner this extension cannot run is skipped instead of being rescanned under substituted semantics, so its indexed skills are never replaced by results collected under different rules / 別の Agent Ninja 拡張が書いた `scanner` 値を書き戻しで捨てず原文のまま保持し、この拡張が実行できない scanner を宣言したソースは代替の走査規則で再走査せず見送るよう修正。別基準で収集した結果によるスキル上書きが起きなくなる
+- 🔒 **Shared Store Lock Contention No Longer Escapes As An Error** - On filesystems without hard-link support, a lock collision now returns an acquisition failure that re-enters the retry loop instead of throwing out of it. Lock bodies are also read through a single file handle with a 4 KB cap, and retries back off exponentially / hard link 非対応のファイルシステムでロックが衝突した場合、例外で retry ループを抜けず取得失敗として再試行するよう修正。ロック本体は単一ファイルハンドル経由で 4 KB 上限付きで読み、再試行は指数バックオフする
+- 🔑 **GitHub Authentication Errors Reach The Auth Help In Japanese** - Authentication failures were classified with English-only substrings, so Japanese messages fell through to a raw error instead of the auth help. Classification is now centralized and locale-aware, and HTTP status codes are matched with word boundaries so skill names or byte counts containing `401` / `403` / `429` are no longer treated as auth failures / 認証失敗を英語文字列のみで判定していたため、日本語メッセージが認証ヘルプではなく素のエラーになっていた問題を修正。判定を 1 か所へ集約して両言語対応にし、HTTP ステータスは語境界付きで照合するため `401` / `403` / `429` を含むスキル名やバイト数を認証エラーと誤判定しない
+- 🌿 **Branch Names With Slashes Survive URL Building** - Git refs are now escaped per path segment everywhere, so a branch such as `feature/x` is no longer broken by whole-string encoding or left unescaped / Git ref を全箇所でパスセグメント単位にエスケープするよう統一。`feature/x` のようなブランチが一括エンコードで壊れたり未エスケープのまま残ったりしない
+
+### Added
+
+- 🔁 **Switch The Active gh CLI Account And Retry** - When the active `gh` account's credential cannot be used, the notification now names that account, distinguishes a rate limit from an invalid token, and offers to switch to another signed-in account after a confirmation that states the change applies to every `gh` command on the machine. The switch is verified before the failed source update is retried / アクティブな `gh` アカウントの資格情報が使えない場合に、そのアカウント名を示し、レート制限と無効なトークンを区別したうえで、別のログイン済みアカウントへの切り替えを提案するよう追加。切り替えが端末の `gh` コマンド全体に適用されることを明示した確認を経て実行し、成否を検証してから失敗したソース更新を再試行する
+
 ## [0.9.44] - 2026-08-18
 
 ### Fixed

@@ -21,6 +21,11 @@ const SOURCE_FILTER = (process.env.SKILL_NINJA_SOURCES || "")
 // GitHub API トークン（環境変数から取得）
 const GITHUB_TOKEN = process.env.GITHUB_TOKEN || process.env.GH_TOKEN;
 
+// ref はパスセグメントとして URL に入るので "/" は保ち、セグメント内だけ潰す
+function encodeGitRef(ref) {
+  return String(ref).split("/").map(encodeURIComponent).join("/");
+}
+
 function normalizePathPrefix(prefix) {
   return String(prefix || "")
     .replace(/\\/g, "/")
@@ -288,7 +293,7 @@ async function scanRepositoryForSkills(source) {
   console.log(`  📦 ${owner}/${repoName} (branch: ${branch})`);
 
   // リポジトリのツリーを取得
-  const treeUrl = `https://api.github.com/repos/${owner}/${repoName}/git/trees/${branch}?recursive=1`;
+  const treeUrl = `https://api.github.com/repos/${owner}/${repoName}/git/trees/${encodeGitRef(branch)}?recursive=1`;
   const response = await githubFetch(treeUrl);
 
   if (!response.ok) {
@@ -354,7 +359,7 @@ async function processTree(data, owner, repoName, branch, source) {
     const results = await Promise.all(
       chunk.map(async (file) => {
         try {
-          const rawUrl = `https://raw.githubusercontent.com/${owner}/${repoName}/${branch}/${file.path}`;
+          const rawUrl = `https://raw.githubusercontent.com/${owner}/${repoName}/${encodeGitRef(branch)}/${file.path}`;
           const response = await fetchWithTimeout(rawUrl);
           if (!response.ok) return null;
 

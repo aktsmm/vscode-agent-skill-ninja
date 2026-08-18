@@ -6,12 +6,25 @@ import {
   SkillIndex,
   Skill,
   Source,
-  SourceScanner,
   Bundle,
+  normalizeGitHubRepoUrl,
   saveSkillIndex,
 } from "./skillIndex";
+import {
+  encodeGitRef,
+  hasForeignScanner,
+  isSourceScanner,
+  type SourceScanner,
+} from "./sourceRefs";
 import { messages } from "./i18n";
-import { getGitHubToken, hasStoredGitHubToken } from "./githubAuth";
+import {
+  getGitHubToken,
+  hasStoredGitHubToken,
+  isRateLimitAccountError,
+  listGhCliAccounts,
+  selectGhCliSwitchCandidates,
+  switchGhCliAccount,
+} from "./githubAuth";
 export { checkGitHubAuth } from "./githubAuth";
 import {
   LICENSE_EXTRACTION,
@@ -91,7 +104,7 @@ export async function fetchRepositoryTextFile(
   const effectiveToken = token || (await getGitHubToken());
   const encodedPath = encodeGitHubContentPath(filePath);
   const url = `https://api.github.com/repos/${owner}/${repo}/contents/${encodedPath}?ref=${encodeURIComponent(branch)}`;
-  const anonymousUrl = `https://raw.githubusercontent.com/${encodeURIComponent(owner)}/${encodeURIComponent(repo)}/${encodeURIComponent(branch)}/${encodedPath}`;
+  const anonymousUrl = `https://raw.githubusercontent.com/${encodeURIComponent(owner)}/${encodeURIComponent(repo)}/${encodeGitRef(branch)}/${encodedPath}`;
   const fetchAnonymously = () =>
     fetchGitHubWithRetry(
       anonymousUrl,
@@ -430,12 +443,15 @@ export type SourceScanOptions = Pick<
 /**
  * source 定義の `scanner` を優先し、未指定のときだけ repo 名ベースの legacy 判定へ落とす。
  * repo 名判定は rename で黙って外れるため、preset source では常に明示する。
+ *
+ * 実装していない scanner を宣言した source はここへ到達させない。呈り先で
+ * `hasForeignScanner` を見て走査自体を見送る。
  */
 export function resolveSourceScanner(
   repoName: string,
   sourceOptions?: Pick<Source, "scanner">,
 ): SourceScanner {
-  if (sourceOptions?.scanner) {
+  if (isSourceScanner(sourceOptions?.scanner)) {
     return sourceOptions.scanner;
   }
 
@@ -567,14 +583,14 @@ export async function scanRepositoryForSkills(
   }
 
   // リポジトリのツリーを取得
-  const treeUrl = `https://api.github.com/repos/${owner}/${repoName}/git/trees/${branch}?recursive=1`;
+  const treeUrl = `https://api.github.com/repos/${owner}/${repoName}/git/trees/${encodeGitRef(branch)}?recursive=1`;
   const response = await githubFetch(treeUrl, token);
 
   if (!response.ok) {
     if (response.status === 404 && !preferredBranch) {
       // 指定ブランチがない場合のみ別のブランチを試す
       const fallbackBranch = branch === "main" ? "master" : "main";
-      const fallbackUrl = `https://api.github.com/repos/${owner}/${repoName}/git/trees/${fallbackBranch}?recursive=1`;
+      const fallbackUrl = `https://api.github.com/repos/${owner}/${repoName}/git/trees/${encodeGitRef(fallbackBranch)}?recursive=1`;
       const fallbackResponse = await githubFetch(fallbackUrl, token);
       if (fallbackResponse.ok) {
         const fallbackData = (await fallbackResponse.json()) as {
@@ -1506,6 +1522,11 @@ export async function updateSingleSource(
 
   progress?.report({ message: messages.updatingSource(source.name) });
 
+  // 実装していない scanner は代替しない。黙って別基準の結果へ入れ替えない
+  if (hasForeignScanner(source)) {
+    throw new Error(messages.sourceIndexForeignScannerKept(source.scanner!));
+  }
+
   try {
     const result = await scanRepositoryForSkills(
       source.url,
@@ -1613,6 +1634,7 @@ export async function updateIndexFromSources(
   const canonicalSourceUrls = new Map<string, string>();
   const resolvedRepoIds = new Map<string, number>();
   const identityMismatchedSources: string[] = [];
+  const foreignScannerSourceIds: string[] = [];
   const totalSources = currentIndex.sources.length;
   let rateLimitedSourceId: string | undefined;
   let unscannedSourceCount = 0;
@@ -1625,6 +1647,17 @@ export async function updateIndexFromSources(
     const existingBundlesForSource = (currentIndex.bundles || []).filter(
       (b) => b.source === source.id,
     );
+
+    // 実装していない scanner を代替走査すると、違う基準で拾った結果で上書きしてしまう
+    if (hasForeignScanner(source)) {
+      console.warn(
+        `[Skill Ninja] Source ${source.id} declares scanner "${source.scanner}", which this extension cannot run; keeping the stored index`,
+      );
+      foreignScannerSourceIds.push(source.id);
+      updatedSkills.push(...existingSkillsForSource);
+      updatedBundles.push(...existingBundlesForSource);
+      continue;
+    }
 
     try {
       progress?.report({
@@ -1767,6 +1800,15 @@ export async function updateIndexFromSources(
     );
   }
 
+  if (foreignScannerSourceIds.length > 0) {
+    vscode.window.showWarningMessage(
+      messages.sourceIndexForeignScannerSkipped(
+        foreignScannerSourceIds.length,
+        foreignScannerSourceIds.join(", "),
+      ),
+    );
+  }
+
   if (rateLimitedSourceId) {
     vscode.window.showWarningMessage(
       messages.sourceIndexRateLimitStopped(
@@ -1795,6 +1837,11 @@ export async function updateIndexFromSingleSource(
   const source = currentIndex.sources.find((s) => s.id === sourceId);
   if (!source) {
     throw new Error(`Source not found: ${sourceId}`);
+  }
+
+  // 実装していない scanner は代替しない。黙って別基準の結果へ入れ替えない
+  if (hasForeignScanner(source)) {
+    throw new Error(messages.sourceIndexForeignScannerKept(source.scanner!));
   }
 
   // 既存スキルの説明をマップとして保持
@@ -1919,6 +1966,17 @@ export async function addSource(
   resetGitHubSsoCache();
   const token = await getGitHubToken();
 
+  // 登録済み source の再追加でも代替走査しない。判定は scan より前に行う
+  const alreadyRegistered = currentIndex.sources.find(
+    (source) =>
+      normalizeGitHubRepoUrl(source.url) === normalizeGitHubRepoUrl(repoUrl),
+  );
+  if (alreadyRegistered && hasForeignScanner(alreadyRegistered)) {
+    throw new Error(
+      messages.sourceIndexForeignScannerKept(alreadyRegistered.scanner!),
+    );
+  }
+
   const result = await scanRepositoryForSkills(repoUrl, token);
   if (!result) {
     throw new Error("No skills found in repository");
@@ -1936,6 +1994,18 @@ export async function addSource(
   const existingSkillsForSource = currentIndex.skills.filter(
     (s) => s.source === result.source.id,
   );
+
+  // URL 表記が変わった rename / transfer は事前判定を素通りするので、id 一致でも塞ぐ
+  if (
+    existingSourceIndex >= 0 &&
+    hasForeignScanner(currentIndex.sources[existingSourceIndex])
+  ) {
+    throw new Error(
+      messages.sourceIndexForeignScannerKept(
+        currentIndex.sources[existingSourceIndex].scanner!,
+      ),
+    );
+  }
 
   if (
     shouldPreserveSkillsOnEmptyScan(
@@ -2374,7 +2444,7 @@ export async function searchGitHub(
     let skillNameFromMeta = result.name;
 
     try {
-      const rawUrl = `https://raw.githubusercontent.com/${result.repo}/${result.defaultBranch}/${result.itemPath}`;
+      const rawUrl = `https://raw.githubusercontent.com/${result.repo}/${encodeGitRef(result.defaultBranch || "main")}/${result.itemPath}`;
       const contentResponse = await fetchGitHubWithOptionalAuthRetry(rawUrl, {
         accept: "text/plain",
         token,
@@ -2466,27 +2536,47 @@ export async function searchGitHub(
 
 /**
  * 認証エラー時のヘルプメッセージを表示
+ *
+ * `onRecovered` は gh のアカウント切替に成功したときだけ呼ぶ。失敗した 1 件だけを
+ * 呼び出し側に再試行させ、一括処理を最初からやり直させない。
  */
-export async function showAuthHelp(): Promise<void> {
+export async function showAuthHelp(options?: {
+  onRecovered?: () => Promise<void>;
+}): Promise<void> {
+  const accounts = await listGhCliAccounts();
+  const activeAccount = accounts.find((account) => account.active);
+  const switchCandidate = selectGhCliSwitchCandidates(accounts)[0];
+
+  // active が壊れているだけなのか、そもそも資格情報が無いのかを先に伝える
+  let detail = messages.authRequired();
+  if (activeAccount && !activeAccount.healthy) {
+    detail = `${
+      isRateLimitAccountError(activeAccount.error)
+        ? messages.ghAccountRateLimited(activeAccount.login)
+        : messages.ghAccountInvalid(activeAccount.login)
+    }\n${detail}`;
+  }
+
+  const switchLabel = switchCandidate
+    ? messages.ghSwitchAccountAction(switchCandidate.login)
+    : undefined;
   const openSettingsLabel = messages.openSettings();
   const authWithGhCliLabel = messages.authWithGhCli();
   const clearStoredTokenLabel = messages.actionClearStoredGitHubToken();
   const cancelLabel = messages.actionCancel();
-  const actions = (await hasStoredGitHubToken())
-    ? [
-        clearStoredTokenLabel,
-        openSettingsLabel,
-        authWithGhCliLabel,
-        cancelLabel,
-      ]
-    : [openSettingsLabel, authWithGhCliLabel, cancelLabel];
+  const actions = [
+    ...(switchLabel ? [switchLabel] : []),
+    ...((await hasStoredGitHubToken()) ? [clearStoredTokenLabel] : []),
+    openSettingsLabel,
+    authWithGhCliLabel,
+    cancelLabel,
+  ];
 
-  const action = await vscode.window.showErrorMessage(
-    messages.authRequired(),
-    ...actions,
-  );
+  const action = await vscode.window.showErrorMessage(detail, ...actions);
 
-  if (action === clearStoredTokenLabel) {
+  if (switchLabel && action === switchLabel && switchCandidate) {
+    await switchGhCliAccountWithFeedback(switchCandidate.login, options);
+  } else if (action === clearStoredTokenLabel) {
     await vscode.commands.executeCommand("skillNinja.clearGitHubToken");
   } else if (action === openSettingsLabel) {
     await vscode.commands.executeCommand(
@@ -2498,4 +2588,32 @@ export async function showAuthHelp(): Promise<void> {
     terminal.show();
     terminal.sendText("gh auth login");
   }
+}
+
+/** 端末全体の gh 状態を変えるので、切替前に必ず同意を取る */
+async function switchGhCliAccountWithFeedback(
+  login: string,
+  options?: { onRecovered?: () => Promise<void> },
+): Promise<void> {
+  const confirmLabel = messages.ghSwitchAccountConfirmAction();
+  const confirmed = await vscode.window.showWarningMessage(
+    messages.ghSwitchAccountConfirm(login),
+    { modal: true },
+    confirmLabel,
+  );
+  if (confirmed !== confirmLabel) {
+    return;
+  }
+
+  if (!(await switchGhCliAccount(login))) {
+    vscode.window.showErrorMessage(messages.ghSwitchAccountFailed());
+    return;
+  }
+
+  // 資格情報が変わったので、前のトークンで付いた SSO ブロック判定を捨てる
+  resetGitHubSsoCache();
+  vscode.window.showInformationMessage(
+    messages.ghSwitchAccountSucceeded(login),
+  );
+  await options?.onRecovered?.();
 }

@@ -7,6 +7,7 @@ import {
   SHARED_STORE_LOCK_FILE,
   SHARED_STORE_LOCK_HARD_STALE_MS,
   SHARED_STORE_LOCK_HEARTBEAT_MS,
+  SHARED_STORE_LOCK_MAX_BYTES,
   SHARED_STORE_LOCK_RETRY_COUNT,
   SHARED_STORE_LOCK_STALE_MS,
   SHARED_STORE_RETRY_DELAY_MS,
@@ -80,11 +81,16 @@ interface SharedStoreLockState {
 }
 
 async function readLockState(lockPath: string): Promise<SharedStoreLockState> {
+  let handle: fs.FileHandle | undefined;
   try {
-    const [content, stats] = await Promise.all([
-      fs.readFile(lockPath, "utf8"),
-      fs.stat(lockPath),
-    ]);
+    // stat と read を同じ handle で行う。別々に開くと、間に差し替えて上限を迂回できる
+    handle = await fs.open(lockPath, "r");
+    const stats = await handle.stat();
+    if (stats.size > SHARED_STORE_LOCK_MAX_BYTES) {
+      return { exists: true, mtimeMs: stats.mtimeMs };
+    }
+
+    const content = await handle.readFile("utf8");
 
     let payload: SharedStoreLockPayload | undefined;
     try {
@@ -96,6 +102,12 @@ async function readLockState(lockPath: string): Promise<SharedStoreLockState> {
     return { exists: true, payload, mtimeMs: stats.mtimeMs };
   } catch {
     return { exists: false };
+  } finally {
+    try {
+      await handle?.close();
+    } catch {
+      // 既に閉じている場合は無視
+    }
   }
 }
 
@@ -203,6 +215,15 @@ async function reclaimLockFile(lockPath: string): Promise<void> {
   await fs.rm(reclaimPath, { force: true });
 }
 
+function isAlreadyExistsError(error: unknown): boolean {
+  return (
+    !!error &&
+    typeof error === "object" &&
+    "code" in error &&
+    (error as { code?: string }).code === "EEXIST"
+  );
+}
+
 /**
  * payload を書いてから link するので、中身の無いロックが観測される窓が無い。
  * link は既存ファイルがあると EEXIST で失敗するため、排他生成としても機能する。
@@ -220,22 +241,26 @@ async function publishLockFile(
       await fs.link(stagingPath, lockPath);
       return true;
     } catch (error) {
-      const code =
-        error && typeof error === "object" && "code" in error
-          ? (error as { code?: string }).code
-          : undefined;
-      if (code === "EEXIST") {
+      if (isAlreadyExistsError(error)) {
         return false;
       }
 
       // link が使えない環境向けのフォールバック。空ファイルの窓は残る
-      const handle = await fs.open(lockPath, "wx");
       try {
-        await handle.writeFile(body, "utf8");
-      } finally {
-        await handle.close();
+        const handle = await fs.open(lockPath, "wx");
+        try {
+          await handle.writeFile(body, "utf8");
+        } finally {
+          await handle.close();
+        }
+        return true;
+      } catch (fallbackError) {
+        // 競合を例外にすると retry ループごと抜けるので、取得失敗として返す
+        if (isAlreadyExistsError(fallbackError)) {
+          return false;
+        }
+        throw fallbackError;
       }
-      return true;
     }
   } finally {
     await fs.rm(stagingPath, { force: true });
@@ -274,7 +299,8 @@ export async function withSharedStoreLock<T>(
 
     if (!(await publishLockFile(lockPath, payload))) {
       await removeStaleLock(lockPath);
-      await delay(SHARED_STORE_RETRY_DELAY_MS);
+      // retry 予算は payload や stale しきい値と違いプロセス間契約ではないので、待ちだけ伸ばす
+      await delay(SHARED_STORE_RETRY_DELAY_MS * 2 ** attempt);
       continue;
     }
 

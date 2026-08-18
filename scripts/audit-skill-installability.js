@@ -42,6 +42,11 @@ async function fetchWithTimeout(url, options = {}, timeout = FETCH_TIMEOUT) {
   }
 }
 
+// ref はパスセグメントとして URL に入るので "/" は保ち、セグメント内だけ潰す
+function encodeGitRef(ref) {
+  return String(ref).split("/").map(encodeURIComponent).join("/");
+}
+
 function normalizeRepoUrl(repoUrl) {
   const trimmed = String(repoUrl || "")
     .trim()
@@ -195,7 +200,7 @@ async function fetchSourceTrees(sources, branchBySource) {
 
     const branch = branchBySource.get(source.id) || "main";
     const tree = await fetchJson(
-      `https://api.github.com/repos/${parts.owner}/${parts.repo}/git/trees/${encodeURIComponent(branch)}?recursive=1`,
+      `https://api.github.com/repos/${parts.owner}/${parts.repo}/git/trees/${encodeGitRef(branch)}?recursive=1`,
     );
 
     const blobs = new Set(
@@ -251,7 +256,7 @@ async function auditSkillRaw(skill, sourceMap, branchBySource) {
   const rawPath = remotePath.endsWith(".md")
     ? remotePath
     : `${remotePath}/SKILL.md`;
-  const url = `https://raw.githubusercontent.com/${parts.owner}/${parts.repo}/${branch}/${rawPath}`;
+  const url = `https://raw.githubusercontent.com/${parts.owner}/${parts.repo}/${encodeGitRef(branch)}/${rawPath}`;
   const ok = await fetchOk(url);
 
   if (!ok) {

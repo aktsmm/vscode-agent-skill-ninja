@@ -603,10 +603,17 @@ async function run() {
       "utf8",
     );
 
-    const originalReadFile = fs.promises.readFile;
+    // readLockState は stat と read を同じ handle で行うので、handle 側に差し込む
+    const originalOpen = fs.promises.open;
     let lockReads = 0;
-    fs.promises.readFile = async (...args) => {
-      if (String(args[0]).endsWith("index.lock")) {
+    fs.promises.open = async (...args) => {
+      const handle = await originalOpen.apply(fs.promises, args);
+      if (!String(args[0]).endsWith("index.lock")) {
+        return handle;
+      }
+
+      const originalHandleReadFile = handle.readFile.bind(handle);
+      handle.readFile = async (...readArgs) => {
         lockReads += 1;
         // 各試行の 2 回目の読み取りで heartbeat が延長した状況にする
         if (lockReads % 2 === 0) {
@@ -617,8 +624,9 @@ async function run() {
             generation: "owner",
           });
         }
-      }
-      return originalReadFile.apply(fs.promises, args);
+        return originalHandleReadFile(...readArgs);
+      };
+      return handle;
     };
 
     try {
@@ -627,7 +635,7 @@ async function run() {
         /Failed to acquire shared store lock/,
       );
     } finally {
-      fs.promises.readFile = originalReadFile;
+      fs.promises.open = originalOpen;
     }
 
     assert.ok(fs.existsSync(lockPath), "a refreshed lock must survive");

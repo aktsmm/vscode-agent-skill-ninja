@@ -4,6 +4,7 @@
 import * as vscode from "vscode";
 import * as path from "path";
 import { Skill, loadSkillIndex, Source, getSourceBranch } from "./skillIndex";
+import { encodeGitRef } from "./sourceRefs";
 import { isJapanese, messages } from "./i18n";
 import { getGitHubToken, hasStoredGitHubToken } from "./githubAuth";
 import {
@@ -19,6 +20,7 @@ import { fetchGitHubWithOptionalAuthRetry } from "./githubFetch";
 import { buildIssueUrl } from "./issueReport";
 import {
   classifyTransportError,
+  containsHttpStatus,
   createGitHubResponseError,
   GitHubResponseError,
   isGitHubResponseError,
@@ -331,7 +333,7 @@ async function listGitHubDirectoryInternal(
     .split("/")
     .map((segment) => encodeURIComponent(segment))
     .join("/");
-  const url = `https://api.github.com/repos/${owner}/${repo}/contents/${encodedPath}?ref=${branch}`;
+  const url = `https://api.github.com/repos/${owner}/${repo}/contents/${encodedPath}?ref=${encodeURIComponent(branch)}`;
   const response = await fetchGitHubWithOptionalAuthRetry(url, {
     accept: "application/vnd.github.v3+json",
     token,
@@ -628,7 +630,7 @@ async function downloadPrimarySkillMd(
     return false;
   }
 
-  const rawUrl = `https://raw.githubusercontent.com/${owner}/${repo}/${branch}/${normalizedRemotePath}/SKILL.md`;
+  const rawUrl = `https://raw.githubusercontent.com/${owner}/${repo}/${encodeGitRef(branch)}/${normalizedRemotePath}/SKILL.md`;
   try {
     console.log(`[Skill Ninja] Trying primary SKILL.md fallback: ${rawUrl}`);
     const content = await fetchFileContent(rawUrl, token, signal);
@@ -1137,7 +1139,7 @@ export async function installSkill(
     // パスが .md で終わる場合は単独ファイル
     if (remotePath.endsWith(".md")) {
       // 単独ファイルをダウンロード → SKILL.md として保存
-      const rawUrl = `https://raw.githubusercontent.com/${owner}/${repo}/${branch}/${remotePath}`;
+      const rawUrl = `https://raw.githubusercontent.com/${owner}/${repo}/${encodeGitRef(branch)}/${remotePath}`;
       if (options?.isCancelled?.()) {
         // 配布形式によらず、取得を始める前に中断を見る
         recordInstallFailure(
@@ -1556,13 +1558,13 @@ function classifyInstallErrors(errors: string[]): string {
   const kinds = new Set<string>();
   for (const error of errors) {
     const lower = error.toLowerCase();
-    if (lower.includes("rate limit") || lower.includes("429")) {
+    if (lower.includes("rate limit") || containsHttpStatus(error, 429)) {
       kinds.add("rate-limit");
-    } else if (lower.includes("404")) {
+    } else if (containsHttpStatus(error, 404)) {
       kinds.add("not-found");
     } else if (lower.includes("timeout")) {
       kinds.add("timeout");
-    } else if (lower.includes("401") || lower.includes("403")) {
+    } else if (containsHttpStatus(error, 401, 403)) {
       kinds.add("auth");
     } else {
       kinds.add("other");

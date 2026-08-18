@@ -68,12 +68,15 @@ export function getLocalizedCategoryNames(
   });
 }
 
-// ソースごとのスキャナ選択。省略時は SKILL.md 走査。
-export type SourceScanner =
-  | "skill-md"
-  | "claude-commands"
-  | "top-level-dirs"
-  | "registry-json";
+import { encodeGitRef } from "./sourceRefs";
+
+// 実装は sourceRefs.ts に置き、テストとスクリプトが同じ 1 本を参照できるようにする
+export {
+  encodeGitRef,
+  hasForeignScanner,
+  isSourceScanner,
+  type SourceScanner,
+} from "./sourceRefs";
 
 // ソース情報の型定義
 export interface Source {
@@ -88,7 +91,8 @@ export interface Source {
   description_ja?: string; // 日本語説明（オプション）
   includePaths?: string[]; // 取り込むパス prefix の限定
   excludePaths?: string[]; // 除外するパス prefix
-  scanner?: SourceScanner; // 明示しない場合は repo 名ベースの legacy 判定にフォールバック
+  // 別拡張が書いた値も共有ストア経由で入るため、既知の union へは狭めない
+  scanner?: string; // 明示しない場合は repo 名ベースの legacy 判定にフォールバック
   repoId?: number; // GitHub の数値 repository ID。rename や transfer では変わらない
 }
 
@@ -687,7 +691,7 @@ export function buildGitHubRawUrl(
   const rawPath = normalizedSkillPath.endsWith(".md")
     ? normalizedSkillPath
     : `${normalizedSkillPath}/${fileName}`;
-  return `https://raw.githubusercontent.com/${repoParts.owner}/${repoParts.repo}/${branch}/${rawPath}`;
+  return `https://raw.githubusercontent.com/${repoParts.owner}/${repoParts.repo}/${encodeGitRef(branch)}/${rawPath}`;
 }
 
 export function getCachedSourceBranch(source: Source): string | undefined {
@@ -763,7 +767,7 @@ export async function getDefaultBranch(
   for (const branch of branches) {
     // testPath があればそれを使用、なければ README を確認
     const testFile = testPath || "README.md";
-    const rawUrl = `https://raw.githubusercontent.com/${owner}/${repo}/${branch}/${testFile}`;
+    const rawUrl = `https://raw.githubusercontent.com/${owner}/${repo}/${encodeGitRef(branch)}/${testFile}`;
 
     if (await checkUrlExists(rawUrl, token, signal)) {
       cacheResolvedBranch(repoUrl, branch);
