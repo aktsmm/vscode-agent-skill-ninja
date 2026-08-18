@@ -19,7 +19,6 @@ import {
   getBuiltInSkillRoots,
   getExtensionSkillRoots,
   getManagedSkillRoots,
-  resolveConfiguredPathToUri,
   SkillRoot,
   SkillScope,
   normalizeFileSystemPath,
@@ -70,16 +69,6 @@ export function invalidateVisibleSkillsCache(workspaceUri?: vscode.Uri): void {
   }
 
   visibleSkillsCache.clear();
-}
-
-/**
- * AGENTS.md のスキル参照情報
- */
-export interface SkillReference {
-  name: string;
-  path: string;
-  line: number;
-  isLocal: boolean;
 }
 
 export function isSkillRegisteredByMetadata(
@@ -592,33 +581,6 @@ async function rootExists(rootUri: vscode.Uri): Promise<boolean> {
   }
 }
 
-/**
- * configured skills directory 内の SKILL.md をスキャン
- * @param workspaceUri ワークスペースの URI
- * @param includeInstalled true の場合、skills directory 配下のスキルを含める
- */
-export async function scanLocalSkills(
-  workspaceUri: vscode.Uri,
-  includeInstalled: boolean = false,
-): Promise<LocalSkill[]> {
-  if (!includeInstalled) {
-    return [];
-  }
-
-  const managedRoots = await getManagedSkillRoots(workspaceUri);
-  const workspaceRoots = managedRoots.filter(
-    (root) => root.scope === "workspace",
-  );
-  if (workspaceRoots.length === 0) {
-    return [];
-  }
-
-  const skills = await Promise.all(
-    workspaceRoots.map((root) => scanSkillsForRoot(root)),
-  );
-  return skills.flat();
-}
-
 export async function scanVisibleSkills(
   workspaceUri?: vscode.Uri,
 ): Promise<LocalSkill[]> {
@@ -669,93 +631,8 @@ export async function scanVisibleSkills(
 }
 
 /**
- * AGENTS.md からスキル参照を抽出
- */
-export async function parseInstructionFile(
-  workspaceUri: vscode.Uri,
-): Promise<SkillReference[]> {
-  const config = vscode.workspace.getConfiguration("skillNinja");
-  const instructionFile = config.get<string>("instructionFile", "AGENTS.md");
-
-  let instructionPath: string;
-  if (instructionFile === "custom") {
-    instructionPath = config.get<string>("customInstructionPath", "AGENTS.md");
-  } else {
-    instructionPath = instructionFile;
-  }
-
-  const instructionUri =
-    resolveConfiguredPathToUri(instructionPath, workspaceUri) ||
-    vscode.Uri.joinPath(workspaceUri, instructionPath);
-
-  try {
-    const content = await vscode.workspace.fs.readFile(instructionUri);
-    const text = Buffer.from(content).toString("utf8");
-    const lines = text.split("\n");
-    const references: SkillReference[] = [];
-
-    // Skills セクションを探す
-    let inSkillsSection = false;
-    const skillsSectionPattern = /^##\s*(Skills|Installed Skills|スキル)/i;
-    const nextSectionPattern = /^##\s/;
-
-    for (let i = 0; i < lines.length; i++) {
-      const line = lines[i];
-
-      if (skillsSectionPattern.test(line)) {
-        inSkillsSection = true;
-        continue;
-      }
-
-      if (
-        inSkillsSection &&
-        nextSectionPattern.test(line) &&
-        !skillsSectionPattern.test(line)
-      ) {
-        inSkillsSection = false;
-        continue;
-      }
-
-      if (inSkillsSection) {
-        // - [スキル名](パス) または - スキル名: パス 形式を検出
-        const linkMatch = line.match(/^-\s*\[([^\]]+)\]\(([^)]+)\)/);
-        const colonMatch = line.match(/^-\s*([^:]+):\s*(.+)/);
-        const simpleMatch = line.match(/^-\s*`?([^`\n]+)`?\s*$/);
-
-        if (linkMatch) {
-          references.push({
-            name: linkMatch[1].trim(),
-            path: linkMatch[2].trim(),
-            line: i + 1,
-            isLocal: !linkMatch[2].startsWith("http"),
-          });
-        } else if (colonMatch) {
-          references.push({
-            name: colonMatch[1].trim(),
-            path: colonMatch[2].trim(),
-            line: i + 1,
-            isLocal: !colonMatch[2].startsWith("http"),
-          });
-        } else if (simpleMatch && simpleMatch[1].includes("/")) {
-          references.push({
-            name: simpleMatch[1].split("/").pop() || simpleMatch[1],
-            path: simpleMatch[1].trim(),
-            line: i + 1,
-            isLocal: true,
-          });
-        }
-      }
-    }
-
-    return references;
-  } catch {
-    return [];
-  }
-}
-
-/**
  * ローカルスキルを AGENTS.md に登録
- * ※ updateInstructionFile を呼び出してマーカー内で統一管理
+ * ※ updateInstructionFileForRoot を呼び出してマーカー内で統一管理
  */
 export async function registerLocalSkill(
   skill: LocalSkill,

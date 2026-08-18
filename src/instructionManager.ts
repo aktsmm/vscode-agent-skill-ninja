@@ -312,22 +312,6 @@ function normalizeFsPath(targetPath: string): string {
   return normalized;
 }
 
-/**
- * インストラクションファイルを更新する
- */
-export async function updateInstructionFile(
-  workspaceUri: vscode.Uri,
-  context: vscode.ExtensionContext,
-): Promise<void> {
-  const roots = await getManagedSkillRoots(workspaceUri);
-  const workspaceRoot = roots.find((root) => root.scope === "workspace");
-  if (!workspaceRoot) {
-    return;
-  }
-
-  await updateInstructionFileForRoot(workspaceRoot, context);
-}
-
 export async function updateInstructionFileForRoot(
   root: SkillRoot,
   context: vscode.ExtensionContext,
@@ -805,26 +789,6 @@ export async function removeSkillSectionFromFile(
   } catch {
     // ファイルが存在しない場合は何もしない
   }
-}
-
-/**
- * インストラクションファイルからスキルセクションを削除
- */
-export async function removeSkillSection(
-  workspaceUri: vscode.Uri,
-): Promise<void> {
-  const config = vscode.workspace.getConfiguration("skillNinja");
-  let instructionPath = config.get<string>("instructionFile") || "AGENTS.md";
-
-  if (instructionPath === "custom") {
-    instructionPath =
-      config.get<string>("customInstructionPath") || "AGENTS.md";
-  }
-
-  const instructionUri =
-    resolveConfiguredPathToUri(instructionPath, workspaceUri) ||
-    vscode.Uri.joinPath(workspaceUri, instructionPath);
-  await removeSkillSectionFromFile(instructionUri);
 }
 
 /**

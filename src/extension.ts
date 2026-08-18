@@ -110,11 +110,8 @@ import {
   shouldResumeRateLimitedUpdate,
   type RateLimitResumeState,
 } from "./rateLimitResume";
-import {
-  GitHubResponseError,
-  isGitHubResponseError,
-  looksLikeGitHubAuthMessage,
-} from "./githubResponse";
+import { isGitHubResponseError } from "./githubResponse";
+import { createAuthRecovery } from "./authRecovery";
 import { resetGitHubSsoCache } from "./githubFetch";
 import {
   getSourceIndexUpdateRetryEntries,
@@ -507,98 +504,26 @@ function formatStaleSourceFailureReason(error: unknown): string {
   }
 }
 
-function shouldOfferGitHubAuth(error: unknown): error is GitHubResponseError {
-  return (
-    isGitHubResponseError(error) &&
-    [
-      "rate-limit",
-      "sso-required",
-      "classic-pat-forbidden",
-      "auth-required",
-    ].includes(error.kind)
-  );
-}
+// 再入防止フラグを 1 つに保つため、factory は module scope で 1 回だけ生成する。
+// command ハンドラ内で作ると retry 中の再試行を止められなくなる。
+const authRecovery = createAuthRecovery({
+  showAuthHelp,
+  showWarningMessage: (message, ...actions) =>
+    vscode.window.showWarningMessage(message, ...actions),
+  openExternal: async (url) => {
+    await vscode.env.openExternal(vscode.Uri.parse(url));
+  },
+  messages,
+  resetGitHubSsoCache,
+  formatStaleSourceFailureReason,
+});
 
-/** 分類できない error も認証導線へ入れる。個別 command で条件を書き分けない */
-function isGitHubAuthFailure(error: unknown): boolean {
-  return (
-    shouldOfferGitHubAuth(error) ||
-    looksLikeGitHubAuthMessage(
-      error instanceof Error ? error.message : String(error),
-    )
-  );
-}
-
-// 再試行中の失敗からさらに再試行を提案すると、同じ操作を無限に往復できてしまう
-let authRecoveryRetryInFlight = false;
-
-/**
- * 認証を直せたときだけ、失敗した操作そのものを 1 回だけやり直す。
- * command を再実行すると入力を再要求するので、呼び出し側は捕捉済みの引数を閉じ込めた
- * closure を渡す。
- */
-async function showAuthHelpWithRetry(
-  retryFailedOperation: () => Promise<void>,
-): Promise<void> {
-  await runAuthHelp(retryFailedOperation);
-}
-
-/** onRecoveredを持たない呼び出しも同じ再入防止を通るよう、ここへ集める */
-async function runAuthHelp(
-  retryFailedOperation?: () => Promise<void>,
-): Promise<void> {
-  if (!retryFailedOperation || authRecoveryRetryInFlight) {
-    await showAuthHelp();
-    return;
-  }
-
-  await showAuthHelp({
-    onRecovered: async () => {
-      authRecoveryRetryInFlight = true;
-      try {
-        await retryFailedOperation();
-      } finally {
-        authRecoveryRetryInFlight = false;
-      }
-    },
-  });
-}
-
-/**
- * 文字列一致ではなく分類で GitHub の失敗を扱う。扱えなければ false を返し、
- * 呼び出し側の既定処理へ戻す。
- */
-async function offerGitHubFailureRecovery(
-  error: unknown,
-  formatMessage: (reason: string) => string,
-  onRecovered?: () => Promise<void>,
-): Promise<boolean> {
-  if (!shouldOfferGitHubAuth(error)) {
-    return false;
-  }
-
-  const ssoUrl = error.ssoAuthorizationUrl;
-  if (!ssoUrl) {
-    await runAuthHelp(onRecovered);
-    return true;
-  }
-
-  const ssoAction = messages.actionOpenGitHubSso();
-  const authAction = messages.actionConfigureGitHubAuth();
-  const action = await vscode.window.showWarningMessage(
-    formatMessage(formatStaleSourceFailureReason(error)),
-    ssoAction,
-    authAction,
-  );
-  if (action === ssoAction) {
-    await vscode.env.openExternal(vscode.Uri.parse(ssoUrl));
-    resetGitHubSsoCache();
-  } else if (action === authAction) {
-    await runAuthHelp(onRecovered);
-  }
-
-  return true;
-}
+const {
+  shouldOfferGitHubAuth,
+  isGitHubAuthFailure,
+  showAuthHelpWithRetry,
+  offerGitHubFailureRecovery,
+} = authRecovery;
 
 export function activate(
   context: vscode.ExtensionContext,

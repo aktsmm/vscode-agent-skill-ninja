@@ -1720,33 +1720,6 @@ export async function uninstallSkillByPath(
 }
 
 /**
- * インストール済みスキルの一覧を取得
- */
-export async function getInstalledSkills(
-  workspaceUri: vscode.Uri,
-  skillsRootUri?: vscode.Uri,
-): Promise<string[]> {
-  const skillsPath = resolveSkillsRootUri(workspaceUri, skillsRootUri);
-
-  try {
-    try {
-      await vscode.workspace.fs.stat(skillsPath);
-    } catch {
-      return [];
-    }
-
-    const entries = await vscode.workspace.fs.readDirectory(skillsPath);
-    // ディレクトリのみを返す
-    return entries
-      .filter(([, type]) => type === vscode.FileType.Directory)
-      .map(([name]) => name);
-  } catch {
-    // ディレクトリが存在しない場合は空配列
-    return [];
-  }
-}
-
-/**
  * スキルのメタデータ
  */
 export interface SkillMeta {

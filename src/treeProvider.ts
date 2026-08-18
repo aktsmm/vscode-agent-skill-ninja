@@ -894,10 +894,6 @@ export class WorkspaceSkillsProvider implements vscode.TreeDataProvider<SkillTre
   }
 }
 
-// 後方互換性のためのエイリアス
-export const InstalledSkillsProvider = WorkspaceSkillsProvider;
-export const LocalSkillsProvider = WorkspaceSkillsProvider;
-
 export class UserGlobalSkillsProvider implements vscode.TreeDataProvider<SkillTreeItem> {
   private _onDidChangeTreeData = new vscode.EventEmitter<
     SkillTreeItem | undefined | null | void

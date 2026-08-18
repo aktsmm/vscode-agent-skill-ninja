@@ -7,6 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.9.47] - 2026-08-18
+
+### Changed
+
+- 🌐 **The Chat Participant Now Speaks Japanese Too** - `@skill` and its `/search`, `/install`, `/list` and `/recommend` entries showed English descriptions in the chat picker even on a Japanese UI, because those manifest strings were the only user-facing contribution left without a localization placeholder. The invocation names stay untranslated so existing commands keep working / 日本語 UI でもチャットの候補一覧に `@skill` とその `/search`、`/install`、`/list`、`/recommend` の説明が英語のまま出ていた問題を修正しました。ローカライズ用のプレースホルダーが入っていない唯一のユーザー向け manifest 文言だったためです。呼び出し名は従来どおり英語のままなので、既存のコマンド入力はそのまま使えます
+
+- 🧪 **Authentication Recovery Is Verified By Running It** - The auth-failure classification and the post-recovery retry moved out of `extension.ts` into a VS Code-free module with injected seams, so the retry path is now exercised by an executable test instead of being asserted with source patterns only. Behavior is unchanged; the composition root is built once and still hands the same closures to every command / 認証失敗の分類と復旧後の再試行を `extension.ts` から VS Code 非依存のモジュールへ移し、seam を注入して実挙動テストで検証するようにしました。挙動は変わらず、合成は 1 か所で 1 回だけ行い、各コマンドへ渡す closure も従来どおりです
+
+### Removed
+
+- 🧹 **Unreachable Exports And Stale Localization Keys** - Thirteen exported helpers that no production path and no test referenced were removed, together with the types, private helpers and imports that only they used. Four `config.*.description` keys left behind by the move to `markdownDescription` were dropped from both NLS tables. Two new guards keep this from returning: export reachability is computed from the extension entry graph with transitive liveness and now audits the authentication, shared-lock and newly cleaned modules, and every `%key%` in `package.json` must exist in both NLS tables with no unused keys left over / 本番からもテストからも参照されていない export 13 件と、それらだけが使っていた型・private helper・import を削除しました。`markdownDescription` への移行で置き去りになっていた `config.*.description` 4 件も両方の NLS テーブルから削除しています。再発防止として、拡張のエントリグラフから推移的に到達性を判定するガード（認証・共有ロック・今回掃除した module を監査対象にしています）と、`package.json` の `%key%` が両 NLS テーブルに存在し未使用 key が残らないことを検査するガードを追加しました
+
 ## [0.9.46] - 2026-08-18
 
 ### Added

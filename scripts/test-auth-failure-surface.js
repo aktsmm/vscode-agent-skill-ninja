@@ -132,6 +132,41 @@ test("real status codes are still detected", () => {
   assert.strictEqual(containsHttpStatus("skill-404-handler", 404), false);
 });
 
+test("containsHttpStatus only matches a standalone status token", () => {
+  // looksLikeGitHubAuthMessage 経由だと marker 側で偶然通るので、ここは直接呼ぶ。
+  // 姉妹拡張の `(?:^|[\s(:])` 版へ寄せると、全角句読点や引用符付きの status を
+  // 落として日本語 UI が認証導線に入らなくなるため、この境界を固定する。
+  for (const status of [401, 403, 404, 429]) {
+    for (const benign of [
+      `x${status}x`,
+      `1${status}`,
+      `${status}0`,
+      `_${status}_`,
+      `error-${status}-detail`,
+      `azure-${status}-troubleshoot`,
+    ]) {
+      assert.strictEqual(
+        containsHttpStatus(benign, status),
+        false,
+        `must not read ${status} out of ${benign}`,
+      );
+    }
+
+    for (const real of [
+      `HTTP ${status}:`,
+      `"${status}"`,
+      `${status}。`,
+      `エラー：${status}`,
+    ]) {
+      assert.strictEqual(
+        containsHttpStatus(real, status),
+        true,
+        `must still detect ${status} in ${real}`,
+      );
+    }
+  }
+});
+
 test("commands no longer classify auth failures with ad-hoc strings", () => {
   // 新しい command が英語マーカーだけの判定を再導入すると、日本語 UI でまた素通りする
   const adHoc = extensionSource.match(
@@ -162,15 +197,24 @@ test("status codes are never matched as bare substrings", () => {
 });
 
 test("auth recovery re-runs the failed operation instead of stopping", () => {
+  // 実装は authRecovery.ts、配線は extension.ts に分かれたので、両方を別々に見る。
+  // 片側だけ見ると「実装はあるが呼ばれていない」を取り逃がす。
+  const authRecoverySource = readNormalized("authRecovery.ts");
+
+  // 再試行中の失敗からさらに再試行を提案すると同じ操作を往復できる
+  assert.match(authRecoverySource, /authRecoveryRetryInFlight/);
+  assert.match(
+    authRecoverySource,
+    /async function showAuthHelpWithRetry\(/,
+    "the retry helper must live in authRecovery.ts",
+  );
+
   // 認証を直せた直後にユーザーへ同じ操作をやり直させない
   const wired = extensionSource.match(/showAuthHelpWithRetry\(/g) || [];
   assert.ok(
     wired.length >= 4,
     `command handlers should retry after recovery (found ${wired.length})`,
   );
-
-  // 再試行中の失敗からさらに再試行を提案すると同じ操作を往復できる
-  assert.match(extensionSource, /authRecoveryRetryInFlight/);
 
   // command 再実行だと入力を聞き直すので、捕捉済みの引数を閉じ込める
   for (const closure of [
@@ -205,6 +249,104 @@ test("auth recovery re-runs the failed operation instead of stopping", () => {
   }
 });
 
+test("the auth recovery composition root is built once with every seam", () => {
+  // behavior test は fake seam を、配線テストは call site を見るため、
+  // 型が合う誤 seam を注入すると両方すり抜ける。合流点をここで固定する。
+  const authRecoverySource = readNormalized("authRecovery.ts");
+
+  const created = extensionSource.match(/createAuthRecovery\(/g) || [];
+  assert.strictEqual(
+    created.length,
+    1,
+    `createAuthRecovery must be called exactly once (found ${created.length})`,
+  );
+
+  // command ハンドラ内で作ると再入防止フラグが増えるので、module scope を強制する
+  const factoryBlock =
+    /^const authRecovery = createAuthRecovery\(\{\n([\s\S]*?)^\}\);$/m.exec(
+      extensionSource,
+    );
+  assert.ok(
+    factoryBlock,
+    "the factory must be created at module scope as `const authRecovery = createAuthRecovery({...})`",
+  );
+
+  const seamBlock =
+    /export interface AuthRecoverySeams \{\n([\s\S]*?)\n\}/.exec(
+      authRecoverySource,
+    );
+  assert.ok(
+    seamBlock,
+    "AuthRecoverySeams should stay declared as an interface",
+  );
+  const seamNames = [
+    ...seamBlock[1].matchAll(/^ {2}([A-Za-z0-9_]+)\??:/gm),
+  ].map((match) => match[1]);
+  assert.ok(
+    seamNames.length >= 6,
+    `expected the injected seams to be discoverable (found ${seamNames.join(", ")})`,
+  );
+
+  for (const seam of seamNames) {
+    assert.match(
+      factoryBlock[1],
+      new RegExp(`^ {2}${seam}[,:]`, "m"),
+      `${seam} must be passed to createAuthRecovery`,
+    );
+  }
+
+  // 名前が並んでいるだけでは `showAuthHelp: async () => {}` のような無害に見える
+  // 差し替えを止められない。実バインディングと VS Code API に固定する
+  for (const passthrough of [
+    "showAuthHelp",
+    "messages",
+    "resetGitHubSsoCache",
+    "formatStaleSourceFailureReason",
+  ]) {
+    assert.match(
+      factoryBlock[1],
+      new RegExp(`^ {2}${passthrough},$`, "m"),
+      `${passthrough} must be the real binding, not an inline stub`,
+    );
+  }
+  assert.match(
+    factoryBlock[1],
+    /showWarningMessage:[\s\S]*?vscode\.window\.showWarningMessage\(/,
+    "the warning seam must reach vscode.window.showWarningMessage",
+  );
+  assert.match(
+    factoryBlock[1],
+    /openExternal:[\s\S]*?vscode\.env\.openExternal\(/,
+    "the external-open seam must reach vscode.env.openExternal",
+  );
+
+  // extension.ts 側が使う名前は factory の戻り値から取る（旧ローカル定義の残骸を防ぐ）
+  const bound = /^const \{\n([\s\S]*?)^\} = authRecovery;$/m.exec(
+    extensionSource,
+  );
+  assert.ok(
+    bound,
+    "extension.ts should bind the recovery helpers from the factory",
+  );
+  for (const name of [
+    "shouldOfferGitHubAuth",
+    "isGitHubAuthFailure",
+    "showAuthHelpWithRetry",
+    "offerGitHubFailureRecovery",
+  ]) {
+    assert.match(
+      bound[1],
+      new RegExp(`^ {2}${name},$`, "m"),
+      `${name} must come from the shared factory instance`,
+    );
+    assert.doesNotMatch(
+      extensionSource,
+      new RegExp(`^(?:async )?function ${name}\\(`, "m"),
+      `${name} must not be re-declared locally in extension.ts`,
+    );
+  }
+});
+
 test("both READMEs document the multi-account gh pitfall", () => {
   // active でないアカウントが健全でも認証は通らない。実際に踏んだので手順を残す
   const root = path.join(__dirname, "..");
@@ -222,57 +364,6 @@ test("both READMEs document the multi-account gh pitfall", () => {
     assert.ok(
       source.includes("gh auth status"),
       `${file} should tell the reader how to see which gh account is active`,
-    );
-  }
-});
-
-test("shipped auth helpers stay reachable from production code", () => {
-  // 「配線した」と書いたのに実経路から呼ばれていない、を 2 回続けたので機械で止める
-  const testOnlySeams = new Set([
-    "configureSharedStoreLockRuntime",
-    "resetSharedStoreLockRuntime",
-  ]);
-  const sources = new Map(
-    ["githubAuth.ts", "githubResponse.ts", "shared-store-lock.ts"].map(
-      (file) => [file, readNormalized(file)],
-    ),
-  );
-
-  const exported = [];
-  for (const [file, source] of sources) {
-    for (const match of source.matchAll(
-      /^export (?:async )?function ([A-Za-z0-9_]+)/gm,
-    )) {
-      exported.push({ file, name: match[1] });
-    }
-  }
-  assert.ok(exported.length > 0, "no exported helpers were discovered");
-
-  const consumers = [
-    "extension.ts",
-    "indexUpdater.ts",
-    "skillInstaller.ts",
-    "shared-sources-manifest-store.ts",
-    "githubFetch.ts",
-  ]
-    .concat([...sources.keys()])
-    .map((file) => readNormalized(file))
-    .join("\n");
-
-  for (const { file, name } of exported) {
-    if (testOnlySeams.has(name)) {
-      continue;
-    }
-    const uses = consumers
-      .split("\n")
-      .filter(
-        (line) =>
-          new RegExp(`\\b${name}\\b`).test(line) &&
-          !new RegExp(`export (?:async )?function ${name}\\b`).test(line),
-      );
-    assert.ok(
-      uses.length > 0,
-      `${file} exports ${name} but nothing calls or imports it`,
     );
   }
 });

@@ -45,29 +45,6 @@ export function getLocalizedDescription(skill: Skill, isJa: boolean): string {
   return skill.description;
 }
 
-/**
- * カテゴリーIDの配列を言語に応じた表示名に変換
- * @param categoryIds カテゴリーIDの配列
- * @param categories カテゴリーマスター
- * @param isJa 日本語表示するかどうか
- */
-export function getLocalizedCategoryNames(
-  categoryIds: string[],
-  categories: Category[],
-  isJa: boolean,
-): string[] {
-  return categoryIds.map((id) => {
-    const category = categories.find((c) => c.id === id);
-    if (!category) {
-      return id; // マスターにない場合はIDをそのまま返す
-    }
-    if (isJa && category.name_ja) {
-      return category.name_ja;
-    }
-    return category.name;
-  });
-}
-
 import { encodeGitRef } from "./sourceRefs";
 
 // 実装は sourceRefs.ts に置き、テストとスクリプトが同じ 1 本を参照できるようにする
@@ -640,22 +617,6 @@ export function normalizeGitHubRepoUrl(repoUrl: string): string {
   return `https://github.com/${match[1]}/${match[2].replace(/\.git$/i, "")}`;
 }
 
-function getGitHubRepoParts(
-  repoUrl: string,
-): { owner: string; repo: string } | undefined {
-  const match = normalizeGitHubRepoUrl(repoUrl).match(
-    /github\.com\/([^/]+)\/([^/]+)/,
-  );
-  if (!match) {
-    return undefined;
-  }
-
-  return {
-    owner: match[1],
-    repo: match[2],
-  };
-}
-
 export function buildGitHubContentUrl(
   repoUrl: string,
   branch: string,
@@ -674,24 +635,6 @@ export function buildGitHubContentUrl(
 
   const urlType = normalizedSkillPath.endsWith(".md") ? "blob" : "tree";
   return `${normalizedRepoUrl}/${urlType}/${branch}/${normalizedSkillPath}`;
-}
-
-export function buildGitHubRawUrl(
-  repoUrl: string,
-  branch: string,
-  skillPath: string,
-  fileName: string = "SKILL.md",
-): string | undefined {
-  const repoParts = getGitHubRepoParts(repoUrl);
-  if (!repoParts) {
-    return undefined;
-  }
-
-  const normalizedSkillPath = skillPath.replace(/^\/+/, "");
-  const rawPath = normalizedSkillPath.endsWith(".md")
-    ? normalizedSkillPath
-    : `${normalizedSkillPath}/${fileName}`;
-  return `https://raw.githubusercontent.com/${repoParts.owner}/${repoParts.repo}/${encodeGitRef(branch)}/${rawPath}`;
 }
 
 export function getCachedSourceBranch(source: Source): string | undefined {
@@ -877,47 +820,4 @@ export function getSkillGitHubUrl(
 
   const branch = getCachedSourceBranch(source) || "main";
   return buildGitHubContentUrl(source.url, branch, skill.path, skill.url);
-}
-
-/**
- * スキルの raw ファイル URL を取得する（非同期版）
- */
-export async function getSkillRawUrlAsync(
-  skill: Skill,
-  sources: Source[],
-  fileName: string = "SKILL.md",
-  token?: string,
-): Promise<string | undefined> {
-  if (skill.rawUrl?.trim() && fileName === "SKILL.md") {
-    return skill.rawUrl.trim();
-  }
-
-  const source = sources.find((s) => s.id === skill.source);
-  if (!source) {
-    return undefined;
-  }
-
-  const branch = await getSourceBranch(source, token, skill.path);
-  return buildGitHubRawUrl(source.url, branch, skill.path, fileName);
-}
-
-/**
- * スキルの raw ファイル URL を取得する（同期版 - フォールバック用）
- */
-export function getSkillRawUrl(
-  skill: Skill,
-  sources: Source[],
-  fileName: string = "SKILL.md",
-): string | undefined {
-  if (skill.rawUrl?.trim() && fileName === "SKILL.md") {
-    return skill.rawUrl.trim();
-  }
-
-  const source = sources.find((s) => s.id === skill.source);
-  if (!source) {
-    return undefined;
-  }
-
-  const branch = getCachedSourceBranch(source) || "main";
-  return buildGitHubRawUrl(source.url, branch, skill.path, fileName);
 }

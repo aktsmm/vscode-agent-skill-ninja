@@ -422,6 +422,104 @@ test("package version info stays in sync with skill-index metadata", () => {
   }
 });
 
+test("package.json placeholders and both NLS tables stay in sync", () => {
+  // 個別 key の存在チェックだけでは、`description` から `markdownDescription` へ
+  // 移行したときの置き去り key を検出できなかった
+  const referenced = new Set();
+  const walk = (node) => {
+    if (typeof node === "string") {
+      const match = /^%(.+)%$/.exec(node);
+      if (match) {
+        referenced.add(match[1]);
+      }
+      return;
+    }
+    if (Array.isArray(node)) {
+      node.forEach(walk);
+      return;
+    }
+    if (node && typeof node === "object") {
+      Object.values(node).forEach(walk);
+    }
+  };
+  walk(pkg);
+
+  assert.ok(
+    referenced.size > 50,
+    `expected package.json to reference many NLS keys (found ${referenced.size})`,
+  );
+
+  for (const [label, table] of [
+    ["package.nls.json", packageNls],
+    ["package.nls.ja.json", packageNlsJa],
+  ]) {
+    const missing = [...referenced].filter((key) => !(key in table)).sort();
+    assert.deepStrictEqual(
+      missing,
+      [],
+      `${label} is missing keys referenced by package.json`,
+    );
+  }
+
+  assert.deepStrictEqual(
+    Object.keys(packageNlsJa).sort(),
+    Object.keys(packageNls).sort(),
+    "both NLS tables should carry the same keys",
+  );
+
+  const unused = Object.keys(packageNls)
+    .filter((key) => !referenced.has(key))
+    .sort();
+  assert.deepStrictEqual(
+    unused,
+    [],
+    "these NLS keys are no longer referenced from package.json",
+  );
+});
+
+test("chat participant surface is localized, identifiers are not", () => {
+  const participants = pkg.contributes.chatParticipants || [];
+  assert.ok(participants.length > 0, "expected a chat participant");
+
+  for (const participant of participants) {
+    // @skill と /search は入力トークンなので翻訳しない
+    assert.doesNotMatch(participant.name, /^%.+%$/);
+    assert.match(
+      participant.description,
+      /^%(.+)%$/,
+      "the participant description is shown in chat and must be localizable",
+    );
+
+    const placeholders = [participant.description].concat(
+      (participant.commands || []).map((command) => {
+        assert.doesNotMatch(command.name, /^%.+%$/);
+        return command.description;
+      }),
+    );
+
+    for (const placeholder of placeholders) {
+      const key = /^%(.+)%$/.exec(placeholder);
+      assert.ok(
+        key,
+        `chat description should be a placeholder: ${placeholder}`,
+      );
+      assert.ok(
+        packageNls[key[1]],
+        `${key[1]} should exist in package.nls.json`,
+      );
+      assert.ok(
+        packageNlsJa[key[1]],
+        `${key[1]} should exist in package.nls.ja.json`,
+      );
+      assert.notStrictEqual(
+        packageNlsJa[key[1]],
+        packageNls[key[1]],
+        `${key[1]} should be translated, not copied from English`,
+      );
+    }
+  }
+});
+
 test("extension version stays in sync across manifest, NLS, and changelog", () => {
   for (const [label, nls] of [
     ["package.nls.json", packageNls],
@@ -1958,6 +2056,29 @@ test("local debug logs and backup files are excluded from git", () => {
     assert.ok(
       ignoreMatchers.some((matcher) => matcher.test(filePath)),
       `${filePath} must be excluded by .gitignore`,
+    );
+  }
+});
+
+test(".vscodeignore keeps source, tests and internal assets out of the VSIX", () => {
+  // asset の取りこぼしは既存テストが見るが、除外側が緩む方向は誰も見ていなかった。
+  // ここが外れると source や docs/ の重い素材がそのまま出荷される
+  const entries = new Set(getVscodeIgnoreEntries().map(normalizePath));
+  for (const pattern of [
+    "src/**",
+    "scripts/**",
+    "docs/**",
+    "artifacts/**",
+    "node_modules/**",
+    ".vscode/**",
+    ".github/",
+    "**/*.ts",
+    "**/*.map",
+    "*.vsix",
+  ]) {
+    assert.ok(
+      entries.has(pattern),
+      `.vscodeignore must keep excluding ${pattern}`,
     );
   }
 });

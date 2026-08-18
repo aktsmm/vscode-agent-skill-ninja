@@ -2,7 +2,7 @@
   "name": "agent-skill-ninja",
   "displayName": "%displayName%",
   "description": "%description%",
-  "version": "0.9.46",
+  "version": "0.9.47",
   "publisher": "yamapan",
   "license": "CC-BY-NC-SA-4.0",
   "icon": "resources/icon.png",
@@ -41,24 +41,24 @@
         "id": "skill",
         "name": "skill",
         "fullName": "Agent Skills Ninja",
-        "description": "Search, install and manage Agent Skills",
+        "description": "%chat.description%",
         "isSticky": false,
         "commands": [
           {
             "name": "search",
-            "description": "Search for Agent Skills"
+            "description": "%chat.command.search%"
           },
           {
             "name": "install",
-            "description": "Install an Agent Skill"
+            "description": "%chat.command.install%"
           },
           {
             "name": "list",
-            "description": "List installed skills"
+            "description": "%chat.command.list%"
           },
           {
             "name": "recommend",
-            "description": "Recommend skills for current project"
+            "description": "%chat.command.recommend%"
           }
         ]
       }

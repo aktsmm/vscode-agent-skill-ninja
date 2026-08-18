@@ -162,37 +162,3 @@ function skillToQuickPickItem(skill: Skill): SkillQuickPickItem {
     skill: skill,
   };
 }
-
-/**
- * カテゴリでスキルをグループ化
- */
-export function groupByCategory(index: SkillIndex): Map<string, Skill[]> {
-  const groups = new Map<string, Skill[]>();
-
-  for (const skill of index.skills) {
-    for (const category of skill.categories) {
-      if (!groups.has(category)) {
-        groups.set(category, []);
-      }
-      groups.get(category)!.push(skill);
-    }
-  }
-
-  return groups;
-}
-
-/**
- * ソースでスキルをグループ化
- */
-export function groupBySource(index: SkillIndex): Map<string, Skill[]> {
-  const groups = new Map<string, Skill[]>();
-
-  for (const skill of index.skills) {
-    if (!groups.has(skill.source)) {
-      groups.set(skill.source, []);
-    }
-    groups.get(skill.source)!.push(skill);
-  }
-
-  return groups;
-}
