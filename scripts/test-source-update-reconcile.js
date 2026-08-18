@@ -741,7 +741,11 @@ async function run() {
         skills: [{ ...before.skills[0], source: "new-owner-new-repo" }],
       };
       await assert.rejects(
-        addSource({}, resolvedElsewhere, "https://github.com/new-owner/new-repo"),
+        addSource(
+          {},
+          resolvedElsewhere,
+          "https://github.com/new-owner/new-repo",
+        ),
         /auto/,
       );
       assert.strictEqual(
