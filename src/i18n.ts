@@ -288,6 +288,8 @@ const jaMessages = {
     "{0} 件の出力先を無効にします。管理ブロックと生成済みカタログを削除しますか？自分で書いた本文は残ります。",
   outputTargetsDisableConfirm: "削除して続行",
   outputTargetsApplied: "✅ 出力ターゲットを更新しました（有効 {0} 件）",
+  sourceRepositoryRenamed:
+    "🔄 リポジトリ名が変わっていたので追従しました: {0} → {1}",
 } as const;
 
 type MessageKey = keyof typeof jaMessages;
@@ -575,6 +577,8 @@ const enMessages: MessageDictionary = {
     "Disable {0} target(s)? Their managed block and generated catalog will be removed. Your own text is kept.",
   outputTargetsDisableConfirm: "Remove and continue",
   outputTargetsApplied: "✅ Output targets updated ({0} enabled)",
+  sourceRepositoryRenamed:
+    "🔄 The repository was renamed, so the source now follows it: {0} → {1}",
 };
 
 /**
@@ -984,6 +988,8 @@ export const messages = {
   outputTargetsDisableConfirm: () => localize("outputTargetsDisableConfirm"),
   outputTargetsApplied: (count: string) =>
     localize("outputTargetsApplied", count),
+  sourceRepositoryRenamed: (previous: string, next: string) =>
+    localize("sourceRepositoryRenamed", previous, next),
 };
 
 export default messages;

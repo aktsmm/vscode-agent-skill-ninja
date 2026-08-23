@@ -147,8 +147,63 @@ async function run() {
     createSourceBundleKey,
     hasRepositoryIdentityChanged,
     reconcileSourceBundles,
+    resolveSourceRename,
     shouldPreserveSkillsOnEmptyScan,
   } = compileTsModule(reconcilePath);
+
+  await test("a renamed repository updates an auto-generated display name", () => {
+    const result = resolveSourceRename(
+      {
+        name: "ghc_template",
+        description: "User added repository: aktsmm/ghc_template",
+      },
+      {
+        name: "Agent-Customization",
+        description: "User added repository: aktsmm/Agent-Customization",
+      },
+    );
+
+    assert.strictEqual(result.renamed, true);
+    assert.strictEqual(result.previousFullName, "aktsmm/ghc_template");
+    assert.strictEqual(result.nextFullName, "aktsmm/Agent-Customization");
+    assert.strictEqual(result.name, "Agent-Customization");
+    assert.strictEqual(
+      result.description,
+      "User added repository: aktsmm/Agent-Customization",
+    );
+  });
+
+  await test("a rename never overwrites a display name the user chose", () => {
+    const result = resolveSourceRename(
+      {
+        name: "My favourite skills",
+        description: "User added repository: aktsmm/ghc_template",
+      },
+      {
+        name: "Agent-Customization",
+        description: "User added repository: aktsmm/Agent-Customization",
+      },
+    );
+
+    assert.strictEqual(result.renamed, true);
+    assert.strictEqual(result.name, undefined);
+    assert.strictEqual(result.description, undefined);
+  });
+
+  await test("an unchanged repository is not reported as renamed", () => {
+    const same = resolveSourceRename(
+      { name: "repo", description: "User added repository: owner/repo" },
+      { name: "repo", description: "User added repository: owner/repo" },
+    );
+    assert.strictEqual(same.renamed, false);
+
+    // プリセットなど自動生成でない description は判定対象外
+    const preset = resolveSourceRename(
+      { name: "Curated", description: "Official curated skills" },
+      { name: "Curated", description: "User added repository: owner/repo" },
+    );
+    assert.strictEqual(preset.renamed, false);
+  });
 
   await test("a repository id change is treated as a different repository", () => {
     assert.strictEqual(hasRepositoryIdentityChanged(42, 43), true);

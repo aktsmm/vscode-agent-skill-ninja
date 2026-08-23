@@ -46,6 +46,7 @@ import {
   createSourceBundleKey,
   hasRepositoryIdentityChanged,
   reconcileSourceBundles,
+  resolveSourceRename,
   shouldPreserveSkillsOnEmptyScan,
 } from "./sourceUpdateReconcile";
 
@@ -62,11 +63,15 @@ function stampSourceIndexedAt(
   indexedAt: string,
   canonicalUrl?: string,
   repoId?: number,
+  rename?: { name?: string; description?: string },
 ): Source[] {
   return sources.map((source) =>
     source.id === sourceId
       ? {
           ...source,
+          // id は installed skill の参照キーなので rename でも変えない
+          name: rename?.name || source.name,
+          description: rename?.description || source.description,
           url: canonicalUrl || source.url,
           repoId: repoId ?? source.repoId,
           lastIndexedAt: indexedAt,
@@ -1563,6 +1568,19 @@ export async function updateSingleSource(
       });
     }
 
+    const rename = resolveSourceRename(source, result.source);
+    if (rename.renamed) {
+      console.log(
+        `[Skill Ninja] Source ${sourceId} was renamed: ${rename.previousFullName} -> ${rename.nextFullName}`,
+      );
+      vscode.window.showInformationMessage(
+        messages.sourceRepositoryRenamed(
+          rename.previousFullName || "",
+          rename.nextFullName || "",
+        ),
+      );
+    }
+
     const newIndex: SkillIndex = {
       ...currentIndex,
       sources: stampSourceIndexedAt(
@@ -1571,6 +1589,7 @@ export async function updateSingleSource(
         getSourceIndexedStamp(),
         result.source.url,
         result.source.repoId,
+        rename,
       ),
       skills: [...otherSkills, ...updatedSkills],
       // 単一 source の走査は index 全体の鮮度ではない

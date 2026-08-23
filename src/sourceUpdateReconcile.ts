@@ -32,6 +32,54 @@ export function hasRepositoryIdentityChanged(
   );
 }
 
+const USER_ADDED_DESCRIPTION_PATTERN =
+  /^User added repository:\s*([^/\s]+)\/([^/\s]+)\s*$/;
+
+export interface SourceRenameResolution {
+  renamed: boolean;
+  /** 旧 `owner/repo`。判定できなかった場合は undefined。 */
+  previousFullName?: string;
+  nextFullName?: string;
+  /** 自動生成された表示名だったときだけ入る。ユーザーが変えた名前は上書きしない。 */
+  name?: string;
+  description?: string;
+}
+
+/**
+ * 同じ repo id のまま owner/repo が変わった rename を検出する。
+ * scan 側は canonical な full_name を解決済みなので、保存側が取り残されるだけ。
+ */
+export function resolveSourceRename(
+  stored: { name?: string; description?: string },
+  scanned: { name?: string; description?: string },
+): SourceRenameResolution {
+  const storedMatch = USER_ADDED_DESCRIPTION_PATTERN.exec(
+    stored.description || "",
+  );
+  const scannedMatch = USER_ADDED_DESCRIPTION_PATTERN.exec(
+    scanned.description || "",
+  );
+  if (!storedMatch || !scannedMatch) {
+    return { renamed: false };
+  }
+
+  const previousFullName = `${storedMatch[1]}/${storedMatch[2]}`;
+  const nextFullName = `${scannedMatch[1]}/${scannedMatch[2]}`;
+  if (previousFullName === nextFullName) {
+    return { renamed: false };
+  }
+
+  // 表示名が旧 repo 名そのままなら自動生成。ユーザーが付けた名前なら触らない。
+  const autoNamed = (stored.name || "") === storedMatch[2];
+  return {
+    renamed: true,
+    previousFullName,
+    nextFullName,
+    name: autoNamed ? scannedMatch[2] : undefined,
+    description: autoNamed ? scanned.description : undefined,
+  };
+}
+
 /**
  * 再スキャン成功後の、その source が持つべき bundle を返す。
  * スキャンが bundle を返した場合だけ置き換える。プリセットの手書き bundle は
