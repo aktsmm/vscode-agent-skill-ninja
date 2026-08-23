@@ -211,7 +211,7 @@ export async function getOutputDefaults(
 }
 
 function findTargetConfig(
-  targets: OutputTargetConfig[],
+  targets: readonly OutputTargetConfig[],
   targetId: string,
   root: SkillRoot,
   baseUri?: vscode.Uri,
@@ -384,6 +384,45 @@ export async function resolveOutputGroups(
   // format は優先順で決まるので、`none` の判定もグループ確定後に行う。
   // 落ちたグループのパスは desired に入らず、既存ブロックと catalog は掃除対象になる。
   return [...groups.values()].filter((group) => group.format !== "none");
+}
+
+/**
+ * array モードで、まだ一度も判断されていない出力先の target id を返す。
+ * 明示的に無効化されたものは entry を持つので含まれない。判断済みと未判断を
+ * 区別できないと、あとから現れた出力先が黙って書かれないままになる。
+ */
+export function findUndecidedTargetIds(
+  roots: readonly SkillRoot[],
+  targets: readonly OutputTargetConfig[],
+  folderUris: readonly vscode.Uri[] = [],
+): string[] {
+  const undecided: string[] = [];
+  const seen = new Set<string>();
+
+  for (const root of roots) {
+    if (root.scope !== "workspace" && root.scope !== "userGlobal") {
+      continue;
+    }
+    if (!root.isManaged || root.isReadOnly || !root.instructionPath) {
+      continue;
+    }
+
+    const targetId = deriveTargetId(root);
+    if (seen.has(targetId)) {
+      continue;
+    }
+    seen.add(targetId);
+
+    const workspaceFolderUri =
+      root.scope === "workspace"
+        ? findDeepestContainingFolder(root.rootPath, folderUris)
+        : undefined;
+    if (!findTargetConfig(targets, targetId, root, workspaceFolderUri)) {
+      undecided.push(targetId);
+    }
+  }
+
+  return undecided;
 }
 
 /** VS Code が chat request へ常時注入する可能性のある instruction ファイルか。 */

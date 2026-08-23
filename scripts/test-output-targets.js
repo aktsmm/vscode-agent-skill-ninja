@@ -152,6 +152,7 @@ const {
   canonicalizeOutputPath,
   deriveTargetId,
   findDeepestContainingFolder,
+  findUndecidedTargetIds,
   getOutputTargetsMode,
   parseOutputPathBuckets,
   parseOutputTargets,
@@ -739,6 +740,43 @@ async function main() {
 
     // agents は custom より優先されるので、共有ファイルは出力されない
     assert.strictEqual(groups.length, 0);
+  });
+
+  await test("a location with no entry is undecided, an explicit off is not", () => {
+    const decided = [
+      { id: "workspace" },
+      { id: "copilot" },
+      { id: "claude", enabled: false },
+      { id: "agents" },
+    ];
+
+    // claude は明示的に OFF なので未判断ではない
+    assert.deepStrictEqual(
+      Array.from(findUndecidedTargetIds(allRoots, decided, [makeUri(workspaceA)])),
+      [],
+    );
+
+    // 後から現れた出力先は entry が無いので未判断
+    const missingAgents = decided.filter((entry) => entry.id !== "agents");
+    assert.deepStrictEqual(
+      Array.from(
+        findUndecidedTargetIds(allRoots, missingAgents, [makeUri(workspaceA)]),
+      ),
+      ["agents"],
+    );
+  });
+
+  await test("undecided detection matches a target by root as well as by id", () => {
+    const byRoot = [{ id: "anything", root: copilotRoot.rootPath }];
+    const undecided = Array.from(
+      findUndecidedTargetIds([copilotRoot], byRoot, []),
+    );
+    assert.deepStrictEqual(undecided, []);
+
+    assert.deepStrictEqual(
+      Array.from(findUndecidedTargetIds([copilotRoot], [], [])),
+      ["copilot"],
+    );
   });
 
   await test("the stored inventory reader rejects shapes it must not misread", () => {

@@ -290,6 +290,9 @@ const jaMessages = {
   outputTargetsApplied: "✅ 出力ターゲットを更新しました（有効 {0} 件）",
   sourceRepositoryRenamed:
     "🔄 リポジトリ名が変わっていたので追従しました: {0} → {1}",
+  outputTargetsUndecided:
+    "🎯 新しい出力先を見つけました: {0}。出力ターゲットを個別に設定しているため、この出力先にはまだスキル一覧を書いていません。",
+  outputTargetsConfigureAction: "出力ターゲットを設定",
 } as const;
 
 type MessageKey = keyof typeof jaMessages;
@@ -579,6 +582,9 @@ const enMessages: MessageDictionary = {
   outputTargetsApplied: "✅ Output targets updated ({0} enabled)",
   sourceRepositoryRenamed:
     "🔄 The repository was renamed, so the source now follows it: {0} → {1}",
+  outputTargetsUndecided:
+    "🎯 Found a new output location: {0}. Output targets are configured individually, so no skill list is written there yet.",
+  outputTargetsConfigureAction: "Configure Output Targets",
 };
 
 /**
@@ -990,6 +996,10 @@ export const messages = {
     localize("outputTargetsApplied", count),
   sourceRepositoryRenamed: (previous: string, next: string) =>
     localize("sourceRepositoryRenamed", previous, next),
+  outputTargetsUndecided: (targets: string) =>
+    localize("outputTargetsUndecided", targets),
+  outputTargetsConfigureAction: () =>
+    localize("outputTargetsConfigureAction"),
 };
 
 export default messages;

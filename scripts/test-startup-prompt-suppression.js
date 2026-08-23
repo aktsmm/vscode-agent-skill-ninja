@@ -81,6 +81,10 @@ const REVIEWED_STARTUP_DIALOGS = {
     mechanical: false,
     why: "reached only from the Configure Output Targets command, after the user already picked targets; the loop exits on Esc",
   },
+  announceUndecidedOutputTargets: {
+    mechanical: true,
+    why: "globalState list of already-announced target ids, persisted before the dialog is shown, and only reached while outputTargets is in array mode",
+  },
 };
 
 /** 恒久的に止められることを示す手段。どれか 1 つは必要。 */

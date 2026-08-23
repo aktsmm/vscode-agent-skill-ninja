@@ -90,6 +90,7 @@ import {
 import {
   buildOutputInventory,
   deriveTargetId,
+  findUndecidedTargetIds,
   getOutputDefaults,
   getOutputTargetsMode,
   isAutoLoadedInstructionPath,
@@ -1437,6 +1438,10 @@ export function activate(
       }
     }
 
+    if (!outputsDisabled) {
+      await announceUndecidedOutputTargets(config, workspaceFolderUris);
+    }
+
     const ownership = await getEffectiveOwnership(context);
     const keepShared =
       config.get<string>("coexistenceMode") !== "independent" &&
@@ -1476,6 +1481,55 @@ export function activate(
         unhandledPaths,
       }),
     );
+  }
+
+  const ANNOUNCED_OUTPUT_TARGETS_KEY = "skillNinja.announcedOutputTargets";
+
+  /**
+   * array モードでは列挙したターゲットだけが書かれる。あとから現れた出力先は
+   * 判断されていないだけなので、黙って落とさず 1 度だけ知らせる。
+   */
+  async function announceUndecidedOutputTargets(
+    config: vscode.WorkspaceConfiguration,
+    workspaceFolderUris: vscode.Uri[],
+  ): Promise<void> {
+    if (getOutputTargetsMode(config) !== "array") {
+      return;
+    }
+
+    const roots = await getManagedRoots(workspaceFolderUris[0]);
+    const undecided = findUndecidedTargetIds(
+      roots,
+      parseOutputTargets(config.get("outputTargets")),
+      workspaceFolderUris,
+    );
+    if (undecided.length === 0) {
+      return;
+    }
+
+    const announced = context.globalState.get<string[]>(
+      ANNOUNCED_OUTPUT_TARGETS_KEY,
+      [],
+    );
+    const fresh = undecided.filter((id) => !announced.includes(id));
+    if (fresh.length === 0) {
+      return;
+    }
+
+    // 通知前に印を付けて、応答を待つ間に再入しても二重表示しない
+    await context.globalState.update(ANNOUNCED_OUTPUT_TARGETS_KEY, [
+      ...announced,
+      ...fresh,
+    ]);
+
+    const configureLabel = messages.outputTargetsConfigureAction();
+    const selection = await vscode.window.showInformationMessage(
+      messages.outputTargetsUndecided(fresh.join(", ")),
+      configureLabel,
+    );
+    if (selection === configureLabel) {
+      await vscode.commands.executeCommand("skillNinja.configureOutputTargets");
+    }
   }
 
   /** 同時に走らせず、走行中の要求は 1 回だけ追いかけて再実行する。 */
@@ -5091,15 +5145,22 @@ Add examples here
       return entry;
     });
 
-    // 選択から外れたターゲットも、上書き設定を保つため enabled:false で残す
+    // 選択から外れたターゲットは enabled:false で必ず残す。
+    // 記録しないと「外した」と「まだ見ていない」が区別できなくなる。
     for (const row of allRows) {
       if (selectedIds.has(row.targetId)) {
         continue;
       }
-      const previous = byId.get(row.targetId);
-      if (previous) {
-        next.push({ ...previous, id: row.targetId, enabled: false });
+      const previous = byId.get(row.targetId) || {};
+      const entry: OutputTargetConfig = {
+        ...previous,
+        id: row.targetId,
+        enabled: false,
+      };
+      if (row.targetId.startsWith("custom:")) {
+        entry.root = row.rootPath;
       }
+      next.push(entry);
     }
 
     // picker に出てこなかった既存 entry（今は検出できない custom 出力先など）は触らない
