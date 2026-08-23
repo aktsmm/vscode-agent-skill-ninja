@@ -27,6 +27,7 @@ const AUDITED_MODULES = [
   // 到達不能な export を実際に掃い出した module。戻りをここで止める
   "instructionManager.ts",
   "localSkillScanner.ts",
+  "outputTargets.ts",
   "skillIndex.ts",
   "skillInstaller.ts",
   "skillSearch.ts",
