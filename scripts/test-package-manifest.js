@@ -237,6 +237,42 @@ test("settings order matches the documented primary flow", () => {
   );
 });
 
+test("every view title command is documented in both READMEs", () => {
+  // View タイトルに出るコマンドは機能の入口。README に載らないと発見されない
+  const commandIds = [
+    ...new Set(
+      (pkg.contributes.menus["view/title"] || []).map((item) => item.command),
+    ),
+  ];
+  assert.ok(
+    commandIds.length >= 10,
+    `expected the view title menu to contribute commands, got ${commandIds.length}`,
+  );
+
+  const resolveTitle = (table, commandId) => {
+    const entry = (pkg.contributes.commands || []).find(
+      (command) => command.command === commandId,
+    );
+    assert.ok(entry, `${commandId} has no command contribution`);
+    const key = entry.title.replace(/^%|%$/g, "");
+    const title = table[key];
+    assert.ok(title, `${commandId} has no localized title for ${key}`);
+    return title;
+  };
+
+  const undocumented = commandIds.filter((commandId) => {
+    const english = resolveTitle(packageNls, commandId);
+    const japanese = resolveTitle(packageNlsJa, commandId);
+    return !readme.includes(english) || !readmeJa.includes(japanese);
+  });
+
+  assert.deepStrictEqual(
+    undocumented,
+    [],
+    "a command shown in a view title must appear in README.md and README_ja.md",
+  );
+});
+
 test("stale source index update setting is localized and scoped", () => {
   const setting =
     pkg.contributes.configuration.properties[

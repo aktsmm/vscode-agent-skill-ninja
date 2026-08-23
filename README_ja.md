@@ -36,6 +36,9 @@
 | ✅ **Full**    | IMPORTANT + 詳細テーブル           | —                                                  |
 | 📦 **Compact** | IMPORTANT + 圧縮インデックス       | —                                                  |
 | 🕰️ **Legacy**  | シンプルテーブル（IMPORTANT なし） | —                                                  |
+| 🚫 **None**    | 何も書かない                       | 削除される                                       |
+
+**None** は、スキルはここで管理しつつ一覧は自分で書きたいときに選びます。管理ブロックと、この拡張が生成した catalog は削除され、ブロックの外に自分で書いた本文は残ります。
 
 ### IMPORTANT プロンプト
 
@@ -286,6 +289,29 @@ ext install yamapan.agent-skill-ninja
 | `Agent Skills Ninja: スキル出力を再生成`           | 選択した root のスキル出力ファイルを手動で再生成 (`AGENTS.md` / `copilot-instructions.md` / `CLAUDE.md` または `ref` catalog) |
 | `Agent Skills Ninja: スキルフォルダを開く`         | インストール済みスキルのフォルダを開く                                                                                        |     | `Agent Skills Ninja: 中断したソース更新を再開` | GitHub のレート制限や 1 回あたりの更新上限で持ち越した source 更新を再開する |     | `Agent Skills Ninja: GitHub トークンをクリア（SecretStorage のみ）` | VS Code SecretStorage の GitHub token だけを削除し、ほかの認証元で再試行できるようにする |
 | `Agent Skills Ninja: スキル状態を診断`             | token 値を表示せず、スキルの登録状態と現在の GitHub token source を表示する                                                   |
+| `Agent Skills Ninja: 出力ターゲットを設定`         | どの出力先にスキル一覧を書くかを選び、出力先ごとに形式を上書きする                                                     |
+| `Agent Skills Ninja: ワークスペースのスキル出力を開く` | ワークスペースのスキル出力を直接開く                                                                                     |
+| `Agent Skills Ninja: ユーザー / グローバルのスキル出力を開く` | ユーザー / グローバルのスキル出力を直接開く                                                                       |
+| `Agent Skills Ninja: Built-in Skills を表示`     | 読み取り専用の built-in スキルをツリーに表示する                                                                     |
+| `Agent Skills Ninja: 設定を開く`                   | この拡張の設定を開く                                                                                                 |
+| `Agent Skills Ninja: 初期化`                       | この拡張の設定を既定値へ戻す                                                                                       |
+| `Agent Skills Ninja: バグを報告`                   | 内容を埋めた GitHub issue を開く                                                                                     |
+
+### 出力ターゲット
+
+スキル一覧は、スキルを持つ全ての場所に書かれます。ワークスペースと、個人 root の `~/.copilot`、`~/.claude`、`~/.agents` です。`Agent Skills Ninja: 出力ターゲットを設定` を実行すると、各出力先と実際のファイルパスがチェックリストで見え、個別に OFF にしたり形式を変えたりできます。
+
+チェックを外すと、その出力先の管理ブロックと、この拡張が生成した catalog が削除されます。自分で書いた本文は残ります。
+
+OFF にする前に、どの root をどのツールが読むかを知っておくと安全です。
+
+| 個人 root         | VS Code | GitHub Copilot CLI |
+| ------------------ | ------- | ------------------ |
+| `~/.copilot/skills` | 読む    | 読む               |
+| `~/.claude/skills`  | 読む    | 読まない           |
+| `~/.agents/skills`  | 読む    | 読まない           |
+
+VS Code が全チャットリクエストへ注入するファイルにはチェックリスト上で印が付くので、そこを `ref` のままにして同じ表を二重に読ませないようにできます。
 
 ### クイックスタート
 

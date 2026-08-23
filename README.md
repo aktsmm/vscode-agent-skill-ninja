@@ -40,6 +40,9 @@
 | ✅ **Full**    | IMPORTANT + detailed table   | —                                            |
 | 📦 **Compact** | IMPORTANT + compressed index | —                                            |
 | 🕰️ **Legacy**  | Simple table (no IMPORTANT)  | —                                            |
+| 🚫 **None**    | Nothing is written           | Removed                                      |
+
+Pick **None** when you want to keep managing skills here but write the list yourself. The managed block and any catalog this extension generated are removed, and text you wrote outside the block is kept.
 
 ### IMPORTANT Prompt
 
@@ -292,6 +295,29 @@ Preset index includes skills from official, curated, and community sources out o
 | `Agent Skills Ninja: Resume Deferred Source Index Update`     | Resume the source updates a GitHub rate limit or the per-run update cap left pending                                                          |
 | `Agent Skills Ninja: Clear GitHub Token (SecretStorage only)` | Remove only the GitHub token stored in VS Code SecretStorage so other authentication sources can be retried                                   |
 | `Agent Skills Ninja: Explain Skill State`                     | Show skill registration details and the active GitHub token source without revealing the token value                                          |
+| `Agent Skills Ninja: Configure Output Targets`                | Pick which locations get the skill list, and override the format for one location                                                             |
+| `Agent Skills Ninja: Open Workspace Skill Output`             | Open the workspace skill output directly                                                                                                      |
+| `Agent Skills Ninja: Open User/Global Skill Output`           | Open the user/global skill output directly                                                                                                    |
+| `Agent Skills Ninja: Show Built-in Skills`                    | Show read-only built-in skills in the tree                                                                                                    |
+| `Agent Skills Ninja: Open Settings`                           | Open this extension's settings                                                                                                                |
+| `Agent Skills Ninja: Reset Settings`                          | Reset this extension's settings to their defaults                                                                                             |
+| `Agent Skills Ninja: Report a Bug`                            | Open a prefilled GitHub issue                                                                                                                 |
+
+### Output Targets
+
+The skill list is written to every location that holds skills: your workspace, and the personal roots `~/.copilot`, `~/.claude` and `~/.agents`. Run `Agent Skills Ninja: Configure Output Targets` to see them as a checklist with the file each one resolves to, then switch any of them off or give one a different format.
+
+Unchecking a location removes its managed block and any catalog this extension generated there. Your own text is kept.
+
+Which tool reads which root is worth knowing before you turn one off:
+
+| Personal root      | VS Code | GitHub Copilot CLI |
+| ------------------ | ------- | ------------------ |
+| `~/.copilot/skills` | Reads   | Reads              |
+| `~/.claude/skills`  | Reads   | Does not read      |
+| `~/.agents/skills`  | Reads   | Does not read      |
+
+The checklist marks a file that VS Code injects into every chat request, so you can keep those on `ref` and avoid loading the same table twice.
 
 ### Quick Start
 
