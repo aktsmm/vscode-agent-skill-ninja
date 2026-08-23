@@ -83,7 +83,7 @@ const REVIEWED_STARTUP_DIALOGS = {
   },
   announceUndecidedOutputTargets: {
     mechanical: true,
-    why: "globalState list of already-announced target ids, persisted before the dialog is shown, and only reached while outputTargets is in array mode",
+    why: "per-target id remembered in workspaceState for the workspace target and globalState for the machine-wide ones, persisted once the notification resolves, with an in-process set preventing re-entry meanwhile",
   },
 };
 

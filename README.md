@@ -431,7 +431,7 @@ If you don't need MCP tools, you can disable them from GitHub Copilot Chat:
 |   8   | `skillNinja.outputFormat`                 | `ref`                      | Output format (ref / full / compact / legacy)                                          |
 |   9   | `skillNinja.refCatalogPath`               | `.github/skills/README.md` | Catalog file path used by the `ref` format                                             |
 |  10   | `skillNinja.refCatalogFormat`             | `full`                     | Catalog detail format used when `outputFormat` is `ref`                                |
-|  11   | `skillNinja.outputTargets`                | `[]`                       | Per-location on/off and format overrides. Empty means every discovered location is written using the settings above |
+|  11   | `skillNinja.outputTargets`                | *(unset)*                  | Per-location on/off and format overrides. Unset writes every discovered location; an explicit `[]` writes none |
 |  12   | `skillNinja.autoUpdateSkillsOnUpgrade`    | `prompt`                   | Update installed skills after extension upgrade                                        |
 |  13   | `skillNinja.staleSourceIndexUpdateMode`   | `prompt`                   | Refresh source indexes older than 30 days on startup (`always` / `prompt` / `never`)   |
 |  14   | `skillNinja.githubToken`                  | `""`                       | Legacy GitHub Token setting (user settings only); copied to SecretStorage when present |

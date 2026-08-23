@@ -1484,10 +1484,14 @@ export function activate(
   }
 
   const ANNOUNCED_OUTPUT_TARGETS_KEY = "skillNinja.announcedOutputTargets";
+  /** 表示中の再入だけを抑える。永続化は通知が閉じたあとに行う。 */
+  const announcingOutputTargets = new Set<string>();
 
   /**
    * array モードでは列挙したターゲットだけが書かれる。あとから現れた出力先は
    * 判断されていないだけなので、黙って落とさず 1 度だけ知らせる。
+   * `workspace` は workspace ごとの判断なので workspaceState、
+   * `~/.copilot` などマシン共通のものは globalState に覚える。
    */
   async function announceUndecidedOutputTargets(
     config: vscode.WorkspaceConfiguration,
@@ -1496,40 +1500,95 @@ export function activate(
     if (getOutputTargetsMode(config) !== "array") {
       return;
     }
-
-    const roots = await getManagedRoots(workspaceFolderUris[0]);
-    const undecided = findUndecidedTargetIds(
-      roots,
-      parseOutputTargets(config.get("outputTargets")),
-      workspaceFolderUris,
-    );
-    if (undecided.length === 0) {
+    // 既定が none なら、どのターゲットを有効にしても何も書かれないので黙っておく
+    if ((await getOutputDefaults(config)).format === "none") {
       return;
     }
 
-    const announced = context.globalState.get<string[]>(
-      ANNOUNCED_OUTPUT_TARGETS_KEY,
-      [],
+    const readSeen = (targetId: string): string[] =>
+      targetId === "workspace"
+        ? context.workspaceState.get<string[]>(ANNOUNCED_OUTPUT_TARGETS_KEY, [])
+        : context.globalState.get<string[]>(ANNOUNCED_OUTPUT_TARGETS_KEY, []);
+
+    const scanned =
+      workspaceFolderUris.length === 0
+        ? [await getManagedRoots(undefined)]
+        : await Promise.all(
+            workspaceFolderUris.map((folderUri) => getManagedRoots(folderUri)),
+          );
+    const undecided = findUndecidedTargetIds(
+      scanned.flat(),
+      parseOutputTargets(config.get("outputTargets")),
+      workspaceFolderUris,
     );
-    const fresh = undecided.filter((id) => !announced.includes(id));
+
+    const fresh = undecided.filter(
+      (id) => !announcingOutputTargets.has(id) && !readSeen(id).includes(id),
+    );
     if (fresh.length === 0) {
       return;
     }
 
-    // 通知前に印を付けて、応答を待つ間に再入しても二重表示しない
-    await context.globalState.update(ANNOUNCED_OUTPUT_TARGETS_KEY, [
-      ...announced,
-      ...fresh,
-    ]);
+    for (const id of fresh) {
+      announcingOutputTargets.add(id);
+    }
 
     const configureLabel = messages.outputTargetsConfigureAction();
-    const selection = await vscode.window.showInformationMessage(
-      messages.outputTargetsUndecided(fresh.join(", ")),
-      configureLabel,
-    );
-    if (selection === configureLabel) {
-      await vscode.commands.executeCommand("skillNinja.configureOutputTargets");
-    }
+    // 通知は await しない。ユーザーが閉じるまで一覧の書き出しを止めないため
+    void vscode.window
+      .showInformationMessage(
+        messages.outputTargetsUndecided(fresh.join(", ")),
+        configureLabel,
+      )
+      .then(
+        async (selection) => {
+          try {
+            // 表示できたことを確認してから永続化する。途中で窓が閉じたら次回また知らせる
+            for (const id of fresh) {
+              const seen = readSeen(id);
+              if (seen.includes(id)) {
+                continue;
+              }
+              const next = [...seen, id];
+              if (id === "workspace") {
+                await context.workspaceState.update(
+                  ANNOUNCED_OUTPUT_TARGETS_KEY,
+                  next,
+                );
+              } else {
+                await context.globalState.update(
+                  ANNOUNCED_OUTPUT_TARGETS_KEY,
+                  next,
+                );
+              }
+            }
+
+            if (selection === configureLabel) {
+              await vscode.commands.executeCommand(
+                "skillNinja.configureOutputTargets",
+              );
+            }
+          } catch (error) {
+            console.error(
+              "[Skill Ninja] Failed to record undecided output targets:",
+              error,
+            );
+          } finally {
+            for (const id of fresh) {
+              announcingOutputTargets.delete(id);
+            }
+          }
+        },
+        (error) => {
+          for (const id of fresh) {
+            announcingOutputTargets.delete(id);
+          }
+          console.error(
+            "[Skill Ninja] Failed to announce undecided output targets:",
+            error,
+          );
+        },
+      );
   }
 
   /** 同時に走らせず、走行中の要求は 1 回だけ追いかけて再実行する。 */
