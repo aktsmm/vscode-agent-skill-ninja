@@ -21,8 +21,9 @@ export type AITool =
  * - full: IMPORTANT + 詳細テーブル
  * - compact: IMPORTANT + 圧縮インデックスのみ
  * - legacy: シンプルテーブルのみ（OLD）
+ * - none: 何も書かない。既存の管理ブロックと生成 catalog は掃除される
  */
-export type OutputFormat = "full" | "compact" | "legacy" | "ref";
+export type OutputFormat = "full" | "compact" | "legacy" | "ref" | "none";
 
 export function normalizeOutputFormat(value: string | undefined): OutputFormat {
   switch ((value || "").trim()) {
@@ -30,6 +31,7 @@ export function normalizeOutputFormat(value: string | undefined): OutputFormat {
     case "full":
     case "compact":
     case "legacy":
+    case "none":
       return value as OutputFormat;
     case "markdown":
       return "legacy";

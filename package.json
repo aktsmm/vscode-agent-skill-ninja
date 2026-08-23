@@ -1141,13 +1141,15 @@
             "ref",
             "full",
             "compact",
-            "legacy"
+            "legacy",
+            "none"
           ],
           "enumDescriptions": [
             "%config.outputFormat.ref%",
             "%config.outputFormat.full%",
             "%config.outputFormat.compact%",
-            "%config.outputFormat.legacy%"
+            "%config.outputFormat.legacy%",
+            "%config.outputFormat.none%"
           ],
           "markdownDescription": "%config.outputFormat.markdownDescription%"
         },
@@ -1203,7 +1205,8 @@
                   "ref",
                   "full",
                   "compact",
-                  "legacy"
+                  "legacy",
+                  "none"
                 ],
                 "markdownDescription": "%config.outputTargets.format%"
               },

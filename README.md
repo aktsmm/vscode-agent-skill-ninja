@@ -395,7 +395,7 @@ If you don't need MCP tools, you can disable them from GitHub Copilot Chat:
 
 | Order | Setting                                   | Default                    | Description                                                                            |
 | :---: | ----------------------------------------- | -------------------------- | -------------------------------------------------------------------------------------- |
-|   1   | `skillNinja.autoUpdateInstruction`        | `true`                     | **Auto-update instruction file on install**                                            |
+|   1   | `skillNinja.autoUpdateInstruction`        | `true`                     | **Auto-update instruction file on install**. Deprecated: turning it off now removes the managed block instead of freezing it |
 |   2   | `skillNinja.instructionFile`              | `AGENTS.md`                | Instruction file format _(requires Auto Update)_                                       |
 |   3   | `skillNinja.customInstructionPath`        | `""`                       | Custom path _(only when 'custom' selected)_                                            |
 |   4   | `skillNinja.skillsDirectory`              | `.github/skills`           | Primary directory to install and manage workspace skills                               |

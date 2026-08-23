@@ -20,7 +20,7 @@ import {
   SkillRoot,
 } from "./skillLocations";
 
-export type RefCatalogFormat = Exclude<OutputFormat, "ref">;
+export type RefCatalogFormat = Exclude<OutputFormat, "ref" | "none">;
 
 export const DEFAULT_REF_CATALOG_PATH = ".github/skills/README.md";
 
@@ -381,7 +381,9 @@ export async function resolveOutputGroups(
     groupPriority.set(groupKey, priority);
   }
 
-  return [...groups.values()];
+  // format は優先順で決まるので、`none` の判定もグループ確定後に行う。
+  // 落ちたグループのパスは desired に入らず、既存ブロックと catalog は掃除対象になる。
+  return [...groups.values()].filter((group) => group.format !== "none");
 }
 
 /** VS Code が chat request へ常時注入する可能性のある instruction ファイルか。 */

@@ -37,6 +37,10 @@ const REVIEWED_STARTUP_DIALOGS = {
     mechanical: true,
     why: "one-shot globalState flag",
   },
+  showFrozenOutputMigrationNotice: {
+    mechanical: true,
+    why: "one-shot globalState flag, persisted before the dialog is shown, and only reached when autoUpdateInstruction is explicitly false",
+  },
   notifyIncompleteSkillsOnce: {
     mechanical: true,
     why: "workspaceState fingerprint, persisted before the dialog is shown",

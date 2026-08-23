@@ -80,7 +80,9 @@ const skillLocationsStub = {
 
 const toolDetectorStub = {
   normalizeOutputFormat(value) {
-    return ["full", "compact", "legacy", "ref"].includes(value) ? value : "ref";
+    return ["full", "compact", "legacy", "ref", "none"].includes(value)
+      ? value
+      : "ref";
   },
   resolveOutputFormat: async () => ({
     format: toolDetectorStub.__format || "ref",
@@ -688,6 +690,55 @@ async function main() {
       unhandledPaths: [],
     });
     assert.strictEqual(desiredOnly[bucketB].instruction.length, 1);
+  });
+
+  await test("format none produces no group, so its files become cleanable", async () => {
+    toolDetectorStub.__format = "none";
+    const all = await resolveOutputGroups(allRoots, {
+      config: makeConfig(),
+      workspaceFolderUris: [makeUri(workspaceA), makeUri(workspaceB)],
+    });
+    assert.strictEqual(all.length, 0);
+
+    toolDetectorStub.__format = "ref";
+    const perTarget = await resolveOutputGroups(allRoots, {
+      config: makeConfig({
+        outputTargetsValue: [
+          { id: "workspace" },
+          { id: "claude", format: "none" },
+        ],
+      }),
+      workspaceFolderUris: [makeUri(workspaceA), makeUri(workspaceB)],
+    });
+    const targetIds = perTarget.flatMap((group) => Array.from(group.targetIds));
+    assert.ok(targetIds.includes("workspace"));
+    assert.ok(!targetIds.includes("claude"));
+  });
+
+  await test("none wins by target precedence when one file is shared", async () => {
+    const sharedInstruction = path.join(HOME, ".agents/AGENTS.md");
+    const extraRoot = makeRoot({
+      scope: "userGlobal",
+      rootPath: path.join(HOME, ".agents/extra-skills"),
+      instructionPath: sharedInstruction,
+    });
+
+    toolDetectorStub.__format = "ref";
+    const groups = await resolveOutputGroups([agentsRoot, extraRoot], {
+      config: makeConfig({
+        outputTargetsValue: [
+          { id: "agents", format: "none" },
+          {
+            id: `custom:${normalizeFileSystemPath(extraRoot.rootPath)}`,
+            format: "full",
+          },
+        ],
+      }),
+      workspaceFolderUris: [],
+    });
+
+    // agents は custom より優先されるので、共有ファイルは出力されない
+    assert.strictEqual(groups.length, 0);
   });
 
   await test("the stored inventory reader rejects shapes it must not misread", () => {

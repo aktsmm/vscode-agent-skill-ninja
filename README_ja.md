@@ -389,7 +389,7 @@ MCP ツールが不要な場合は、GitHub Copilot Chat のツール一覧か�
 
 | 順序 | Setting                                   | Default                    | Description                                                                           |
 | :--: | ----------------------------------------- | -------------------------- | ------------------------------------------------------------------------------------- |
-|  1   | `skillNinja.autoUpdateInstruction`        | `true`                     | **インストール時に instruction file を自動更新**                                      |
+|  1   | `skillNinja.autoUpdateInstruction`        | `true`                     | **インストール時に instruction file を自動更新**。非推奨: 無効にすると凍結ではなく管理ブロックを削除します |
 |  2   | `skillNinja.instructionFile`              | `AGENTS.md`                | スキルを登録するファイル形式 _(要: Auto Update)_                                      |
 |  3   | `skillNinja.customInstructionPath`        | `""`                       | カスタムパス _(instructionFile が 'custom' の時のみ)_                                 |
 |  4   | `skillNinja.skillsDirectory`              | `.github/skills`           | ワークスペーススキルをインストール・管理する primary ディレクトリ                     |

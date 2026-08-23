@@ -1374,9 +1374,10 @@ export function activate(
    */
   async function reconcileOutputTargets(): Promise<void> {
     const config = vscode.workspace.getConfiguration("skillNinja");
-    if (config.get<boolean>("autoUpdateInstruction") === false) {
-      return;
-    }
+    // 旧 `autoUpdateInstruction: false` は出力を凍結して古い一覧を残していた。
+    // 今は「出力しない」と同じ扱いにし、管理ブロックを掃除して終わる。
+    const outputsDisabled =
+      config.get<boolean>("autoUpdateInstruction") === false;
 
     const folders = vscode.workspace.workspaceFolders || [];
     const workspaceFolderUris = folders.map((folder) => folder.uri);
@@ -1426,7 +1427,9 @@ export function activate(
       }
     };
 
-    if (folders.length === 0) {
+    if (outputsDisabled) {
+      // desired を空のままにして、前回書いたものを全て掃除対象にする
+    } else if (folders.length === 0) {
       await collect(undefined);
     } else {
       for (const folder of folders) {
@@ -5840,6 +5843,7 @@ async function checkVersionAndRefreshMetadata(
             : `🥷 Updated to v${EXTENSION_VERSION}. Updated ${remoteSkillCount} skill(s) to latest version.`,
         );
         await showRefFormatUpdateNotice(context);
+        await showFrozenOutputMigrationNotice(context);
         return; // 再インストールしたのでメタデータ更新はスキップ
       } catch (error) {
         console.error("[Skill Ninja] Failed to reinstall skills:", error);
@@ -5876,6 +5880,48 @@ async function checkVersionAndRefreshMetadata(
   }
 
   await showRefFormatUpdateNotice(context);
+  await showFrozenOutputMigrationNotice(context);
+}
+
+/**
+ * `autoUpdateInstruction: false` は以前「凍結」で、古い一覧が残り続けていた。
+ * 今は掃除して出力しない挙動へ変えたので、明示的に false にしていた人にだけ 1 回知らせる。
+ */
+async function showFrozenOutputMigrationNotice(
+  context: vscode.ExtensionContext,
+): Promise<void> {
+  const NOTICE_KEY = "skillNinja.frozenOutputMigrationNoticeShown";
+  if (context.globalState.get<boolean>(NOTICE_KEY)) {
+    return;
+  }
+
+  const config = vscode.workspace.getConfiguration("skillNinja");
+  const inspected = config.inspect<boolean>("autoUpdateInstruction");
+  const explicitValue =
+    inspected?.workspaceFolderValue ??
+    inspected?.workspaceValue ??
+    inspected?.globalValue;
+  if (explicitValue !== false) {
+    return;
+  }
+
+  // 該当者にだけ出すので、二度と出さない印は表示直前に付ける
+  await context.globalState.update(NOTICE_KEY, true);
+
+  const openSettingsLabel = isJapanese() ? "設定を開く" : "Open Settings";
+  const selection = await vscode.window.showInformationMessage(
+    isJapanese()
+      ? "🥷 スキル一覧の自動更新を無効にしていたため、これまで古い一覧が残ったままになっていました。今後は管理ブロックと生成 catalog を削除し、何も書かない動作に変わります。自分で書いた本文はそのまま残ります。出力を再開するには Output Format を Ref などに戻してください。"
+      : "🥷 Automatic skill-list updates were disabled, which used to leave a stale list behind. From now on the managed block and any generated catalog are removed instead, and your own text is kept. Set Output Format back to Ref to start writing again.",
+    openSettingsLabel,
+  );
+
+  if (selection === openSettingsLabel) {
+    await vscode.commands.executeCommand(
+      "workbench.action.openSettings",
+      "skillNinja.outputFormat",
+    );
+  }
 }
 
 async function showRefFormatUpdateNotice(
