@@ -1732,6 +1732,8 @@ export interface SkillMeta {
   categories: string[];
   installedAt: string;
   relativePath?: string; // ネストされたスキルのパス（例: "document-skills/docx"）
+  /** root 相対のパス。relativePath が出力先からのリンクへ書き換わっても重複名の修飾に使う。 */
+  qualifierPath?: string;
   remotePath?: string; // 配布元リポジトリでの相対パス
   registrationDisabled?: boolean;
   /** Set when only placeholder content could be written during install. */

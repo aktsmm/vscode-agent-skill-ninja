@@ -58,7 +58,21 @@ const sandbox = {
     }
     if (request === "./constants") {
       return {
+        SELF_EXTENSION_ID: "yamapan.agent-skill-ninja",
         SKILL_DESCRIPTION_LIMITS: { MAX_TOTAL: 200, MAX_EACH: 100 },
+      };
+    }
+    if (request === "./shared-store-lock") {
+      return {
+        withSharedStoreLock: async (_id, task) =>
+          task({ assertHeld() {}, assertStillOwned: async () => {} }),
+        describeSharedStoreLockFailure: () => undefined,
+      };
+    }
+    if (request === "./outputTargets") {
+      return {
+        findDeepestContainingFolder: () => undefined,
+        resolveOutputGroups: async () => [],
       };
     }
     if (request === "./skillLocations") {

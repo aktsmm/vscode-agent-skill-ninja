@@ -611,6 +611,12 @@
         "icon": "$(gear)"
       },
       {
+        "command": "skillNinja.configureOutputTargets",
+        "title": "%command.configureOutputTargets%",
+        "category": "Agent Skills Ninja",
+        "icon": "$(checklist)"
+      },
+      {
         "command": "skillNinja.showBuiltInSkills",
         "title": "%command.showBuiltInSkills%",
         "category": "Agent Skills Ninja",
@@ -706,9 +712,14 @@
           "group": "navigation@4"
         },
         {
-          "command": "skillNinja.openSettings",
+          "command": "skillNinja.configureOutputTargets",
           "when": "view == skillNinja.installedView",
           "group": "z_refresh@1"
+        },
+        {
+          "command": "skillNinja.openSettings",
+          "when": "view == skillNinja.installedView",
+          "group": "z_refresh@2"
         },
         {
           "command": "skillNinja.resetSettings",
@@ -746,9 +757,14 @@
           "group": "navigation@5"
         },
         {
-          "command": "skillNinja.openSettings",
+          "command": "skillNinja.configureOutputTargets",
           "when": "view == skillNinja.userGlobalView",
           "group": "z_refresh@1"
+        },
+        {
+          "command": "skillNinja.openSettings",
+          "when": "view == skillNinja.userGlobalView",
+          "group": "z_refresh@2"
         },
         {
           "command": "skillNinja.resetSettings",
@@ -1104,7 +1120,7 @@
         "skillNinja.language": {
           "type": "string",
           "default": "auto",
-          "order": 11,
+          "order": 18,
           "enum": [
             "auto",
             "en",
@@ -1156,6 +1172,61 @@
             "%config.outputFormat.legacy%"
           ],
           "markdownDescription": "%config.refCatalogFormat.markdownDescription%"
+        },
+        "skillNinja.outputTargets": {
+          "type": "array",
+          "default": [],
+          "order": 11,
+          "markdownDescription": "%config.outputTargets.markdownDescription%",
+          "items": {
+            "type": "object",
+            "required": [
+              "id"
+            ],
+            "additionalProperties": false,
+            "properties": {
+              "id": {
+                "type": "string",
+                "markdownDescription": "%config.outputTargets.id%"
+              },
+              "root": {
+                "type": "string",
+                "markdownDescription": "%config.outputTargets.root%"
+              },
+              "instructionFile": {
+                "type": "string",
+                "markdownDescription": "%config.outputTargets.instructionFile%"
+              },
+              "format": {
+                "type": "string",
+                "enum": [
+                  "ref",
+                  "full",
+                  "compact",
+                  "legacy"
+                ],
+                "markdownDescription": "%config.outputTargets.format%"
+              },
+              "catalogPath": {
+                "type": "string",
+                "markdownDescription": "%config.outputTargets.catalogPath%"
+              },
+              "catalogFormat": {
+                "type": "string",
+                "enum": [
+                  "full",
+                  "compact",
+                  "legacy"
+                ],
+                "markdownDescription": "%config.outputTargets.catalogFormat%"
+              },
+              "enabled": {
+                "type": "boolean",
+                "default": true,
+                "markdownDescription": "%config.outputTargets.enabled%"
+              }
+            }
+          }
         },
         "skillNinja.singleClickInstall": {
           "type": "boolean",

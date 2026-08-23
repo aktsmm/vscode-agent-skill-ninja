@@ -4,19 +4,23 @@
 import * as vscode from "vscode";
 import { getInstalledSkillsWithMeta, SkillMeta } from "./skillInstaller";
 import type { LocalSkill } from "./localSkillScanner";
-import {
-  normalizeOutputFormat,
-  OutputFormat,
-  resolveOutputFormat,
-} from "./toolDetector";
+import { OutputFormat } from "./toolDetector";
 import * as path from "path";
-import { SKILL_DESCRIPTION_LIMITS } from "./constants";
+import { SKILL_DESCRIPTION_LIMITS, SELF_EXTENSION_ID } from "./constants";
+import {
+  describeSharedStoreLockFailure,
+  withSharedStoreLock,
+} from "./shared-store-lock";
 import {
   computeRelativeDirectoryPath,
   getManagedSkillRoots,
-  resolveConfiguredPathToUri,
   SkillRoot,
 } from "./skillLocations";
+import {
+  findDeepestContainingFolder,
+  ResolvedOutputGroup,
+  resolveOutputGroups,
+} from "./outputTargets";
 import { getCoexistenceMode, getEffectiveOwnership } from "./coexistence";
 
 // セクションマーカー（共通マーカー / coexistence v3 で導入）。
@@ -91,14 +95,21 @@ function stripMarkerBlock(content: string, markers: MarkerPair): string {
 
 // 既知のレガシーマーカー（SKILL-FINDER / skill-ninja / resource-ninja）を全て除去する。
 // `keepShared` が true のときは共通マーカーは温存（owner が後で書き直す）。
+// `keepLegacyResource` が true のときは sibling 拡張の旧マーカーを温存する。
 function stripAllManagedBlocks(
   content: string,
-  options: { keepShared: boolean; keepLegacySkill?: boolean },
+  options: {
+    keepShared: boolean;
+    keepLegacySkill?: boolean;
+    keepLegacyResource?: boolean;
+  },
 ): string {
   let result = content;
   // 既知の旧マーカーを全て除去
   result = stripMarkerBlock(result, LEGACY_FINDER_MARKERS);
-  result = stripMarkerBlock(result, LEGACY_RESOURCE_MARKERS);
+  if (!options.keepLegacyResource) {
+    result = stripMarkerBlock(result, LEGACY_RESOURCE_MARKERS);
+  }
   if (!options.keepLegacySkill) {
     result = stripMarkerBlock(result, LEGACY_SKILL_MARKERS);
   }
@@ -111,11 +122,16 @@ function stripAllManagedBlocks(
 
 export function cleanupManagedSkillBlocks(
   content: string,
-  options: { keepShared?: boolean; keepLegacySkill?: boolean } = {},
+  options: {
+    keepShared?: boolean;
+    keepLegacySkill?: boolean;
+    keepLegacyResource?: boolean;
+  } = {},
 ): string {
   return stripAllManagedBlocks(content, {
     keepShared: options.keepShared ?? false,
     keepLegacySkill: options.keepLegacySkill,
+    keepLegacyResource: options.keepLegacyResource,
   }).trim();
 }
 
@@ -172,77 +188,12 @@ function buildDescription(description?: string, whenToUse?: string): string {
   return `${shortDesc} | ${shortWhen}`;
 }
 
-async function resolveInstructionFormatForRoot(
-  root: SkillRoot,
-): Promise<OutputFormat> {
-  if (root.scope === "workspace") {
-    const workspaceFolder = vscode.workspace.workspaceFolders?.find((folder) =>
-      normalizeFsPath(root.rootPath).startsWith(
-        normalizeFsPath(folder.uri.fsPath),
-      ),
-    );
-    if (
-      workspaceFolder &&
-      normalizeFsPath(root.rootPath).startsWith(
-        normalizeFsPath(workspaceFolder.uri.fsPath),
-      )
-    ) {
-      const { format } = await resolveOutputFormat(workspaceFolder.uri);
-      return format;
-    }
+function normalizeFsPath(targetPath: string): string {
+  const normalized = path.normalize(targetPath).replace(/\\/g, "/");
+  if (process.platform === "win32") {
+    return normalized.toLowerCase();
   }
-
-  const config = vscode.workspace.getConfiguration("skillNinja");
-  return normalizeOutputFormat(config.get<string>("outputFormat"));
-}
-
-type RefCatalogFormat = Exclude<OutputFormat, "ref">;
-
-function getRefCatalogFormat(
-  config: vscode.WorkspaceConfiguration,
-): RefCatalogFormat {
-  const configuredFormat = config.get<string>("refCatalogFormat") || "full";
-  return configuredFormat === "compact" || configuredFormat === "legacy"
-    ? configuredFormat
-    : "full";
-}
-
-function getWorkspaceFolderUriForRoot(root: SkillRoot): vscode.Uri | undefined {
-  return vscode.workspace.workspaceFolders?.find((folder) =>
-    normalizeFsPath(root.rootPath).startsWith(
-      normalizeFsPath(folder.uri.fsPath),
-    ),
-  )?.uri;
-}
-
-function getInstructionDirectoryUri(root: SkillRoot): vscode.Uri | undefined {
-  if (!root.instructionUri) {
-    return undefined;
-  }
-  return vscode.Uri.file(path.dirname(root.instructionUri.fsPath));
-}
-
-async function getRootsForInstructionUpdate(
-  root: SkillRoot,
-): Promise<SkillRoot[]> {
-  if (root.scope !== "workspace") {
-    return [root];
-  }
-
-  const workspaceUri = getWorkspaceFolderUriForRoot(root);
-  if (!workspaceUri || !root.instructionPath) {
-    return [root];
-  }
-
-  const roots = await getManagedSkillRoots(workspaceUri);
-  const normalizedInstructionPath = normalizeFsPath(root.instructionPath);
-  const matchingRoots = roots.filter(
-    (candidate) =>
-      candidate.scope === "workspace" &&
-      candidate.instructionPath &&
-      normalizeFsPath(candidate.instructionPath) === normalizedInstructionPath,
-  );
-  return matchingRoots.length > 0 ? matchingRoots : [root];
+  return normalized;
 }
 
 function joinSkillLinkPath(basePath: string, relativePath: string): string {
@@ -257,7 +208,7 @@ function joinSkillLinkPath(basePath: string, relativePath: string): string {
 }
 
 async function getInstalledSkillsWithLinkPaths(
-  roots: SkillRoot[],
+  roots: readonly SkillRoot[],
   fromFilePath: string,
 ): Promise<SkillMeta[]> {
   const skillsByRoot = await Promise.all(
@@ -276,6 +227,7 @@ async function getInstalledSkillsWithLinkPaths(
         .filter((skill) => !skill.registrationDisabled)
         .map((skill) => ({
           ...skill,
+          qualifierPath: skill.relativePath || skill.name,
           relativePath: joinSkillLinkPath(
             relativeSkillsDir,
             skill.relativePath || skill.name,
@@ -287,39 +239,76 @@ async function getInstalledSkillsWithLinkPaths(
   return skillsByRoot.flat();
 }
 
-function resolveCatalogUriForRoot(
-  root: SkillRoot,
-  configuredPath: string,
-): vscode.Uri {
-  const baseUri =
-    (root.scope === "workspace"
-      ? getWorkspaceFolderUriForRoot(root)
-      : undefined) ||
-    getInstructionDirectoryUri(root) ||
-    root.rootUri;
+async function fileExists(fileUri: vscode.Uri): Promise<boolean> {
+  try {
+    await vscode.workspace.fs.stat(fileUri);
+    return true;
+  } catch {
+    return false;
+  }
+}
 
-  return (
-    resolveConfiguredPathToUri(configuredPath, baseUri) ||
-    vscode.Uri.joinPath(baseUri, configuredPath)
+async function resolveGroupsForWorkspace(
+  workspaceUri: vscode.Uri | undefined,
+): Promise<ResolvedOutputGroup[]> {
+  const workspaceFolderUris = (vscode.workspace.workspaceFolders || []).map(
+    (folder) => folder.uri,
+  );
+  const roots = await getManagedSkillRoots(workspaceUri);
+  return resolveOutputGroups(roots, { workspaceFolderUris });
+}
+
+/**
+ * user/global の instruction と catalog は他ウィンドウや sibling 拡張と共有される。
+ * read-modify-write の全体を 1 つの lease で囲み、lost update を防ぐ。
+ * ロックを取れなかった場合はこの周期をスキップし、次の reconcile で再試行する。
+ *
+ * `vscode.workspace.fs` はキャンセルできないため、lease 内の I/O に打ち切り時間は
+ * 設けていない。奪われた lease は heartbeat の世代不一致で検出される。
+ */
+export async function withOutputWriteLock<T>(
+  scope: "workspace" | "userGlobal",
+  task: () => Promise<T>,
+): Promise<T | undefined> {
+  if (scope !== "userGlobal") {
+    return task();
+  }
+
+  try {
+    return await withSharedStoreLock(SELF_EXTENSION_ID, async (lease) => {
+      lease.assertHeld();
+      return task();
+    });
+  } catch (error) {
+    const failure = describeSharedStoreLockFailure(error);
+    if (!failure) {
+      throw error;
+    }
+    console.log(
+      `[Skill Ninja] Skipping user/global output write this cycle (${failure}).`,
+    );
+    return undefined;
+  }
+}
+
+/**
+ * 1 つの出力グループ（= 1 instruction ファイル）を書き出す。
+ * グループには有効なターゲットの root しか入らないので、無効化された
+ * 出力先のスキルが他のファイルへ混入することはない。
+ */
+export async function writeOutputGroup(
+  group: ResolvedOutputGroup,
+  context: vscode.ExtensionContext,
+): Promise<void> {
+  await withOutputWriteLock(group.scope, () =>
+    writeOutputGroupUnlocked(group, context),
   );
 }
 
-function normalizeFsPath(targetPath: string): string {
-  const normalized = path.normalize(targetPath).replace(/\\/g, "/");
-  if (process.platform === "win32") {
-    return normalized.toLowerCase();
-  }
-  return normalized;
-}
-
-export async function updateInstructionFileForRoot(
-  root: SkillRoot,
+async function writeOutputGroupUnlocked(
+  group: ResolvedOutputGroup,
   context: vscode.ExtensionContext,
 ): Promise<void> {
-  if (!root.instructionUri || !root.instructionPath) {
-    return;
-  }
-
   const mode = getCoexistenceMode();
   const ownership = await getEffectiveOwnership(context);
 
@@ -334,45 +323,39 @@ export async function updateInstructionFileForRoot(
 
     // ref モードで以前書いた catalog ファイルのブロックを cleanup する。
     // Resources Ninja が独自マーカーで catalog を書くため、残存すると重複する。
-    await cleanupCatalogOnDefer(root);
+    await cleanupCatalogOnDefer(group);
 
     return;
   }
 
-  const format = await resolveInstructionFormatForRoot(root);
-  const rootsForInstruction = await getRootsForInstructionUpdate(root);
-  const relativeSkillsDir =
-    root.linkPathFromInstruction ||
-    computeRelativeDirectoryPath(root.instructionPath, root.rootPath);
+  const installedSkills = await getInstalledSkillsWithLinkPaths(
+    group.members,
+    group.instructionPath,
+  );
+  const localSkills: LocalSkill[] = [];
+
+  // 空の出力先に instruction ファイルを新規作成しない。既にあるなら管理ブロックだけ更新する。
+  if (installedSkills.length === 0 && !(await fileExists(group.instructionUri))) {
+    return;
+  }
 
   console.log(
-    `[Skill Ninja] Updating instruction file: ${root.instructionPath} ` +
-      `(mode=${mode}, owner=${ownership.owner}, reason=${ownership.reason})`,
+    `[Skill Ninja] Updating instruction file: ${group.instructionPath} ` +
+      `(mode=${mode}, owner=${ownership.owner}, reason=${ownership.reason}, ` +
+      `targets=${group.targetIds.join("+")}, format=${group.format})`,
   );
-
-  const installedSkills =
-    rootsForInstruction.length === 1
-      ? (await getInstalledSkillsWithMeta(root.rootUri, root.rootUri)).filter(
-          (skill) => !skill.registrationDisabled,
-        )
-      : await getInstalledSkillsWithLinkPaths(
-          rootsForInstruction,
-          root.instructionPath,
-        );
-  const localSkills: LocalSkill[] = [];
 
   // generator は SHARED_MARKERS で出力する。independent モードでは旧 skill-ninja マーカーへ swap。
   const targetMarkers: MarkerPair =
     mode === "independent" ? LEGACY_SKILL_MARKERS : SHARED_MARKERS;
 
   let skillSection: string;
-  if (format === "ref") {
+  if (group.format === "ref") {
     // ref モード: catalog ファイルに詳細を書き出し、instruction ファイルは軽量な routing のみにする
     const catalogLink = await writeCatalogFile(
-      root,
+      group,
       installedSkills,
       localSkills,
-      rootsForInstruction.length > 1 ? rootsForInstruction : undefined,
     );
     skillSection = swapMarkers(
       generateRefSection(catalogLink),
@@ -384,8 +367,8 @@ export async function updateInstructionFileForRoot(
       generateSkillSectionForFormat(
         installedSkills,
         localSkills,
-        rootsForInstruction.length === 1 ? relativeSkillsDir : "",
-        format,
+        "",
+        group.format,
       ),
       SHARED_MARKERS,
       targetMarkers,
@@ -394,7 +377,7 @@ export async function updateInstructionFileForRoot(
 
   let existingContent = "";
   try {
-    const content = await vscode.workspace.fs.readFile(root.instructionUri);
+    const content = await vscode.workspace.fs.readFile(group.instructionUri);
     existingContent = Buffer.from(content).toString("utf-8");
   } catch {
     existingContent = "";
@@ -403,7 +386,7 @@ export async function updateInstructionFileForRoot(
   const newContent = updateSection(
     existingContent,
     skillSection,
-    format,
+    group.format,
     targetMarkers,
   );
 
@@ -411,21 +394,66 @@ export async function updateInstructionFileForRoot(
     return;
   }
 
-  const dir = vscode.Uri.joinPath(root.instructionUri, "..");
+  const dir = vscode.Uri.joinPath(group.instructionUri, "..");
   await vscode.workspace.fs.createDirectory(dir);
   await vscode.workspace.fs.writeFile(
-    root.instructionUri,
+    group.instructionUri,
     Buffer.from(newContent, "utf-8"),
   );
+}
+
+/**
+ * root が属する出力グループを解決して書き出す。既存の呼び出し口を保つための薄い wrapper。
+ * その root の出力先が無効なら何もしない。
+ */
+export async function updateInstructionFileForRoot(
+  root: SkillRoot,
+  context: vscode.ExtensionContext,
+): Promise<void> {
+  if (!root.instructionUri || !root.instructionPath) {
+    return;
+  }
+
+  const workspaceUri =
+    root.scope === "workspace"
+      ? findDeepestContainingFolder(
+          root.rootPath,
+          (vscode.workspace.workspaceFolders || []).map((folder) => folder.uri),
+        )
+      : undefined;
+
+  const groups = await resolveGroupsForWorkspace(workspaceUri);
+  const normalizedRootPath = normalizeFsPath(root.rootPath);
+  const group =
+    groups.find((candidate) =>
+      candidate.members.some(
+        (member) => normalizeFsPath(member.rootPath) === normalizedRootPath,
+      ),
+    ) ||
+    // 呼び出し側が管理集合に含まれない root を持っている場合でも、その root の
+    // ターゲットが有効なら単独グループとして書く。無効なら解決結果が空になる。
+    (
+      await resolveOutputGroups([root], {
+        workspaceFolderUris: (vscode.workspace.workspaceFolders || []).map(
+          (folder) => folder.uri,
+        ),
+      })
+    )[0];
+
+  if (!group) {
+    return;
+  }
+
+  await writeOutputGroup(group, context);
 }
 
 export async function updateAllInstructionFiles(
   workspaceUri: vscode.Uri,
   context: vscode.ExtensionContext,
 ): Promise<void> {
-  const roots = await getManagedSkillRoots(workspaceUri);
-  for (const root of roots) {
-    await updateInstructionFileForRoot(root, context);
+  const groups = await resolveGroupsForWorkspace(workspaceUri);
+  for (const group of groups) {
+    await writeOutputGroup(group, context);
   }
 }
 
@@ -459,6 +487,8 @@ function buildSkillMarkdownPath(skillsDir: string, skillPath: string): string {
 type SkillCatalogRow = {
   name: string;
   path: string;
+  /** 重複名の修飾に使う root 相対パス。未指定なら `path` を使う。 */
+  qualifierPath?: string;
   description: string;
   incomplete?: boolean;
 };
@@ -498,7 +528,9 @@ function withDisplayNames<T extends SkillCatalogRow>(
       return { ...row, description, displayName: row.name };
     }
 
-    const qualifier = formatDuplicateSkillQualifier(row.path);
+    const qualifier = formatDuplicateSkillQualifier(
+      row.qualifierPath || row.path,
+    );
     return {
       ...row,
       description,
@@ -528,39 +560,31 @@ ${MARKER_END}`;
  * instruction ファイルから catalog への相対リンクを返す。
  */
 async function writeCatalogFile(
-  root: SkillRoot,
+  group: ResolvedOutputGroup,
   installedSkills: SkillMeta[],
   localSkills: LocalSkill[],
-  rootsForInstruction?: SkillRoot[],
 ): Promise<string> {
-  const config = vscode.workspace.getConfiguration("skillNinja");
-  const catalogRelPath =
-    config.get<string>("refCatalogPath") || ".github/skills/README.md";
-  const catalogFormat = getRefCatalogFormat(config);
-
-  const catalogUri = resolveCatalogUriForRoot(root, catalogRelPath);
+  const catalogUri =
+    group.catalogUri ||
+    vscode.Uri.joinPath(group.instructionUri, "..", group.catalogPath);
 
   // instruction ファイルから catalog への相対リンクを計算
-  const instructionAbsPath = root.instructionUri!.fsPath;
   const catalogAbsPath = catalogUri.fsPath;
   const catalogLinkFromInstruction = path
-    .relative(path.dirname(instructionAbsPath), catalogAbsPath)
+    .relative(path.dirname(group.instructionPath), catalogAbsPath)
     .replace(/\\/g, "/");
 
-  const relativeSkillsDirFromCatalog = computeRelativeDirectoryPath(
-    catalogAbsPath,
-    root.rootPath,
-  );
-  const catalogInstalledSkills = rootsForInstruction
-    ? await getInstalledSkillsWithLinkPaths(rootsForInstruction, catalogAbsPath)
-    : installedSkills;
+  const catalogInstalledSkills =
+    installedSkills.length === 0
+      ? installedSkills
+      : await getInstalledSkillsWithLinkPaths(group.members, catalogAbsPath);
 
   // catalog ファイルには ref 入口とは別に選択された詳細フォーマットを書き出す
   const catalogSection = generateSkillSectionForFormat(
     catalogInstalledSkills,
     localSkills,
-    rootsForInstruction ? "" : relativeSkillsDirFromCatalog,
-    catalogFormat,
+    "",
+    group.catalogFormat,
   );
 
   let existingCatalogContent = "";
@@ -574,7 +598,7 @@ async function writeCatalogFile(
   const newCatalogContent = updateSection(
     existingCatalogContent,
     catalogSection,
-    catalogFormat,
+    group.catalogFormat,
   );
 
   if (newCatalogContent !== existingCatalogContent) {
@@ -620,6 +644,7 @@ ${MARKER_END}`;
       return {
         name: skill.name,
         path: skill.relativePath || skill.name,
+        qualifierPath: skill.qualifierPath,
         description: desc.replace(/\|/g, "\\|"),
         incomplete: skill.incomplete,
       };
@@ -631,6 +656,7 @@ ${MARKER_END}`;
       return {
         name: skill.name,
         path: skill.relativePath,
+        qualifierPath: skill.relativePath,
         description: truncatedDesc.replace(/\|/g, "\\|"),
         incomplete: skill.incomplete,
       };
@@ -734,11 +760,13 @@ export function updateSection(
  * Resources Ninja が独自マーカー（resource-ninja-catalog）で同じファイルに
  * 書くため、残存すると重複セクションになる。
  */
-async function cleanupCatalogOnDefer(root: SkillRoot): Promise<void> {
-  const config = vscode.workspace.getConfiguration("skillNinja");
-  const catalogRelPath =
-    config.get<string>("refCatalogPath") || ".github/skills/README.md";
-  const catalogUri = resolveCatalogUriForRoot(root, catalogRelPath);
+async function cleanupCatalogOnDefer(
+  group: ResolvedOutputGroup,
+): Promise<void> {
+  const catalogUri = group.catalogUri;
+  if (!catalogUri) {
+    return;
+  }
 
   try {
     const raw = await vscode.workspace.fs.readFile(catalogUri);
@@ -749,7 +777,9 @@ async function cleanupCatalogOnDefer(root: SkillRoot): Promise<void> {
       return;
     }
 
-    const stripped = cleanupManagedSkillBlocks(content);
+    const stripped = cleanupManagedSkillBlocks(content, {
+      keepLegacyResource: true,
+    });
     if (stripped !== content.trim()) {
       await vscode.workspace.fs.writeFile(
         catalogUri,
@@ -770,13 +800,25 @@ async function cleanupCatalogOnDefer(root: SkillRoot): Promise<void> {
  */
 export async function removeSkillSectionFromFile(
   fileUri: vscode.Uri,
-  options: { keepShared?: boolean; keepLegacySkill?: boolean } = {},
+  options: {
+    keepShared?: boolean;
+    keepLegacySkill?: boolean;
+    keepLegacyResource?: boolean;
+    /** 生成物しか無かったファイル（除去後が空）を削除する。 */
+    deleteWhenEmpty?: boolean;
+  } = {},
 ): Promise<void> {
   try {
     const content = await vscode.workspace.fs.readFile(fileUri);
     let existingContent = Buffer.from(content).toString("utf-8");
 
     const stripped = cleanupManagedSkillBlocks(existingContent, options);
+
+    if (options.deleteWhenEmpty && stripped === "") {
+      await vscode.workspace.fs.delete(fileUri, { useTrash: false });
+      console.log(`[Skill Ninja] Removed generated file ${fileUri.fsPath}`);
+      return;
+    }
 
     if (stripped !== existingContent.trim()) {
       existingContent = stripped;
@@ -804,6 +846,7 @@ function generateCompactSection(
     ...installedSkills.map((s) => ({
       name: s.name,
       path: s.relativePath || s.name,
+      qualifierPath: s.qualifierPath,
       // Description のみ（100文字）
       description: s.description
         ? s.description.length > 100
@@ -815,6 +858,7 @@ function generateCompactSection(
     ...localSkills.map((s) => ({
       name: s.name,
       path: s.relativePath,
+      qualifierPath: s.relativePath,
       description: s.description
         ? s.description.length > 100
           ? s.description.substring(0, 97) + "..."
@@ -870,6 +914,7 @@ function generateFullSection(
     ...installedSkills.map((s) => ({
       name: s.name,
       path: s.relativePath || s.name,
+      qualifierPath: s.qualifierPath,
       description: buildDescription(
         s.description,
         s.customWhenToUse || s.whenToUse,
@@ -879,6 +924,7 @@ function generateFullSection(
     ...localSkills.map((s) => ({
       name: s.name,
       path: s.relativePath,
+      qualifierPath: s.relativePath,
       // LocalSkill は description のみ（whenToUse はない）
       description:
         s.description && s.description.length > 200

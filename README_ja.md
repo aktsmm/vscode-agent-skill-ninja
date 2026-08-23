@@ -399,13 +399,14 @@ MCP ツールが不要な場合は、GitHub Copilot Chat のツール一覧か�
 |  8   | `skillNinja.outputFormat`                 | `ref`                      | 出力形式（ref / full / compact / legacy）                                             |
 |  9   | `skillNinja.refCatalogPath`               | `.github/skills/README.md` | `ref` 形式で使う catalog file path                                                    |
 |  10  | `skillNinja.refCatalogFormat`             | `full`                     | `outputFormat` が `ref` のときの catalog 詳細形式                                     |
-|  11  | `skillNinja.language`                     | `auto`                     | UI 言語（auto / en / ja）                                                             |
+|  11  | `skillNinja.outputTargets`                | `[]`                       | 出力先ごとの ON/OFF と形式の上書き。空なら検出した全出力先へ上の設定で書き込む         |
 |  12  | `skillNinja.autoUpdateSkillsOnUpgrade`    | `prompt`                   | 拡張機能アップグレード後のスキル更新                                                  |
 |  13  | `skillNinja.staleSourceIndexUpdateMode`   | `prompt`                   | 30 日以上古い source index を起動時に更新（`always` / `prompt` / `never`）            |
 |  14  | `skillNinja.githubToken`                  | `""`                       | 互換用 GitHub Token 設定（ユーザー設定のみ）。設定時は SecretStorage にコピーして利用 |
 |  15  | `skillNinja.singleClickInstall`           | `false`                    | リモートスキルをシングルクリックでインストール                                        |
 |  16  | `skillNinja.coexistenceMode`              | `auto`                     | Agent Resources Ninja との共存モード（`auto` / `independent`）                        |
 |  17  | `skillNinja.useSharedSourcesManifest`     | `false`                    | `~/.agent-ninja/sources.json` 経由で Agent Resources Ninja と source list SSOT を共有 |
+|  18  | `skillNinja.language`                     | `auto`                     | UI 言語（auto / en / ja）                                                             |
 
 > 設定画面では上記の順序で表示されます
 

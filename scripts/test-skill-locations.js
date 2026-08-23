@@ -345,7 +345,7 @@ function makeConfigStub(values) {
       resolveUserGlobalInstructionPath(
         path.normalize("/home/tester/.copilot/skills"),
       ),
-      path.normalize("/home/tester/.copilot/instructions.md"),
+      path.normalize("/home/tester/.copilot/copilot-instructions.md"),
     );
     assert.strictEqual(
       resolveUserGlobalInstructionPath(

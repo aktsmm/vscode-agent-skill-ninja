@@ -522,6 +522,10 @@ function getRawAgentSkillLocationsSetting(): unknown {
   return undefined;
 }
 
+// `~/.copilot/instructions.md` は VS Code の chat request へ注入されないため、
+// v0.9.48 以降は `copilot-instructions.md` を既定にした。旧パスは cleanup 対象。
+export const LEGACY_COPILOT_GLOBAL_INSTRUCTION_FILE_NAME = "instructions.md";
+
 export function resolveUserGlobalInstructionPath(
   skillsRootPath: string,
 ): string {
@@ -530,7 +534,7 @@ export function resolveUserGlobalInstructionPath(
 
   switch (containerName) {
     case ".copilot":
-      return path.join(parentDir, "instructions.md");
+      return path.join(parentDir, "copilot-instructions.md");
     case ".claude":
       return path.join(parentDir, "CLAUDE.md");
     case ".cursor":

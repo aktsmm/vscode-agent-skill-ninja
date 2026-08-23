@@ -275,6 +275,19 @@ const jaMessages = {
   noLocalSkills: "ローカルスキルが見つかりません",
   instructionFileUpdatedOnSettingChange:
     "✅ 設定変更により AGENTS.md を更新しました",
+  outputTargetsPickPlaceholder:
+    "スキル一覧を出力する先を選んでください（チェックを外すと管理ブロックと生成カタログを削除）",
+  outputTargetsNone: "管理できる出力先が見つかりません",
+  outputTargetsFormatPlaceholder:
+    "形式を変える出力先を選んでください（Esc で終了）",
+  outputTargetsFormatFor: "{0} の出力形式",
+  outputTargetsUseDefault: "全体の既定に従う ({0})",
+  outputTargetsAutoLoaded: "VS Code が常時読み込むファイル",
+  outputTargetsShared: "{0} 件の出力先がこのファイルを共有",
+  outputTargetsDisabledWarning:
+    "{0} 件の出力先を無効にします。管理ブロックと生成済みカタログを削除しますか？自分で書いた本文は残ります。",
+  outputTargetsDisableConfirm: "削除して続行",
+  outputTargetsApplied: "✅ 出力ターゲットを更新しました（有効 {0} 件）",
 } as const;
 
 type MessageKey = keyof typeof jaMessages;
@@ -549,6 +562,19 @@ const enMessages: MessageDictionary = {
   noLocalSkills: "No local skills found",
   instructionFileUpdatedOnSettingChange:
     "✅ AGENTS.md updated due to setting change",
+  outputTargetsPickPlaceholder:
+    "Choose where the skill list is written (unchecking removes the managed block and generated catalog)",
+  outputTargetsNone: "No manageable output targets were found",
+  outputTargetsFormatPlaceholder:
+    "Pick a target to change its format (Esc to finish)",
+  outputTargetsFormatFor: "Output format for {0}",
+  outputTargetsUseDefault: "Follow the global default ({0})",
+  outputTargetsAutoLoaded: "Always loaded by VS Code",
+  outputTargetsShared: "{0} targets share this file",
+  outputTargetsDisabledWarning:
+    "Disable {0} target(s)? Their managed block and generated catalog will be removed. Your own text is kept.",
+  outputTargetsDisableConfirm: "Remove and continue",
+  outputTargetsApplied: "✅ Output targets updated ({0} enabled)",
 };
 
 /**
@@ -940,6 +966,24 @@ export const messages = {
   // 設定変更時の自動更新
   instructionFileUpdatedOnSettingChange: () =>
     localize("instructionFileUpdatedOnSettingChange"),
+
+  // 出力ターゲット設定 UI
+  outputTargetsPickPlaceholder: () => localize("outputTargetsPickPlaceholder"),
+  outputTargetsNone: () => localize("outputTargetsNone"),
+  outputTargetsFormatPlaceholder: () =>
+    localize("outputTargetsFormatPlaceholder"),
+  outputTargetsFormatFor: (target: string) =>
+    localize("outputTargetsFormatFor", target),
+  outputTargetsUseDefault: (format: string) =>
+    localize("outputTargetsUseDefault", format),
+  outputTargetsAutoLoaded: () => localize("outputTargetsAutoLoaded"),
+  outputTargetsShared: (count: string) =>
+    localize("outputTargetsShared", count),
+  outputTargetsDisabledWarning: (count: string) =>
+    localize("outputTargetsDisabledWarning", count),
+  outputTargetsDisableConfirm: () => localize("outputTargetsDisableConfirm"),
+  outputTargetsApplied: (count: string) =>
+    localize("outputTargetsApplied", count),
 };
 
 export default messages;

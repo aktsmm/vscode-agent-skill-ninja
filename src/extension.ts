@@ -1,6 +1,7 @@
 // Agent Skills Ninja - VS Code Extension
 
 import * as path from "path";
+import * as os from "os";
 import * as vscode from "vscode";
 import {
   SkillIndex,
@@ -37,6 +38,8 @@ import {
   updateAllInstructionFiles,
   updateInstructionFileForRoot,
   removeSkillSectionFromFile,
+  withOutputWriteLock,
+  writeOutputGroup,
 } from "./instructionManager";
 import { runBulkInstallPlan, type BulkAttemptResult } from "./bulkInstall";
 import {
@@ -76,12 +79,29 @@ import {
 import {
   getManagedSkillRoots,
   isInsidePath,
+  LEGACY_COPILOT_GLOBAL_INSTRUCTION_FILE_NAME,
   normalizeFileSystemPath,
+  pathToDisplayPath,
   resolveConfiguredPathToUri,
   resolveWorkspaceSkillRootUris,
   resolveWorkspaceSkillsRootUri,
   SkillRoot,
 } from "./skillLocations";
+import {
+  buildOutputInventory,
+  deriveTargetId,
+  getOutputDefaults,
+  getOutputTargetsMode,
+  isAutoLoadedInstructionPath,
+  OutputCleanupPlan,
+  OutputPathBucket,
+  OutputTargetConfig,
+  parseOutputPathBuckets,
+  parseOutputTargets,
+  planOutputCleanup,
+  ResolvedOutputGroup,
+  resolveOutputGroups,
+} from "./outputTargets";
 import { resolveOutputFormat } from "./toolDetector";
 import { MAX_SEARCH_RESULTS } from "./skillSearch";
 import { createChatParticipant } from "./chatParticipant";
@@ -151,6 +171,9 @@ let extensionShuttingDown = false;
 
 const LAST_MANAGED_INSTRUCTION_PATHS_KEY =
   "skillNinja.lastManagedInstructionPaths";
+// v1 は単一配列で multi-root を表現できなかった。旧キーは downgrade 時の互換のため触らない。
+const LAST_MANAGED_OUTPUT_PATHS_KEY = "skillNinja.lastManagedOutputPaths.v2";
+const GLOBAL_OUTPUT_BUCKET_KEY = "__global__";
 const LAST_STALE_SOURCE_INDEX_PROMPT_DATE_KEY =
   "skillNinja.lastStaleSourceIndexPromptDate";
 /** rate limit で中断した source 更新の再開待ち state */
@@ -1244,85 +1267,241 @@ export function activate(
     return result;
   }
 
+  /** v1 在庫。読み出しのみで、書き戻さない（旧バージョンへ戻したときに壊さないため）。 */
   function getStoredManagedInstructionPaths(): string[] {
-    return context.workspaceState.get<string[]>(
+    const stored = context.workspaceState.get<unknown>(
       LAST_MANAGED_INSTRUCTION_PATHS_KEY,
-      [],
     );
+    return Array.isArray(stored)
+      ? stored.filter((entry): entry is string => typeof entry === "string")
+      : [];
   }
 
-  async function getCurrentManagedInstructionPaths(
-    workspaceUri: vscode.Uri,
-  ): Promise<string[]> {
-    const roots = await getManagedRootsForWorkspace(workspaceUri);
-    return uniqueInstructionPaths(
-      roots.flatMap((root) =>
-        root.instructionUri ? [root.instructionUri.fsPath] : [],
-      ),
-    );
-  }
-
-  async function rememberCurrentManagedInstructionPaths(
-    workspaceUri: vscode.Uri,
-  ): Promise<void> {
-    await context.workspaceState.update(
-      LAST_MANAGED_INSTRUCTION_PATHS_KEY,
-      await getCurrentManagedInstructionPaths(workspaceUri),
-    );
-  }
-
-  async function cleanupInstructionFiles(
-    filePaths: string[],
+  /**
+   * 管理ブロックを取り除く。catalog は全体が生成物なので、残りが空になったら
+   * ファイルごと削除する。instruction ファイルはユーザーが用意したものかもしれないので
+   * 空になっても残す。戻り値は lock を取れず処理できなかったパス。
+   *
+   * plan をそのまま受けるのは、位置引数だと instruction と catalog を取り違えても
+   * 型で止まらず、ユーザーの instruction ファイルを削除し得るため。
+   */
+  async function cleanupOutputFiles(
+    plan: Pick<OutputCleanupPlan, "staleInstruction" | "staleCatalog">,
     keepShared: boolean,
-  ): Promise<void> {
-    for (const filePath of uniqueInstructionPaths(filePaths)) {
+  ): Promise<string[]> {
+    const targets = [
+      ...uniqueInstructionPaths(plan.staleInstruction).map((filePath) => ({
+        filePath,
+        deleteWhenEmpty: false,
+      })),
+      ...uniqueInstructionPaths(plan.staleCatalog).map((filePath) => ({
+        filePath,
+        deleteWhenEmpty: true,
+      })),
+    ];
+    const folderPaths = (vscode.workspace.workspaceFolders || []).map(
+      (folder) => folder.uri.fsPath,
+    );
+    const isWorkspacePath = (filePath: string): boolean =>
+      folderPaths.some((folderPath) => isInsidePath(folderPath, filePath));
+
+    const remove = async (target: {
+      filePath: string;
+      deleteWhenEmpty: boolean;
+    }): Promise<void> => {
       try {
-        await removeSkillSectionFromFile(vscode.Uri.file(filePath), {
+        await removeSkillSectionFromFile(vscode.Uri.file(target.filePath), {
           keepShared,
+          // sibling 拡張が同じファイルへ書いた旧マーカーを巻き添えにしない
+          keepLegacyResource: true,
+          deleteWhenEmpty: target.deleteWhenEmpty,
         });
       } catch {
         // ファイルが存在しない場合は無視
       }
+    };
+
+    for (const target of targets.filter((entry) =>
+      isWorkspacePath(entry.filePath),
+    )) {
+      await remove(target);
     }
+
+    const sharedTargets = targets.filter(
+      (entry) => !isWorkspacePath(entry.filePath),
+    );
+    if (sharedTargets.length === 0) {
+      return [];
+    }
+
+    const handled = await withOutputWriteLock("userGlobal", async () => {
+      for (const target of sharedTargets) {
+        await remove(target);
+      }
+      return true;
+    });
+
+    // lock を取れなかった分は在庫に残し、次の reconcile で再試行する
+    return handled ? [] : sharedTargets.map((entry) => entry.filePath);
   }
 
-  async function cleanupStaleStoredInstructionPaths(
-    workspaceUri: vscode.Uri,
-  ): Promise<void> {
+  function getStoredOutputPathBuckets(): Record<string, OutputPathBucket> {
+    return parseOutputPathBuckets(
+      context.workspaceState.get<unknown>(LAST_MANAGED_OUTPUT_PATHS_KEY),
+    );
+  }
+
+  /**
+   * D3 移行: `~/.copilot/instructions.md` は VS Code の chat request へ注入されないため
+   * 既定の出力先から外した。旧ファイルに残る管理ブロックだけを掃除する。
+   */
+  function getLegacyOutputPathsToCleanup(): string[] {
+    return [
+      path.join(
+        os.homedir(),
+        ".copilot",
+        LEGACY_COPILOT_GLOBAL_INSTRUCTION_FILE_NAME,
+      ),
+    ];
+  }
+
+  let outputReconcileInFlight: Promise<void> | undefined;
+  let outputReconcileQueued = false;
+
+  /**
+   * 出力先の解決 → 不要になったファイルの掃除 → 有効グループの書き出し → 在庫更新
+   * を 1 本のパイプラインで行う。起動・設定変更・一括操作すべてここを通す。
+   */
+  async function reconcileOutputTargets(): Promise<void> {
     const config = vscode.workspace.getConfiguration("skillNinja");
     if (config.get<boolean>("autoUpdateInstruction") === false) {
       return;
     }
 
-    const storedPaths = getStoredManagedInstructionPaths();
-    if (storedPaths.length === 0) {
-      return;
+    const folders = vscode.workspace.workspaceFolders || [];
+    const workspaceFolderUris = folders.map((folder) => folder.uri);
+    const desired = new Map<
+      string,
+      { instruction: Set<string>; catalog: Set<string> }
+    >();
+    const groupsToWrite = new Map<string, ResolvedOutputGroup>();
+
+    const bucketFor = (group: ResolvedOutputGroup): string =>
+      group.scope === "workspace" && group.workspaceFolderUri
+        ? normalizeFileSystemPath(group.workspaceFolderUri.fsPath)
+        : GLOBAL_OUTPUT_BUCKET_KEY;
+
+    const bucketOf = (
+      key: string,
+    ): { instruction: Set<string>; catalog: Set<string> } => {
+      const existing = desired.get(key);
+      if (existing) {
+        return existing;
+      }
+      const created = { instruction: new Set<string>(), catalog: new Set<string>() };
+      desired.set(key, created);
+      return created;
+    };
+
+    // 対象 bucket は空でも登録する。全ターゲットを無効化したときに掃除が走るようにする。
+    bucketOf(GLOBAL_OUTPUT_BUCKET_KEY);
+    for (const folder of folders) {
+      bucketOf(normalizeFileSystemPath(folder.uri.fsPath));
     }
 
-    const currentPaths = await getCurrentManagedInstructionPaths(workspaceUri);
-    const currentSet = new Set(
-      currentPaths.map(normalizeInstructionPathForSet),
-    );
-    const stalePaths = storedPaths.filter(
-      (filePath) => !currentSet.has(normalizeInstructionPathForSet(filePath)),
-    );
-    if (stalePaths.length === 0) {
-      await context.workspaceState.update(
-        LAST_MANAGED_INSTRUCTION_PATHS_KEY,
-        currentPaths,
-      );
-      return;
+    const collect = async (workspaceUri?: vscode.Uri): Promise<void> => {
+      const roots = await getManagedRoots(workspaceUri);
+      const groups = await resolveOutputGroups(roots, { workspaceFolderUris });
+      for (const group of groups) {
+        if (groupsToWrite.has(group.id)) {
+          continue;
+        }
+        groupsToWrite.set(group.id, group);
+
+        const bucket = bucketOf(bucketFor(group));
+        bucket.instruction.add(group.instructionPath);
+        if (group.format === "ref" && group.catalogUri) {
+          bucket.catalog.add(group.catalogUri.fsPath);
+        }
+      }
+    };
+
+    if (folders.length === 0) {
+      await collect(undefined);
+    } else {
+      for (const folder of folders) {
+        await collect(folder.uri);
+      }
     }
 
     const ownership = await getEffectiveOwnership(context);
     const keepShared =
       config.get<string>("coexistenceMode") !== "independent" &&
       ownership.owner === "sibling";
-    await cleanupInstructionFiles(stalePaths, keepShared);
+
+    const stored = getStoredOutputPathBuckets();
+    const desiredRecord: Record<string, OutputPathBucket> = {};
+    for (const [bucket, paths] of desired) {
+      desiredRecord[bucket] = {
+        instruction: [...paths.instruction],
+        catalog: [...paths.catalog],
+      };
+    }
+
+    const plan = planOutputCleanup({
+      desired: desiredRecord,
+      stored,
+      // v1 在庫と、既定から外した旧パスも掃除候補に含める（移行用）
+      legacyInstructionPaths: [
+        ...getStoredManagedInstructionPaths(),
+        ...getLegacyOutputPathsToCleanup(),
+      ],
+    });
+
+    const unhandledPaths = await cleanupOutputFiles(plan, keepShared);
+
+    for (const group of groupsToWrite.values()) {
+      await writeOutputGroup(group, context);
+    }
+
     await context.workspaceState.update(
-      LAST_MANAGED_INSTRUCTION_PATHS_KEY,
-      currentPaths,
+      LAST_MANAGED_OUTPUT_PATHS_KEY,
+      buildOutputInventory({
+        buckets: plan.buckets,
+        desired: desiredRecord,
+        stored,
+        unhandledPaths,
+      }),
     );
+  }
+
+  /** 同時に走らせず、走行中の要求は 1 回だけ追いかけて再実行する。 */
+  function scheduleOutputReconcile(): Promise<void> {
+    if (outputReconcileInFlight) {
+      outputReconcileQueued = true;
+      return outputReconcileInFlight;
+    }
+
+    outputReconcileInFlight = (async () => {
+      try {
+        do {
+          outputReconcileQueued = false;
+          await reconcileOutputTargets();
+        } while (outputReconcileQueued);
+      } catch (err) {
+        console.error("[Skill Ninja] Failed to reconcile output targets:", err);
+      } finally {
+        outputReconcileInFlight = undefined;
+      }
+    })();
+
+    return outputReconcileInFlight;
+  }
+
+  async function cleanupStaleStoredInstructionPaths(
+    _workspaceUri: vscode.Uri,
+  ): Promise<void> {
+    await scheduleOutputReconcile();
   }
 
   async function getManagedInstalledEntries(workspaceUri: vscode.Uri) {
@@ -1564,34 +1743,10 @@ export function activate(
   }
 
   async function updateInstructionFilesForRoots(
-    roots: SkillRoot[],
+    _roots: SkillRoot[],
   ): Promise<void> {
-    const config = vscode.workspace.getConfiguration("skillNinja");
-    if (!config.get<boolean>("autoUpdateInstruction")) {
-      return;
-    }
-
-    const uniqueRoots = new Map<string, SkillRoot>();
-    for (const root of roots) {
-      // Windows は大文字小文字を区別しないので、同じルートを二重に書き換えない
-      uniqueRoots.set(normalizeFileSystemPath(root.rootPath), root);
-    }
-
-    for (const root of uniqueRoots.values()) {
-      await updateInstructionFileForRoot(root, context);
-    }
-
-    const rememberedPaths = uniqueInstructionPaths(
-      [...uniqueRoots.values()].flatMap((root) =>
-        root.instructionUri ? [root.instructionUri.fsPath] : [],
-      ),
-    );
-    if (rememberedPaths.length > 0) {
-      await context.workspaceState.update(
-        LAST_MANAGED_INSTRUCTION_PATHS_KEY,
-        rememberedPaths,
-      );
-    }
+    // 個々の root ではなくファイル単位のグループで一括同期する。
+    await scheduleOutputReconcile();
   }
 
   async function getReinstallableEntriesForRoot(root: SkillRoot) {
@@ -1681,7 +1836,9 @@ export function activate(
       if (normalizedRootPath.includes("/appdata/roaming/code/user/")) {
         return 0;
       }
-      if (normalizedInstructionPath.endsWith("/.copilot/instructions.md")) {
+      if (
+        normalizedInstructionPath.endsWith("/.copilot/copilot-instructions.md")
+      ) {
         return 1;
       }
       if (normalizedRootPath.endsWith("/.copilot/skills")) {
@@ -2056,68 +2213,16 @@ export function activate(
       e.affectsConfiguration("skillNinja.customInstructionPath") ||
       e.affectsConfiguration("skillNinja.outputFormat") ||
       e.affectsConfiguration("skillNinja.refCatalogPath") ||
-      e.affectsConfiguration("skillNinja.refCatalogFormat")
+      e.affectsConfiguration("skillNinja.refCatalogFormat") ||
+      e.affectsConfiguration("skillNinja.outputTargets")
     ) {
-      const workspaceFolders = vscode.workspace.workspaceFolders;
-      if (workspaceFolders && workspaceFolders.length > 0) {
-        const config = vscode.workspace.getConfiguration("skillNinja");
-        const autoUpdate =
-          config.get<boolean>("autoUpdateInstruction") !== false;
-
-        if (autoUpdate) {
-          // インストラクションファイルが変更された場合は古いファイルから削除
-          if (
-            e.affectsConfiguration("skillNinja.instructionFile") ||
-            e.affectsConfiguration("skillNinja.customInstructionPath")
-          ) {
-            const ownership = await getEffectiveOwnership(context);
-            const keepShared =
-              vscode.workspace
-                .getConfiguration("skillNinja")
-                .get<string>("coexistenceMode") !== "independent" &&
-              ownership.owner === "sibling";
-
-            // 古いファイルパスを使ってスキルセクションを削除
-            // （変更前の値は取得できないので、全ての候補ファイルから削除を試みる）
-            const candidateFiles = [
-              "AGENTS.md",
-              ".github/copilot-instructions.md",
-              ".github/instructions/SkillList.instructions.md",
-              "CLAUDE.md",
-              ".cursor/rules/skills.mdc",
-              ".windsurfrules",
-              ".clinerules",
-            ];
-            await cleanupInstructionFiles(
-              [
-                ...candidateFiles.map(
-                  (file) =>
-                    vscode.Uri.joinPath(workspaceFolders[0].uri, file).fsPath,
-                ),
-                ...getStoredManagedInstructionPaths(),
-              ],
-              keepShared,
-            );
-          }
-
-          // 少し待ってから更新（設定が完全に反映されるのを待つ）
-          setTimeout(async () => {
-            try {
-              await updateAllInstructionFiles(workspaceFolders[0].uri, context);
-              await rememberCurrentManagedInstructionPaths(
-                workspaceFolders[0].uri,
-              );
-              vscode.window.showInformationMessage(
-                messages.instructionFileUpdatedOnSettingChange(),
-              );
-            } catch (err) {
-              console.error(
-                "Failed to update instruction file on setting change:",
-                err,
-              );
-            }
-          }, 500);
-        }
+      const config = vscode.workspace.getConfiguration("skillNinja");
+      if (config.get<boolean>("autoUpdateInstruction") !== false) {
+        // 掃除対象は在庫（前回書いたパス）から決める。候補ファイルの総当たりはしない。
+        await scheduleOutputReconcile();
+        vscode.window.showInformationMessage(
+          messages.instructionFileUpdatedOnSettingChange(),
+        );
       }
     }
   });
@@ -4752,6 +4857,263 @@ Add examples here
     },
   );
 
+  // Command: Configure output targets
+  const configureOutputTargetsCmd = vscode.commands.registerCommand(
+    "skillNinja.configureOutputTargets",
+    async () => {
+      await showOutputTargetsPicker();
+    },
+  );
+
+  interface OutputTargetRow {
+    targetId: string;
+    label: string;
+    rootPath: string;
+    displayPath: string;
+    instructionPath: string;
+    enabled: boolean;
+    explicitFormat?: string;
+    effectiveFormat: string;
+    sharedCount: number;
+  }
+
+  async function collectOutputTargetRows(): Promise<OutputTargetRow[]> {
+    const folders = vscode.workspace.workspaceFolders || [];
+    const workspaceFolderUris = folders.map((folder) => folder.uri);
+    const config = vscode.workspace.getConfiguration("skillNinja");
+    const mode = getOutputTargetsMode(config);
+    const configuredTargets =
+      mode === "array" ? parseOutputTargets(config.get("outputTargets")) : [];
+    const defaults = await getOutputDefaults(config);
+
+    const rootsByTarget = new Map<string, SkillRoot>();
+    const collectRoots = async (workspaceUri?: vscode.Uri): Promise<void> => {
+      for (const root of await getManagedRoots(workspaceUri)) {
+        if (root.scope !== "workspace" && root.scope !== "userGlobal") {
+          continue;
+        }
+        if (!root.instructionPath) {
+          continue;
+        }
+        const targetId = deriveTargetId(root);
+        if (!rootsByTarget.has(targetId)) {
+          rootsByTarget.set(targetId, root);
+        }
+      }
+    };
+
+    if (folders.length === 0) {
+      await collectRoots(undefined);
+    } else {
+      for (const folder of folders) {
+        await collectRoots(folder.uri);
+      }
+    }
+
+    const instructionCounts = new Map<string, number>();
+    for (const root of rootsByTarget.values()) {
+      const key = normalizeInstructionPathForSet(root.instructionPath!);
+      instructionCounts.set(key, (instructionCounts.get(key) || 0) + 1);
+    }
+
+    return [...rootsByTarget.entries()].map(([targetId, root]) => {
+      const configured = configuredTargets.find(
+        (entry) => entry.id === targetId,
+      );
+      const instructionPath = configured?.instructionFile
+        ? resolveConfiguredPathToUri(
+            configured.instructionFile,
+            root.scope === "workspace" ? workspaceFolderUris[0] : undefined,
+          )?.fsPath || root.instructionPath!
+        : root.instructionPath!;
+
+      return {
+        targetId,
+        label: root.scope === "workspace" ? "Workspace" : root.label,
+        rootPath: root.rootPath,
+        displayPath: root.displayPath,
+        instructionPath,
+        enabled: mode === "array" ? !!configured && configured.enabled !== false : true,
+        explicitFormat: configured?.format,
+        effectiveFormat: configured?.format || defaults.format,
+        sharedCount:
+          instructionCounts.get(
+            normalizeInstructionPathForSet(instructionPath),
+          ) || 1,
+      };
+    });
+  }
+
+  function describeOutputTargetRow(row: OutputTargetRow): string {
+    const parts = [
+      row.explicitFormat
+        ? row.effectiveFormat
+        : `${row.effectiveFormat} (default)`,
+    ];
+    if (isAutoLoadedInstructionPath(row.instructionPath)) {
+      parts.push(`⚡ ${messages.outputTargetsAutoLoaded()}`);
+    }
+    if (row.sharedCount > 1) {
+      parts.push(messages.outputTargetsShared(String(row.sharedCount)));
+    }
+    return parts.join(" · ");
+  }
+
+  async function showOutputTargetsPicker(): Promise<void> {
+    const rows = await collectOutputTargetRows();
+    if (rows.length === 0) {
+      vscode.window.showInformationMessage(messages.outputTargetsNone());
+      return;
+    }
+
+    type Item = vscode.QuickPickItem & { row: OutputTargetRow };
+    const toItem = (row: OutputTargetRow): Item => ({
+      label: `${row.label} (${row.targetId})`,
+      description: pathToDisplayPath(row.instructionPath),
+      detail: describeOutputTargetRow(row),
+      picked: row.enabled,
+      row,
+    });
+
+    const selection = await vscode.window.showQuickPick(rows.map(toItem), {
+      canPickMany: true,
+      placeHolder: messages.outputTargetsPickPlaceholder(),
+    });
+    if (!selection) {
+      return;
+    }
+
+    const selectedIds = new Set(selection.map((item) => item.row.targetId));
+    const disabledCount = rows.filter(
+      (row) => row.enabled && !selectedIds.has(row.targetId),
+    ).length;
+    if (disabledCount > 0) {
+      const confirm = await vscode.window.showWarningMessage(
+        messages.outputTargetsDisabledWarning(String(disabledCount)),
+        { modal: true },
+        messages.outputTargetsDisableConfirm(),
+      );
+      if (confirm !== messages.outputTargetsDisableConfirm()) {
+        return;
+      }
+    }
+
+    const chosen = selection.map((item) => item.row);
+    await promptOutputTargetFormats(chosen);
+    await saveOutputTargets(rows, selectedIds, chosen);
+
+    await scheduleOutputReconcile();
+    refreshAllViews();
+    vscode.window.showInformationMessage(
+      messages.outputTargetsApplied(String(chosen.length)),
+    );
+  }
+
+  async function promptOutputTargetFormats(
+    rows: OutputTargetRow[],
+  ): Promise<void> {
+    if (rows.length === 0) {
+      return;
+    }
+
+    const defaults = await getOutputDefaults();
+    for (;;) {
+      type Item = vscode.QuickPickItem & { row: OutputTargetRow };
+      const picked = await vscode.window.showQuickPick<Item>(
+        rows.map((row) => ({
+          label: `${row.label} (${row.targetId})`,
+          description: row.explicitFormat
+            ? row.explicitFormat
+            : `${row.effectiveFormat} (default)`,
+          row,
+        })),
+        { placeHolder: messages.outputTargetsFormatPlaceholder() },
+      );
+      if (!picked) {
+        return;
+      }
+
+      const formatChoice = await vscode.window.showQuickPick(
+        [
+          {
+            label: messages.outputTargetsUseDefault(defaults.format),
+            value: undefined as string | undefined,
+          },
+          { label: "ref", value: "ref" },
+          { label: "full", value: "full" },
+          { label: "compact", value: "compact" },
+          { label: "legacy", value: "legacy" },
+        ],
+        {
+          placeHolder: messages.outputTargetsFormatFor(picked.row.label),
+        },
+      );
+      if (!formatChoice) {
+        continue;
+      }
+
+      picked.row.explicitFormat = formatChoice.value;
+      picked.row.effectiveFormat = formatChoice.value || defaults.format;
+    }
+  }
+
+  async function saveOutputTargets(
+    allRows: OutputTargetRow[],
+    selectedIds: Set<string>,
+    chosen: OutputTargetRow[],
+  ): Promise<void> {
+    const config = vscode.workspace.getConfiguration("skillNinja");
+    const existing = parseOutputTargets(config.get("outputTargets"));
+    const byId = new Map(
+      existing.flatMap((entry) => (entry.id ? [[entry.id, entry]] : [])),
+    );
+    const displayedIds = new Set(allRows.map((row) => row.targetId));
+
+    const next = chosen.map((row) => {
+      const previous = byId.get(row.targetId) || {};
+      const entry: OutputTargetConfig = {
+        ...previous,
+        id: row.targetId,
+        enabled: true,
+      };
+      // 標準 ID 以外は root を残さないと復元できない
+      if (row.targetId.startsWith("custom:")) {
+        entry.root = row.rootPath;
+      }
+      if (row.explicitFormat) {
+        entry.format = row.explicitFormat;
+      } else {
+        delete entry.format;
+      }
+      return entry;
+    });
+
+    // 選択から外れたターゲットも、上書き設定を保つため enabled:false で残す
+    for (const row of allRows) {
+      if (selectedIds.has(row.targetId)) {
+        continue;
+      }
+      const previous = byId.get(row.targetId);
+      if (previous) {
+        next.push({ ...previous, id: row.targetId, enabled: false });
+      }
+    }
+
+    // picker に出てこなかった既存 entry（今は検出できない custom 出力先など）は触らない
+    for (const entry of existing) {
+      if (!entry.id || displayedIds.has(entry.id)) {
+        continue;
+      }
+      next.push(entry);
+    }
+
+    await config.update(
+      "outputTargets",
+      next,
+      vscode.ConfigurationTarget.Global,
+    );
+  }
+
   const showBuiltInSkillsCmd = vscode.commands.registerCommand(
     "skillNinja.showBuiltInSkills",
     async () => {
@@ -5268,6 +5630,7 @@ Add examples here
     openWorkspaceOutputCmd,
     openUserGlobalOutputCmd,
     openSettingsCmd,
+    configureOutputTargetsCmd,
     showBuiltInSkillsCmd,
     resetSettingsCmd,
     clearGitHubTokenCmd,

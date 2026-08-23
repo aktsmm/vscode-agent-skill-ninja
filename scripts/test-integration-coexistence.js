@@ -174,6 +174,10 @@ function makeVscodeStub({
             const value = settings[fullKey];
             return value !== undefined ? value : def;
           },
+          inspect(key) {
+            const fullKey = section ? `${section}.${key}` : key;
+            return { key: fullKey, globalValue: settings[fullKey] };
+          },
           update() {
             return Promise.resolve();
           },
@@ -305,6 +309,69 @@ function loadInstructionManager(vscodeStub, injectedSkills, options = {}) {
   const coexistenceModule = coexSandbox.module.exports;
 
   // instructionManager sandbox
+  const skillLocationsStub = {
+    computeRelativeDirectoryPath: (from, to) => {
+      const r = path.relative(path.dirname(from), to).replace(/\\/g, "/");
+      return r || ".";
+    },
+    normalizeFileSystemPath: (filePath) => {
+      const normalized = path.normalize(filePath).replace(/\\/g, "/");
+      return process.platform === "win32"
+        ? normalized.toLowerCase()
+        : normalized;
+    },
+    getManagedSkillRoots: async () => managedRoots,
+    resolveConfiguredPathToUri: (configuredPath, rootUri) => {
+      if (!configuredPath) {
+        return undefined;
+      }
+      if (path.isAbsolute(configuredPath)) {
+        return makeUri(configuredPath);
+      }
+      return rootUri ? joinPath(rootUri, configuredPath) : undefined;
+    },
+  };
+
+  const toolDetectorStub = (() => {
+    const skillConfig = vscodeStub.workspace.getConfiguration("skillNinja");
+    const normalizeOutputFormat = (value) => {
+      if (["ref", "full", "compact", "legacy"].includes(value)) {
+        return value;
+      }
+      if (value === "markdown") return "legacy";
+      if (value === "compressed-index") return "compact";
+      if (value === "markdown-with-index") return "full";
+      return "ref";
+    };
+    return {
+      normalizeOutputFormat,
+      resolveOutputFormat: async () => ({
+        format: normalizeOutputFormat(skillConfig.get("outputFormat", "ref")),
+      }),
+    };
+  })();
+
+  const outputTargetsExports = {};
+  const outputTargetsSandbox = {
+    exports: outputTargetsExports,
+    module: { exports: outputTargetsExports },
+    process,
+    console,
+    Buffer,
+    require(req) {
+      if (req === "vscode") return vscodeStub;
+      if (req === "./skillLocations") return skillLocationsStub;
+      if (req === "./toolDetector") return toolDetectorStub;
+      return require(req);
+    },
+  };
+  vm.runInNewContext(
+    transpileTs(path.join(REPO_ROOT, "src", "outputTargets.ts")),
+    outputTargetsSandbox,
+    { filename: "outputTargets.ts" },
+  );
+  const outputTargetsModule = outputTargetsSandbox.module.exports;
+
   const imExports = {};
   const imSandbox = {
     exports: imExports,
@@ -331,47 +398,26 @@ function loadInstructionManager(vscodeStub, injectedSkills, options = {}) {
         return {};
       }
       if (req === "./toolDetector") {
-        const skillConfig = vscodeStub.workspace.getConfiguration("skillNinja");
-        const normalizeOutputFormat = (value) => {
-          if (["ref", "full", "compact", "legacy"].includes(value)) {
-            return value;
-          }
-          if (value === "markdown") return "legacy";
-          if (value === "compressed-index") return "compact";
-          if (value === "markdown-with-index") return "full";
-          return "ref";
-        };
+        return toolDetectorStub;
+      }
+      if (req === "./outputTargets") {
+        return outputTargetsModule;
+      }
+      if (req === "./shared-store-lock") {
         return {
-          normalizeOutputFormat,
-          resolveOutputFormat: async () => ({
-            format: normalizeOutputFormat(
-              skillConfig.get("outputFormat", "ref"),
-            ),
-          }),
+          withSharedStoreLock: async (_id, task) =>
+            task({ assertHeld() {}, assertStillOwned: async () => {} }),
+          describeSharedStoreLockFailure: () => undefined,
         };
       }
       if (req === "./constants") {
         return {
+          SELF_EXTENSION_ID: "yamapan.agent-skill-ninja",
           SKILL_DESCRIPTION_LIMITS: { MAX_TOTAL: 200, MAX_EACH: 100 },
         };
       }
       if (req === "./skillLocations") {
-        return {
-          computeRelativeDirectoryPath: (from, to) => {
-            const r = path.relative(path.dirname(from), to).replace(/\\/g, "/");
-            return r || ".";
-          },
-          getManagedSkillRoots: async () => managedRoots,
-          resolveConfiguredPathToUri: (configuredPath, rootUri) => {
-            if (!configuredPath) {
-              return undefined;
-            }
-            if (path.isAbsolute(configuredPath)) {
-              return makeUri(configuredPath);
-            }
-            return joinPath(rootUri, configuredPath);
-          },
-        };
+        return skillLocationsStub;
       }
       if (req === "path") return path;
       return require(req);

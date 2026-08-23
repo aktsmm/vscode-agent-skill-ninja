@@ -73,6 +73,10 @@ const REVIEWED_STARTUP_DIALOGS = {
     mechanical: false,
     why: "user-invoked output command; reachable name only because it is declared inside activate()",
   },
+  promptOutputTargetFormats: {
+    mechanical: false,
+    why: "reached only from the Configure Output Targets command, after the user already picked targets; the loop exits on Esc",
+  },
 };
 
 /** 恒久的に止められることを示す手段。どれか 1 つは必要。 */

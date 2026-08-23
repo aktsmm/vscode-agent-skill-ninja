@@ -7,6 +7,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- 🎯 **Per-location Control Over Where The Skill List Goes** - `skillNinja.outputTargets` turns the workspace and each user/global location (`~/.copilot`, `~/.claude`, `~/.agents`, plus any extra root) into a list you can switch on and off individually, with an optional per-location format override. Leaving it empty keeps today's behaviour exactly, and the scalar `outputFormat` / `refCatalogPath` / `refCatalogFormat` settings stay live as the defaults every target inherits, so a target only overrides what you actually set on it. `Agent Skills Ninja: Configure Output Targets` edits the same list from a checklist that shows each resolved file path, whether VS Code always loads that file, and when several targets share one file / `skillNinja.outputTargets` により、ワークスペースと各ユーザー/グローバル出力先（`~/.copilot`、`~/.claude`、`~/.agents`、追加 root）を一覧として個別に ON/OFF でき、出力先ごとに形式も上書きできるようになりました。空のままなら挙動は従来と完全に同じで、`outputFormat` / `refCatalogPath` / `refCatalogFormat` は各ターゲットが継承する既定値として生き続けるため、明示した項目だけが上書きされます。`Agent Skills Ninja: 出力ターゲットを設定` から、解決後のファイルパス・VS Code が常時読み込むファイルか・複数ターゲットが 1 ファイルを共有しているかを表示するチェックリストで同じ一覧を編集できます
+
+### Fixed
+
+- 📄 **The Global Copilot Skill List Was Written Where Nothing Reads It** - The user/global Copilot output went to `~/.copilot/instructions.md`, but VS Code injects `~/.copilot/copilot-instructions.md` into chat requests, so that list was never actually seen. The default output moved to `copilot-instructions.md` and the managed block left behind in the old file is cleaned up on the next sync; anything you wrote there yourself is kept / user/global の Copilot 出力先が `~/.copilot/instructions.md` でしたが、VS Code がチャットへ注入するのは `~/.copilot/copilot-instructions.md` のため、その一覧は実際には読まれていませんでした。既定の出力先を `copilot-instructions.md` に変更し、旧ファイルに残った管理ブロックは次回同期時に掃除します。自分で書いた本文は残ります
+
+- 🧹 **Changing The Output File No Longer Blind-scans Seven Candidates** - Switching `instructionFile` used to strip managed blocks from a hardcoded list of seven candidate files in the first workspace folder, which also removed the sibling extension's legacy block and ignored every other folder in a multi-root workspace. Cleanup is now driven by an inventory of the files actually written last time, kept per workspace folder plus one bucket for user/global output, and it leaves the sibling extension's markers alone / `instructionFile` を変更したとき、最初のワークスペースフォルダーにある 7 つの候補ファイルから管理ブロックを総当たりで削除していたため、姉妹拡張の旧ブロックまで消え、multi-root の 2 つ目以降のフォルダーは掃除されませんでした。掃除は前回実際に書いたファイルの在庫から決めるようになり、在庫はワークスペースフォルダーごと + user/global 用の 1 束で保持し、姉妹拡張のマーカーには触れません
+
+- 🔒 **Two Windows No Longer Overwrite Each Other's Global Skill List** - Reading, rewriting and saving a user/global instruction file and its catalog now happen inside a single shared-store lease, so a second VS Code window cannot land a lost update between the read and the write. If the lease cannot be taken the write is skipped for that cycle and retried on the next sync instead of being forced through / user/global の instruction ファイルと catalog の読み込み・書き換え・保存を 1 つの共有ストアリースの中で行うようにしたため、2 つ目の VS Code ウィンドウが読み書きの間に割り込んで更新を失わせることがなくなりました。リースを取得できない場合はその回の書き込みをスキップし、次の同期で再試行します
+
+- 📁 **Empty Locations No Longer Get An Empty Skill List File** - A user/global location with no skills installed had an instruction file created for it containing only a "No skills installed yet" block. Files are no longer created for empty locations; once a skill lands there the list appears as usual, and existing files keep being updated / スキルが 1 つも入っていない user/global 出力先にも「No skills installed yet」だけの instruction ファイルが作られていました。空の出力先にはファイルを作らないようにし、スキルが入った時点で通常どおり一覧が出ます。既存ファイルはこれまでどおり更新されます
+
 ## [0.9.47] - 2026-08-18
 
 ### Changed
