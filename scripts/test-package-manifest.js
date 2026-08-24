@@ -37,10 +37,6 @@ const chatParticipantSource = fs.readFileSync(
   path.join(root, "src", "chatParticipant.ts"),
   "utf8",
 );
-const toolDetectorSource = fs.readFileSync(
-  path.join(root, "src", "toolDetector.ts"),
-  "utf8",
-);
 const i18nSource = fs.readFileSync(path.join(root, "src", "i18n.ts"), "utf8");
 
 const isGitCheckout = fs.existsSync(path.join(root, ".git"));
@@ -579,31 +575,6 @@ test("extension version stays in sync across manifest, NLS, and changelog", () =
   );
 });
 
-test("tool detection keeps markdown-based assistants on ref by default", () => {
-  assert.ok(
-    toolDetectorSource.includes('tool: "github-copilot"') &&
-      toolDetectorSource.includes('pattern: "AGENTS.md"') &&
-      toolDetectorSource.includes('format: "ref"'),
-  );
-  assert.ok(
-    toolDetectorSource.includes('tool: "claude-code"') &&
-      toolDetectorSource.includes('instructionFile: "CLAUDE.md"') &&
-      toolDetectorSource.includes('format: "ref"'),
-  );
-  assert.ok(
-    toolDetectorSource.includes('let recommendedFormat: OutputFormat = "ref";'),
-  );
-  assert.ok(
-    toolDetectorSource.includes(
-      'return { format: "ref", instructionFile: "AGENTS.md" };',
-    ),
-  );
-  assert.ok(
-    toolDetectorSource.includes(
-      'return { format: "ref", instructionFile: "CLAUDE.md" };',
-    ),
-  );
-});
 
 test("chat participant and MCP tools always reload the latest skill index", () => {
   assert.strictEqual(

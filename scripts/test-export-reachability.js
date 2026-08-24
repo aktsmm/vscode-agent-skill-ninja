@@ -31,6 +31,7 @@ const AUDITED_MODULES = [
   "skillIndex.ts",
   "skillInstaller.ts",
   "skillSearch.ts",
+  "toolDetector.ts",
   "treeProvider.ts",
 ];
 

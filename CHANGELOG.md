@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.9.48] - 2026-08-24
+
 ### Added
 
 - 🎯 **Per-location Control Over Where The Skill List Goes** - `skillNinja.outputTargets` turns the workspace and each user/global location (`~/.copilot`, `~/.claude`, `~/.agents`, plus any extra root) into a list you can switch on and off individually, with an optional per-location format override. Leaving it empty keeps today's behaviour exactly, and the scalar `outputFormat` / `refCatalogPath` / `refCatalogFormat` settings stay live as the defaults every target inherits, so a target only overrides what you actually set on it. `Agent Skills Ninja: Configure Output Targets` edits the same list from a checklist that shows each resolved file path, whether VS Code always loads that file, and when several targets share one file / `skillNinja.outputTargets` により、ワークスペースと各ユーザー/グローバル出力先（`~/.copilot`、`~/.claude`、`~/.agents`、追加 root）を一覧として個別に ON/OFF でき、出力先ごとに形式も上書きできるようになりました。空のままなら挙動は従来と完全に同じで、`outputFormat` / `refCatalogPath` / `refCatalogFormat` は各ターゲットが継承する既定値として生き続けるため、明示した項目だけが上書きされます。`Agent Skills Ninja: 出力ターゲットを設定` から、解決後のファイルパス・VS Code が常時読み込むファイルか・複数ターゲットが 1 ファイルを共有しているかを表示するチェックリストで同じ一覧を編集できます
@@ -28,6 +30,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - 🔒 **Two Windows No Longer Overwrite Each Other's Global Skill List** - Reading, rewriting and saving a user/global instruction file and its catalog now happen inside a single shared-store lease, so a second VS Code window cannot land a lost update between the read and the write. If the lease cannot be taken the write is skipped for that cycle and retried on the next sync instead of being forced through / user/global の instruction ファイルと catalog の読み込み・書き換え・保存を 1 つの共有ストアリースの中で行うようにしたため、2 つ目の VS Code ウィンドウが読み書きの間に割り込んで更新を失わせることがなくなりました。リースを取得できない場合はその回の書き込みをスキップし、次の同期で再試行します
 
 - 📁 **Empty Locations No Longer Get An Empty Skill List File** - A user/global location with no skills installed had an instruction file created for it containing only a "No skills installed yet" block. Files are no longer created for empty locations; once a skill lands there the list appears as usual, and existing files keep being updated / スキルが 1 つも入っていない user/global 出力先にも「No skills installed yet」だけの instruction ファイルが作られていました。空の出力先にはファイルを作らないようにし、スキルが入った時点で通常どおり一覧が出ます。既存ファイルはこれまでどおり更新されます
+
+### Removed
+
+- 🧹 **The Unused Tool-detection Cluster** - `toolDetector.ts` still carried an AI-tool detector and its picker, but nothing in the extension called them; the module only ever resolved the configured output format. The cluster and the source-pattern test that kept it looking alive were removed, and the module joined the reachability audit so it cannot grow another one / `toolDetector.ts` に AI ツール検出とその選択 UI が残っていましたが、拡張のどこからも呼ばれておらず、実際に使われていたのは出力フォーマットの解決だけでした。クラスタと、それを生きているように見せていたソース検査テストを削除し、到達性監査の対象に加えて再発しないようにしました
 
 ## [0.9.47] - 2026-08-18
 
