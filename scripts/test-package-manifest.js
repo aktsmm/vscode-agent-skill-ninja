@@ -575,7 +575,6 @@ test("extension version stays in sync across manifest, NLS, and changelog", () =
   );
 });
 
-
 test("chat participant and MCP tools always reload the latest skill index", () => {
   assert.strictEqual(
     chatParticipantSource.includes("let cachedIndex"),
@@ -1275,6 +1274,113 @@ test("open output wording matches ref-first UX", () => {
   assert.ok(readme.includes("Default priority: VS Code user customizations"));
   assert.ok(readmeJa.includes("既定優先順は VS Code ユーザーカスタマイズ"));
   assert.ok(readmeJa.includes("Agent Skills Ninja: スキル出力を開く"));
+});
+
+test("every palette-only command is documented in both READMEs", () => {
+  // ツリーにもメニューにも出ないコマンドは、README に無いと発見手段が消える
+  const paletteHidden = new Set(
+    (pkg.contributes.menus?.commandPalette || [])
+      .filter((item) => item.when === "false")
+      .map((item) => item.command),
+  );
+  const reachableFromMenu = new Set();
+  for (const [menuId, items] of Object.entries(pkg.contributes.menus || {})) {
+    if (menuId === "commandPalette") {
+      continue;
+    }
+    for (const item of items) {
+      reachableFromMenu.add(item.command);
+    }
+  }
+
+  const paletteOnly = (pkg.contributes.commands || [])
+    .map((command) => command.command)
+    .filter(
+      (id) => !paletteHidden.has(id) && !reachableFromMenu.has(id),
+    );
+
+  assert.ok(
+    paletteOnly.length >= 5,
+    `expected palette-only commands to inspect, got ${paletteOnly.length}`,
+  );
+
+  const resolveTitle = (table, commandId) => {
+    const entry = (pkg.contributes.commands || []).find(
+      (command) => command.command === commandId,
+    );
+    assert.ok(entry, `${commandId} has no command contribution`);
+    const key = entry.title.replace(/^%|%$/g, "");
+    const title = table[key];
+    assert.ok(title, `${commandId} has no localized title for ${key}`);
+    return title;
+  };
+
+  const undocumented = paletteOnly.filter((commandId) => {
+    const english = resolveTitle(packageNls, commandId);
+    const japanese = resolveTitle(packageNlsJa, commandId);
+    return !readme.includes(english) || !readmeJa.includes(japanese);
+  });
+
+  assert.deepStrictEqual(
+    undocumented,
+    [],
+    "a command reachable only from the Command Palette must appear in README.md and README_ja.md",
+  );
+});
+
+test("README tables keep a consistent column count", () => {
+  // 列がずれた表は文字列一致では通るが、読む面では別の行に潰れて表示される
+  const countCells = (line) =>
+    line
+      .trim()
+      .replace(/^\||\|$/g, "")
+      .split(/(?<!\\)\|/).length;
+
+  const problems = [];
+  let inspectedTables = 0;
+
+  for (const [name, content] of [
+    ["README.md", readme],
+    ["README_ja.md", readmeJa],
+  ]) {
+    let inFence = false;
+    let headerCells = 0;
+    let headerLine = 0;
+
+    content.split(/\r?\n/).forEach((line, index) => {
+      const text = line.trim();
+      if (text.startsWith("```")) {
+        inFence = !inFence;
+        headerCells = 0;
+        return;
+      }
+      if (inFence) {
+        return;
+      }
+      if (!text.startsWith("|") || !text.endsWith("|")) {
+        headerCells = 0;
+        return;
+      }
+      if (headerCells === 0) {
+        headerCells = countCells(text);
+        headerLine = index + 1;
+        inspectedTables += 1;
+        return;
+      }
+      const cells = countCells(text);
+      if (cells !== headerCells) {
+        problems.push(
+          `${name}:${index + 1} has ${cells} cells, header at line ${headerLine} has ${headerCells}`,
+        );
+      }
+    });
+  }
+
+  assert.ok(
+    inspectedTables >= 10,
+    `expected several README tables to inspect, got ${inspectedTables}`,
+  );
+  assert.deepStrictEqual(problems, [], `README table drift: ${problems}`);
 });
 
 test("view-specific output commands use distinct localized labels", () => {

@@ -7,6 +7,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.9.49] - 2026-08-24
+
+### Fixed
+
+- 🛡️ **A File That Could Not Be Read Was Treated As An Empty One** - Every read failure on an instruction file or a `ref` catalog was handled as "this file is new", so a lock, a permission problem or a transient I/O error replaced your whole document with just the generated skill block. A file that is genuinely absent is still created; a file that exists but cannot be read is now left untouched and retried on the next sync. The same fix applies to `.skill-meta.json`: registering or unregistering a local skill no longer writes default metadata over a file it failed to read, which used to drop `source` and `remotePath` and turn a remote skill into a local one / instruction ファイルや `ref` catalog の読み取り失敗をすべて「新規ファイル」として扱っていたため、ロック・権限・一時的な I/O エラーで文書全体が生成ブロックだけに置き換わることがありました。本当に存在しないファイルは従来どおり作成し、存在するのに読めないファイルには触らず次回同期で再試行します。`.skill-meta.json` も同様で、ローカルスキルの登録 / 登録解除で読み取りに失敗したファイルへ既定メタデータを書き戻さなくなりました。従来は `source` と `remotePath` が失われ、remote skill が local 扱いになっていました
+
+- ⏸️ **A Batch Reinstall Could Stop On A Notification Nobody Answered** - Reinstall All, Reinstall Remote Skills in This Root and Reinstall Multiple Skills each asked, before the progress bar appeared, whether to update the index and whether to exclude skills missing from it. Those are ordinary notifications, so leaving one sitting in the notification centre held the whole batch. The batch paths no longer ask; missing skills are reported in the summary instead, and the per-skill exclusion offer stays on the single-skill and startup paths. The retry offer shown after a batch also stopped blocking, so an upgrade that reinstalls skills now reaches its completion notice without waiting for a click / 全スキルを再インストール / この root のリモートスキルを再インストール / 複数スキルを再インストール は、進捗バーが出る前に「インデックスを更新するか」「見つからないスキルを今後除外するか」を尋ねていました。どちらも通常の通知なので、通知センターに放置されると一括処理全体が止まりました。一括経路では尋ねず、見つからないスキルはサマリーに出すようにし、個別の除外提案は単体再インストールと起動時の経路に残しました。一括処理後の再試行提案も待たなくなったため、アップグレード時の再インストールがクリックを待たずに完了通知まで到達します
+
+- ↩️ **CRLF Instruction Files Stopped Getting Mixed Line Endings** - The generated skill block was always written with LF, so on a `AGENTS.md`, `copilot-instructions.md` or `CLAUDE.md` saved with CRLF every sync produced a mixed-ending file and a whole-file diff. A file whose line endings are all CRLF now gets a CRLF block, a file with mixed endings is left exactly as it is, and the original trailing newline survives cleanup / 生成するスキルブロックを常に LF で書いていたため、CRLF で保存された `AGENTS.md` / `copilot-instructions.md` / `CLAUDE.md` では同期のたびに改行が混在し、ファイル全体が差分になっていました。改行がすべて CRLF のファイルには CRLF で書き、混在しているファイルはそのまま残し、cleanup 後も元の末尾改行を保つようにしました
+
+- 🧹 **Orphan Block Cleanup No Longer Touches Files That Hold Nothing Of Ours** - Clean Up Orphan Instruction Block also collapsed runs of blank lines, so it rewrote instruction files that contained no managed block at all, and files whose block had lost its end marker. Both cleanup paths now check that a removable block is actually present first / 孤児マーカーブロックの掃除は空行の詰めも行っていたため、管理ブロックが 1 つも無い instruction ファイルや、終了マーカーを失ったブロックしか無いファイルまで書き換えていました。両方の cleanup 経路で、実際に除去できるブロックがあるかを先に確認するようにしました
+
+- 📖 **The Japanese Command Table Rendered Broken** - A malformed separator row in `README_ja.md` squashed three commands into a single cell, hiding Resume Deferred Source Index Update and Clear GitHub Token. The table is repaired, and every command that can only be reached from the Command Palette is now listed in both READMEs, with the right-click actions in their own section / `README_ja.md` の区切り行が壊れていて 3 つのコマンドが 1 セルに潰れ、「中断したソース更新を再開」と「GitHub トークンをクリア」が読めなくなっていました。表を修復し、コマンドパレットからしか実行できないコマンドを両 README に記載し、右クリック操作は別セクションにまとめました
+
+### Changed
+
+- 📇 **Two Preset Sources Were Re-indexed** - 20 skills in `google-skills` and `oh-my-codex` pointed at paths that no longer exist upstream, so installing them could only fail. Both sources were re-scanned; the bundled catalog now lists 1837 skills across 13 sources / `google-skills` と `oh-my-codex` の 20 スキルが上流に存在しないパスを指しており、インストールしても必ず失敗する状態でした。両ソースを再走査し、同梱カタログは 13 ソース 1837 スキルになりました
+
+- ⚡ **The Bundled Skill Index Is Parsed Once Per Window** - The 800 KB catalog shipped with the extension was re-read and re-parsed on every tree refresh and every command that needs the index. It is now parsed once and re-validated by file timestamp and size; your local index, the shared sources manifest and every save still happen exactly as before / 拡張に同梱している 800KB のカタログを、ツリー更新やインデックスを使うコマンドのたびに読み直してパースしていました。1 回だけパースし、以降はファイルの更新時刻とサイズで再検証します。ローカル index、共有 sources manifest、保存処理は従来どおりです
+
 ## [0.9.48] - 2026-08-24
 
 ### Added

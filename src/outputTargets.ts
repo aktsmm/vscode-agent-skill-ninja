@@ -203,7 +203,8 @@ export async function getOutputDefaults(
   const { format } = await resolveOutputFormat();
   return {
     format,
-    catalogPath: config.get<string>("refCatalogPath") || DEFAULT_REF_CATALOG_PATH,
+    catalogPath:
+      config.get<string>("refCatalogPath") || DEFAULT_REF_CATALOG_PATH,
     catalogFormat: normalizeRefCatalogFormat(
       config.get<string>("refCatalogFormat"),
     ),
@@ -338,7 +339,8 @@ export async function resolveOutputGroups(
           targetConfig?.format ?? defaults.format,
         );
         existing.formatIsExplicit = !!targetConfig?.format;
-        existing.catalogPath = targetConfig?.catalogPath ?? defaults.catalogPath;
+        existing.catalogPath =
+          targetConfig?.catalogPath ?? defaults.catalogPath;
         existing.catalogFormat = normalizeRefCatalogFormat(
           targetConfig?.catalogFormat ?? defaults.catalogFormat,
         );
@@ -353,7 +355,9 @@ export async function resolveOutputGroups(
     }
 
     const scope = root.scope;
-    const format = normalizeOutputFormat(targetConfig?.format ?? defaults.format);
+    const format = normalizeOutputFormat(
+      targetConfig?.format ?? defaults.format,
+    );
     const catalogPath = targetConfig?.catalogPath ?? defaults.catalogPath;
     const group: ResolvedOutputGroup = {
       id: groupKey,
@@ -480,7 +484,9 @@ export function parseOutputPathBuckets(
       continue;
     }
     result[bucket] = {
-      instruction: toStringArray((value as Record<string, unknown>).instruction),
+      instruction: toStringArray(
+        (value as Record<string, unknown>).instruction,
+      ),
       catalog: toStringArray((value as Record<string, unknown>).catalog),
     };
   }
@@ -539,7 +545,9 @@ export function planOutputCleanup(input: {
   const instructionPaths = uniquePaths(staleInstruction);
   // 同じパスをどこかが instruction として持つなら削除させない。
   // 設定次第で catalogPath は他ターゲットの instruction file と一致し得る。
-  const instructionKeys = new Set(instructionPaths.map(normalizeFileSystemPath));
+  const instructionKeys = new Set(
+    instructionPaths.map(normalizeFileSystemPath),
+  );
 
   return {
     buckets,

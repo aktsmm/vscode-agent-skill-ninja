@@ -42,6 +42,7 @@ import {
   writeOutputGroup,
 } from "./instructionManager";
 import { runBulkInstallPlan, type BulkAttemptResult } from "./bulkInstall";
+import { resolveReinstallEntries } from "./reinstallPlanner";
 import {
   BrowseSkillsProvider,
   getSkillRootFromTreeItem,
@@ -402,6 +403,10 @@ function summarizeBulkInstall(outcomes: BulkInstallOutcome[]): {
 
 /**
  * 失敗分だけを手動で入れ直す導線。自動リトライは入れ子にしない。
+ *
+ * 応答待ちで呼び出し元を止めない。upgrade 時の一括再インストールはこの関数を
+ * await するので、通知を放置されると更新完了通知や migration notice まで
+ * 到達しなくなる。リトライ自体は通知に答えた時点で走る。
  */
 async function showBulkInstallSummary(
   summaryText: string,
@@ -416,14 +421,24 @@ async function showBulkInstallSummary(
   }
 
   const retryAction = messages.retryFailedInstallsAction(failedItems.length);
-  const choice = await vscode.window.showWarningMessage(
-    summaryText,
-    retryAction,
-  );
-  if (choice !== retryAction) {
-    return;
-  }
+  void vscode.window
+    .showWarningMessage(summaryText, retryAction)
+    .then(async (choice) => {
+      if (choice !== retryAction) {
+        return;
+      }
+      await retryFailedBulkInstalls(failedItems, context, workspaceUri);
+    })
+    .then(undefined, (error) => {
+      console.error("[Skill Ninja] Failed to retry bulk installs:", error);
+    });
+}
 
+async function retryFailedBulkInstalls(
+  failedItems: BulkInstallItem[],
+  context: vscode.ExtensionContext,
+  workspaceUri: vscode.Uri,
+): Promise<void> {
   let retryCancelled = false;
   const retriedOutcomes = await vscode.window.withProgress(
     {
@@ -1400,7 +1415,10 @@ export function activate(
       if (existing) {
         return existing;
       }
-      const created = { instruction: new Set<string>(), catalog: new Set<string>() };
+      const created = {
+        instruction: new Set<string>(),
+        catalog: new Set<string>(),
+      };
       desired.set(key, created);
       return created;
     };
@@ -1811,51 +1829,34 @@ export function activate(
   async function resolveReinstallEntriesFromIndex(
     index: SkillIndex,
     entries: ReinstallEntry[],
+    options: { interactive: boolean },
   ): Promise<{
     index: SkillIndex;
     installableEntries: ReinstallEntry[];
     skippedMissingCount: number;
     disabledMissingCount: number;
   }> {
-    const missingBeforeRefresh = entries.filter(
-      ({ meta }) => !findIndexedSkillForInstalledMeta(index.skills, meta),
-    );
-
-    if (missingBeforeRefresh.length > 0) {
-      index = await refreshIndexForInstalledMetas(
-        index,
-        missingBeforeRefresh.map(({ meta }) => meta),
-      );
-    }
-
-    const missingAfterRefresh = entries.filter(
-      ({ meta }) => !findIndexedSkillForInstalledMeta(index.skills, meta),
-    );
-    const disabledMissingCount =
-      await offerDisableMissingReinstallChecks(missingAfterRefresh);
-    const missingKeys = new Set(
-      missingAfterRefresh.map((entry) =>
-        JSON.stringify([
-          entry.root.rootPath,
-          entry.meta.relativePath || entry.meta.name,
-        ]),
-      ),
-    );
-
-    return {
+    return resolveReinstallEntries<SkillIndex, ReinstallEntry, SkillMeta>(
       index,
-      installableEntries: entries.filter(
-        (entry) =>
-          !missingKeys.has(
-            JSON.stringify([
-              entry.root.rootPath,
-              entry.meta.relativePath || entry.meta.name,
-            ]),
+      entries,
+      {
+        refreshIndex: (currentIndex, metas, refreshOptions) =>
+          refreshIndexForInstalledMetas(currentIndex, metas, refreshOptions),
+        offerDisableMissingChecks: (missing) =>
+          offerDisableMissingReinstallChecks(missing),
+        isIndexed: (currentIndex, entry) =>
+          Boolean(
+            findIndexedSkillForInstalledMeta(currentIndex.skills, entry.meta),
           ),
-      ),
-      skippedMissingCount: missingAfterRefresh.length,
-      disabledMissingCount,
-    };
+        metaOf: (entry) => entry.meta,
+        keyOf: (entry) =>
+          JSON.stringify([
+            entry.root.rootPath,
+            entry.meta.relativePath || entry.meta.name,
+          ]),
+      },
+      options,
+    );
   }
 
   async function updateInstructionFilesForRoots(
@@ -3059,6 +3060,7 @@ export function activate(
       const resolved = await resolveReinstallEntriesFromIndex(
         index,
         reinstallableEntries,
+        { interactive: false },
       );
       index = resolved.index;
       const targetEntries = resolved.installableEntries;
@@ -3221,6 +3223,7 @@ export function activate(
       const resolved = await resolveReinstallEntriesFromIndex(
         index,
         reinstallableEntries,
+        { interactive: false },
       );
       index = resolved.index;
       const targetEntries = resolved.installableEntries;
@@ -3814,6 +3817,7 @@ export function activate(
       const resolved = await resolveReinstallEntriesFromIndex(
         index,
         reinstallableSelected.map((item) => item.entry),
+        { interactive: false },
       );
       index = resolved.index;
       const installableKeys = new Set(
@@ -5049,7 +5053,10 @@ Add examples here
         rootPath: root.rootPath,
         displayPath: root.displayPath,
         instructionPath,
-        enabled: mode === "array" ? !!configured && configured.enabled !== false : true,
+        enabled:
+          mode === "array"
+            ? !!configured && configured.enabled !== false
+            : true,
         explicitFormat: configured?.format,
         effectiveFormat: configured?.format || defaults.format,
         sharedCount:

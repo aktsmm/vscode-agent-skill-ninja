@@ -93,6 +93,40 @@ function stripMarkerBlock(content: string, markers: MarkerPair): string {
   return before + after;
 }
 
+type Eol = "\r\n" | "\n";
+
+/**
+ * 全ての改行が同じ種類のときだけ、その改行を返す。
+ *
+ * 出力先はユーザーが所有する行と生成ブロックが同居するので、混在ファイルを
+ * 勝手に片方へ揃えない。改行が無いファイルも触らない（null を返す）。
+ */
+export function detectUniformEol(text: string): Eol | null {
+  const lineFeeds = (text.match(/\n/g) || []).length;
+  if (lineFeeds === 0) {
+    return null;
+  }
+  const crlf = (text.match(/\r\n/g) || []).length;
+  if (crlf === lineFeeds) {
+    return "\r\n";
+  }
+  return crlf === 0 ? "\n" : null;
+}
+
+function toLf(text: string): string {
+  return text.replace(/\r\n/g, "\n");
+}
+
+function applyEol(text: string, eol: Eol | null): string {
+  // 生成セクションが metadata 由来の CRLF を含んでいても \r\r\n を作らない
+  return eol === "\r\n" ? toLf(text).replace(/\n/g, "\r\n") : text;
+}
+
+/** 末尾の空白（改行を含む）をそのまま返す。書き戻すときに末尾改行を落とさない。 */
+function trailingWhitespaceOf(text: string): string {
+  return text.slice(text.trimEnd().length);
+}
+
 // 既知のレガシーマーカー（SKILL-FINDER / skill-ninja / resource-ninja）を全て除去する。
 // `keepShared` が true のときは共通マーカーは温存（owner が後で書き直す）。
 // `keepLegacyResource` が true のときは sibling 拡張の旧マーカーを温存する。
@@ -133,6 +167,33 @@ export function cleanupManagedSkillBlocks(
     keepLegacySkill: options.keepLegacySkill,
     keepLegacyResource: options.keepLegacyResource,
   }).trim();
+}
+
+/** その options で実際に除去されるブロックが content にあるか。 */
+function containsStrippableBlock(
+  content: string,
+  options: {
+    keepShared?: boolean;
+    keepLegacySkill?: boolean;
+    keepLegacyResource?: boolean;
+  },
+): boolean {
+  const markers: MarkerPair[] = [LEGACY_FINDER_MARKERS];
+  if (!options.keepLegacyResource) {
+    markers.push(LEGACY_RESOURCE_MARKERS);
+  }
+  if (!options.keepLegacySkill) {
+    markers.push(LEGACY_SKILL_MARKERS);
+  }
+  if (!(options.keepShared ?? false)) {
+    markers.push(SHARED_MARKERS);
+  }
+  // stripMarkerBlock と同じ条件で判定する。START だけの壊れたファイルは
+  // 何も除去できないので、空行の詰めだけで書き換えない
+  return markers.some((pair) => {
+    const start = content.indexOf(pair.start);
+    return start !== -1 && content.indexOf(pair.end, start) !== -1;
+  });
 }
 
 /**
@@ -248,6 +309,27 @@ async function fileExists(fileUri: vscode.Uri): Promise<boolean> {
   }
 }
 
+type ExistingOutput = { readable: true; content: string } | { readable: false };
+
+/**
+ * 出力先の現在値を読む。
+ *
+ * 読めないファイルを空とみなすと、生成ブロックだけを書いてユーザーの本文を
+ * 丸ごと潰す。存在しないなら新規作成でよいが、あるのに読めない場合は書かない。
+ */
+async function readExistingOutput(
+  fileUri: vscode.Uri,
+): Promise<ExistingOutput> {
+  try {
+    const content = await vscode.workspace.fs.readFile(fileUri);
+    return { readable: true, content: Buffer.from(content).toString("utf-8") };
+  } catch {
+    return (await fileExists(fileUri))
+      ? { readable: false }
+      : { readable: true, content: "" };
+  }
+}
+
 async function resolveGroupsForWorkspace(
   workspaceUri: vscode.Uri | undefined,
 ): Promise<ResolvedOutputGroup[]> {
@@ -335,7 +417,10 @@ async function writeOutputGroupUnlocked(
   const localSkills: LocalSkill[] = [];
 
   // 空の出力先に instruction ファイルを新規作成しない。既にあるなら管理ブロックだけ更新する。
-  if (installedSkills.length === 0 && !(await fileExists(group.instructionUri))) {
+  if (
+    installedSkills.length === 0 &&
+    !(await fileExists(group.instructionUri))
+  ) {
     return;
   }
 
@@ -375,19 +460,23 @@ async function writeOutputGroupUnlocked(
     );
   }
 
-  let existingContent = "";
-  try {
-    const content = await vscode.workspace.fs.readFile(group.instructionUri);
-    existingContent = Buffer.from(content).toString("utf-8");
-  } catch {
-    existingContent = "";
+  const existing = await readExistingOutput(group.instructionUri);
+  if (!existing.readable) {
+    console.warn(
+      `[Skill Ninja] Skipping the instruction write; ${group.instructionPath} exists but could not be read`,
+    );
+    return;
   }
+  const existingContent = existing.content;
 
-  const newContent = updateSection(
-    existingContent,
-    skillSection,
-    group.format,
-    targetMarkers,
+  // 生成ブロックは LF で組み立てる。既存が一様な CRLF のときだけ、書き戻す前に
+  // 全体を CRLF へ戻して混在改行にしない。混在ファイルは触らない。
+  const eol = detectUniformEol(existingContent);
+  const baseContent = eol === "\r\n" ? toLf(existingContent) : existingContent;
+
+  const newContent = applyEol(
+    updateSection(baseContent, toLf(skillSection), group.format, targetMarkers),
+    eol,
   );
 
   if (newContent === existingContent) {
@@ -587,18 +676,26 @@ async function writeCatalogFile(
     group.catalogFormat,
   );
 
-  let existingCatalogContent = "";
-  try {
-    const raw = await vscode.workspace.fs.readFile(catalogUri);
-    existingCatalogContent = Buffer.from(raw).toString("utf-8");
-  } catch {
-    existingCatalogContent = "";
+  const existingCatalog = await readExistingOutput(catalogUri);
+  if (!existingCatalog.readable) {
+    console.warn(
+      `[Skill Ninja] Skipping the catalog write; ${catalogUri.fsPath} exists but could not be read`,
+    );
+    return catalogLinkFromInstruction;
   }
+  const existingCatalogContent = existingCatalog.content;
 
-  const newCatalogContent = updateSection(
-    existingCatalogContent,
-    catalogSection,
-    group.catalogFormat,
+  const catalogEol = detectUniformEol(existingCatalogContent);
+  const baseCatalogContent =
+    catalogEol === "\r\n" ? toLf(existingCatalogContent) : existingCatalogContent;
+
+  const newCatalogContent = applyEol(
+    updateSection(
+      baseCatalogContent,
+      toLf(catalogSection),
+      group.catalogFormat,
+    ),
+    catalogEol,
   );
 
   if (newCatalogContent !== existingCatalogContent) {
@@ -772,18 +869,24 @@ async function cleanupCatalogOnDefer(
     const raw = await vscode.workspace.fs.readFile(catalogUri);
     const content = Buffer.from(raw).toString("utf-8");
 
-    // catalog ファイルに Skill Ninja のマーカーが無ければ何もしない
-    if (!content.includes(SHARED_MARKER_START)) {
+    const eol = detectUniformEol(content);
+    const base = eol === "\r\n" ? toLf(content) : content;
+
+    // 実際に除去できるブロックが無ければ触らない。空行の詰めだけで
+    // sibling の catalog やユーザーの文章を書き換えない
+    const cleanupOptions = { keepLegacyResource: true };
+    if (!containsStrippableBlock(base, cleanupOptions)) {
       return;
     }
 
-    const stripped = cleanupManagedSkillBlocks(content, {
-      keepLegacyResource: true,
-    });
-    if (stripped !== content.trim()) {
+    const stripped = cleanupManagedSkillBlocks(base, cleanupOptions);
+    if (stripped !== base.trim()) {
       await vscode.workspace.fs.writeFile(
         catalogUri,
-        Buffer.from(stripped, "utf-8"),
+        Buffer.from(
+          applyEol(stripped + trailingWhitespaceOf(base), eol),
+          "utf-8",
+        ),
       );
       console.log(
         `[Skill Ninja] Cleaned up catalog file on defer: ${catalogUri.fsPath}`,
@@ -810,9 +913,22 @@ export async function removeSkillSectionFromFile(
 ): Promise<void> {
   try {
     const content = await vscode.workspace.fs.readFile(fileUri);
-    let existingContent = Buffer.from(content).toString("utf-8");
+    const raw = Buffer.from(content).toString("utf-8");
 
-    const stripped = cleanupManagedSkillBlocks(existingContent, options);
+    const eol = detectUniformEol(raw);
+    const base = eol === "\r\n" ? toLf(raw) : raw;
+
+    // 自分の生成ブロックが無いファイルは触らない。cleanup は空行の詰めもするので、
+    // これが無いと孤児ブロック掃除が無関係なユーザーのファイルまで書き換える
+    if (!containsStrippableBlock(base, options)) {
+      if (options.deleteWhenEmpty && base.trim() === "") {
+        await vscode.workspace.fs.delete(fileUri, { useTrash: false });
+        console.log(`[Skill Ninja] Removed generated file ${fileUri.fsPath}`);
+      }
+      return;
+    }
+
+    const stripped = cleanupManagedSkillBlocks(base, options);
 
     if (options.deleteWhenEmpty && stripped === "") {
       await vscode.workspace.fs.delete(fileUri, { useTrash: false });
@@ -820,11 +936,13 @@ export async function removeSkillSectionFromFile(
       return;
     }
 
-    if (stripped !== existingContent.trim()) {
-      existingContent = stripped;
+    if (stripped !== base.trim()) {
       await vscode.workspace.fs.writeFile(
         fileUri,
-        Buffer.from(existingContent, "utf-8"),
+        Buffer.from(
+          applyEol(stripped + trailingWhitespaceOf(base), eol),
+          "utf-8",
+        ),
       );
       console.log(`[Skill Ninja] Removed skill section from ${fileUri.fsPath}`);
     }

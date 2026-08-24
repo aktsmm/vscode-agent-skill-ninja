@@ -998,8 +998,7 @@ export const messages = {
     localize("sourceRepositoryRenamed", previous, next),
   outputTargetsUndecided: (targets: string) =>
     localize("outputTargetsUndecided", targets),
-  outputTargetsConfigureAction: () =>
-    localize("outputTargetsConfigureAction"),
+  outputTargetsConfigureAction: () => localize("outputTargetsConfigureAction"),
 };
 
 export default messages;

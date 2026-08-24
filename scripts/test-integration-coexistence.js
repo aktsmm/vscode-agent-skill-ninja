@@ -151,9 +151,24 @@ function makeVscodeStub({
   siblingInstalledNoApi = false, // true => installed but activate returns no API (older version)
   siblingActivateThrows = false, // true => sibling.activate() rejects
   siblingExtensionVersion = "0.2.11",
+  unreadablePaths = [], // absolute paths whose readFile throws while stat still succeeds
 }) {
   const onDidChangeListeners = [];
   const onDidChangeConfigListeners = [];
+
+  const fsBacked = new FsBackedFs();
+  if (unreadablePaths.length > 0) {
+    const blocked = new Set(unreadablePaths.map((p) => path.resolve(p)));
+    const realReadFile = fsBacked.readFile.bind(fsBacked);
+    fsBacked.readFile = async (uri) => {
+      if (blocked.has(path.resolve(uri.fsPath))) {
+        const error = new Error(`EBUSY: ${uri.fsPath}`);
+        error.code = "EBUSY";
+        throw error;
+      }
+      return realReadFile(uri);
+    };
+  }
 
   const stub = {
     Uri: {
@@ -166,7 +181,7 @@ function makeVscodeStub({
       workspaceFolders: workspaceUri
         ? [{ uri: workspaceUri, name: "test", index: 0 }]
         : undefined,
-      fs: new FsBackedFs(),
+      fs: fsBacked,
       getConfiguration(section) {
         return {
           get(key, def) {
@@ -581,6 +596,128 @@ test("Scenario A: Skill solo writes shared block with skill rows", async () => {
     const after3 = fs.readFileSync(path.join(tmp, "AGENTS.md"), "utf8");
     assert.strictEqual(after1, after2, "second run should be a no-op");
     assert.strictEqual(after2, after3, "third run should be a no-op");
+  } finally {
+    cleanupTmp(tmp);
+  }
+});
+
+test("Scenario A-crlf: a CRLF instruction file stays uniformly CRLF and is not rewritten", async () => {
+  const tmp = setupTmpFixture("A-skill-solo");
+  try {
+    const agentsPath = path.join(tmp, "AGENTS.md");
+    const seeded = fs
+      .readFileSync(agentsPath, "utf8")
+      .replace(/\r\n/g, "\n")
+      .replace(/\n/g, "\r\n");
+    fs.writeFileSync(agentsPath, seeded);
+
+    const wsUri = makeUri(tmp);
+    const stub = makeVscodeStub({
+      workspaceUri: wsUri,
+      settings: { "skillNinja.outputFormat": "full" },
+      siblingExports: undefined,
+    });
+    const skills = [makeSampleSkill("sample-alpha", "First sample skill")];
+    // metadata が CRLF を持ち込んでも \r\r\n を作らないこと
+    skills[0].description = "First sample skill\r\nsecond line";
+    const { instructionManager } = loadInstructionManager(stub, skills);
+    const ctx = makeContext();
+    const root = makeRoot(wsUri);
+
+    await instructionManager.updateInstructionFileForRoot(root, ctx);
+
+    const written = fs.readFileSync(agentsPath, "utf8");
+    assert.ok(
+      written.includes(SHARED_MARKERS.start),
+      "the managed block must be written",
+    );
+    assert.strictEqual(
+      written.includes("\r\r"),
+      false,
+      "line endings must not be doubled",
+    );
+    assert.strictEqual(
+      (written.match(/\n/g) || []).length,
+      (written.match(/\r\n/g) || []).length,
+      "a CRLF file must not gain lone LF line endings",
+    );
+
+    // 内容が変わらない再実行では 1 バイトも書かない（mtime で確認する）
+    const past = new Date(Date.now() - 60_000);
+    fs.utimesSync(agentsPath, past, past);
+    const before = fs.statSync(agentsPath).mtimeMs;
+
+    await instructionManager.updateInstructionFileForRoot(root, ctx);
+
+    assert.strictEqual(
+      fs.statSync(agentsPath).mtimeMs,
+      before,
+      "an unchanged CRLF file must not be rewritten",
+    );
+    assert.strictEqual(fs.readFileSync(agentsPath, "utf8"), written);
+  } finally {
+    cleanupTmp(tmp);
+  }
+});
+
+test("Scenario A-unreadable: an instruction file that cannot be read is left alone", async () => {
+  const tmp = setupTmpFixture("A-skill-solo");
+  try {
+    const agentsPath = path.join(tmp, "AGENTS.md");
+    const original = fs.readFileSync(agentsPath, "utf8");
+
+    const wsUri = makeUri(tmp);
+    const stub = makeVscodeStub({
+      workspaceUri: wsUri,
+      settings: { "skillNinja.outputFormat": "full" },
+      siblingExports: undefined,
+      unreadablePaths: [agentsPath],
+    });
+    const skills = [makeSampleSkill("sample-alpha", "First sample skill")];
+    const { instructionManager } = loadInstructionManager(stub, skills);
+    const ctx = makeContext();
+    const root = makeRoot(wsUri);
+
+    await instructionManager.updateInstructionFileForRoot(root, ctx);
+
+    assert.strictEqual(
+      fs.readFileSync(agentsPath, "utf8"),
+      original,
+      "a file that exists but cannot be read must not be replaced by the generated block",
+    );
+  } finally {
+    cleanupTmp(tmp);
+  }
+});
+
+test("Scenario A-missing: a genuinely absent instruction file is still created", async () => {
+  const tmp = setupTmpFixture("A-skill-solo");
+  try {
+    const agentsPath = path.join(tmp, "AGENTS.md");
+    fs.rmSync(agentsPath, { force: true });
+
+    const wsUri = makeUri(tmp);
+    const stub = makeVscodeStub({
+      workspaceUri: wsUri,
+      settings: { "skillNinja.outputFormat": "full" },
+      siblingExports: undefined,
+    });
+    const skills = [makeSampleSkill("sample-alpha", "First sample skill")];
+    const { instructionManager } = loadInstructionManager(stub, skills);
+    const ctx = makeContext();
+    const root = makeRoot(wsUri);
+
+    await instructionManager.updateInstructionFileForRoot(root, ctx);
+
+    assert.strictEqual(
+      fs.existsSync(agentsPath),
+      true,
+      "skipping unreadable files must not stop generation for a missing file",
+    );
+    assert.ok(
+      fs.readFileSync(agentsPath, "utf8").includes("sample-alpha"),
+      "the created file must carry the skill rows",
+    );
   } finally {
     cleanupTmp(tmp);
   }
@@ -1426,6 +1563,61 @@ test("Catalog cleanup: no-op when catalog has no agent-ninja block", async () =>
       catalogAfter,
       cleanCatalog,
       "catalog without agent-ninja block should be untouched",
+    );
+  } finally {
+    cleanupTmp(tmp);
+  }
+});
+
+test("Catalog cleanup: no-op when the agent-ninja block has no end marker", async () => {
+  const tmp = setupTmpFixture("A-skill-solo");
+  try {
+    const wsUri = makeUri(tmp);
+    const catalogRelPath = ".github/skills/README.md";
+    const catalogAbsPath = path.join(tmp, catalogRelPath);
+
+    fs.mkdirSync(path.dirname(catalogAbsPath), { recursive: true });
+    // END が無いので除去できない。空行の詰めだけで書き換えてはいけない
+    const brokenCatalog = `<!-- resource-ninja-catalog: skill -->\n# Agent Skills\n<!-- /resource-ninja-catalog: skill -->\n\n\n\n${SHARED_MARKERS.start}\nstale rows\n\n\n\ntrailing user text\n`;
+    fs.writeFileSync(catalogAbsPath, brokenCatalog);
+
+    const siblingBeacon = {
+      extensionId: "yamapan.agent-resources-ninja",
+      version: "0.2.11",
+      kinds: [
+        "skill",
+        "agent",
+        "instruction",
+        "prompt",
+        "hook",
+        "mcp",
+        "plugin",
+        "cursor-rule",
+      ],
+      capabilities: ["owner-handoff-v3"],
+      protocolVersion: 3,
+      updatedAt: new Date().toISOString(),
+    };
+    const stub = makeVscodeStub({
+      workspaceUri: wsUri,
+      settings: {
+        "skillNinja.outputFormat": "ref",
+        "skillNinja.refCatalogPath": catalogRelPath,
+        "skillNinja.coexistenceMode": "auto",
+      },
+      siblingExports: { getAgentNinjaBeacon: () => siblingBeacon },
+    });
+    const skills = [makeSampleSkill("sample-alpha", "First")];
+    const { instructionManager } = loadInstructionManager(stub, skills);
+    const ctx = makeContext();
+    const root = makeRoot(wsUri);
+
+    await instructionManager.updateInstructionFileForRoot(root, ctx);
+
+    assert.strictEqual(
+      fs.readFileSync(catalogAbsPath, "utf8"),
+      brokenCatalog,
+      "a catalog whose managed block cannot be removed must not be rewritten",
     );
   } finally {
     cleanupTmp(tmp);

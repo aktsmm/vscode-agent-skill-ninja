@@ -18,21 +18,29 @@ const transpiled = ts.transpileModule(source, {
   },
 });
 
-function loadModule() {
+function loadModule(vscodeOverrides = {}) {
   const moduleExports = {};
   const sandbox = {
     exports: moduleExports,
     module: { exports: moduleExports },
     Buffer,
+    Date,
+    JSON,
+    console,
     require(request) {
       if (request === "vscode") {
         return {
           workspace: {
-            fs: {},
+            fs: vscodeOverrides.fs || {},
           },
           Uri: {
-            joinPath() {
-              return {};
+            joinPath(base, ...parts) {
+              if (!vscodeOverrides.fs) {
+                return {};
+              }
+              return {
+                fsPath: [base?.fsPath ?? "", ...parts].join("/"),
+              };
             },
           },
         };
@@ -45,7 +53,12 @@ function loadModule() {
         };
       }
       if (request === "./skillInstaller") {
-        return {};
+        return {
+          enrichSkillMeta: (meta, relativePath) => ({
+            ...meta,
+            relativePath: relativePath ?? meta.relativePath,
+          }),
+        };
       }
       if (request === "./installedSkillIndex") {
         return {
@@ -176,6 +189,143 @@ test("isSkillReferencedInManagedBlock ignores skills not present in the block", 
   );
 });
 
+async function asyncTest(name, fn) {
+  try {
+    await fn();
+    console.log(`PASS ${name}`);
+  } catch (error) {
+    console.error(`FAIL ${name}`);
+    throw error;
+  }
+}
+
+/**
+ * `.skill-meta.json` の読み取り結果ごとに register / unregister の書き込みを観測する。
+ * `readable: false` は「ファイルはあるが読めない」状態を作る。
+ */
+function loadScannerWithMetaFile({ exists, readable, body }) {
+  const writes = [];
+  const fsStub = {
+    async readFile() {
+      if (!exists || !readable) {
+        const error = new Error("read failed");
+        error.code = exists ? "EBUSY" : "ENOENT";
+        throw error;
+      }
+      return Buffer.from(body, "utf-8");
+    },
+    async stat() {
+      if (!exists) {
+        const error = new Error("not found");
+        error.code = "ENOENT";
+        throw error;
+      }
+      return { type: 1, size: body.length };
+    },
+    async writeFile(uri, content) {
+      writes.push(Buffer.from(content).toString("utf-8"));
+    },
+  };
+
+  return { writes, scanner: loadModule({ fs: fsStub }) };
+}
+
+const LOCAL_SKILL = {
+  name: "sample",
+  relativePath: "sample",
+  isManaged: true,
+  isReadOnly: false,
+  skillDirUri: { fsPath: "/skills/sample" },
+  root: { rootPath: "/skills" },
+  description: "desc",
+  categories: [],
+};
+
+const REMOTE_META = JSON.stringify({
+  name: "sample",
+  source: "anthropics-skills",
+  remotePath: "skills/sample",
+  description: "desc",
+});
+
+async function runAsyncTests() {
+  await asyncTest(
+    "register refuses to overwrite a .skill-meta.json it could not read",
+    async () => {
+      const { writes, scanner } = loadScannerWithMetaFile({
+        exists: true,
+        readable: false,
+        body: REMOTE_META,
+      });
+
+      const result = await scanner.registerLocalSkill(LOCAL_SKILL, {}, {});
+
+      assert.strictEqual(result, false);
+      assert.deepStrictEqual(
+        Array.from(writes),
+        [],
+        "an unreadable metadata file must not be replaced by defaults",
+      );
+    },
+  );
+
+  await asyncTest(
+    "unregister refuses to overwrite a .skill-meta.json it could not read",
+    async () => {
+      const { writes, scanner } = loadScannerWithMetaFile({
+        exists: true,
+        readable: false,
+        body: REMOTE_META,
+      });
+
+      const result = await scanner.unregisterLocalSkill(LOCAL_SKILL, {}, {});
+
+      assert.strictEqual(result, false);
+      assert.deepStrictEqual(Array.from(writes), []);
+    },
+  );
+
+  await asyncTest(
+    "register keeps the remote identity when the metadata reads fine",
+    async () => {
+      const { writes, scanner } = loadScannerWithMetaFile({
+        exists: true,
+        readable: true,
+        body: REMOTE_META,
+      });
+
+      const result = await scanner.registerLocalSkill(LOCAL_SKILL, {}, {});
+
+      assert.strictEqual(result, true);
+      assert.strictEqual(writes.length, 1);
+      const written = JSON.parse(writes[0]);
+      assert.strictEqual(written.source, "anthropics-skills");
+      assert.strictEqual(written.remotePath, "skills/sample");
+    },
+  );
+
+  await asyncTest(
+    "register still writes defaults when the metadata is absent",
+    async () => {
+      const { writes, scanner } = loadScannerWithMetaFile({
+        exists: false,
+        readable: false,
+        body: "",
+      });
+
+      const result = await scanner.registerLocalSkill(LOCAL_SKILL, {}, {});
+
+      assert.strictEqual(
+        result,
+        true,
+        "refusing unreadable files must not block a first registration",
+      );
+      assert.strictEqual(writes.length, 1);
+      assert.strictEqual(JSON.parse(writes[0]).name, "sample");
+    },
+  );
+}
+
 test("isSkillReferencedInManagedBlock normalizes trailing slashes and back slashes", () => {
   const text = [
     "<!-- agent-ninja-START -->",
@@ -209,3 +359,10 @@ test("isSkillReferencedInManagedBlock ignores hits outside the managed block", (
 });
 
 console.log("\nLocal skill scanner tests passed.");
+
+runAsyncTests()
+  .then(() => console.log("Local skill scanner async tests passed."))
+  .catch((error) => {
+    console.error(error);
+    process.exitCode = 1;
+  });

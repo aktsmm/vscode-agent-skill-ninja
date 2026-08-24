@@ -53,6 +53,10 @@ const REVIEWED_STARTUP_DIALOGS = {
     mechanical: false,
     why: "only runs when the stored extension version changed or a format migration happened, so it cannot repeat on an unchanged install",
   },
+  promptForSkillUpdate: {
+    mechanical: false,
+    why: "reached only from checkVersionAndRefreshMetadata, which persists the new version before prompting, and skillNinja.autoUpdateSkillsOnUpgrade set to never disables it for good",
+  },
   updateStaleSourceIndexes: {
     mechanical: false,
     why: "reached only from checkStaleSourceIndexesOnStartup, which is already throttled, or from an explicit user command",
@@ -70,10 +74,6 @@ const REVIEWED_STARTUP_DIALOGS = {
     why: "a picker shown only after the user chose an action that needs a target root",
   },
   openManagedOutputForRoot: {
-    mechanical: false,
-    why: "user-invoked output command; reachable name only because it is declared inside activate()",
-  },
-  openManagedOutputForPreferredScope: {
     mechanical: false,
     why: "user-invoked output command; reachable name only because it is declared inside activate()",
   },
@@ -273,25 +273,39 @@ function main() {
 
     // ネストした `.then()` コールバック内の呼び出しも起動時に走るので、
     // インデントではなく本体全体から集める。宣言は呼び出しではない
-    const startupCalls = [
+    const collectCalledNames = (body) => [
       ...new Set(
-        [
-          ...immediate.matchAll(
-            /(\bfunction\s+|\.)?\b([A-Za-z][A-Za-z0-9_]*)\s*\(/g,
-          ),
-        ]
+        [...body.matchAll(/(\bfunction\s+|\.)?\b([A-Za-z][A-Za-z0-9_]*)\s*\(/g)]
           // 宣言と `.activate()` のような member call はここでの呼び出しではない
           .filter((match) => !match[1])
           .map((match) => match[2]),
       ),
     ];
 
+    // 直接呼び出しだけを見ると、prompt を helper へ 1 段抽出した時点で
+    // 盲目化する。本体を辿れる名前は再帰的に展開する
+    const visited = new Set();
+    const queue = collectCalledNames(immediate);
+    const reachable = [];
+    while (queue.length > 0) {
+      const name = queue.shift();
+      if (visited.has(name)) {
+        continue;
+      }
+      visited.add(name);
+      const body = findFunctionBody(name);
+      if (!body) {
+        continue;
+      }
+      reachable.push({ name, body });
+      queue.push(...collectCalledNames(body));
+    }
+
     const unreviewed = [];
     const notSuppressible = [];
     let prompting = 0;
-    for (const name of startupCalls) {
-      const body = findFunctionBody(name);
-      if (!body || !showsDialog(body)) {
+    for (const { name, body } of reachable) {
+      if (!showsDialog(body)) {
         continue;
       }
       prompting += 1;
@@ -320,6 +334,18 @@ function main() {
       notSuppressible,
       [],
       "a routine recorded as state-gated no longer gates anything",
+    );
+
+    // registry の key が消えたりリネームされたり、起動経路から外れたりすると、
+    // その entry は一度も検査されないまま残る。実際に見た name と照合する
+    const inspected = new Set(reachable.map((entry) => entry.name));
+    const unexercisedRegistryKeys = Object.keys(
+      REVIEWED_STARTUP_DIALOGS,
+    ).filter((name) => !inspected.has(name));
+    assert.deepStrictEqual(
+      unexercisedRegistryKeys,
+      [],
+      "a reviewed dialog is no longer reachable under that name; rename it here or drop the entry",
     );
 
     // 名前付き関数を経由せず、起動経路へ直接書かれたダイアログも同じ契約に従う

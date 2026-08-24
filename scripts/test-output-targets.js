@@ -162,8 +162,7 @@ const {
 
 function makeConfig({ values = {}, outputTargetsValue } = {}) {
   return {
-    get: (key) =>
-      key === "outputTargets" ? outputTargetsValue : values[key],
+    get: (key) => (key === "outputTargets" ? outputTargetsValue : values[key]),
     inspect: (key) =>
       key === "outputTargets"
         ? { key, globalValue: outputTargetsValue }
@@ -255,7 +254,9 @@ async function main() {
     const nestedCopilot = makeRoot({
       scope: "userGlobal",
       rootPath: path.resolve("/opt/vendor/.copilot/skills"),
-      instructionPath: path.resolve("/opt/vendor/.copilot/copilot-instructions.md"),
+      instructionPath: path.resolve(
+        "/opt/vendor/.copilot/copilot-instructions.md",
+      ),
     });
     // home 直下でない `.copilot` は標準ターゲット扱いしない
     assert.ok(deriveTargetId(nestedCopilot, HOME).startsWith("custom:"));
@@ -330,11 +331,11 @@ async function main() {
       workspaceFolderUris: [makeUri(workspaceA), makeUri(workspaceB)],
     });
 
-    const agentsGroup = findGroup(
+    const agentsGroup = findGroup(groups, path.join(HOME, ".agents/AGENTS.md"));
+    const workspaceGroup = findGroup(
       groups,
-      path.join(HOME, ".agents/AGENTS.md"),
+      path.join(workspaceA, "AGENTS.md"),
     );
-    const workspaceGroup = findGroup(groups, path.join(workspaceA, "AGENTS.md"));
 
     assert.strictEqual(agentsGroup.format, "compact");
     assert.strictEqual(agentsGroup.formatIsExplicit, true);
@@ -346,7 +347,9 @@ async function main() {
     const groups = await resolveOutputGroups([copilotRoot], {
       config: makeConfig({
         values: { refCatalogPath: ".github/skills/README.md" },
-        outputTargetsValue: [{ id: "copilot", catalogPath: "skills/README.md" }],
+        outputTargetsValue: [
+          { id: "copilot", catalogPath: "skills/README.md" },
+        ],
       }),
       workspaceFolderUris: [],
     });
@@ -359,13 +362,10 @@ async function main() {
   });
 
   await test("multi-root folders stay in separate groups", async () => {
-    const groups = await resolveOutputGroups(
-      [workspaceRootA, workspaceRootB],
-      {
-        config: makeConfig(),
-        workspaceFolderUris: [makeUri(workspaceA), makeUri(workspaceB)],
-      },
-    );
+    const groups = await resolveOutputGroups([workspaceRootA, workspaceRootB], {
+      config: makeConfig(),
+      workspaceFolderUris: [makeUri(workspaceA), makeUri(workspaceB)],
+    });
 
     assert.strictEqual(groups.length, 2);
     const groupA = findGroup(groups, path.join(workspaceA, "AGENTS.md"));
@@ -521,6 +521,127 @@ async function main() {
       const remaining = fs.readFileSync(authored, "utf8");
       assert.ok(remaining.includes("# Team notes"));
       assert.ok(!remaining.includes("<!-- agent-ninja-START -->"));
+    } finally {
+      fs.rmSync(tmp, { recursive: true, force: true });
+    }
+  });
+
+  await test("uniform line endings are detected, mixed ones are left alone", () => {
+    const { detectUniformEol } = instructionManager;
+    assert.strictEqual(detectUniformEol("a\r\nb\r\n"), "\r\n");
+    assert.strictEqual(detectUniformEol("a\nb\n"), "\n");
+    assert.strictEqual(detectUniformEol("a\r\nb\n"), null);
+    assert.strictEqual(detectUniformEol("no line break"), null);
+    assert.strictEqual(detectUniformEol(""), null);
+  });
+
+  await test("cleanup keeps the file's line endings and trailing newline", async () => {
+    const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "output-targets-eol-"));
+    try {
+      const crlf = path.join(tmp, "crlf-AGENTS.md");
+      fs.writeFileSync(
+        crlf,
+        "# Team notes\r\n\r\n<!-- agent-ninja-START -->\r\ngenerated rows\r\n<!-- agent-ninja-END -->\r\n",
+        "utf8",
+      );
+      await instructionManager.removeSkillSectionFromFile(makeUri(crlf), {
+        keepLegacyResource: true,
+      });
+      const remaining = fs.readFileSync(crlf, "utf8");
+      assert.ok(!remaining.includes("<!-- agent-ninja-START -->"));
+      assert.strictEqual(
+        (remaining.match(/\n/g) || []).length,
+        (remaining.match(/\r\n/g) || []).length,
+        "cleanup must not introduce lone LF line endings",
+      );
+      assert.ok(
+        remaining.endsWith("\r\n"),
+        "the original trailing newline must survive cleanup",
+      );
+
+      // 2 回目の cleanup で形が変わらない（末尾空白で振動しない）
+      await instructionManager.removeSkillSectionFromFile(makeUri(crlf), {
+        keepLegacyResource: true,
+      });
+      assert.strictEqual(fs.readFileSync(crlf, "utf8"), remaining);
+
+      const lf = path.join(tmp, "lf-AGENTS.md");
+      fs.writeFileSync(
+        lf,
+        "# Team notes\n\n<!-- agent-ninja-START -->\ngenerated rows\n<!-- agent-ninja-END -->\n",
+        "utf8",
+      );
+      await instructionManager.removeSkillSectionFromFile(makeUri(lf), {
+        keepLegacyResource: true,
+      });
+      const remainingLf = fs.readFileSync(lf, "utf8");
+      assert.strictEqual(remainingLf.includes("\r"), false);
+      assert.ok(remainingLf.endsWith("\n"));
+    } finally {
+      fs.rmSync(tmp, { recursive: true, force: true });
+    }
+  });
+
+  await test("cleanup leaves files that hold no managed block untouched", async () => {
+    const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "output-targets-eol-"));
+    try {
+      // 空行 3 連は cleanup の詰め対象なので、guard が無いと書き換わる
+      const authored = path.join(tmp, "AGENTS.md");
+      const original =
+        "# Team notes\r\n\r\n\r\n\r\nHand written text.\r\n\r\n\r\nMore text.\r\n";
+      fs.writeFileSync(authored, original, "utf8");
+
+      await instructionManager.removeSkillSectionFromFile(makeUri(authored), {
+        keepLegacyResource: true,
+      });
+
+      assert.strictEqual(
+        fs.readFileSync(authored, "utf8"),
+        original,
+        "a file with no managed block must not be rewritten",
+      );
+    } finally {
+      fs.rmSync(tmp, { recursive: true, force: true });
+    }
+  });
+
+  await test("cleanup leaves an unpaired start marker untouched", async () => {
+    const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "output-targets-eol-"));
+    try {
+      // END が無ければ何も除去できない。空行の詰めだけで書き換えない
+      const broken = path.join(tmp, "AGENTS.md");
+      const original =
+        "# Team notes\r\n\r\n\r\n\r\n<!-- agent-ninja-START -->\r\nrows\r\n\r\n\r\n\r\nMore text.\r\n";
+      fs.writeFileSync(broken, original, "utf8");
+
+      await instructionManager.removeSkillSectionFromFile(makeUri(broken), {
+        keepLegacyResource: true,
+      });
+
+      assert.strictEqual(
+        fs.readFileSync(broken, "utf8"),
+        original,
+        "a file whose managed block cannot be removed must not be rewritten",
+      );
+    } finally {
+      fs.rmSync(tmp, { recursive: true, force: true });
+    }
+  });
+
+  await test("a CRLF file that only held generated rows is still deleted", async () => {
+    const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "output-targets-eol-"));
+    try {
+      const generated = path.join(tmp, "generated-README.md");
+      fs.writeFileSync(
+        generated,
+        "<!-- agent-ninja-START -->\r\ngenerated rows\r\n<!-- agent-ninja-END -->\r\n",
+        "utf8",
+      );
+      await instructionManager.removeSkillSectionFromFile(makeUri(generated), {
+        keepLegacyResource: true,
+        deleteWhenEmpty: true,
+      });
+      assert.strictEqual(fs.existsSync(generated), false);
     } finally {
       fs.rmSync(tmp, { recursive: true, force: true });
     }
@@ -752,7 +873,9 @@ async function main() {
 
     // claude は明示的に OFF なので未判断ではない
     assert.deepStrictEqual(
-      Array.from(findUndecidedTargetIds(allRoots, decided, [makeUri(workspaceA)])),
+      Array.from(
+        findUndecidedTargetIds(allRoots, decided, [makeUri(workspaceA)]),
+      ),
       [],
     );
 
@@ -788,11 +911,10 @@ async function main() {
       mixedEntries: { instruction: [instructionB, 42, null], catalog: [] },
     });
 
-    assert.deepStrictEqual(Object.keys(parsed).sort(), [
-      bucketA,
-      "mixedEntries",
-      "partial",
-    ].sort());
+    assert.deepStrictEqual(
+      Object.keys(parsed).sort(),
+      [bucketA, "mixedEntries", "partial"].sort(),
+    );
     assert.deepStrictEqual(Array.from(parsed.partial.catalog), []);
     assert.strictEqual(parsed.mixedEntries.instruction.length, 1);
 

@@ -77,7 +77,7 @@
   "config.outputTargets.enabled": "`false` にするとこのターゲットへの書き込みを停止します。管理ブロックと生成済みカタログは削除されますが、自分で書いた本文は残ります。",
   "config.singleClickInstall.description": "Browse ビューで行のダブルクリックの代わりにシングルクリックでインストール",
   "config.singleClickInstall.markdownDescription": "**シングルクリックインストール (Single-click Install)** — Remote Skills ビューでシングルクリックによるインストールを有効にします。無効時（既定）はダブルクリックが必要です。コンテキストメニューからのインストールはこの設定に関係なく常に機能します。",
-  "config.versionInfo.markdownDescription": "---\n\n### ℹ️ バージョン情報 (Version Info)\n\n| Item | Value |\n|------|------|\n| Extension | **0.9.48** |\n| Skill Index | **v1.28.0** |\n| Last Updated | 2026-08-18 |\n| Skills | 1851 |\n| Sources | 13 |\n\n[📋 Changelog](https://github.com/aktsmm/vscode-agent-skill-ninja/blob/master/CHANGELOG.md) · [🐛 Report Bug](https://github.com/aktsmm/vscode-agent-skill-ninja/issues)",
+  "config.versionInfo.markdownDescription": "---\n\n### ℹ️ バージョン情報 (Version Info)\n\n| Item | Value |\n|------|------|\n| Extension | **0.9.49** |\n| Skill Index | **v1.28.0** |\n| Last Updated | 2026-08-18 |\n| Skills | 1837 |\n| Sources | 13 |\n\n[📋 Changelog](https://github.com/aktsmm/vscode-agent-skill-ninja/blob/master/CHANGELOG.md) · [🐛 Report Bug](https://github.com/aktsmm/vscode-agent-skill-ninja/issues)",
   "config.companionExtension.markdownDescription": "### 🧩 Companion Extension\n\n[Agent Resources Ninja](https://marketplace.visualstudio.com/items?itemName=yamapan.agent-resources-ninja) - スキルに加えて agent、prompt、instruction、hook、MCP config resource などをまとめて管理できる companion 拡張です。[GitHub](https://github.com/aktsmm/vscode-agent-resources-ninja)",
   "view.workspace": "インストール済みスキル",
   "view.userGlobal": "ユーザー / グローバル スキル",

@@ -144,6 +144,78 @@ function getConfiguredUseSharedSourcesManifest(): boolean {
   );
 }
 
+// 同梱 index は 800KB 超あり、loadSkillIndex は TreeView の更新ごとに呼ばれる。
+// このファイルは実行時に誰も書かないので、パース結果だけを host 内に保持する。
+// ローカル index、shared manifest、永続化はキャッシュしない（毎回の再試行や
+// 自己修復がそこにぶら下がっているため）。
+let bundledIndexCache: { key: string; value: SkillIndex } | null = null;
+let bundledIndexInflight: { key: string; promise: Promise<SkillIndex> } | null =
+  null;
+
+function cloneSkillIndex(index: SkillIndex): SkillIndex {
+  // 呼び出し側は返ってきた index を書き換えるので、キャッシュ実体は渡さない
+  return typeof structuredClone === "function"
+    ? structuredClone(index)
+    : (JSON.parse(JSON.stringify(index)) as SkillIndex);
+}
+
+async function readBundledSkillIndex(
+  bundledIndexPath: vscode.Uri,
+): Promise<SkillIndex | null> {
+  const parse = async (): Promise<SkillIndex> => {
+    const bundledContent = await vscode.workspace.fs.readFile(bundledIndexPath);
+    return normalizeSkillIndex(
+      JSON.parse(
+        Buffer.from(bundledContent).toString("utf-8"),
+      ) as Partial<SkillIndex>,
+    );
+  };
+
+  let key: string | null = null;
+  try {
+    const stat = await vscode.workspace.fs.stat(bundledIndexPath);
+    key = `${bundledIndexPath.fsPath}\u0000${stat.mtime}\u0000${stat.size}`;
+  } catch {
+    // fingerprint を取れないなら、キャッシュせずに毎回読む
+    key = null;
+  }
+
+  if (key === null) {
+    try {
+      return await parse();
+    } catch {
+      return null;
+    }
+  }
+
+  if (bundledIndexCache?.key === key) {
+    return cloneSkillIndex(bundledIndexCache.value);
+  }
+
+  if (bundledIndexInflight?.key === key) {
+    try {
+      return cloneSkillIndex(await bundledIndexInflight.promise);
+    } catch {
+      return null;
+    }
+  }
+
+  const promise = parse();
+  bundledIndexInflight = { key, promise };
+  try {
+    const value = await promise;
+    bundledIndexCache = { key, value };
+    return cloneSkillIndex(value);
+  } catch {
+    // 失敗はキャッシュしない。次の呼び出しで読み直す
+    return null;
+  } finally {
+    if (bundledIndexInflight?.promise === promise) {
+      bundledIndexInflight = null;
+    }
+  }
+}
+
 async function writeLocalSkillIndex(
   context: vscode.ExtensionContext,
   index: SkillIndex,
@@ -223,12 +295,7 @@ export async function loadSkillIndex(
 
   let bundledIndex: SkillIndex | null = null;
   try {
-    const bundledContent = await vscode.workspace.fs.readFile(bundledIndexPath);
-    bundledIndex = normalizeSkillIndex(
-      JSON.parse(
-        Buffer.from(bundledContent).toString("utf-8"),
-      ) as Partial<SkillIndex>,
-    );
+    bundledIndex = await readBundledSkillIndex(bundledIndexPath);
   } catch {
     // バンドルがなければ null のまま
   }

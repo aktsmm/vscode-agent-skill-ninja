@@ -190,6 +190,27 @@ Marketplace の public HTML ページ（`items?itemName=...`）も publish 直�
 
 v0.9.28 では `vsce show --json` が 0.9.28 publish 成功直後に古い version 一覧を返した。`DONE Published ... v0.9.28`、GitHub Release asset、remote tag が揃っていれば Marketplace 側は反映遅延として扱い、追加 version bump しない（2026-06-21 / GitHub Copilot）。
 
+#### 公開完了の判定は成果物のハッシュで行う
+
+`vsce show` と Marketplace の HTML は反映遅延で旧版を返すので、**公開完了の正本にしない**。version を固定して成果物を実際に取得し、ローカル VSIX とサイズ + SHA256 が一致することを確認する。
+
+```pwsh
+$version = "X.Y.Z"
+$local = "artifacts/vsix/agent-skill-ninja-$version.vsix"
+$marketplace = "$env:TEMP/mp-$version.vsix"
+$release = "$env:TEMP/gh-$version.vsix"
+
+$url = "https://marketplace.visualstudio.com/_apis/public/gallery/publishers/yamapan/vsextensions/agent-skill-ninja/$version/vspackage"
+Invoke-WebRequest -Uri $url -OutFile $marketplace -Headers @{ "Accept-Encoding" = "gzip" }
+gh release download "v$version" --pattern "*.vsix" --output $release --clobber
+
+Get-FileHash $local, $marketplace, $release -Algorithm SHA256 |
+	Select-Object Hash, Path
+Get-Item $local, $marketplace, $release | Select-Object Length, Name
+```
+
+3 つの Hash が一致し、Length も揃っていれば公開完了とする。一致しない場合は再 publish の前に、どの経路が古いのかを切り分ける。取得した一時 VSIX は確認後に削除する。
+
 ### 7. GitHub Release 作成
 
 ```bash
@@ -203,6 +224,8 @@ gh release view vX.X.X --json "tagName,name,url,isDraft,isPrerelease,publishedAt
 ```
 
 `gh` を複数アカウントで使っている環境では、release 作成前に `gh auth status` で **active account** を確認すること。対象 repo の owner ではない account が active だと、`gh release create` が `workflow scope may be required` などの誤解しやすい権限エラーで失敗することがある。必要なら release 前に正しい account へ切り替え、完了後に元へ戻す（2026-05-23 / GitHub Copilot）。
+
+tag が指す commit を PowerShell で確認するときは、`git rev-parse vX.Y.Z^{}` を裸で実行しないこと。`^{}` が ScriptBlock として解釈され、別の revision を見ているような結果になる。`git rev-list -n 1 vX.Y.Z` を使うか、revision 全体をシングルクォートで囲む。
 
 ### 8. ローカル VSIX の整理
 
@@ -257,4 +280,5 @@ New-Item -ItemType Directory -Force artifacts/vsix | Out-Null; npx vsce package 
 
 - 🛒 Marketplace: https://marketplace.visualstudio.com/items?itemName=yamapan.agent-skill-ninja
 - 📦 GitHub Releases: https://github.com/aktsmm/vscode-agent-skill-ninja/releases
-- PowerShell / CLI 裏取り例: `npx vsce show yamapan.agent-skill-ninja --json`, `gh release view vX.X.X --json "tagName,name,url,isDraft,isPrerelease,publishedAt"`, `git ls-remote --tags origin vX.X.X`
+- **公開完了の判定は「成果物のハッシュ照合」で行う**（上記「公開完了の判定は成果物のハッシュで行う」）。`vsce show` / Marketplace HTML は補助シグナルとして扱う
+- PowerShell / CLI 裏取り例: `npx vsce show yamapan.agent-skill-ninja --json`, `gh release view vX.X.X --json "tagName,name,url,isDraft,isPrerelease,publishedAt"`, `git ls-remote --tags origin vX.X.X`, `git rev-list -n 1 vX.X.X`
