@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.9.51] - 2026-09-07
+
+### Fixed
+
+- **Clean Marketplace Changelog** - Removed an accidental terminal prompt from the packaged 0.9.50 changelog. Runtime behavior is unchanged / 0.9.50のパッケージ内Changelogへ誤って混入したターミナル入力案内を削除しました。実行時の動作に変更はありません。
+
 ## [0.9.50] - 2026-09-07
 
 ### Added
@@ -24,7 +30,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
-Paste the NEW Marketplace PAT here (input is hidden):- **Refreshed Two Preset Sources** - The release audit found 58 stale paths in Google Skills and GitHub Awesome Copilot. Re-scanning those sources produces catalog v1.29.0 with 1863 skills across 13 sources; untouched sources retain their own scan history / リリース監査でGoogle SkillsとGitHub Awesome Copilotの58パスが無効と判明したため、該当ソースを再走査しました。同梱カタログv1.29.0は13ソース1863件で、未更新ソースの走査履歴は保持します。
+- **Refreshed Two Preset Sources** - The release audit found 58 stale paths in Google Skills and GitHub Awesome Copilot. Re-scanning those sources produces catalog v1.29.0 with 1863 skills across 13 sources; untouched sources retain their own scan history / リリース監査でGoogle SkillsとGitHub Awesome Copilotの58パスが無効と判明したため、該当ソースを再走査しました。同梱カタログv1.29.0は13ソース1863件で、未更新ソースの走査履歴は保持します。
 
 - **Visible Progress And Repeatable Host Tests** - Update checks show scanning/checking/applying phases and skip credential lookup when no remote candidate is eligible. Isolated English/Japanese Extension Host tests cover activation, command wiring, no-op updates and output failure/recovery / 走査・更新確認・適用の進捗を表示し、リモート更新対象がなければ認証情報を確認しません。分離した英日Extension Hostテストで起動、コマンド接続、変更なし更新、出力失敗と復旧を確認します。
 - **Known Boundaries** - Forced reinstall remains available for repair. Overlapping package layouts and changed source identities are not automatically migrated. Do not update the same physical skill directory concurrently from multiple windows or tools / 修復用の強制再インストールは維持します。重複する親子配置や配布元identityの変更は自動移行しません。同じ実体のスキルフォルダーを複数ウィンドウやツールから同時更新しないでください。
