@@ -12,7 +12,10 @@ applyTo: "**/package.json,**/CHANGELOG.md,**/*.vsix"
 ### Release Sequence Guardrail
 
 - `release` 明示時は、品質 gate → VSIX 作成/検査 → Marketplace publish → GitHub Release → tag/公開状態確認まで進める。commit/push だけで release 完了扱いにしない。
+- **最初の外部ゲートとして、版上げ・index再生成・audit fix・VSIX作成より前に** `pwsh -NoProfile -File scripts/Test-ReleaseCredentials.ps1` を実行する。候補版が決まっている場合は `-ExpectedVersion X.Y.Z` も渡す。期限切れ・権限不足・同版公開済みなら、この時点で停止し、tracked release metadataを変更しない。
+- preflight は User スコープの `VSCE_PAT` を Process へ読み直し、PAT をCLI引数やログへ出さない。PAT はチャットやrepoへ保存せず、Azure DevOpsで `Marketplace > Manage` と将来の有効期限を設定する。
 - version bump 後に publish へ進めない blocker が出たら、`Version / VSIX / Publish / GitHub Release / Tag` の状態を分けて報告し、同じ version を再利用してよい状態か確認する。
+- blocker 後の再開では `git status`、候補版のMarketplace不在、remote HEAD、VSIXのSHA256を再確認する。source/metadataがcheckpoint作成後に変わっていれば、古いVSIXを公開せず品質gateとpackageをやり直す。Marketplace publish成功前に「公開済み」を示すtag/GitHub Releaseを作らない。
 - `npm audit fix` で `package-lock.json` が変わった場合は、`npm test` と package metadata 同期を再確認し、dirty tree のまま tag / publish へ進まない。
 
 ### テスト実行（必須）
