@@ -128,6 +128,7 @@ const {
   getSkillRootGroupLabel,
   getSkillRootGroupDescription,
   getSkillRootFromTreeItem,
+  resolveCurrentSkillRoot,
   getManagedSkillTreeItemLabel,
   getManagedSkillTreeItemDescription,
   setViewRegistrationContext,
@@ -310,6 +311,39 @@ test("prefers embedded skill roots for skill items", () => {
 
 test("returns undefined when no tree item is available", () => {
   assert.strictEqual(getSkillRootFromTreeItem(undefined), undefined);
+});
+
+test("resolves stale root state by scope and normalized path, never by label", () => {
+  const root = createSkill(
+    "alpha",
+    "workspace",
+    "D:/repo/.github/skills",
+    "alpha",
+  ).root;
+  const other = { ...root, scope: "userGlobal" };
+  const stale = {
+    ...root,
+    rootPath: "d:\\repo\\.github\\skills",
+    isReadOnly: true,
+  };
+  assert.strictEqual(
+    resolveCurrentSkillRoot({ skillRoot: stale }, [other, root]),
+    root,
+  );
+  assert.strictEqual(resolveCurrentSkillRoot(undefined, [root]), undefined);
+  assert.strictEqual(
+    resolveCurrentSkillRoot({ skillRoot: stale }, [other]),
+    undefined,
+  );
+  assert.strictEqual(
+    resolveCurrentSkillRoot({ skillRoot: stale }, [root, { ...root }]),
+    undefined,
+  );
+  const readOnly = { ...root, isReadOnly: true };
+  assert.strictEqual(
+    resolveCurrentSkillRoot({ skillRoot: root }, [readOnly]),
+    readOnly,
+  );
 });
 
 console.log("\nWorkspace skill grouping tests passed.");

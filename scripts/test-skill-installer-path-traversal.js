@@ -272,6 +272,13 @@ function loadInstaller({
           resolveWorkspaceSkillsRootUri: (workspaceUri) => workspaceUri,
         };
       }
+      if (request === "./skillUpdates") {
+        return {
+          createSkillRevisionResolver: () => async () => {
+            throw new Error("Revision unavailable in path safety fixture");
+          },
+        };
+      }
       if (request === "./githubFetch") {
         return {
           createGitHubHeaders: () => ({}),

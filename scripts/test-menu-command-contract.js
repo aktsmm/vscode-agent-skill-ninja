@@ -14,10 +14,9 @@ const root = path.join(__dirname, "..");
 const manifest = JSON.parse(
   fs.readFileSync(path.join(root, "package.json"), "utf8"),
 );
-const extensionSource = fs.readFileSync(
-  path.join(root, "src", "extension.ts"),
-  "utf8",
-);
+const extensionSource =
+  fs.readFileSync(path.join(root, "src", "extension.ts"), "utf8") +
+  fs.readFileSync(path.join(root, "src", "skillUpdateCommands.ts"), "utf8");
 
 /** 何かをユーザーへ返しているとみなす呼び出し。これが無い return は無言終了。 */
 const USER_VISIBLE_CALLS =

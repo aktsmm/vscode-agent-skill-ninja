@@ -7,6 +7,28 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.9.50] - 2026-09-07
+
+### Added
+
+- **Update Only Changed Skills** - Root-row and all-managed-root update commands compare complete upstream skill contents, including scripts and references. Unchanged skills are not rewritten. Legacy installs without comparison metadata require explicit first-sync confirmation, and changed skills overwrite local edits only after confirmation / ルート行と全管理ルートの更新操作で、スクリプトや参照資料を含む配布内容全体を比較します。変更なしのスキルは書き直さず、比較情報のない既存スキルは初回同期を確認します。更新対象のローカル編集は確認後に上書きします。
+- **Pinned, Staged Updates** - Revision checks are shared per repository/ref, downloads use the checked commit, and only complete staged updates replace the installed copy. Failed or cancelled updates preserve the old copy and revision. Ordinary successful installs also capture a comparison baseline when available / 配布元とrefごとに確認結果を共有し、確認したcommitから取得します。一時領域で完全取得できたものだけを置き換え、失敗・中断時は既存コピーと比較情報を保持します。通常インストールも可能な場合は比較基準を保存します。
+- **Failure Reports From Bulk Notifications** - Report Bug previews sanitized failure categories before opening a GitHub issue draft after confirmation. Nothing is posted automatically / 一括処理の失敗通知にバグ報告を追加しました。機密値を除いた失敗分類を確認後、GitHubのIssue下書きを開きます。自動投稿は行いません。
+
+### Fixed
+
+- **Bounded, Non-destructive Retries** - Transient failures receive at most one automatic and one manual retry, neither of which uninstalls the existing copy. Permanent failures no longer offer the same retry repeatedly. Failures outside the retry subset and prior failure categories remain visible / 一時的な失敗は自動1回と手動1回まで再試行し、どちらも既存コピーを削除しません。恒久的な失敗の再試行案内を繰り返さず、対象外の失敗と直前の失敗分類も保持します。
+- **Current Root Resolution** - Root update/reinstall and output regeneration resolve the current managed root instead of trusting stale tree-item flags. Invalid or read-only selections do not fall back to another root / ルート更新・再インストール・出力再生成で、古いツリー項目の状態ではなく現在の管理対象を照合します。不正または読み取り専用の選択から別ルートへ切り替えません。
+- **Preserve Unreadable Or Malformed Metadata** - Combined read/stat failures no longer imply a missing file. Local registration and unregistration preserve malformed metadata, and a reinstall that cannot reread existing metadata fails without replacing it with defaults / 読取と存在確認の失敗を不在と誤認しなくなりました。登録・解除で壊れたメタデータを保持し、再インストール中に再読込できない場合も既定値で上書きせず失敗とします。
+- **Output Failures Are Not Success** - Regeneration distinguishes updated, unchanged, disabled, delegated and blocked output. Read/write or lock failures show a deduplicated warning with a Skill State details action; recovery permits later failures to be reported again / 再生成の更新・変更なし・無効・委譲・失敗を区別します。読取・書込・ロック失敗は重複抑止付き警告とSkill Stateの詳細導線で通知し、復旧後の再失敗も通知できます。
+
+### Changed
+
+Paste the NEW Marketplace PAT here (input is hidden):- **Refreshed Two Preset Sources** - The release audit found 58 stale paths in Google Skills and GitHub Awesome Copilot. Re-scanning those sources produces catalog v1.29.0 with 1863 skills across 13 sources; untouched sources retain their own scan history / リリース監査でGoogle SkillsとGitHub Awesome Copilotの58パスが無効と判明したため、該当ソースを再走査しました。同梱カタログv1.29.0は13ソース1863件で、未更新ソースの走査履歴は保持します。
+
+- **Visible Progress And Repeatable Host Tests** - Update checks show scanning/checking/applying phases and skip credential lookup when no remote candidate is eligible. Isolated English/Japanese Extension Host tests cover activation, command wiring, no-op updates and output failure/recovery / 走査・更新確認・適用の進捗を表示し、リモート更新対象がなければ認証情報を確認しません。分離した英日Extension Hostテストで起動、コマンド接続、変更なし更新、出力失敗と復旧を確認します。
+- **Known Boundaries** - Forced reinstall remains available for repair. Overlapping package layouts and changed source identities are not automatically migrated. Do not update the same physical skill directory concurrently from multiple windows or tools / 修復用の強制再インストールは維持します。重複する親子配置や配布元identityの変更は自動移行しません。同じ実体のスキルフォルダーを複数ウィンドウやツールから同時更新しないでください。
+
 ## [0.9.49] - 2026-08-24
 
 ### Fixed

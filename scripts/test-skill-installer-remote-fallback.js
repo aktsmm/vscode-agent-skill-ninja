@@ -274,6 +274,13 @@ function loadModule(options = {}) {
           resolveWorkspaceSkillsRootUri: (workspaceUri) => workspaceUri,
         };
       }
+      if (request === "./skillUpdates") {
+        return {
+          createSkillRevisionResolver: () => async () => {
+            throw new Error("Revision unavailable in remote fallback fixture");
+          },
+        };
+      }
       if (request === "./githubFetch") {
         return {
           createGitHubHeaders: () => ({}),

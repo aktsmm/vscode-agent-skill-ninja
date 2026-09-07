@@ -7,6 +7,9 @@ export type BulkAttemptStatus = "ok" | "partial" | "failed";
 
 export interface BulkAttemptResult {
   status: BulkAttemptStatus;
+  failureKinds?: string[];
+  previousFailureKinds?: string[];
+  attempts?: number;
   /** 一時的な失敗として自動リトライしてよいか */
   retryable: boolean;
   unsafeSkips: number;
@@ -21,6 +24,7 @@ export interface BulkAttemptContext {
 
 export interface BulkInstallPlanOptions<TItem> {
   autoRetry: boolean;
+  allowUninstall?: boolean;
   label: (item: TItem) => string;
   reportProgress: (message: string, increment?: number) => void;
   retryMessage: (label: string) => string;
@@ -51,8 +55,11 @@ export async function runBulkInstallPlan<TItem>(
       `${options.label(item)} (${index + 1}/${items.length})`,
       increment,
     );
-    const result = await attempt(item, { allowUninstall: true, isCancelled });
-    outcomes.push({ ...result, item });
+    const result = await attempt(item, {
+      allowUninstall: options.allowUninstall !== false,
+      isCancelled,
+    });
+    outcomes.push({ ...result, item, attempts: 1 });
   }
 
   if (!options.autoRetry) {
@@ -75,6 +82,7 @@ export async function runBulkInstallPlan<TItem>(
     outcomes[index] = {
       ...retried,
       item: outcome.item,
+      attempts: 2,
       // 自動リトライは 1 回だけ。手動ボタン以外で再入させない
       retryable: false,
       unsafeSkips: Math.max(outcome.unsafeSkips, retried.unsafeSkips),

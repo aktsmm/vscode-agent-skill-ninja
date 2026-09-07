@@ -121,6 +121,13 @@ function loadModule() {
           resolveWorkspaceSkillsRootUri: (workspaceUri) => workspaceUri,
         };
       }
+      if (request === "./skillUpdates") {
+        return {
+          createSkillRevisionResolver: () => async () => {
+            throw new Error("Revision unavailable in legacy fallback fixture");
+          },
+        };
+      }
       if (request === "./githubFetch") {
         return {
           createGitHubHeaders: () => ({}),

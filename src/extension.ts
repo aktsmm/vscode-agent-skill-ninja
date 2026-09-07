@@ -40,12 +40,21 @@ import {
   removeSkillSectionFromFile,
   withOutputWriteLock,
   writeOutputGroup,
+  observeOutputWrites,
 } from "./instructionManager";
+import {
+  createOutputWriteFeedback,
+  summarizeOutputWrites,
+} from "./outputWriteFeedback";
 import { runBulkInstallPlan, type BulkAttemptResult } from "./bulkInstall";
+import { showBulkFailureActions } from "./bulkRetry";
 import { resolveReinstallEntries } from "./reinstallPlanner";
+import { registerSkillUpdateCommands } from "./skillUpdateCommands";
+import { createSkillRevisionResolver } from "./skillUpdates";
 import {
   BrowseSkillsProvider,
   getSkillRootFromTreeItem,
+  resolveCurrentSkillRoot,
   getSkillRootGroupLabel,
   SkillTreeItem,
   setViewRegistrationContext,
@@ -277,6 +286,9 @@ interface BulkInstallOutcome {
   status: "ok" | "partial" | "failed";
   retryable: boolean;
   unsafeSkips: number;
+  failureKinds?: string[];
+  previousFailureKinds?: string[];
+  attempts?: number;
 }
 
 async function installBulkItem(
@@ -286,6 +298,7 @@ async function installBulkItem(
   allowUninstall: boolean,
   isCancelled: () => boolean = () => false,
   signal?: AbortSignal,
+  resolveSourceRevision?: ReturnType<typeof createSkillRevisionResolver>,
 ): Promise<BulkAttemptResult> {
   try {
     if (allowUninstall && item.uninstallRelativePath) {
@@ -301,11 +314,12 @@ async function installBulkItem(
       workspaceUri,
       context,
       item.root,
-      { interactive: false, isCancelled, signal },
+      { interactive: false, isCancelled, signal, resolveSourceRevision },
     );
 
     return {
       status: result.status === "partial" ? "partial" : "ok",
+      failureKinds: result.failures.map((failure) => failure.kind),
       retryable:
         result.status === "partial" &&
         isRetryableInstallFailure(result.failures),
@@ -313,17 +327,21 @@ async function installBulkItem(
     };
   } catch (error) {
     console.error(`Failed to install ${item.label}:`, error);
-    const retryable =
+    const failures =
       error instanceof SkillInstallIncompleteError
-        ? isRetryableInstallFailure(error.failures)
-        : isRetryableInstallFailure([
+        ? error.failures
+        : [
             {
               message: String(error),
               kind: classifySkillInstallFailure(error),
             },
-          ]);
-
-    return { status: "failed", retryable, unsafeSkips: 0 };
+          ];
+    return {
+      status: "failed",
+      retryable: isRetryableInstallFailure(failures),
+      failureKinds: failures.map((failure) => failure.kind),
+      unsafeSkips: 0,
+    };
   }
 }
 
@@ -336,7 +354,11 @@ async function runBulkInstall(
   context: vscode.ExtensionContext,
   workspaceUri: vscode.Uri,
   progress: vscode.Progress<{ message?: string; increment?: number }>,
-  options: { autoRetry: boolean; token?: vscode.CancellationToken },
+  options: {
+    autoRetry: boolean;
+    token?: vscode.CancellationToken;
+    allowUninstall?: boolean;
+  },
 ): Promise<BulkInstallOutcome[]> {
   // Cancel を押した瞬間に、実行中の HTTP 取得も止める
   const abortController = new AbortController();
@@ -348,6 +370,10 @@ async function runBulkInstall(
   }
 
   try {
+    const resolveSourceRevision = createSkillRevisionResolver(
+      await getGitHubToken(),
+      abortController.signal,
+    );
     const outcomes = await runBulkInstallPlan(
       items,
       async (item, { allowUninstall, isCancelled }) =>
@@ -358,9 +384,11 @@ async function runBulkInstall(
           allowUninstall,
           isCancelled,
           abortController.signal,
+          resolveSourceRevision,
         ),
       {
         autoRetry: options.autoRetry,
+        allowUninstall: options.allowUninstall,
         label: (item) => item.label,
         reportProgress: (message, increment) =>
           progress.report({ message, increment }),
@@ -374,6 +402,8 @@ async function runBulkInstall(
       status: outcome.status,
       retryable: outcome.retryable,
       unsafeSkips: outcome.unsafeSkips,
+      failureKinds: outcome.failureKinds,
+      attempts: outcome.attempts,
     }));
   } finally {
     cancelBridge?.dispose();
@@ -413,6 +443,7 @@ async function showBulkInstallSummary(
   outcomes: BulkInstallOutcome[],
   context: vscode.ExtensionContext,
   workspaceUri: vscode.Uri,
+  manualRetries = 0,
 ): Promise<void> {
   const { failedItems } = summarizeBulkInstall(outcomes);
   if (failedItems.length === 0) {
@@ -420,24 +451,30 @@ async function showBulkInstallSummary(
     return;
   }
 
-  const retryAction = messages.retryFailedInstallsAction(failedItems.length);
-  void vscode.window
-    .showWarningMessage(summaryText, retryAction)
-    .then(async (choice) => {
-      if (choice !== retryAction) {
-        return;
-      }
-      await retryFailedBulkInstalls(failedItems, context, workspaceUri);
-    })
-    .then(undefined, (error) => {
-      console.error("[Skill Ninja] Failed to retry bulk installs:", error);
-    });
+  showBulkFailureActions(summaryText, outcomes, manualRetries, {
+    retryLabel: messages.retryFailedInstallsAction,
+    reportLabel: messages.actionReportBug(),
+    stoppedText: isJapanese()
+      ? "（再試行を停止しました。バグ報告から診断情報を確認できます）"
+      : " (retry stopped; report a bug to review diagnostics)",
+    showWarning: (message, ...actions) =>
+      vscode.window.showWarningMessage(message, ...actions),
+    retry: (items) =>
+      retryFailedBulkInstalls(items, context, workspaceUri, outcomes),
+    report: async (details) => {
+      await vscode.commands.executeCommand("skillNinja.reportBug", details);
+    },
+    onError: () => {
+      console.error("[Skill Ninja] Bulk failure action failed");
+    },
+  });
 }
 
 async function retryFailedBulkInstalls(
   failedItems: BulkInstallItem[],
   context: vscode.ExtensionContext,
   workspaceUri: vscode.Uri,
+  previousOutcomes: BulkInstallOutcome[] = [],
 ): Promise<void> {
   let retryCancelled = false;
   const retriedOutcomes = await vscode.window.withProgress(
@@ -452,7 +489,7 @@ async function retryFailedBulkInstalls(
         context,
         workspaceUri,
         progress,
-        { autoRetry: false, token },
+        { autoRetry: false, token, allowUninstall: false },
       );
       retryCancelled = token.isCancellationRequested;
       return result;
@@ -464,6 +501,18 @@ async function retryFailedBulkInstalls(
   );
 
   // 中断で手をつけられなかった分も次の再試行対象に残す
+  const previousKinds = (item: BulkInstallItem) =>
+    previousOutcomes.find((outcome) => outcome.item === item)?.failureKinds;
+  const retainedOutcomes = previousOutcomes
+    .filter(
+      (outcome) =>
+        outcome.status !== "ok" && !failedItems.includes(outcome.item),
+    )
+    .map((outcome) => ({
+      ...outcome,
+      attempts: 0,
+      previousFailureKinds: outcome.failureKinds,
+    }));
   const pendingOutcomes: BulkInstallOutcome[] = failedItems
     .slice(retriedOutcomes.length)
     .map((item) => ({
@@ -471,8 +520,18 @@ async function retryFailedBulkInstalls(
       status: "failed",
       retryable: false,
       unsafeSkips: 0,
+      failureKinds: ["cancelled"],
+      previousFailureKinds: previousKinds(item),
+      attempts: 0,
     }));
-  const nextOutcomes = [...retriedOutcomes, ...pendingOutcomes];
+  const nextOutcomes = [
+    ...retriedOutcomes.map((outcome) => ({
+      ...outcome,
+      previousFailureKinds: previousKinds(outcome.item),
+    })),
+    ...pendingOutcomes,
+    ...retainedOutcomes,
+  ];
 
   const retriedSummary = summarizeBulkInstall(retriedOutcomes);
   await showBulkInstallSummary(
@@ -485,10 +544,16 @@ async function retryFailedBulkInstalls(
         retriedOutcomes.length,
         failedItems.length,
         retryCancelled,
-      ),
+      ) +
+      (retainedOutcomes.length > 0
+        ? isJapanese()
+          ? `（再試行対象外の失敗 ${retainedOutcomes.length} 件が残っています）`
+          : ` (${retainedOutcomes.length} failure(s) outside this retry remain)`
+        : ""),
     nextOutcomes,
     context,
     workspaceUri,
+    1,
   );
 }
 
@@ -598,6 +663,32 @@ export function activate(
     coexistenceChannel,
     skillStateChannel,
     sourceIndexChannel,
+  );
+
+  const outputWriteFeedback = createOutputWriteFeedback({
+    log: (key, result) =>
+      skillStateChannel.appendLine(`[Output ${result}] ${key}`),
+    detailsAction: messages.actionShowDetails,
+    warn: (action) =>
+      vscode.window.showWarningMessage(
+        isJapanese()
+          ? "一部のスキル出力を再生成できませんでした。詳細で読取・書込権限やロック状態を確認し、解消後に再生成してください。"
+          : "Some skill outputs could not be regenerated. Check read/write permissions or locks in Details, then regenerate after resolving the cause.",
+        action,
+      ),
+    showDetails: () => skillStateChannel.show(true),
+  });
+  context.subscriptions.push(
+    new vscode.Disposable(
+      observeOutputWrites(context, (uri, result) => {
+        if (isContextActive()) {
+          outputWriteFeedback.record(
+            normalizeFileSystemPath(uri.fsPath),
+            result,
+          );
+        }
+      }),
+    ),
   );
 
   // 設定値のマイグレーション（旧フォーマット名 → 新フォーマット名）
@@ -1260,6 +1351,23 @@ export function activate(
     return roots.filter((root) => root.isManaged && !root.isReadOnly);
   }
 
+  async function getCurrentUpdateRoots(): Promise<SkillRoot[]> {
+    const folders = vscode.workspace.workspaceFolders ?? [];
+    const scopes = folders.length
+      ? folders.map((folder) => folder.uri)
+      : [undefined];
+    const roots = new Map<string, SkillRoot>();
+    for (const workspaceUri of scopes) {
+      for (const root of await getManagedSkillRoots(workspaceUri)) {
+        roots.set(
+          `${root.scope}:${normalizeFileSystemPath(root.rootPath)}`,
+          root,
+        );
+      }
+    }
+    return [...roots.values()];
+  }
+
   function getActiveWorkspaceUri(): vscode.Uri | undefined {
     return vscode.workspace.workspaceFolders?.[0]?.uri;
   }
@@ -1621,9 +1729,15 @@ export function activate(
         do {
           outputReconcileQueued = false;
           await reconcileOutputTargets();
+          if (isContextActive()) {
+            outputWriteFeedback.record("output-reconcile", "unchanged");
+          }
         } while (outputReconcileQueued);
       } catch (err) {
         console.error("[Skill Ninja] Failed to reconcile output targets:", err);
+        if (isContextActive()) {
+          outputWriteFeedback.record("output-reconcile", "failed");
+        }
       } finally {
         outputReconcileInFlight = undefined;
       }
@@ -1867,13 +1981,8 @@ export function activate(
   }
 
   async function getReinstallableEntriesForRoot(root: SkillRoot) {
-    const wsFolder = vscode.workspace.workspaceFolders?.[0];
-    if (!wsFolder) {
-      return [];
-    }
-
     const installedMeta = await getInstalledSkillsWithMeta(
-      wsFolder.uri,
+      vscode.workspace.getWorkspaceFolder(root.rootUri)?.uri ?? root.rootUri,
       root.rootUri,
     );
 
@@ -1881,6 +1990,35 @@ export function activate(
       .map((meta) => ({ root, meta }))
       .filter((entry) => shouldCheckManagedInstalledSkillAgainstIndex(entry));
   }
+
+  context.subscriptions.push(
+    ...registerSkillUpdateCommands({
+      context,
+      getRoots: getCurrentUpdateRoots,
+      getIndex: () => loadSkillIndex(context),
+      getToken: getGitHubToken,
+      getEntries: async (root, index) => {
+        const workspaceUri =
+          vscode.workspace.getWorkspaceFolder(root.rootUri)?.uri ??
+          root.rootUri;
+        const metas = await getInstalledSkillsWithMeta(
+          workspaceUri,
+          root.rootUri,
+        );
+        return metas.map((meta) => ({
+          workspaceUri,
+          meta,
+          skill: shouldCheckManagedInstalledSkillAgainstIndex({ root, meta })
+            ? findIndexedSkillForInstalledMeta(index.skills, meta)
+            : undefined,
+        }));
+      },
+      afterUpdate: async (roots) => {
+        await updateInstructionFilesForRoots(roots);
+        refreshAllViews();
+      },
+    }),
+  );
 
   if (workspaceFolder) {
     cleanupStaleStoredInstructionPaths(workspaceFolder.uri).catch((err) => {
@@ -3164,21 +3302,27 @@ export function activate(
   const reinstallRootCmd = vscode.commands.registerCommand(
     "skillNinja.reinstallRoot",
     async (item?: SkillTreeItem) => {
-      const wsFolder = vscode.workspace.workspaceFolders?.[0];
-      if (!wsFolder) {
-        vscode.window.showErrorMessage(messages.noWorkspace());
-        return;
-      }
-
-      const targetRoot = getSkillRootFromItem(item);
-      if (!targetRoot || targetRoot.isReadOnly) {
+      const targetRoot = resolveCurrentSkillRoot(
+        item,
+        await getCurrentUpdateRoots(),
+      );
+      if (!targetRoot || !targetRoot.isManaged || targetRoot.isReadOnly) {
         vscode.window.showInformationMessage(
           isJapanese()
-            ? "このスキルルートでは再インストールできません。"
-            : "This skill root cannot reinstall remote skills.",
+            ? targetRoot
+              ? "このスキルルートは読み取り専用です。"
+              : "対象のスキルルートを特定できません。ルートを選び直してください。"
+            : targetRoot
+              ? "This skill root is read-only."
+              : "Could not resolve the current skill root. Select the root again.",
         );
         return;
       }
+      const wsFolder = {
+        uri:
+          vscode.workspace.getWorkspaceFolder(targetRoot.rootUri)?.uri ??
+          targetRoot.rootUri,
+      };
 
       const reinstallableEntries =
         await getReinstallableEntriesForRoot(targetRoot);
@@ -4893,33 +5037,51 @@ Add examples here
   const updateInstructionCmd = vscode.commands.registerCommand(
     "skillNinja.updateInstruction",
     async (item?: SkillTreeItem) => {
-      if (!workspaceFolder) {
+      if (!item && !workspaceFolder) {
         vscode.window.showErrorMessage(messages.noWorkspace());
         return;
       }
 
+      outputWriteFeedback.reset();
       try {
-        const targetRoot = getSkillRootFromItem(item);
-        if (targetRoot && !targetRoot.isReadOnly) {
-          await updateInstructionFileForRoot(targetRoot, context);
-        } else {
-          await updateAllInstructionFiles(workspaceFolder.uri, context);
+        const targetRoot = item
+          ? resolveCurrentSkillRoot(item, await getCurrentUpdateRoots())
+          : undefined;
+        if (
+          item &&
+          (!targetRoot || targetRoot.isReadOnly || !targetRoot.isManaged)
+        ) {
+          vscode.window.showWarningMessage(
+            isJapanese()
+              ? "書き込み可能なスキルルートを特定できません。ルートを選び直してください。"
+              : "Could not resolve a writable skill root. Select the root again.",
+          );
+          return;
         }
-        vscode.window.showInformationMessage(
-          isJapanese()
-            ? targetRoot
-              ? `${getSkillRootGroupLabel(targetRoot)} のスキル出力を更新しました`
-              : "スキル出力を更新しました"
-            : targetRoot
-              ? `Updated skill output for ${getSkillRootGroupLabel(targetRoot)}`
-              : "Updated skill output",
-        );
-      } catch (error) {
-        vscode.window.showErrorMessage(
-          isJapanese()
-            ? `スキル出力の更新に失敗しました: ${error}`
-            : `Failed to update skill output: ${error}`,
-        );
+        const results = targetRoot
+          ? [await updateInstructionFileForRoot(targetRoot, context)]
+          : await updateAllInstructionFiles(workspaceFolder!.uri, context);
+        const summary = summarizeOutputWrites(results);
+        if (summary.blocked > 0) {
+          return summary;
+        }
+        const message =
+          summary.updated || summary.unchanged
+            ? isJapanese()
+              ? `スキル出力: 更新 ${summary.updated} 件、変更なし ${summary.unchanged} 件、委譲 ${summary.deferred} 件`
+              : `Skill output: updated ${summary.updated}, unchanged ${summary.unchanged}, delegated ${summary.deferred}`
+            : summary.deferred
+              ? isJapanese()
+                ? "スキル出力は別の拡張が管理しています。"
+                : "Skill output is managed by another extension."
+              : isJapanese()
+                ? "有効なスキル出力先がありません。出力ターゲットの設定を確認してください。"
+                : "No enabled skill output target. Check Output Targets settings.";
+        vscode.window.showInformationMessage(message);
+        return summary;
+      } catch {
+        outputWriteFeedback.record("manual-output", "failed");
+        return summarizeOutputWrites(["failed"]);
       }
     },
   );
@@ -5501,7 +5663,7 @@ Add examples here
   // Command: Report Bug
   const reportBugCmd = vscode.commands.registerCommand(
     "skillNinja.reportBug",
-    async () => {
+    async (diagnostics?: unknown) => {
       const extensionVersion =
         vscode.extensions.getExtension("yamapan.agent-skill-ninja")?.packageJSON
           ?.version || "unknown";
@@ -5511,7 +5673,7 @@ Add examples here
       const isJapaneseLanguage = language === "ja";
 
       const issueTitle = isJapaneseLanguage ? "[バグ報告] " : "[Bug] ";
-      const issueBody = isJapaneseLanguage
+      let issueBody = isJapaneseLanguage
         ? `**問題の説明**\n` +
           `<!-- 発生したバグについて説明してください -->\n\n` +
           `**再現手順**\n` +
@@ -5541,6 +5703,27 @@ Add examples here
           `- VS Code: ${vscode.version}\n` +
           `- OS: ${process.platform}\n`;
 
+      if (typeof diagnostics === "string") {
+        const preview = await vscode.workspace.openTextDocument({
+          content: diagnostics,
+          language: "markdown",
+        });
+        await vscode.window.showTextDocument(preview, { preview: true });
+        const openReport = isJapanese()
+          ? "Issue 作成画面を開く"
+          : "Open issue form";
+        const confirmation = await vscode.window.showWarningMessage(
+          isJapanese()
+            ? "表示中の診断情報を GitHub の Issue 下書きに含めます。公開してよい内容か確認してください。投稿は自動では行いません。"
+            : "Include the displayed diagnostics in a GitHub issue draft? Check that they are safe to share. Nothing is posted automatically.",
+          { modal: true },
+          openReport,
+        );
+        if (confirmation !== openReport) {
+          return;
+        }
+        issueBody += `\n${diagnostics}`;
+      }
       const issueUrl = buildIssueUrl(
         "https://github.com/aktsmm/vscode-agent-skill-ninja/issues/new",
         issueTitle,

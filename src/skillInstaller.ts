@@ -5,6 +5,11 @@ import * as vscode from "vscode";
 import * as path from "path";
 import { Skill, loadSkillIndex, Source, getSourceBranch } from "./skillIndex";
 import { encodeGitRef } from "./sourceRefs";
+import {
+  createSkillRevisionResolver,
+  type SkillDownloadTarget,
+  type SkillSourceRevision,
+} from "./skillUpdates";
 import { isJapanese, messages } from "./i18n";
 import { getGitHubToken, hasStoredGitHubToken } from "./githubAuth";
 import {
@@ -39,7 +44,8 @@ import {
   isStrictlyInsidePath,
   toSafeRelativeSegments,
 } from "./pathSafety";
-import { createHash } from "crypto";
+import { createHash, randomUUID } from "crypto";
+import { realpathSync } from "fs";
 
 function normalizeNewlines(text: string): string {
   return text.replace(/\r\n/g, "\n");
@@ -447,6 +453,7 @@ async function downloadDirectory(
   downloadRoot: vscode.Uri = localPath,
   isCancelled: () => boolean = () => false,
   signal?: AbortSignal,
+  pinned: boolean = false,
 ): Promise<DownloadDirectoryResult> {
   const errors: string[] = [];
   const failures: SkillInstallFailure[] = [];
@@ -492,7 +499,7 @@ async function downloadDirectory(
   const downloadFileEntry = async (
     entry: GitHubDirectoryEntry,
   ): Promise<void> => {
-    if (!entry.download_url) {
+    if (!entry.download_url && !pinned) {
       return;
     }
 
@@ -509,7 +516,10 @@ async function downloadDirectory(
     }
 
     console.log(`[Skill Ninja] Downloading file: ${entry.name}`);
-    const content = await fetchFileContent(entry.download_url, token, signal);
+    const downloadUrl = pinned
+      ? `https://raw.githubusercontent.com/${owner}/${repo}/${encodeGitRef(branch)}/${remotePath}/${encodeURIComponent(entry.name)}`
+      : entry.download_url!;
+    const content = await fetchFileContent(downloadUrl, token, signal);
     await vscode.workspace.fs.writeFile(
       localFilePath,
       Buffer.from(content, "utf-8"),
@@ -601,6 +611,7 @@ async function downloadDirectory(
         downloadRoot,
         isCancelled,
         signal,
+        pinned,
       );
       errors.push(...subResult.errors);
       failures.push(...subResult.failures);
@@ -832,15 +843,12 @@ function parseGitHubSkillReference(
   return undefined;
 }
 
-async function resolveSkillDownloadTarget(
+export async function resolveSkillDownloadTarget(
   skill: Skill,
   source: Source | undefined,
   token?: string,
   signal?: AbortSignal,
-): Promise<
-  | { owner: string; repo: string; branch: string; remotePath: string }
-  | undefined
-> {
+): Promise<SkillDownloadTarget | undefined> {
   const remotePath = normalizeRemoteSkillPath(skill.path || "");
   if (!remotePath) {
     return undefined;
@@ -1037,6 +1045,261 @@ async function ensureInstallTargetAvailable(
   );
 }
 
+const activeSkillUpdates = new Set<string>();
+
+export async function installSkillUpdate(
+  skill: Skill,
+  workspaceUri: vscode.Uri,
+  context: vscode.ExtensionContext,
+  root: SkillRoot,
+  meta: SkillMeta,
+  revision: SkillSourceRevision,
+  options?: { signal?: AbortSignal; isCancelled?: () => boolean },
+): Promise<SkillInstallResult> {
+  const checkCancelled = () => {
+    if (options?.signal?.aborted || options?.isCancelled?.()) {
+      const error = new Error("Skill update cancelled");
+      error.name = "AbortError";
+      throw error;
+    }
+  };
+  checkCancelled();
+  if (!root.isManaged || root.isReadOnly || root.rootUri.scheme !== "file") {
+    throw new Error("Skill update requires a writable local managed root");
+  }
+  if (!meta.relativePath || /^[\\/]/.test(meta.relativePath)) {
+    throw new Error("Skill update requires a trusted installed path");
+  }
+  const destination = resolveManagedSkillDirUri(
+    root.rootUri,
+    meta.relativePath,
+  );
+  const assertContained = (target: vscode.Uri) => {
+    if (!isRealPathStrictlyInside(root.rootUri.fsPath, target.fsPath)) {
+      throw new Error("Unsafe skill update destination");
+    }
+  };
+  assertContained(destination);
+  const lockPath = realpathSync.native(destination.fsPath);
+  for (const active of activeSkillUpdates) {
+    if (
+      isContainedPath(active, lockPath) ||
+      isContainedPath(lockPath, active)
+    ) {
+      throw new Error("An overlapping skill update is already running");
+    }
+  }
+  activeSkillUpdates.add(lockPath);
+  let transaction: vscode.Uri | undefined;
+  let retainBackup = false;
+  try {
+    const identity = (value: Pick<SkillMeta, "source" | "remotePath">) =>
+      normalizeInstalledSkillSource(
+        value.source,
+        value.remotePath,
+      ).toLowerCase();
+    const remotePath = normalizeRemoteSkillPath(revision.remotePath);
+    const index = await loadSkillIndex(context);
+    const source = index.sources.find(
+      (entry: Source) => entry.id === skill.source,
+    );
+    const repoRef = source
+      ? normalizeGitHubRepoRef(source.url)
+      : normalizeGitHubRepoRef(skill.rawUrl) ||
+        normalizeGitHubRepoRef(skill.url);
+    if (
+      identity(meta) !==
+        identity({ source: skill.source, remotePath: skill.path }) ||
+      !meta.remotePath ||
+      normalizeRemoteSkillPath(meta.remotePath) !== remotePath ||
+      normalizeRemoteSkillPath(skill.path || "") !== remotePath ||
+      repoRef !== `${revision.owner}/${revision.repo}`.toLowerCase() ||
+      (revision.kind === "blob") !== /\.md$/i.test(remotePath) ||
+      (meta.sourceRevision &&
+        (`${meta.sourceRevision.owner}/${meta.sourceRevision.repo}`.toLowerCase() !==
+          repoRef ||
+          normalizeRemoteSkillPath(meta.sourceRevision.remotePath) !==
+            remotePath ||
+          meta.sourceRevision.ref !== revision.ref))
+    ) {
+      throw new Error("Skill update source ownership changed");
+    }
+    const readCurrent = async (): Promise<SkillMeta> => {
+      assertContained(destination);
+      if (
+        (await vscode.workspace.fs.stat(destination)).type &
+        vscode.FileType.SymbolicLink
+      ) {
+        throw new Error("Skill update cannot replace symbolic links");
+      }
+      const current = JSON.parse(
+        Buffer.from(
+          await vscode.workspace.fs.readFile(
+            vscode.Uri.joinPath(destination, ".skill-meta.json"),
+          ),
+        ).toString("utf-8"),
+      ) as SkillMeta;
+      if (
+        current.name !== meta.name ||
+        identity(current) !== identity(meta) ||
+        !current.remotePath ||
+        normalizeRemoteSkillPath(current.remotePath) !== remotePath ||
+        current.installedAt !== meta.installedAt ||
+        JSON.stringify(current.sourceRevision) !==
+          JSON.stringify(meta.sourceRevision)
+      ) {
+        throw new Error("Skill update source ownership changed");
+      }
+      return current;
+    };
+    await readCurrent();
+    const rejectNestedSkills = async (directory: vscode.Uri): Promise<void> => {
+      for (const [name, type] of await vscode.workspace.fs.readDirectory(
+        directory,
+      )) {
+        if (type & vscode.FileType.SymbolicLink) {
+          throw new Error("Skill update cannot replace symbolic links");
+        }
+        if (
+          directory.fsPath !== destination.fsPath &&
+          name.toLowerCase() === "skill.md"
+        ) {
+          throw new Error("Skill update overlaps another installed skill");
+        }
+        if (type & vscode.FileType.Directory) {
+          await rejectNestedSkills(vscode.Uri.joinPath(directory, name));
+        }
+      }
+    };
+    await rejectNestedSkills(destination);
+    for (
+      let parent = vscode.Uri.file(path.dirname(destination.fsPath));
+      isStrictlyInsidePath(root.rootUri.fsPath, parent.fsPath);
+      parent = vscode.Uri.file(path.dirname(parent.fsPath))
+    ) {
+      const entries = await vscode.workspace.fs.readDirectory(parent);
+      if (entries.some(([name]) => name.toLowerCase() === "skill.md")) {
+        throw new Error("Skill update overlaps another installed skill");
+      }
+    }
+    checkCancelled();
+    transaction = vscode.Uri.joinPath(
+      root.rootUri,
+      `.skill-update-${randomUUID()}`,
+    );
+    assertContained(transaction);
+    const stageRoot = vscode.Uri.joinPath(transaction, "stage");
+    const backup = vscode.Uri.joinPath(transaction, "backup");
+    await vscode.workspace.fs.createDirectory(stageRoot);
+    const result = await installSkill(
+      skill,
+      workspaceUri,
+      context,
+      {
+        ...root,
+        rootUri: stageRoot,
+        rootPath: stageRoot.fsPath,
+      },
+      {
+        interactive: false,
+        allowRetry: false,
+        signal: options?.signal,
+        isCancelled: () =>
+          Boolean(options?.signal?.aborted || options?.isCancelled?.()),
+        downloadTarget: {
+          owner: revision.owner,
+          repo: revision.repo,
+          branch: revision.commitSha,
+          remotePath,
+        },
+        sourceRevision: revision,
+      },
+    );
+    checkCancelled();
+    if (result.status !== "ok" || result.skippedUnsafeEntries?.length) {
+      throw new SkillInstallIncompleteError(
+        skill.name,
+        result.errors,
+        result.failures,
+      );
+    }
+    const staged = resolveManagedSkillDirUri(stageRoot, result.installedPath);
+    if (!(await hasRealSkillMd(staged, skill))) {
+      throw new SkillInstallIncompleteError(skill.name, [
+        "Skill update has no complete content",
+      ]);
+    }
+    const current = await readCurrent();
+    const stagedMetaUri = vscode.Uri.joinPath(staged, ".skill-meta.json");
+    const stagedMeta = JSON.parse(
+      Buffer.from(await vscode.workspace.fs.readFile(stagedMetaUri)).toString(
+        "utf-8",
+      ),
+    ) as SkillMeta;
+    const relativePath = resolveTrustedRelativePath(root.rootUri, destination)!;
+    await vscode.workspace.fs.writeFile(
+      stagedMetaUri,
+      Buffer.from(
+        JSON.stringify(
+          {
+            ...stagedMeta,
+            customWhenToUse: current.customWhenToUse,
+            registrationDisabled: current.registrationDisabled,
+            sourceRevision: { ...revision, remotePath },
+            relativePath,
+            ...derivePackageMetadata(skill.name, remotePath, relativePath),
+          },
+          null,
+          2,
+        ),
+        "utf-8",
+      ),
+    );
+    checkCancelled();
+    assertContained(staged);
+    assertContained(backup);
+    await readCurrent();
+    await vscode.workspace.fs.rename(destination, backup, { overwrite: false });
+    try {
+      checkCancelled();
+      assertContained(destination);
+      await vscode.workspace.fs.rename(staged, destination, {
+        overwrite: false,
+      });
+    } catch {
+      try {
+        assertContained(backup);
+        assertContained(destination);
+        await vscode.workspace.fs.rename(backup, destination, {
+          overwrite: false,
+        });
+      } catch {
+        retainBackup = true;
+        throw new Error(
+          "Skill update recovery required; the original backup was retained in the managed root",
+        );
+      }
+      throw new Error("Skill update switch failed; the original was restored");
+    }
+    return {
+      ...result,
+      installedRoot: root.rootUri.fsPath,
+      installedPath: relativePath,
+    };
+  } finally {
+    if (transaction && !retainBackup) {
+      try {
+        await deleteSkillDirectory(root.rootUri, transaction);
+      } catch {
+        console.warn(
+          "[Skill Ninja] Skill update temporary cleanup failed; retained files require cleanup",
+        );
+      }
+    }
+    activeSkillUpdates.delete(lockPath);
+  }
+}
+
 export async function installSkill(
   skill: Skill,
   workspaceUri: vscode.Uri,
@@ -1048,6 +1311,9 @@ export async function installSkill(
     isCancelled?: () => boolean;
     /** 中断時に実行中の HTTP 取得ごと止める */
     signal?: AbortSignal;
+    downloadTarget?: SkillDownloadTarget;
+    sourceRevision?: SkillSourceRevision;
+    resolveSourceRevision?: ReturnType<typeof createSkillRevisionResolver>;
   },
 ): Promise<SkillInstallResult> {
   if (targetRoot && (!targetRoot.isManaged || targetRoot.isReadOnly)) {
@@ -1090,12 +1356,52 @@ export async function installSkill(
   const index = await loadSkillIndex(context);
   const source = index.sources.find((s: Source) => s.id === skill.source);
   const token = await getGitHubToken();
-  const downloadTarget = await resolveSkillDownloadTarget(
-    skill,
-    source,
-    token,
-    options?.signal,
-  );
+  const downloadTarget = options?.downloadTarget
+    ? {
+        ...options.downloadTarget,
+        remotePath: normalizeRemoteSkillPath(options.downloadTarget.remotePath),
+        branch:
+          options.sourceRevision?.commitSha || options.downloadTarget.branch,
+      }
+    : await resolveSkillDownloadTarget(skill, source, token, options?.signal);
+  if (downloadTarget && !isSafeRemoteRepoPath(downloadTarget.remotePath)) {
+    throw new Error("Invalid skill download target");
+  }
+  let sourceRevision = options?.sourceRevision;
+  if (!sourceRevision && downloadTarget && !options?.signal?.aborted) {
+    try {
+      const resolveRevision =
+        options?.resolveSourceRevision ??
+        createSkillRevisionResolver(token, options?.signal);
+      const resolved = await resolveRevision({ ...downloadTarget });
+      if (resolved.ref === downloadTarget.branch) {
+        sourceRevision = { ...resolved };
+      }
+    } catch {
+      sourceRevision = undefined;
+    }
+  }
+  if (sourceRevision) {
+    const revision = sourceRevision;
+    if (
+      (options?.sourceRevision && !options.downloadTarget) ||
+      !downloadTarget ||
+      !/^[a-f0-9]{40}$/i.test(revision.commitSha) ||
+      !/^[a-f0-9]{40}$/i.test(revision.contentSha) ||
+      !/^[a-z0-9_.-]+$/i.test(revision.owner) ||
+      !isSafePathSegment(revision.owner) ||
+      !/^[a-z0-9_.-]+$/i.test(revision.repo) ||
+      !isSafePathSegment(revision.repo) ||
+      downloadTarget.owner.toLowerCase() !== revision.owner.toLowerCase() ||
+      downloadTarget.repo.toLowerCase() !== revision.repo.toLowerCase() ||
+      downloadTarget.remotePath !==
+        normalizeRemoteSkillPath(revision.remotePath) ||
+      (revision.kind !== "tree" && revision.kind !== "blob")
+    ) {
+      throw new Error("Invalid skill source revision");
+    }
+    downloadTarget.branch = revision.commitSha;
+  }
   const normalizedSourceId = inferInstalledSkillSourceId(
     skill,
     source,
@@ -1137,7 +1443,7 @@ export async function installSkill(
     console.log(`[Skill Ninja] Remote path: ${remotePath}`);
 
     // パスが .md で終わる場合は単独ファイル
-    if (remotePath.endsWith(".md")) {
+    if (/\.md$/i.test(remotePath)) {
       // 単独ファイルをダウンロード → SKILL.md として保存
       const rawUrl = `https://raw.githubusercontent.com/${owner}/${repo}/${encodeGitRef(branch)}/${remotePath}`;
       if (options?.isCancelled?.()) {
@@ -1206,6 +1512,7 @@ export async function installSkill(
           skillPath,
           options?.isCancelled,
           options?.signal,
+          Boolean(sourceRevision),
         );
 
         const cancelledDuringDownload = result.failures.some(
@@ -1339,19 +1646,56 @@ export async function installSkill(
   const metaPath = vscode.Uri.joinPath(skillPath, ".skill-meta.json");
   let existingCustomWhenToUse: string | undefined;
   let existingRegistrationDisabled: boolean | undefined;
+  let existingContent: Uint8Array | undefined;
   try {
-    const existingContent = await vscode.workspace.fs.readFile(metaPath);
-    const existingMeta = JSON.parse(
-      Buffer.from(existingContent).toString("utf-8"),
-    );
-    existingCustomWhenToUse = existingMeta.customWhenToUse;
-    existingRegistrationDisabled = existingMeta.registrationDisabled;
-  } catch {
-    // 既存のメタデータがない場合は無視
+    existingContent = await vscode.workspace.fs.readFile(metaPath);
+  } catch (error) {
+    if (!isFileNotFoundError(error)) {
+      throw new SkillInstallIncompleteError(
+        skill.name,
+        ["Existing metadata could not be read; it was preserved"],
+        [
+          {
+            kind: "filesystem",
+            message: "Existing metadata could not be read; it was preserved",
+          },
+        ],
+      );
+    }
+  }
+  if (existingContent) {
+    try {
+      const existingMeta = JSON.parse(
+        Buffer.from(existingContent).toString("utf-8"),
+      );
+      if (
+        !existingMeta ||
+        typeof existingMeta !== "object" ||
+        Array.isArray(existingMeta)
+      ) {
+        throw new Error("Invalid metadata object");
+      }
+      existingCustomWhenToUse = existingMeta.customWhenToUse;
+      existingRegistrationDisabled = existingMeta.registrationDisabled;
+    } catch {
+      throw new SkillInstallIncompleteError(
+        skill.name,
+        ["Existing metadata could not be parsed; it was preserved"],
+        [
+          {
+            kind: "filesystem",
+            message: "Existing metadata could not be parsed; it was preserved",
+          },
+        ],
+      );
+    }
   }
 
   const normalizedRemotePath = downloadTarget?.remotePath || skill.path;
 
+  if (sourceRevision && !(await hasRealSkillMd(skillPath, skill))) {
+    usedFallback = true;
+  }
   const status: SkillInstallStatus = usedFallback
     ? "incomplete"
     : downloadErrors.length > 0
@@ -1370,6 +1714,13 @@ export async function installSkill(
     relativePath: safeName,
     remotePath: normalizedRemotePath,
     registrationDisabled: existingRegistrationDisabled,
+    sourceRevision:
+      status === "ok" && skippedUnsafeEntries.length === 0
+        ? sourceRevision && {
+            ...sourceRevision,
+            remotePath: normalizedRemotePath,
+          }
+        : undefined,
     incomplete: usedFallback || undefined,
     // partial は再起動後も修復対象として残す必要があるので永続化する
     repairState:
@@ -1723,6 +2074,7 @@ export async function uninstallSkillByPath(
  * スキルのメタデータ
  */
 export interface SkillMeta {
+  sourceRevision?: SkillSourceRevision;
   name: string;
   source: string;
   description: string;

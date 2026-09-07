@@ -127,10 +127,11 @@ Settings → **Output Format** → Select `ref`, `full`, `compact`, or `legacy`
 - **Auto-extract "When to Use"** - Extracted from SKILL.md `## When to Use` section
 - **Edit Description** - Right-click to customize skill description
 - Uninstall functionality
-- **Reinstall All** - Batch reinstall from latest source (with auto index update)
+- **Update Changed Skills** - Update only skills whose upstream contents changed; unchanged skills and local edits stay untouched. Changed skills overwrite local edits after confirmation. Existing skills without a comparison baseline need an explicitly confirmed first sync.
+- **Reinstall All** - Explicitly force a batch reinstall for repair (with auto index update)
 - **Source-aware Missing Index Recovery** - When reinstall hits missing index entries, the extension now updates only the affected source when it can be identified, instead of always refreshing every source
 - **Partial Failure Warnings** - Batch reinstall flows now warn with succeeded/failed counts when only part of the selection could be reinstalled
-- **Root-level Inline Actions** - Each writable skill root row exposes inline **Regenerate Skill Output** (regenerates AGENTS.md / copilot-instructions.md / CLAUDE.md or the linked `ref` catalog), and rows that contain at least one remote-backed skill also show **Reinstall Remote Skills in This Root**
+- **Root-level Inline Actions** - Each writable skill root row exposes inline **Regenerate Skill Output** (regenerates AGENTS.md / copilot-instructions.md / CLAUDE.md or the linked `ref` catalog), and rows that contain at least one remote-backed skill also show **Update Changed Skills in This Root**. Forced reinstall remains in the context menu.
 - **Install Feedback** - NEW badge, status bar notification, auto-select in tree view
 - **Open Folder** - Quick access to installed skill folder
 - **Explain Skill State** - Diagnose registration source, metadata path, coexistence owner, and instruction target from the tree item context menu
@@ -227,7 +228,7 @@ Preset index includes skills from official, curated, and community sources out o
 - **Workspace Skills**: managed under `skillNinja.skillsDirectory` (default: `.github/skills`) plus any `skillNinja.additionalSkillRoots`
 - Newly installed skills (temporary badge)
 - Toolbar: Skill Output / Regenerate Skill Output / Create / Refresh View / Settings
-- Each writable root row also exposes inline **Regenerate Skill Output** on the right edge, and roots with at least one remote-backed skill also show **Reinstall Remote Skills in This Root**
+- Each writable root row also exposes inline **Regenerate Skill Output** on the right edge, and roots with at least one remote-backed skill also show **Update Changed Skills in This Root**
 - If a remote-backed skill is no longer present upstream, reinstall flows can mark it as disabled for future reinstall checks so it no longer blocks batch operations
 - In the workspace view, **Skill Output** opens the workspace root directly without showing the all-roots picker
 - In `ref` mode, **Skill Output** opens the linked catalog; in `full` / `compact` / `legacy`, it opens the instruction file itself
@@ -241,7 +242,7 @@ Preset index includes skills from official, curated, and community sources out o
 - **Built-in Skills**: read-only group for Copilot / VS Code packaged skills, grouped first by provider/origin (for example GitHub Copilot Chat, GitHub Copilot CLI, VS Code) and then by variant/root (for example Prompts, Skills, Package (Universal)); this group is shown by default and can be hidden from Settings
 - Root nodes use concise home/product labels, while counts and full paths stay in the secondary description / tooltip
 - Toolbar: Skill Output / Regenerate Skill Output / Create / Refresh View / Settings
-- Each writable root row also exposes inline **Regenerate Skill Output** on the right edge, and roots with at least one remote-backed skill also show **Reinstall Remote Skills in This Root**, so GitHub Copilot Home / Claude Home / Global Agent Home can be refreshed without opening the command palette
+- Each writable root row also exposes inline **Regenerate Skill Output** on the right edge, and roots with at least one remote-backed skill also show **Update Changed Skills in This Root**, so GitHub Copilot Home / Claude Home / Global Agent Home can be updated without opening the command palette
 - Legacy `source: unknown` skills without a `remotePath` are treated as individual lookup candidates only; they no longer make batch reinstall actions look reinstallable by themselves
 - In the user/global view, **Skill Output** opens the default writable user/global root directly without showing the all-roots picker
   Default priority: VS Code user customizations, then Copilot home, Claude home, and finally the global agent home
@@ -274,58 +275,59 @@ Preset index includes skills from official, curated, and community sources out o
 
 ### Command Palette
 
-| Command                                                       | Description                                                                                                                                   |
-| ------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------- |
-| `Agent Skills Ninja: Search Skills`                           | Search and install skills                                                                                                                     |
-| `Agent Skills Ninja: Update Index`                            | Update index from all sources                                                                                                                 |
-| `Agent Skills Ninja: Search on GitHub`                        | Search skills on GitHub                                                                                                                       |
-| `Agent Skills Ninja: Browse by Category`                      | Pick a category and narrow the skill list                                                                                                     |
-| `Agent Skills Ninja: Add Source Repository`                   | Add new source repository                                                                                                                     |
-| `Agent Skills Ninja: Remove Source Repository`                | Remove source repository                                                                                                                      |
-| `Agent Skills Ninja: Uninstall Skill`                         | Uninstall a skill                                                                                                                             |
-| `Agent Skills Ninja: Show Installed Skills`                   | Show installed skills                                                                                                                         |
-| `Agent Skills Ninja: Show Favorites`                          | Show only the skills you marked as favorites                                                                                                  |
-| `Agent Skills Ninja: Recently Installed`                      | Show the skills installed most recently                                                                                                       |
-| `Agent Skills Ninja: Create New Skill`                        | Create new workspace skill                                                                                                                    |
-| `Agent Skills Ninja: Reinstall All Skills`                    | Reinstall all skills from latest source                                                                                                       |
-| `Agent Skills Ninja: Repair Incomplete Skills`                | Reinstall only the skills recorded as incomplete or partial                                                                                   |
-| `Agent Skills Ninja: Uninstall All Skills`                    | Uninstall all skills (with confirmation)                                                                                                      |
-| `Agent Skills Ninja: Uninstall Multiple Skills`               | Select multiple skills to uninstall                                                                                                           |
-| `Agent Skills Ninja: Reinstall Multiple Skills`               | Select multiple skills to reinstall                                                                                                           |
-| `Agent Skills Ninja: Open Skill Output`                       | Choose a managed root, then open the linked catalog in `ref`, or the instruction file in other formats                                        |
-| `Agent Skills Ninja: Regenerate Skill Output`                 | Regenerate the selected root's skill output files manually (`AGENTS.md`, `copilot-instructions.md`, `CLAUDE.md`, or the linked `ref` catalog) |
-| `Agent Skills Ninja: Clean Up Orphan Instruction Block`       | Remove leftover skill-ninja / resource-ninja / agent-ninja marker blocks from the output files                                                 |
-| `Agent Skills Ninja: Open Skill Folder`                       | Open installed skill folder in OS                                                                                                             |
-| `Agent Skills Ninja: Resume Deferred Source Index Update`     | Resume the source updates a GitHub rate limit or the per-run update cap left pending                                                          |
-| `Agent Skills Ninja: Clear GitHub Token (SecretStorage only)` | Remove only the GitHub token stored in VS Code SecretStorage so other authentication sources can be retried                                   |
-| `Agent Skills Ninja: Explain Skill State`                     | Show skill registration details and the active GitHub token source without revealing the token value                                          |
-| `Agent Skills Ninja: Show Coexistence Status`                 | Show the coexistence mode and which extension currently writes the output files                                                               |
-| `Agent Skills Ninja: Recompute Coexistence Ownership`         | Re-evaluate coexistence ownership after installing or removing the sibling extension                                                          |
-| `Agent Skills Ninja: Configure Output Targets`                | Pick which locations get the skill list, and override the format for one location                                                             |
-| `Agent Skills Ninja: Open Workspace Skill Output`             | Open the workspace skill output directly                                                                                                      |
-| `Agent Skills Ninja: Open User/Global Skill Output`           | Open the user/global skill output directly                                                                                                    |
-| `Agent Skills Ninja: Show Built-in Skills`                    | Show read-only built-in skills in the tree                                                                                                    |
-| `Agent Skills Ninja: Open Settings`                           | Open this extension's settings                                                                                                                |
-| `Agent Skills Ninja: Reset Settings`                          | Reset this extension's settings to their defaults                                                                                             |
-| `Agent Skills Ninja: Report a Bug`                            | Open a prefilled GitHub issue                                                                                                                 |
+| Command                                                          | Description                                                                                                                                   |
+| ---------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------- |
+| `Agent Skills Ninja: Search Skills`                              | Search and install skills                                                                                                                     |
+| `Agent Skills Ninja: Update Index`                               | Update index from all sources                                                                                                                 |
+| `Agent Skills Ninja: Search on GitHub`                           | Search skills on GitHub                                                                                                                       |
+| `Agent Skills Ninja: Browse by Category`                         | Pick a category and narrow the skill list                                                                                                     |
+| `Agent Skills Ninja: Add Source Repository`                      | Add new source repository                                                                                                                     |
+| `Agent Skills Ninja: Remove Source Repository`                   | Remove source repository                                                                                                                      |
+| `Agent Skills Ninja: Uninstall Skill`                            | Uninstall a skill                                                                                                                             |
+| `Agent Skills Ninja: Show Installed Skills`                      | Show installed skills                                                                                                                         |
+| `Agent Skills Ninja: Show Favorites`                             | Show only the skills you marked as favorites                                                                                                  |
+| `Agent Skills Ninja: Recently Installed`                         | Show the skills installed most recently                                                                                                       |
+| `Agent Skills Ninja: Create New Skill`                           | Create new workspace skill                                                                                                                    |
+| `Agent Skills Ninja: Update Changed Skills in All Managed Roots` | Update changed upstream skills only (`skillNinja.updateAll`); first sync requires confirmation                                                |
+| `Agent Skills Ninja: Reinstall All Skills`                       | Force reinstall all skills from latest source for repair                                                                                      |
+| `Agent Skills Ninja: Repair Incomplete Skills`                   | Reinstall only the skills recorded as incomplete or partial                                                                                   |
+| `Agent Skills Ninja: Uninstall All Skills`                       | Uninstall all skills (with confirmation)                                                                                                      |
+| `Agent Skills Ninja: Uninstall Multiple Skills`                  | Select multiple skills to uninstall                                                                                                           |
+| `Agent Skills Ninja: Reinstall Multiple Skills`                  | Select multiple skills to reinstall                                                                                                           |
+| `Agent Skills Ninja: Open Skill Output`                          | Choose a managed root, then open the linked catalog in `ref`, or the instruction file in other formats                                        |
+| `Agent Skills Ninja: Regenerate Skill Output`                    | Regenerate the selected root's skill output files manually (`AGENTS.md`, `copilot-instructions.md`, `CLAUDE.md`, or the linked `ref` catalog) |
+| `Agent Skills Ninja: Clean Up Orphan Instruction Block`          | Remove leftover skill-ninja / resource-ninja / agent-ninja marker blocks from the output files                                                |
+| `Agent Skills Ninja: Open Skill Folder`                          | Open installed skill folder in OS                                                                                                             |
+| `Agent Skills Ninja: Resume Deferred Source Index Update`        | Resume the source updates a GitHub rate limit or the per-run update cap left pending                                                          |
+| `Agent Skills Ninja: Clear GitHub Token (SecretStorage only)`    | Remove only the GitHub token stored in VS Code SecretStorage so other authentication sources can be retried                                   |
+| `Agent Skills Ninja: Explain Skill State`                        | Show skill registration details and the active GitHub token source without revealing the token value                                          |
+| `Agent Skills Ninja: Show Coexistence Status`                    | Show the coexistence mode and which extension currently writes the output files                                                               |
+| `Agent Skills Ninja: Recompute Coexistence Ownership`            | Re-evaluate coexistence ownership after installing or removing the sibling extension                                                          |
+| `Agent Skills Ninja: Configure Output Targets`                   | Pick which locations get the skill list, and override the format for one location                                                             |
+| `Agent Skills Ninja: Open Workspace Skill Output`                | Open the workspace skill output directly                                                                                                      |
+| `Agent Skills Ninja: Open User/Global Skill Output`              | Open the user/global skill output directly                                                                                                    |
+| `Agent Skills Ninja: Show Built-in Skills`                       | Show read-only built-in skills in the tree                                                                                                    |
+| `Agent Skills Ninja: Open Settings`                              | Open this extension's settings                                                                                                                |
+| `Agent Skills Ninja: Reset Settings`                             | Reset this extension's settings to their defaults                                                                                             |
+| `Agent Skills Ninja: Report a Bug`                               | Open a prefilled GitHub issue                                                                                                                 |
 
 ### Row Actions (right-click)
 
 These palette commands are also available by right-clicking a row in the tree.
 
-| Action           | Row                             |
-| ---------------- | ------------------------------- |
-| Install Skill    | remote skill row                |
-| Install Bundle   | bundle row                      |
-| Reinstall Skill  | installed skill row             |
-| Preview Skill    | remote skill row                |
-| Open SKILL.md    | installed skill row             |
-| Edit When to Use | installed skill row             |
-| Toggle Favorite  | remote skill row                |
-| Open on GitHub   | skill or source row             |
-| Copy URL         | skill or source row             |
-| Copy Path        | installed skill or root row     |
-| Open in Terminal | installed skill or root row     |
+| Action           | Row                         |
+| ---------------- | --------------------------- |
+| Install Skill    | remote skill row            |
+| Install Bundle   | bundle row                  |
+| Reinstall Skill  | installed skill row         |
+| Preview Skill    | remote skill row            |
+| Open SKILL.md    | installed skill row         |
+| Edit When to Use | installed skill row         |
+| Toggle Favorite  | remote skill row            |
+| Open on GitHub   | skill or source row         |
+| Copy URL         | skill or source row         |
+| Copy Path        | installed skill or root row |
+| Open in Terminal | installed skill or root row |
 
 ### Output Targets
 
@@ -487,7 +489,10 @@ Installing, cleaning up, and removing skills all report what actually happened:
 - **A credential an organization rejects with SAML SSO is dropped for that owner.** The owner and credential pair is remembered for the session, so the following requests go out anonymously and a public source keeps updating instead of failing. Other stored credentials are still tried, a credential already known to be blocked does not repeat the same anonymous request, and the reported reason is the most root-causal `401` / `403` rather than whichever attempt happened to be last. The failure notice for a source index update offers `Open SSO Session`, using only the organization or enterprise SSO page from the `X-GitHub-SSO` header — the short-lived `authorization_request` value is never stored or logged. Every index update entry point re-verifies a blocked credential once, so authorizing SSO elsewhere recovers without a reload.
 - **Bulk operations can be stopped.** Reinstall All, per-root reinstall, multi-select reinstall, bundle install, Repair Incomplete Skills, and the retry action all show a cancel control. The current skill stops at the next file boundary and is recorded as incomplete so Repair Incomplete Skills can finish it later, nothing new is started, and the summary reports how many of the requested skills were actually processed.
 - **A partial install is never reported as success.** When SKILL.md is real but other files could not be downloaded, the success notification is suppressed, the status bar shows the missing-file state, `.skill-meta.json` records `repairState`, and bulk summaries append how many skills installed with missing files.
-- **Only transient failures are retried automatically, once.** After a bulk run, skills that failed with a `5xx` or a transport error are reinstalled in place exactly once. Rate limits, authentication failures, `404`, the subdirectory cap, and unclassified errors are never retried automatically. Whatever still fails offers a `Retry N failed` action that reruns only that subset.
+- **Retries are bounded.** After a bulk run, transient server or transport failures are retried in place once automatically, with at most one further manual retry. Neither retry deletes the existing folder. Authentication failures, rate limits, `404`, policy limits and unknown errors do not offer the same retry again. Failure notifications include **Report Bug**: preview sanitized diagnostics, then open a GitHub issue draft after confirmation. Nothing is posted automatically.
+- **A successful retry does not hide other failures.** Failures outside the retry remain in the final warning and issue diagnostics. Authentication, SSO, PAT policy and partial-download classifications are retained without copying raw errors or private paths.
+- **Read failures are not treated as missing files.** Instruction/catalog writes and local registration do not replace existing data when both reading and checking existence fail. Registration and unregistration also preserve malformed metadata; repair the JSON or restore a backup before retrying. An install that cannot reread its existing metadata fails without overwriting that metadata.
+- **Use one writer per skill directory.** Changed-skill updates reject overlapping transactions within one Extension Host. This is not a cross-window lock: do not update, reinstall or remove the same physical skill directory concurrently from another window or tool.
 - **A skill folder owned by another source is not overwritten silently.** Before writing, the install compares the incoming source with the `.skill-meta.json` already in the target folder. A different or unidentifiable owner asks for confirmation, and confirming deletes the existing folder first. Bulk runs count it as a failure instead of prompting.
 - **Incomplete skills already in the workspace are surfaced when the set changes.** Activation lists up to 5 of them and offers `Repair Incomplete Skills`, which reinstalls only the affected skills instead of everything.
 - **Unsafe file names from a source are skipped, not installed.** A remote file or folder name that is not a single safe path segment (for example one containing `..`, a path separator, or a Windows-reserved device name) is excluded before anything is written. The install itself still succeeds. A single install shows a separate warning listing what was skipped, and bulk operations add the excluded count to their final summary, so a hostile source is never presented as a clean install.
@@ -501,6 +506,29 @@ Installing, cleaning up, and removing skills all report what actually happened:
 - **A destructive chat tool asks first.** `#installSkill`, `#uninstallSkill`, `#addSkillSource`, `#removeSkillSource` and `#localizeSkill` show a confirmation before running. `#uninstallSkill` confirms the resolved skill together with its skill root, and refuses to act when the name matches more than one installed skill, so the confirmed target is the one that is removed.
 - **A visible action either acts or says why it cannot.** Every command shown in a tree view context menu is exercised against each context value its menu condition admits; one that cannot act reports the reason instead of doing nothing silently.
 - **A startup prompt can be turned off.** Every dialog shown during activation offers a way to stop it returning, and the choice is remembered. `Reset Settings (including token)` brings the suppressed prompts back.
+
+### Maintenance Verification
+
+Changed-skill updates report the reading, root-scanning, update-checking and applying phases. Local-only or otherwise ineligible selections finish without consulting GitHub credentials.
+
+Run the repeatable Extension Host smoke test with the installed VS Code executable after building:
+
+```powershell
+npm run compile
+node scripts/run-extension-host-smoke.js --code "$env:LOCALAPPDATA\Programs\Microsoft VS Code\Code.exe" --locale en
+node scripts/run-extension-host-smoke.js --code "$env:LOCALAPPDATA\Programs\Microsoft VS Code\Code.exe" --locale ja
+```
+
+The runner creates disposable home, AppData, settings, extensions and workspace directories, does not inherit credentials, and removes its files after the owned host exits. It checks actual activation, maintenance-command registration, stale/missing-root handling and repeated local-only no-op updates. It does not install the extension into your regular profile or test live GitHub downloads, mouse clicks or visual layout. `npm test` checks the runner's isolation and cleanup contract without opening VS Code. The test entry follows the [official extension test runner API](https://code.visualstudio.com/api/working-with-extensions/testing-extension#the-test-runner-script).
+
+Use an isolated Extension Development Host with a disposable workspace and home profile, not personal skill roots. Automated tests cover these paths, but do not replace the following UI check:
+
+1. Immediately after opening or refreshing the tree, click a disposable root's update action. Confirm that the selected root is retained and no different root is chosen.
+2. Change only a bundled reference file upstream. Update once, then again without further changes. Only the first run should replace the affected skill; other skills and the second run should remain unchanged.
+3. Exercise a persistent failure and cancellation. Confirm bounded retries, retained unrelated failures, and **Report Bug** diagnostics preview. Dismiss confirmation and verify that no external issue page opens.
+4. Test an unreadable output and malformed metadata on disposable copies. Verify that their bytes remain intact, then restore access/valid JSON and retry. Blocked output generation warns with **Show Details**, which opens `Agent Skills Ninja: Skill State`. Its local diagnostics identify the output group and `unreadable`, `locked` or `failed` state. Regenerate after resolving access or lock problems.
+
+Output regeneration distinguishes updated, unchanged, disabled, delegated and blocked results. Failed output generation does not produce a manual regeneration success message; a successful skill installation can still have a separate output-generation warning. Repeated automatic failures with the same output/state are suppressed until recovery or explicit regeneration. Diagnostic paths stay local and are not automatically sent to an issue. The isolated smoke suite also exercises an unreadable output destination, preservation and recovery to normal generation.
 
 ### Coexistence with Agent Resources Ninja
 

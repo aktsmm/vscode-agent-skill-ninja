@@ -203,7 +203,7 @@ async function asyncTest(name, fn) {
  * `.skill-meta.json` の読み取り結果ごとに register / unregister の書き込みを観測する。
  * `readable: false` は「ファイルはあるが読めない」状態を作る。
  */
-function loadScannerWithMetaFile({ exists, readable, body }) {
+function loadScannerWithMetaFile({ exists, readable, body, statError }) {
   const writes = [];
   const fsStub = {
     async readFile() {
@@ -215,6 +215,9 @@ function loadScannerWithMetaFile({ exists, readable, body }) {
       return Buffer.from(body, "utf-8");
     },
     async stat() {
+      if (statError) {
+        throw statError;
+      }
       if (!exists) {
         const error = new Error("not found");
         error.code = "ENOENT";
@@ -249,6 +252,49 @@ const REMOTE_META = JSON.stringify({
 });
 
 async function runAsyncTests() {
+  await asyncTest(
+    "register and unregister preserve malformed and non-object metadata",
+    async () => {
+      for (const operation of ["registerLocalSkill", "unregisterLocalSkill"]) {
+        for (const body of ["{broken", "null", "[]", "42", '"text"']) {
+          const { writes, scanner } = loadScannerWithMetaFile({
+            exists: true,
+            readable: true,
+            body,
+          });
+          assert.strictEqual(
+            await scanner[operation](LOCAL_SKILL, {}, {}),
+            false,
+          );
+          assert.deepStrictEqual(Array.from(writes), []);
+        }
+      }
+    },
+  );
+  await asyncTest(
+    "register and unregister preserve metadata when read and stat both fail",
+    async () => {
+      for (const operation of ["registerLocalSkill", "unregisterLocalSkill"]) {
+        for (const code of ["NoPermissions", "EACCES", "EBUSY", undefined]) {
+          const statError = new Error(
+            "FileNotFound appears in a path, not an error code",
+          );
+          statError.code = code;
+          const { writes, scanner } = loadScannerWithMetaFile({
+            exists: true,
+            readable: false,
+            body: REMOTE_META,
+            statError,
+          });
+          assert.strictEqual(
+            await scanner[operation](LOCAL_SKILL, {}, {}),
+            false,
+          );
+          assert.deepStrictEqual(Array.from(writes), []);
+        }
+      }
+    },
+  );
   await asyncTest(
     "register refuses to overwrite a .skill-meta.json it could not read",
     async () => {

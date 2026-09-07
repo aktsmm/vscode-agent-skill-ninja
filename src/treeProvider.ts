@@ -1723,3 +1723,20 @@ export function getSkillRootFromTreeItem(item?: {
 
   return item.skillRoot;
 }
+
+export function resolveCurrentSkillRoot(
+  item: Parameters<typeof getSkillRootFromTreeItem>[0],
+  roots: SkillRoot[],
+): SkillRoot | undefined {
+  const previous = getSkillRootFromTreeItem(item);
+  if (!previous || typeof previous.rootPath !== "string") {
+    return undefined;
+  }
+  const matches = roots.filter(
+    (root) =>
+      root.scope === previous.scope &&
+      normalizeFileSystemPath(root.rootPath) ===
+        normalizeFileSystemPath(previous.rootPath),
+  );
+  return matches.length === 1 ? matches[0] : undefined;
+}

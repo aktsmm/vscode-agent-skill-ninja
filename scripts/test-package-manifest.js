@@ -1295,9 +1295,7 @@ test("every palette-only command is documented in both READMEs", () => {
 
   const paletteOnly = (pkg.contributes.commands || [])
     .map((command) => command.command)
-    .filter(
-      (id) => !paletteHidden.has(id) && !reachableFromMenu.has(id),
-    );
+    .filter((id) => !paletteHidden.has(id) && !reachableFromMenu.has(id));
 
   assert.ok(
     paletteOnly.length >= 5,
@@ -1576,7 +1574,7 @@ test("view title bars use scope-specific output commands", () => {
   );
 });
 
-test("managed root groups expose inline output update and reinstall actions", () => {
+test("managed root groups expose changed updates inline and forced reinstall in the menu", () => {
   const contextMenus = pkg.contributes.menus["view/item/context"] || [];
 
   for (const viewId of [
@@ -1596,11 +1594,21 @@ test("managed root groups expose inline output update and reinstall actions", ()
     assert.ok(
       contextMenus.some(
         (item) =>
-          item.command === "skillNinja.reinstallRoot" &&
+          item.command === "skillNinja.updateRoot" &&
+          item.group.startsWith("inline") &&
           item.when ===
             `view == ${viewId} && viewItem == skillRootGroupReinstallable`,
       ),
-      `${viewId} should expose skillNinja.reinstallRoot only on reinstallable root groups`,
+      `${viewId} should expose skillNinja.updateRoot only on reinstallable root groups`,
+    );
+    assert.ok(
+      contextMenus.some(
+        (item) =>
+          item.command === "skillNinja.reinstallRoot" &&
+          item.when.includes(viewId) &&
+          item.when.includes("viewItem == skillRootGroupReinstallable") &&
+          !item.group.startsWith("inline"),
+      ),
     );
   }
 });
@@ -1638,7 +1646,7 @@ test("README files document root inline maintenance actions and renamed labels",
       "Regenerate Skill Output / Create / Refresh View / Settings",
     ),
   );
-  assert.ok(readme.includes("Reinstall Remote Skills in This Root"));
+  assert.ok(readme.includes("Update Changed Skills in This Root"));
   assert.ok(readme.includes("disabled for future reinstall checks"));
   assert.ok(
     readme.includes("Legacy `source: unknown` skills without a `remotePath`"),
@@ -1650,7 +1658,7 @@ test("README files document root inline maintenance actions and renamed labels",
       "スキル出力 / スキル出力を再生成 / 新規作成 / ビューを更新 / 設定",
     ),
   );
-  assert.ok(readmeJa.includes("このルートのリモートスキルを再インストール"));
+  assert.ok(readmeJa.includes("このルートの変更されたスキルを更新"));
   assert.ok(readmeJa.includes("今後確認しない"));
   assert.ok(readmeJa.includes("`source: unknown` かつ `remotePath` が無い"));
   assert.ok(readmeJa.includes("Agent Skills Ninja: スキル出力を再生成"));

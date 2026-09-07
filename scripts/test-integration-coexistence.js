@@ -420,9 +420,14 @@ function loadInstructionManager(vscodeStub, injectedSkills, options = {}) {
       }
       if (req === "./shared-store-lock") {
         return {
-          withSharedStoreLock: async (_id, task) =>
-            task({ assertHeld() {}, assertStillOwned: async () => {} }),
-          describeSharedStoreLockFailure: () => undefined,
+          withSharedStoreLock: async (_id, task) => {
+            if (options.lockUnavailable) {
+              throw new Error("fixture lock unavailable");
+            }
+            return task({ assertHeld() {}, assertStillOwned: async () => {} });
+          },
+          describeSharedStoreLockFailure: () =>
+            options.lockUnavailable ? "lock-unavailable" : undefined,
         };
       }
       if (req === "./constants") {
@@ -678,13 +683,146 @@ test("Scenario A-unreadable: an instruction file that cannot be read is left alo
     const ctx = makeContext();
     const root = makeRoot(wsUri);
 
+    const reported = [];
+    const stopObserving = instructionManager.observeOutputWrites(
+      ctx,
+      (uri, result) => reported.push({ uri, result }),
+    );
+    const result = await instructionManager.updateInstructionFileForRoot(
+      root,
+      ctx,
+    );
+    assert.strictEqual(result, "unreadable");
+    assert.strictEqual(reported.length, 1);
+    assert.strictEqual(reported[0].result, "unreadable");
+    assert.strictEqual(reported[0].uri.fsPath, agentsPath);
+    stopObserving();
     await instructionManager.updateInstructionFileForRoot(root, ctx);
+    assert.strictEqual(reported.length, 1);
 
     assert.strictEqual(
       fs.readFileSync(agentsPath, "utf8"),
       original,
       "a file that exists but cannot be read must not be replaced by the generated block",
     );
+  } finally {
+    cleanupTmp(tmp);
+  }
+});
+
+test("Scenario A-unreadable-stat: failed reads and failed existence checks never authorize writes", async () => {
+  const tmp = setupTmpFixture("A-skill-solo");
+  try {
+    const agentsPath = path.join(tmp, "AGENTS.md");
+    const original = fs.readFileSync(agentsPath, "utf8");
+    const wsUri = makeUri(tmp);
+    const stub = makeVscodeStub({
+      workspaceUri: wsUri,
+      settings: { "skillNinja.outputFormat": "full" },
+      unreadablePaths: [agentsPath],
+    });
+    const originalStat = stub.workspace.fs.stat.bind(stub.workspace.fs);
+    stub.workspace.fs.stat = async (uri) => {
+      if (uri.fsPath === agentsPath) {
+        const error = new Error(
+          "FileNotFound appears in a private path, but permission is denied",
+        );
+        error.code = "EACCES";
+        throw error;
+      }
+      return originalStat(uri);
+    };
+    const { instructionManager } = loadInstructionManager(stub, [
+      makeSampleSkill("sample-alpha", "First sample skill"),
+    ]);
+    await instructionManager.updateInstructionFileForRoot(
+      makeRoot(wsUri),
+      makeContext(),
+    );
+    assert.strictEqual(fs.readFileSync(agentsPath, "utf8"), original);
+  } finally {
+    cleanupTmp(tmp);
+  }
+});
+
+test("Scenario A-ref-unreadable-stat: unreadable catalog stays intact even when stat fails", async () => {
+  const tmp = setupTmpFixture("A-skill-solo");
+  try {
+    const catalogPath = path.join(tmp, ".github", "catalog", "skills.md");
+    fs.mkdirSync(path.dirname(catalogPath), { recursive: true });
+    const original = "User-authored catalog content\r\n";
+    fs.writeFileSync(catalogPath, original);
+    const wsUri = makeUri(tmp);
+    const stub = makeVscodeStub({
+      workspaceUri: wsUri,
+      settings: {
+        "skillNinja.outputFormat": "ref",
+        "skillNinja.refCatalogPath": ".github/catalog/skills.md",
+      },
+      unreadablePaths: [catalogPath],
+    });
+    const originalStat = stub.workspace.fs.stat.bind(stub.workspace.fs);
+    stub.workspace.fs.stat = async (uri) => {
+      if (uri.fsPath === catalogPath) {
+        throw new Error("FileNotFound in a message does not prove absence");
+      }
+      return originalStat(uri);
+    };
+    const { instructionManager } = loadInstructionManager(stub, [
+      makeSampleSkill("sample-alpha", "First sample skill"),
+    ]);
+    await instructionManager.updateInstructionFileForRoot(
+      makeRoot(wsUri),
+      makeContext(),
+    );
+    assert.strictEqual(fs.readFileSync(catalogPath, "utf8"), original);
+  } finally {
+    cleanupTmp(tmp);
+  }
+});
+
+test("output failures and unavailable locks are reported without changing the original", async () => {
+  const tmp = setupTmpFixture("A-skill-solo");
+  try {
+    const wsUri = makeUri(tmp);
+    const agentsPath = path.join(tmp, "AGENTS.md");
+    const original = fs.readFileSync(agentsPath, "utf8");
+    for (const locked of [false, true]) {
+      const stub = makeVscodeStub({
+        workspaceUri: wsUri,
+        settings: { "skillNinja.outputFormat": "full" },
+      });
+      let writes = 0;
+      stub.workspace.fs.writeFile = async () => {
+        writes++;
+        throw new Error("private write error");
+      };
+      const { instructionManager } = loadInstructionManager(
+        stub,
+        [makeSampleSkill("sample-alpha", "First skill")],
+        { lockUnavailable: locked },
+      );
+      const ctx = makeContext();
+      const results = [];
+      instructionManager.observeOutputWrites(ctx, (_, result) =>
+        results.push(result),
+      );
+      const group = {
+        scope: locked ? "userGlobal" : "workspace",
+        members: [makeRoot(wsUri)],
+        instructionUri: makeUri(agentsPath),
+        instructionPath: agentsPath,
+        targetIds: ["workspace"],
+        format: "full",
+      };
+      assert.strictEqual(
+        await instructionManager.writeOutputGroup(group, ctx),
+        locked ? "locked" : "failed",
+      );
+      assert.deepStrictEqual(results, [locked ? "locked" : "failed"]);
+      assert.strictEqual(writes, locked ? 0 : 1);
+      assert.strictEqual(fs.readFileSync(agentsPath, "utf8"), original);
+    }
   } finally {
     cleanupTmp(tmp);
   }
@@ -707,7 +845,11 @@ test("Scenario A-missing: a genuinely absent instruction file is still created",
     const ctx = makeContext();
     const root = makeRoot(wsUri);
 
-    await instructionManager.updateInstructionFileForRoot(root, ctx);
+    const result = await instructionManager.updateInstructionFileForRoot(
+      root,
+      ctx,
+    );
+    assert.strictEqual(result, "updated");
 
     assert.strictEqual(
       fs.existsSync(agentsPath),

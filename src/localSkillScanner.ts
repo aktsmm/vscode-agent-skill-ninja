@@ -328,17 +328,24 @@ async function readSkillMetaFileResult(
     try {
       await vscode.workspace.fs.stat(metaUri);
       return { status: "unreadable" };
-    } catch {
-      return { status: "absent" };
+    } catch (error) {
+      const code = (error as { code?: unknown } | null)?.code;
+      return {
+        status:
+          code === "FileNotFound" || code === "ENOENT"
+            ? "absent"
+            : "unreadable",
+      };
     }
   }
   try {
+    const parsed: unknown = JSON.parse(Buffer.from(raw).toString("utf-8"));
+    if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {
+      return { status: "invalid" };
+    }
     return {
       status: "ok",
-      meta: enrichSkillMeta(
-        JSON.parse(Buffer.from(raw).toString("utf-8")) as SkillMeta,
-        trustedRelativePath,
-      ),
+      meta: enrichSkillMeta(parsed as SkillMeta, trustedRelativePath),
     };
   } catch {
     return { status: "invalid" };
@@ -684,9 +691,9 @@ export async function registerLocalSkill(
       skill.skillDirUri,
       skill.relativePath,
     );
-    if (read.status === "unreadable") {
+    if (read.status === "unreadable" || read.status === "invalid") {
       console.error(
-        `[Skill Ninja] .skill-meta.json for "${skill.name}" exists but could not be read; leaving it alone`,
+        `[Skill Ninja] .skill-meta.json for "${skill.name}" could not be read or parsed; leaving it alone`,
       );
       return false;
     }
@@ -728,9 +735,9 @@ export async function unregisterLocalSkill(
       skill.skillDirUri,
       skill.relativePath,
     );
-    if (read.status === "unreadable") {
+    if (read.status === "unreadable" || read.status === "invalid") {
       console.error(
-        `[Skill Ninja] .skill-meta.json for "${skill.name}" exists but could not be read; leaving it alone`,
+        `[Skill Ninja] .skill-meta.json for "${skill.name}" could not be read or parsed; leaving it alone`,
       );
       return false;
     }

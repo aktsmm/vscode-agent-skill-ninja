@@ -114,7 +114,10 @@ function loadInstaller({
   existingDirs = [],
   unreadableDirs = [],
   unreadableError,
+  metadataReadFailure,
+  metadataAfterOwnerCheck,
 } = {}) {
+  let metadataReads = 0;
   const writes = [];
   const deletes = [];
   const deleteCalls = [];
@@ -171,6 +174,14 @@ function loadInstaller({
       throw new Error(`ENOENT: ${uri.fsPath}`);
     },
     async readFile(uri) {
+      if (uri.fsPath.endsWith(".skill-meta.json") && ++metadataReads > 1) {
+        if (metadataReadFailure) {
+          throw metadataReadFailure;
+        }
+        if (metadataAfterOwnerCheck !== undefined) {
+          files.set(uri.fsPath, metadataAfterOwnerCheck);
+        }
+      }
       if (!files.has(uri.fsPath)) {
         throw new Error(`ENOENT: ${uri.fsPath}`);
       }
@@ -321,6 +332,13 @@ function loadInstaller({
           },
         };
       }
+      if (request === "./skillUpdates") {
+        return {
+          createSkillRevisionResolver: () => async () => {
+            throw new Error("Revision unavailable in legacy install fixtures");
+          },
+        };
+      }
       if (request.startsWith("./")) {
         return requireSrcModule(request);
       }
@@ -451,6 +469,47 @@ async function main() {
       "keep me",
       "user metadata must survive a same-owner reinstall",
     );
+  });
+
+  await test("reinstall preserves metadata that becomes unreadable or invalid after the owner check", async () => {
+    const original = JSON.stringify({
+      name: "demo",
+      source: "test-source",
+      relativePath: "demo",
+      customWhenToUse: "keep me",
+      registrationDisabled: true,
+    });
+    const denied = new Error(
+      "FileNotFound in text must not override permissions",
+    );
+    denied.code = "NoPermissions";
+    for (const options of [
+      { metadataReadFailure: denied },
+      { metadataAfterOwnerCheck: "ENOENT invalid json" },
+      { metadataAfterOwnerCheck: "[]" },
+    ]) {
+      const harness = loadInstaller({
+        ...demoSources(),
+        ...options,
+        existingDirs: [DEMO_DIR_FS],
+        existingFiles: {
+          [DEMO_META_FS]: original,
+          [DEMO_SKILL_MD_FS]: SKILL_MD,
+        },
+      });
+      await assert.rejects(
+        () => installDemo(harness),
+        (error) =>
+          error.name === "SkillInstallIncompleteError" &&
+          error.failures[0].kind === "filesystem",
+      );
+      assert.strictEqual(
+        harness.files.get(DEMO_META_FS),
+        options.metadataAfterOwnerCheck ?? original,
+      );
+      assert.ok(!harness.writes.includes(DEMO_META_FS));
+      assert.deepStrictEqual(Array.from(harness.deletes), []);
+    }
   });
 
   await test("existing folder without metadata is treated as unknown owner", async () => {

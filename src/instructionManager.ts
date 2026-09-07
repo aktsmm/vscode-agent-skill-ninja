@@ -324,9 +324,15 @@ async function readExistingOutput(
     const content = await vscode.workspace.fs.readFile(fileUri);
     return { readable: true, content: Buffer.from(content).toString("utf-8") };
   } catch {
-    return (await fileExists(fileUri))
-      ? { readable: false }
-      : { readable: true, content: "" };
+    try {
+      await vscode.workspace.fs.stat(fileUri);
+    } catch (error) {
+      const code = (error as { code?: unknown } | null)?.code;
+      if (code === "FileNotFound" || code === "ENOENT") {
+        return { readable: true, content: "" };
+      }
+    }
+    return { readable: false };
   }
 }
 
@@ -378,19 +384,58 @@ export async function withOutputWriteLock<T>(
  * グループには有効なターゲットの root しか入らないので、無効化された
  * 出力先のスキルが他のファイルへ混入することはない。
  */
+export type OutputWriteResult =
+  | "updated"
+  | "unchanged"
+  | "disabled"
+  | "deferred"
+  | "unreadable"
+  | "locked"
+  | "failed";
+
+const outputWriteReporters = new WeakMap<
+  vscode.ExtensionContext,
+  (uri: vscode.Uri, result: OutputWriteResult) => void
+>();
+
+export function observeOutputWrites(
+  context: vscode.ExtensionContext,
+  reporter: (uri: vscode.Uri, result: OutputWriteResult) => void,
+): () => void {
+  outputWriteReporters.set(context, reporter);
+  return () => {
+    if (outputWriteReporters.get(context) === reporter) {
+      outputWriteReporters.delete(context);
+    }
+  };
+}
+
 export async function writeOutputGroup(
   group: ResolvedOutputGroup,
   context: vscode.ExtensionContext,
-): Promise<void> {
-  await withOutputWriteLock(group.scope, () =>
-    writeOutputGroupUnlocked(group, context),
-  );
+): Promise<OutputWriteResult> {
+  let result: OutputWriteResult;
+  try {
+    result =
+      (await withOutputWriteLock(group.scope, () =>
+        writeOutputGroupUnlocked(group, context),
+      )) ?? "locked";
+  } catch {
+    console.error("[Skill Ninja] Output generation failed");
+    result = "failed";
+  }
+  try {
+    outputWriteReporters.get(context)?.(group.instructionUri, result);
+  } catch {
+    console.error("[Skill Ninja] Output result reporting failed");
+  }
+  return result;
 }
 
 async function writeOutputGroupUnlocked(
   group: ResolvedOutputGroup,
   context: vscode.ExtensionContext,
-): Promise<void> {
+): Promise<OutputWriteResult> {
   const mode = getCoexistenceMode();
   const ownership = await getEffectiveOwnership(context);
 
@@ -407,7 +452,7 @@ async function writeOutputGroupUnlocked(
     // Resources Ninja が独自マーカーで catalog を書くため、残存すると重複する。
     await cleanupCatalogOnDefer(group);
 
-    return;
+    return "deferred";
   }
 
   const installedSkills = await getInstalledSkillsWithLinkPaths(
@@ -416,12 +461,17 @@ async function writeOutputGroupUnlocked(
   );
   const localSkills: LocalSkill[] = [];
 
+  const existing = await readExistingOutput(group.instructionUri);
+  if (!existing.readable) {
+    return "unreadable";
+  }
+
   // 空の出力先に instruction ファイルを新規作成しない。既にあるなら管理ブロックだけ更新する。
   if (
     installedSkills.length === 0 &&
     !(await fileExists(group.instructionUri))
   ) {
-    return;
+    return "unchanged";
   }
 
   console.log(
@@ -435,15 +485,16 @@ async function writeOutputGroupUnlocked(
     mode === "independent" ? LEGACY_SKILL_MARKERS : SHARED_MARKERS;
 
   let skillSection: string;
+  let catalogUpdated = false;
   if (group.format === "ref") {
     // ref モード: catalog ファイルに詳細を書き出し、instruction ファイルは軽量な routing のみにする
-    const catalogLink = await writeCatalogFile(
-      group,
-      installedSkills,
-      localSkills,
-    );
+    const catalog = await writeCatalogFile(group, installedSkills, localSkills);
+    if (catalog.status === "unreadable") {
+      return "unreadable";
+    }
+    catalogUpdated = catalog.status === "updated";
     skillSection = swapMarkers(
-      generateRefSection(catalogLink),
+      generateRefSection(catalog.link),
       SHARED_MARKERS,
       targetMarkers,
     );
@@ -460,13 +511,6 @@ async function writeOutputGroupUnlocked(
     );
   }
 
-  const existing = await readExistingOutput(group.instructionUri);
-  if (!existing.readable) {
-    console.warn(
-      `[Skill Ninja] Skipping the instruction write; ${group.instructionPath} exists but could not be read`,
-    );
-    return;
-  }
   const existingContent = existing.content;
 
   // 生成ブロックは LF で組み立てる。既存が一様な CRLF のときだけ、書き戻す前に
@@ -480,7 +524,7 @@ async function writeOutputGroupUnlocked(
   );
 
   if (newContent === existingContent) {
-    return;
+    return catalogUpdated ? "updated" : "unchanged";
   }
 
   const dir = vscode.Uri.joinPath(group.instructionUri, "..");
@@ -489,6 +533,7 @@ async function writeOutputGroupUnlocked(
     group.instructionUri,
     Buffer.from(newContent, "utf-8"),
   );
+  return "updated";
 }
 
 /**
@@ -498,9 +543,9 @@ async function writeOutputGroupUnlocked(
 export async function updateInstructionFileForRoot(
   root: SkillRoot,
   context: vscode.ExtensionContext,
-): Promise<void> {
+): Promise<OutputWriteResult> {
   if (!root.instructionUri || !root.instructionPath) {
-    return;
+    return "disabled";
   }
 
   const workspaceUri =
@@ -530,20 +575,22 @@ export async function updateInstructionFileForRoot(
     )[0];
 
   if (!group) {
-    return;
+    return "disabled";
   }
 
-  await writeOutputGroup(group, context);
+  return writeOutputGroup(group, context);
 }
 
 export async function updateAllInstructionFiles(
   workspaceUri: vscode.Uri,
   context: vscode.ExtensionContext,
-): Promise<void> {
+): Promise<OutputWriteResult[]> {
   const groups = await resolveGroupsForWorkspace(workspaceUri);
+  const results: OutputWriteResult[] = [];
   for (const group of groups) {
-    await writeOutputGroup(group, context);
+    results.push(await writeOutputGroup(group, context));
   }
+  return results;
 }
 
 /**
@@ -652,7 +699,7 @@ async function writeCatalogFile(
   group: ResolvedOutputGroup,
   installedSkills: SkillMeta[],
   localSkills: LocalSkill[],
-): Promise<string> {
+): Promise<{ link: string; status: "updated" | "unchanged" | "unreadable" }> {
   const catalogUri =
     group.catalogUri ||
     vscode.Uri.joinPath(group.instructionUri, "..", group.catalogPath);
@@ -681,13 +728,15 @@ async function writeCatalogFile(
     console.warn(
       `[Skill Ninja] Skipping the catalog write; ${catalogUri.fsPath} exists but could not be read`,
     );
-    return catalogLinkFromInstruction;
+    return { link: catalogLinkFromInstruction, status: "unreadable" };
   }
   const existingCatalogContent = existingCatalog.content;
 
   const catalogEol = detectUniformEol(existingCatalogContent);
   const baseCatalogContent =
-    catalogEol === "\r\n" ? toLf(existingCatalogContent) : existingCatalogContent;
+    catalogEol === "\r\n"
+      ? toLf(existingCatalogContent)
+      : existingCatalogContent;
 
   const newCatalogContent = applyEol(
     updateSection(
@@ -708,7 +757,11 @@ async function writeCatalogFile(
     console.log(`[Skill Ninja] Written skill catalog to ${catalogUri.fsPath}`);
   }
 
-  return catalogLinkFromInstruction;
+  return {
+    link: catalogLinkFromInstruction,
+    status:
+      newCatalogContent !== existingCatalogContent ? "updated" : "unchanged",
+  };
 }
 
 /**
