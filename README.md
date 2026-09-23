@@ -128,6 +128,8 @@ Settings → **Output Format** → Select `ref`, `full`, `compact`, or `legacy`
 - **Edit Description** - Right-click to customize skill description
 - Uninstall functionality
 - **Update Changed Skills** - Update only skills whose upstream contents changed; unchanged skills and local edits stay untouched. Changed skills overwrite local edits after confirmation. Existing skills without a comparison baseline need an explicitly confirmed first sync.
+- **Upstream Renames** - If a skill's original path disappears, a unique `SKILL.md` rename verified against its recorded commit and current GitHub revision is offered as a separate install. The old copy stays untouched; no install occurs without confirmation. Ambiguous or unverifiable changes remain deferred. If installation succeeds but view/instruction refresh fails, regenerate skill output; an incomplete installation is reported separately.
+- **Unindexed Installs** - A skill installed under a new name is still checked against its recorded upstream revision even before the source index lists it. Unchanged contents stay unchanged; upstream changes remain deferred until the source index is refreshed.
 - **Reinstall All** - Explicitly force a batch reinstall for repair (with auto index update)
 - **Source-aware Missing Index Recovery** - When reinstall hits missing index entries, the extension now updates only the affected source when it can be identified, instead of always refreshing every source
 - **Partial Failure Warnings** - Batch reinstall flows now warn with succeeded/failed counts when only part of the selection could be reinstalled

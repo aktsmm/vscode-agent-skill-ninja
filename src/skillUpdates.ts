@@ -92,6 +92,13 @@ function failure(): Error {
   return new Error("Unable to resolve skill source revision.");
 }
 
+export class SkillSourcePathMissingError extends Error {
+  constructor() {
+    super("Skill source path no longer exists.");
+    this.name = "SkillSourcePathMissingError";
+  }
+}
+
 function assertActive(signal?: AbortSignal): void {
   if (signal?.aborted) {
     const error = new Error("Skill source revision request cancelled.");
@@ -251,10 +258,10 @@ export function createSkillRevisionResolver(
             throw failure();
           }
           selected = parent.entries.find((entry) => entry.path === part);
-          if (
-            !selected ||
-            (index < parts.length - 1 && selected.type !== "tree")
-          ) {
+          if (!selected) {
+            throw new SkillSourcePathMissingError();
+          }
+          if (index < parts.length - 1 && selected.type !== "tree") {
             throw failure();
           }
           parentSha = selected.sha;
@@ -265,10 +272,12 @@ export function createSkillRevisionResolver(
         );
       }
       assertActive(signal);
+      if (!selected) {
+        throw new SkillSourcePathMissingError();
+      }
       if (
-        !selected ||
-        (selected.type !== "tree" &&
-          !(selected.type === "blob" && /\.md$/i.test(target.remotePath)))
+        selected.type !== "tree" &&
+        !(selected.type === "blob" && /\.md$/i.test(target.remotePath))
       ) {
         throw failure();
       }
@@ -283,6 +292,9 @@ export function createSkillRevisionResolver(
       };
     } catch (error) {
       assertActive(signal);
+      if (error instanceof SkillSourcePathMissingError) {
+        throw error;
+      }
       if (isGitHubResponseError(error)) {
         throw new GitHubResponseError(
           error.kind,
@@ -293,6 +305,85 @@ export function createSkillRevisionResolver(
       throw failure();
     }
   };
+}
+
+export async function findRenamedSkillRevision(
+  previous: SkillSourceRevision,
+  token?: string,
+  signal?: AbortSignal,
+  request: typeof fetchGitHubWithOptionalAuthRetry = fetchGitHubWithOptionalAuthRetry,
+): Promise<SkillSourceRevision | undefined> {
+  if (!revision(previous) || previous.kind !== "tree" || !previous.remotePath) {
+    return undefined;
+  }
+  assertActive(signal);
+  const owner = previous.owner.toLowerCase();
+  const repo = previous.repo.toLowerCase();
+  const response = await request(
+    `https://api.github.com/repos/${owner}/${repo}/compare/${previous.commitSha}...${encodeURIComponent(previous.ref)}`,
+    { accept: "application/vnd.github.v3+json", token, retry: { signal } },
+  );
+  assertActive(signal);
+  if (!response.ok) {
+    const body = await response.text().catch(() => "");
+    throw createGitHubResponseError(response, body, "Skill rename check");
+  }
+  const comparison: unknown = await response.json();
+  assertActive(signal);
+  if (
+    !record(comparison) ||
+    comparison.status !== "ahead" ||
+    typeof comparison.total_commits !== "number" ||
+    comparison.total_commits < 1 ||
+    comparison.total_commits > 250 ||
+    !record(comparison.base_commit) ||
+    !record(comparison.merge_base_commit) ||
+    comparison.base_commit.sha !== previous.commitSha ||
+    comparison.merge_base_commit.sha !== previous.commitSha ||
+    !Array.isArray(comparison.commits) ||
+    comparison.commits.length !== comparison.total_commits ||
+    !Array.isArray(comparison.files) ||
+    comparison.files.length >= 300
+  ) {
+    return undefined;
+  }
+  const head = comparison.commits.at(-1);
+  if (!record(head) || !sha(head.sha)) {
+    return undefined;
+  }
+  const oldFile = `${previous.remotePath}/SKILL.md`;
+  const renames = comparison.files.filter(
+    (file: unknown) =>
+      record(file) &&
+      file.status === "renamed" &&
+      file.previous_filename === oldFile &&
+      typeof file.filename === "string" &&
+      file.filename.endsWith("/SKILL.md"),
+  );
+  if (renames.length !== 1) {
+    return undefined;
+  }
+  const newPath = (renames[0] as { filename: string }).filename.slice(
+    0,
+    -"/SKILL.md".length,
+  );
+  if (newPath === previous.remotePath || !newPath.split("/").every(segment)) {
+    return undefined;
+  }
+  const current = await createSkillRevisionResolver(
+    token,
+    signal,
+    request,
+  )({
+    owner,
+    repo,
+    branch: previous.ref,
+    remotePath: newPath,
+  });
+  if (current.commitSha !== head.sha.toLowerCase()) {
+    return undefined;
+  }
+  return current;
 }
 
 export function classifySkillUpdate(

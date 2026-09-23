@@ -1,5 +1,5 @@
 {
-  "version": "1.29.0",
+  "version": "1.30.0",
   "lastUpdated": "2026-08-18",
   "sources": [
     {
@@ -63,7 +63,9 @@
       "name": "LifeOS Skills (PAI successor)",
       "url": "https://github.com/danielmiessler/LifeOS",
       "type": "community",
-      "includePaths": ["LifeOS/install/skills"],
+      "includePaths": [
+        "LifeOS/install/skills"
+      ],
       "description": "LifeOS Skills (PAI successor)",
       "description_ja": "LifeOS Skills (PAI successor)",
       "lastIndexedAt": "2026-08-17T05:34:13.586Z"
@@ -83,7 +85,9 @@
       "url": "https://github.com/Wirasm/prp",
       "type": "community",
       "branch": "development",
-      "includePaths": [".agents/skills"],
+      "includePaths": [
+        ".agents/skills"
+      ],
       "description": "PRP Agentic Engineering",
       "description_ja": "PRP Agentic Engineering",
       "lastIndexedAt": "2026-08-17T05:34:13.586Z"
@@ -105,7 +109,9 @@
       "branch": "main",
       "description": "oh-my-codex (OMX) Codex workflow skills",
       "description_ja": "oh-my-codex (OMX) Codex workflow skills",
-      "includePaths": ["skills"],
+      "includePaths": [
+        "skills"
+      ],
       "lastIndexedAt": "2026-08-24T04:22:46.527Z"
     },
     {
@@ -124,7 +130,7 @@
       "type": "official",
       "description": "Google Skills (Official)",
       "description_ja": "Google Skills (Official)",
-      "lastIndexedAt": "2026-09-07T00:00:00.719Z"
+      "lastIndexedAt": "2026-09-23T22:12:16.570Z"
     }
   ],
   "categories": [
@@ -248,8 +254,16 @@
       "source": "pai-packs",
       "description": "PAI infrastructure skills - Art, CreateSkill, Prompting",
       "description_ja": "PAI 基盤スキル - アート・スキル作成・プロンプティング",
-      "skills": ["Art", "CreateSkill", "Prompting"],
-      "installOrder": ["Art", "CreateSkill", "Prompting"]
+      "skills": [
+        "Art",
+        "CreateSkill",
+        "Prompting"
+      ],
+      "installOrder": [
+        "Art",
+        "CreateSkill",
+        "Prompting"
+      ]
     }
   ],
   "skills": [
@@ -1213,7 +1227,9 @@
       "name": "artifacts-builder",
       "source": "composio-awesome",
       "path": "artifacts-builder",
-      "categories": ["community"],
+      "categories": [
+        "community"
+      ],
       "description": "Suite of tools for creating elaborate, multi-component claude.ai HTML artifacts using modern frontend web technologies (React, Tailwind CSS, shadcn/ui). Use for complex artifacts requiring state management, routing, or shadcn/ui components - not for simple single-file HTML/JSX artifacts.",
       "description_ja": "Artifacts Builder",
       "license": "Complete terms in LICENSE.txt"
@@ -3393,7 +3409,7 @@
       "source": "google-skills",
       "path": "skills/cloud/bigquery-ai-ml",
       "categories": [],
-      "description": "Leverages BigQuery's built-in machine learning and GenAI capabilities for advanced data analytics. Use when you need to write SQL queries that perform time-series forecasting, predict values, detect outliers or anomalies, find key drivers, perform semantic search or vector search, classify text, calculate similarity, summarize content, translate language, evaluate models, filter by semantic conditions, or leverage generative AI capabilities in BigQuery. Do not use for general BigQuery dataset, table, or job management requests.",
+      "description": "Leverages BigQuery's built-in machine learning and GenAI capabilities for advanced data analytics. Use when you need to write SQL queries that perform time-series forecasting, predict values, detect outliers or anomalies, find key drivers, perform semantic search or vector search, classify text, calculate similarity, summarize content, translate language, evaluate models, filter by semantic conditions, measure the causal effect of an intervention, compute correlations between columns, detect change points or structural breaks, extract trend or seasonality components, or leverage generative AI capabilities in BigQuery. Do not use for general BigQuery dataset, table, or job management requests.",
       "description_ja": ""
     },
     {
@@ -3409,7 +3425,15 @@
       "source": "google-skills",
       "path": "skills/cloud/bigquery-bigframes",
       "categories": [],
-      "description": "Generates Python code using BigQuery DataFrames (BigFrames), the pandas/scikit-learn-style API over BigQuery. Use when writing BigFrames code or doing pandas-style dataframe/ML work against BigQuery (e.g. in a notebook). Don't use for SQL-first workflows or the google-cloud-bigquery client library — use bigquery-basics.",
+      "description": "Generates Python code using BigQuery DataFrames (BigFrames). Use by default for any Python data task involving BigQuery, including data processing, analysis, and machine learning. Don't use for SQL-first workflows or the google-cloud-bigquery client library — use bigquery-basics.",
+      "description_ja": ""
+    },
+    {
+      "name": "bigquery-observability",
+      "source": "google-skills",
+      "path": "skills/cloud/bigquery-observability",
+      "categories": [],
+      "description": "Provides data-retrieval best practices, tool selection guidance, and performant SQL query syntax for BigQuery telemetry across INFORMATION_SCHEMA, Cloud Monitoring, and the REST API. Use when the telemetry to fetch is already known, selecting telemetry tools, writing performant INFORMATION_SCHEMA queries, retrieving telemetry for diagnosing single-job performance bottlenecks, investigating slot contention, job concurrency and queue latency, analyzing reservation capacity, utilization and autoscaling saturation, or auditing capacity-based and on-demand compute and storage resource billable usage. Don't use for root-cause diagnosis or symptom troubleshooting when the cause is unknown (use bigquery-troubleshooting first), or for writing or optimizing business logic SQL (use bigquery-optimization).",
       "description_ja": ""
     },
     {
@@ -3418,6 +3442,14 @@
       "path": "skills/bigquery-pipeline-audit",
       "categories": [],
       "description": "Audits Python + BigQuery pipelines for cost safety, idempotency, and production readiness. Returns a structured report with exact patch locations.",
+      "description_ja": ""
+    },
+    {
+      "name": "bigquery-slot-cost-optimizer",
+      "source": "google-skills",
+      "path": "skills/cloud/bigquery-slot-cost-optimizer",
+      "categories": [],
+      "description": "Analyzes Google Cloud BigQuery slot consumption, query costs, and execution bottlenecks using INFORMATION_SCHEMA. Use when diagnosing slow BigQuery queries, slot starvation, high on-demand query costs, unpartitioned table scans, or join performance issues. Don't use for generic BigQuery administration (use bigquery-basics), BigQuery ML (use bigquery-ai-ml), or DataFrame operations (use bigquery-bigframes).",
       "description_ja": ""
     },
     {
@@ -4350,7 +4382,9 @@
       "name": "changelog-generator",
       "source": "composio-awesome",
       "path": "changelog-generator",
-      "categories": ["community"],
+      "categories": [
+        "community"
+      ],
       "description": "Automatically creates user-facing changelogs from git commits by analyzing commit history, categorizing changes, and transforming technical commits into clear, customer-friendly release notes. Turns hours of manual changelog writing into minutes of automated generation.",
       "description_ja": "Changelog Generator"
     },
@@ -4571,6 +4605,14 @@
       "path": "skills/cloud/cloud-monitoring-promql-query",
       "categories": [],
       "description": "Generates valid PromQL queries from Cloud Monitoring metric descriptors and resource parameters. Use when asked to create, generate, write, or format PromQL queries, PromQL strings, or PromQL aggregations for Cloud Monitoring metrics and resources. Don't use for raw metric discovery or metric selection.",
+      "description_ja": ""
+    },
+    {
+      "name": "cloud-run-alert-configuration",
+      "source": "google-skills",
+      "path": "skills/cloud/cloud-run-alert-configuration",
+      "categories": [],
+      "description": "Configures best-practice, high-signal alerting policies for Google Cloud Run resources (services, jobs, and worker pools) based on seasoned SRE practices. Use when analyzing, recommending, writing, or deploying Terraform PromQL alerting policies to monitor Cloud Run error rates (4xx/5xx), request latency, container instance saturation (warning/critical), container CPU/memory utilization and allocation, billable instance time, job execution status, and worker pool queue backlog. Don't use for GKE workloads (use gke-alert-configuration) or Compute Engine VMs.",
       "description_ja": ""
     },
     {
@@ -4810,7 +4852,9 @@
       "name": "competitive-ads-extractor",
       "source": "composio-awesome",
       "path": "competitive-ads-extractor",
-      "categories": ["community"],
+      "categories": [
+        "community"
+      ],
       "description": "Extracts and analyzes competitors' ads from ad libraries (Facebook, LinkedIn, etc.) to understand what messaging, problems, and creative approaches are working. Helps inspire and improve your own ad campaigns.",
       "description_ja": "Extract competitive advertising data"
     },
@@ -4860,7 +4904,9 @@
       "name": "connect",
       "source": "composio-awesome",
       "path": "connect",
-      "categories": ["community"],
+      "categories": [
+        "community"
+      ],
       "description": "Connect Claude to any app. Send emails, create issues, post messages, update databases - take real actions across Gmail, Slack, GitHub, Notion, and 1000+ services.",
       "description_ja": "Connect"
     },
@@ -4868,7 +4914,9 @@
       "name": "connect-apps",
       "source": "composio-awesome",
       "path": "connect-apps",
-      "categories": ["community"],
+      "categories": [
+        "community"
+      ],
       "description": "Connect Claude to external apps like Gmail, Slack, GitHub. Use this skill when the user wants to send emails, create issues, post messages, or take actions in external services.",
       "description_ja": "Connect Apps"
     },
@@ -4908,7 +4956,9 @@
       "name": "content-research-writer",
       "source": "composio-awesome",
       "path": "content-research-writer",
-      "categories": ["community"],
+      "categories": [
+        "community"
+      ],
       "description": "Assists in writing high-quality content by conducting research, adding citations, improving hooks, iterating on outlines, and providing real-time feedback on each section. Transforms your writing process from solo effort to collaborative partnership.",
       "description_ja": "Content Research Writer"
     },
@@ -5622,6 +5672,14 @@
       "description_ja": ""
     },
     {
+      "name": "dbt-sf-to-bq-translator",
+      "source": "google-skills",
+      "path": "skills/cloud/dbt-sf-to-bq-translator",
+      "categories": [],
+      "description": "Translates Snowflake dbt SQL models to Standardized BigQuery SQL. Handles SQL compilation, Jinja macro placeholder masking, BigQuery Translation Service migration workflows, AST-based config transformations, explicit type casting, JSON extraction standardization, and deduplication. Use when migrating Snowflake dbt pipelines or models to Google Cloud BigQuery. Don't use for generic BigQuery queries or non-Snowflake SQL migrations.",
+      "description_ja": ""
+    },
+    {
       "name": "deadline-funnel-automation",
       "source": "composio-awesome",
       "path": "composio-skills/deadline-funnel-automation",
@@ -5770,14 +5828,16 @@
       "name": "developer-growth-analysis",
       "source": "composio-awesome",
       "path": "developer-growth-analysis",
-      "categories": ["community"],
+      "categories": [
+        "community"
+      ],
       "description": "Analyzes your recent Claude Code chat history to identify coding patterns, development gaps, and areas for improvement, curates relevant learning resources from HackerNews, and automatically sends a personalized growth report to your Slack DMs.",
       "description_ja": "Developer Growth Analysis"
     },
     {
       "name": "developing-genkit-dart",
       "source": "google-skills",
-      "path": "skills/cloud/genkit-dart",
+      "path": "skills/cloud/developing-genkit-dart",
       "categories": [],
       "description": "Generates code and provides documentation for the Genkit Dart SDK. Use when the user asks to build AI agents in Dart, use Genkit flows, or integrate LLMs into Dart/Flutter applications.",
       "description_ja": ""
@@ -5785,7 +5845,7 @@
     {
       "name": "developing-genkit-go",
       "source": "google-skills",
-      "path": "skills/cloud/genkit-go",
+      "path": "skills/cloud/developing-genkit-go",
       "categories": [],
       "description": "Develop AI-powered applications using Genkit in Go. Use when the user asks to build AI features, agents, flows, or tools in Go using Genkit, or when working with Genkit Go code involving generation, prompts, streaming, tool calling, or model providers.",
       "description_ja": ""
@@ -5793,7 +5853,7 @@
     {
       "name": "developing-genkit-js",
       "source": "google-skills",
-      "path": "skills/cloud/genkit-js",
+      "path": "skills/cloud/developing-genkit-js",
       "categories": [],
       "description": "Develop AI-powered applications using Genkit in Node.js/TypeScript. Use when the user asks about Genkit, AI agents, flows, or tools in JavaScript/TypeScript, or when encountering Genkit errors, validation issues, type errors, or API problems.",
       "description_ja": ""
@@ -5801,7 +5861,7 @@
     {
       "name": "developing-genkit-python",
       "source": "google-skills",
-      "path": "skills/cloud/genkit-python",
+      "path": "skills/cloud/developing-genkit-python",
       "categories": [],
       "description": "Develop AI-powered applications using Genkit in Python. Use when the user asks about Genkit, AI agents, flows, or tools in Python, or when encountering Genkit errors, import issues, or API problems.",
       "description_ja": ""
@@ -6060,7 +6120,9 @@
       "name": "domain-name-brainstormer",
       "source": "composio-awesome",
       "path": "domain-name-brainstormer",
-      "categories": ["community"],
+      "categories": [
+        "community"
+      ],
       "description": "Generates creative domain name ideas for your project and checks availability across multiple TLDs (.com, .io, .dev, .ai, etc.). Saves hours of brainstorming and manual checking.",
       "description_ja": "Brainstorm domain names"
     },
@@ -6761,7 +6823,9 @@
       "name": "file-organizer",
       "source": "composio-awesome",
       "path": "file-organizer",
-      "categories": ["community"],
+      "categories": [
+        "community"
+      ],
       "description": "Intelligently organizes your files and folders across your computer by understanding context, finding duplicates, suggesting better structures, and automating cleanup tasks. Reduces cognitive load and keeps your digital workspace tidy without manual effort.",
       "description_ja": "Organize files and directories"
     },
@@ -7777,7 +7841,15 @@
       "source": "google-skills",
       "path": "skills/cloud/gke-storage",
       "categories": [],
-      "description": "Manages GKE storage, including PVCs, PersistentVolumes, Filestore, and GCS FUSE. Use when configuring GKE storage, creating PVCs, or setting up GCS FUSE on GKE. Don't use for database administration or replication strategies outside volume provisioning context.",
+      "description": "Manages GKE storage, including PVCs, PersistentVolumes, Filestore, and GCS FUSE. Use when configuring GKE storage, creating PVCs, or setting up GCS FUSE on GKE. For diagnosing storage failures (volume attach/mount errors, disk performance/node storage pressure, or Cloud Storage FUSE OOM), use the gke-storage-troubleshooting skill instead. Don't use for database administration or replication strategies outside volume provisioning context.",
+      "description_ja": ""
+    },
+    {
+      "name": "gke-storage-troubleshooting",
+      "source": "google-skills",
+      "path": "skills/cloud/gke-storage-troubleshooting",
+      "categories": [],
+      "description": "Diagnoses GKE persistent-storage failures — volume attach/mount errors (Regional PD on optimized VMs, fsGroup mount timeouts), disk-performance and node storage-pressure issues, slow-disk Pod-creation failures, volume-expansion problems, Local SSD / Hyperdisk Storage Pool creation errors, and Cloud Storage FUSE OOM. Use when Pods are stuck in ContainerCreating, volumes fail to attach or mount, or nodes report storage pressure. Don't use for routine storage provisioning or StorageClass/PVC authoring (see the gke-storage skill).",
       "description_ja": ""
     },
     {
@@ -7786,6 +7858,14 @@
       "path": "skills/cloud/gke-upgrades",
       "categories": [],
       "description": "Plans, executes, and validates Google Kubernetes Engine (GKE) cluster upgrades and maintenance operations for both Standard and Autopilot clusters. Produces upgrade plans, pre/post-upgrade checklists, maintenance runbooks with gcloud commands, release channel strategy, and troubleshooting guides. Handles node pool upgrade strategies (surge, blue-green), version compatibility, PDB management, and workload-specific concerns (stateful, GPU, operators). Use this skill whenever the user mentions GKE upgrades, Kubernetes version bumps, node pool maintenance, GKE patching, cluster version management, release channel selection, maintenance windows, surge upgrades, stuck upgrades, or any GKE lifecycle management task — even casual mentions like \"we need to upgrade our clusters\" or \"plan our next GKE maintenance\" or \"our upgrade is stuck.\" Don't use for GKE cluster creation, application onboarding, general networking/routing setup, or security policy configurations (use gke-basics or relevant GKE skills instead).",
+      "description_ja": ""
+    },
+    {
+      "name": "gke-workload-identity",
+      "source": "google-skills",
+      "path": "skills/cloud/gke-workload-identity",
+      "categories": [],
+      "description": "Diagnoses Workload Identity Federation for GKE authentication failures for Pods (403 \"iam.serviceAccounts.getAccessToken\" / permission denied, \"could not find default credentials\", or GKE metadata server unreachable) by verifying cluster and node-pool Workload Identity configuration, the Kubernetes ServiceAccount (KSA) to IAM binding (direct principal binding and legacy Google ServiceAccount impersonation), target-resource IAM roles, and gke-metadata-server health. Use when a Pod cannot authenticate to Google Cloud APIs even though Workload Identity is expected to be in effect. Don't use for in-cluster Kubernetes RBAC errors (API-server authorization), general workload crashes (use gke-workload-troubleshooting), or Workload Identity setup and hardening (use gke-workload-security).",
       "description_ja": ""
     },
     {
@@ -7992,11 +8072,27 @@
       "description_ja": ""
     },
     {
+      "name": "google-cloud-filestore-auditing",
+      "source": "google-skills",
+      "path": "skills/cloud/google-cloud-filestore-auditing",
+      "categories": [],
+      "description": "Audits Google Cloud Filestore instances across projects for disaster recovery readiness (missing or stale backups), security access governance (overly permissive NFS export rules, 0.0.0.0/0 exposure, missing ROOT_SQUASH), and reliability compliance (Physical Zone Isolation PZI and Physical Zone Separation PZS). Use when assessing storage health posture, auditing NFS export permissions, identifying unprotected file shares, or validating zone failure domains. Don't use for Cloud Storage buckets, Persistent Disk, or NetApp Volumes.",
+      "description_ja": ""
+    },
+    {
       "name": "google-cloud-filestore-autoscale",
       "source": "google-skills",
       "path": "skills/cloud/google-cloud-filestore-autoscale",
       "categories": [],
       "description": "Inspects Google Cloud Filestore capacity and utilization, evaluates storage scaling rules, and performs capacity autoscaling (scale UP for low free space or scale DOWN for cost optimization). Use when monitoring Filestore instance headroom, resizing instance shares, configuring automated growth/shrink thresholds (custom thresholds apply globally across projects in session memory), or preventing out-of-space outages. Don't use for Cloud Storage (GCS) buckets, Persistent Disk block storage, or NetApp Volumes.",
+      "description_ja": ""
+    },
+    {
+      "name": "google-cloud-filestore-log-troubleshooting",
+      "source": "google-skills",
+      "path": "skills/cloud/google-cloud-filestore-log-troubleshooting",
+      "categories": [],
+      "description": "Diagnoses and resolves Google Cloud Filestore client mount failures, permission errors (EACCES), and network timeouts (ETIMEDOUT). Use when an NFS mount hangs or fails from a Compute Engine VM, GKE pod, Cloud Run service, or Vertex AI workload, when `mount.nfs` reports \"Connection timed out\" or \"access denied by server\", when checking whether VPC ingress firewall rules or `nfsExportOptions` allow a client IP, or when a previously working Filestore share suddenly stops mounting after an administrative change. Don't use for Cloud Storage (GCS) buckets, Persistent Disk, or Cloud NetApp Volumes, and don't use for Filestore capacity scaling or backup and export-policy auditing.",
       "description_ja": ""
     },
     {
@@ -8076,7 +8172,7 @@
       "source": "google-skills",
       "path": "skills/cloud/google-cloud-solution-agentic-ai-borderless-data-lakehouse",
       "categories": [],
-      "description": "Guides agents to discover requirements and design a governed, secure borderless open data lakehouse with agentic AI integration. Use when designing a multi-product architecture that connects data silos to AI agents, joining data across clouds, or running federated queries across Google Cloud and external data sources, including on-premises or other cloud providers. Don't use for simple single-cloud data warehouses or non-AI workloads.",
+      "description": "Discovers requirements and designs a borderless open data lakehouse using Lakehouse for Apache Iceberg and BigQuery data agents. Use when architecting multi-cloud storage infrastructure (Cloud Storage, AWS S3, Azure Blob), establishing ingestion and AI serving subsystems, configuring Cross-Cloud Interconnect, or deploying Gemini Enterprise Agent Platform and BigQuery data agents. Don't use for single-cloud data warehouses, or when the focus is on Knowledge Catalog metadata governance and Spark-driven IDE analytics workflows (use google-cloud-solution-agentic-analytics-spark-knowledge-catalog instead).",
       "description_ja": ""
     },
     {
@@ -8092,7 +8188,7 @@
       "source": "google-skills",
       "path": "skills/cloud/google-cloud-solution-agentic-analytics-spark-knowledge-catalog",
       "categories": [],
-      "description": "Discovers requirements and generates guidance to design and deploy a governed, secure agentic-analytics solution for data that's distributed across Google Cloud, other cloud providers, or on-premises. Data that's outside Google Cloud (such as data from Databricks, Snowflake, Salesforce, SAP, or Oracle systems) is accessed through federation mechanisms such as Apache Iceberg, other \"zero-copy ETL\" methods, or remote query push-down. Use this skill when designing an architecture for efficient analytics across large volumes of structured and unstructured data that's located in multiple systems and environments, including other cloud providers and on-premises.",
+      "description": "Discovers requirements and designs an end-to-end governed agentic analytics solution using Knowledge Catalog and Managed Service for Apache Spark (Lightning Engine). Use when designing data science and analytics workflows across structured and unstructured distributed data (including in S3, Azure Blob, AlloyDB, and Iceberg), establishing metadata governance with Knowledge Catalog aspect types, or grounding agentic IDEs (VS Code, Antigravity) by using the Google Cloud Data Agent Kit. Don't use for provisioning borderless data lakehouse infrastructure (use google-cloud-solution-agentic-ai-borderless-data-lakehouse instead).",
       "description_ja": ""
     },
     {
@@ -8231,7 +8327,7 @@
       "source": "google-skills",
       "path": "skills/cloud/google-cloud-waf-sustainability",
       "categories": [],
-      "description": "Generates sustainability-focused guidance for Google Cloud workloads based on the design principles and recommendations in the Google Cloud Well-Architected Framework (WAF). Use this skill to evaluate a workload, identify environmental impact requirements, and provide actionable recommendations to build, deploy, and manage the workload sustainably in Google Cloud.",
+      "description": "Provides recommendations for environmental sustainability, carbon footprint reduction, and energy efficiency based on the Sustainability pillar of the Google Cloud Well-Architected Framework (WAF). Use when the user asks to assess, design, or optimize Google Cloud workloads for sustainability—including the shared responsibility model, selecting low-carbon regions (CFE%), reducing resource and AI/ML energy waste, designing efficient software and storage lifecycles, or measuring and tracking emissions using Google Cloud Carbon Footprint. Don't use for financial cost reduction (use google-cloud-waf-cost-optimization), latency and throughput tuning (use google-cloud-waf-performance-optimization), or high availability and disaster recovery (use google-cloud-waf-reliability).",
       "description_ja": ""
     },
     {
@@ -8828,6 +8924,14 @@
       "description_ja": ""
     },
     {
+      "name": "iam-helper-for-policy-management",
+      "source": "google-skills",
+      "path": "skills/cloud/iam-helper-for-policy-management",
+      "categories": [],
+      "description": "Streamlines the creation, modification, and management of IAM allow policies (v1) and deny policies (v2). Manages access control across Resource Manager resources (Organization, Folder, Project) and individual resources. Use when creating, updating, listing, or deleting IAM allow policies or deny policies. Don't use for access denial troubleshooting (use iam-helper-for-troubleshooting), temporary privileged access (use iam-helper-for-privileged-access-management), configuring VPC Service Controls, or managing network firewall rules.",
+      "description_ja": ""
+    },
+    {
       "name": "iam-helper-for-policy-simulator",
       "source": "google-skills",
       "path": "skills/cloud/iam-helper-for-policy-simulator",
@@ -8841,6 +8945,14 @@
       "path": "skills/cloud/iam-helper-for-privileged-access-management",
       "categories": [],
       "description": "Manages the end-to-end lifecycle of on-demand, temporary access using Privileged Access Manager (PAM). Use when a user asks to create, read, update, or delete PAM entitlements, request temporary access, or approve/deny pending PAM grants. Do NOT use for permanent IAM policy bindings, troubleshooting IAM permission errors, or general Google Cloud resource provisioning.",
+      "description_ja": ""
+    },
+    {
+      "name": "iam-helper-for-troubleshooting",
+      "source": "google-skills",
+      "path": "skills/cloud/iam-helper-for-troubleshooting",
+      "categories": [],
+      "description": "Diagnoses, remediates, and manages Google Cloud Identity and Access Management (IAM) access issues. Supports two distinct operational modes: (1) Requester Flow for developers encountering access denials (capturing error context, self-service PAM JIT activations, elevated developer self-remediation, or logging structured tickets), and (2) Resolver Flow for privileged administrators (authoritative Policy Troubleshooter analysis, deny policy exemptions, least-privilege role discovery, and PAM/IAM provisioning).",
       "description_ja": ""
     },
     {
@@ -8924,7 +9036,9 @@
       "name": "image-enhancer",
       "source": "composio-awesome",
       "path": "image-enhancer",
-      "categories": ["community"],
+      "categories": [
+        "community"
+      ],
       "description": "Improves the quality of images, especially screenshots, by enhancing resolution, sharpness, and clarity. Perfect for preparing images for presentations, documentation, or social media posts.",
       "description_ja": "Enhance and edit images"
     },
@@ -9081,7 +9195,9 @@
       "name": "invoice-organizer",
       "source": "composio-awesome",
       "path": "invoice-organizer",
-      "categories": ["community"],
+      "categories": [
+        "community"
+      ],
       "description": "Automatically organizes invoices and receipts for tax preparation by reading messy files, extracting key information, renaming them consistently, and sorting them into logical folders. Turns hours of manual bookkeeping into minutes of automated organization.",
       "description_ja": "Organize and manage invoices"
     },
@@ -9451,7 +9567,9 @@
       "name": "langsmith-fetch",
       "source": "composio-awesome",
       "path": "langsmith-fetch",
-      "categories": ["community"],
+      "categories": [
+        "community"
+      ],
       "description": "Debug LangChain and LangGraph agents by fetching execution traces from LangSmith Studio. Use when debugging agent behavior, investigating errors, analyzing tool calls, checking memory operations, or examining agent performance. Automatically fetches recent traces and analyzes execution patterns. Requires langsmith-fetch CLI installed.",
       "description_ja": "Langsmith Fetch"
     },
@@ -9499,7 +9617,9 @@
       "name": "lead-research-assistant",
       "source": "composio-awesome",
       "path": "lead-research-assistant",
-      "categories": ["community"],
+      "categories": [
+        "community"
+      ],
       "description": "Identifies high-quality leads for your product or service by analyzing your business, searching for target companies, and providing actionable contact strategies. Perfect for sales, business development, and marketing professionals.",
       "description_ja": "Research leads and contacts"
     },
@@ -10017,7 +10137,9 @@
       "name": "meeting-insights-analyzer",
       "source": "composio-awesome",
       "path": "meeting-insights-analyzer",
-      "categories": ["community"],
+      "categories": [
+        "community"
+      ],
       "description": "Analyzes meeting transcripts and recordings to uncover behavioral patterns, communication insights, and actionable feedback. Identifies when you avoid conflict, use filler words, dominate conversations, or miss opportunities to listen. Perfect for professionals seeking to improve their communication and leadership skills.",
       "description_ja": "Analyze meeting insights"
     },
@@ -12113,7 +12235,9 @@
       "name": "raffle-winner-picker",
       "source": "composio-awesome",
       "path": "raffle-winner-picker",
-      "categories": ["community"],
+      "categories": [
+        "community"
+      ],
       "description": "Picks random winners from lists, spreadsheets, or Google Sheets for giveaways, raffles, and contests. Ensures fair, unbiased selection with transparency.",
       "description_ja": "Pick raffle winners randomly"
     },
@@ -12934,6 +13058,51 @@
       "description_ja": ""
     },
     {
+      "name": "secops-cases",
+      "source": "google-skills",
+      "path": "skills/cloud/secops-cases",
+      "categories": [],
+      "description": "Manage Google Security Operations (SecOps) SOAR cases throughout their lifecycle. Use when listing, creating, inspecting, updating, or closing SOAR cases; adding investigative comments and notes; updating case priority or description; or linking and grouping security alerts within cases. Supports both remote Google SecOps MCP tools and local fallback tools. Don't use for SIEM UDM searches or detection rule authoring.",
+      "description_ja": "",
+      "author": "Google LLC"
+    },
+    {
+      "name": "secops-detection-engineering",
+      "source": "google-skills",
+      "path": "skills/cloud/secops-detection-engineering",
+      "categories": [],
+      "description": "Author, validate, test, and deploy YARA-L 2.0 detection rules and evaluate end-to-end detection coverage gaps in Google SecOps. Use when writing new detection rules, tuning existing rules, validating syntax, testing logic against historical telemetry, or evaluating detection coverage against threat intelligence blogs, CVE disclosures, and Threat Detection Opportunities (TDOs) using synthetic UDM events and long-running coverage analysis. Don't use for alert triage (use secops-triage), deep forensic event reconstruction on infected hosts (use secops-investigate), or case management operations (use secops-cases).",
+      "description_ja": "",
+      "author": "Google LLC"
+    },
+    {
+      "name": "secops-hunt",
+      "source": "google-skills",
+      "path": "skills/cloud/secops-hunt",
+      "categories": [],
+      "description": "Expert guidance for proactive threat hunting in Google SecOps. Use when proactively hunting for threats, retroactively analyzing indicators of compromise (IoCs), performing prevalence searches across enterprise events, hunting for MITRE ATT&CK techniques, or detecting behavioral and statistical outliers using UDM queries. Don't use for incoming alert triage (use secops-triage), active incident response and timeline deep-dives on a known breach (use secops-investigate), or detection rule authoring (use secops-detection-engineering).",
+      "description_ja": "",
+      "author": "Google LLC"
+    },
+    {
+      "name": "secops-investigate",
+      "source": "google-skills",
+      "path": "skills/cloud/secops-investigate",
+      "categories": [],
+      "description": "Expert guidance for deep security incident and entity investigations in Google SecOps. Use when investigating cases, analyzing entities (hosts, IPs, domains, hashes, users), extracting and searching UDM events, performing asset and user timeline analysis, and detecting lateral movement across enterprise networks. Don't use for detection rule authoring or YARA-L tuning (use secops-detection-engineering), proactive hypothesis-driven hunting (use secops-hunt), initial alert triage (use secops-triage), or basic case status updates (use secops-cases).",
+      "description_ja": "",
+      "author": "Google LLC"
+    },
+    {
+      "name": "secops-triage",
+      "source": "google-skills",
+      "path": "skills/cloud/secops-triage",
+      "categories": [],
+      "description": "Expert guidance for security alert triage in Google SecOps. Use when investigating and triaging security alerts, determining false positives vs. true positives, assessing entity risk, adjusting alert severity or priority, and closing or escalating alerts and cases. Don't use for deep multi-hop incident investigations across host timelines (use secops-investigate), proactive threat hunting or retroactive IoC sweeps (use secops-hunt), or authoring new detection rules (use secops-detection-engineering).",
+      "description_ja": "",
+      "author": "Google LLC"
+    },
+    {
       "name": "secret-scanning",
       "source": "github-awesome-copilot",
       "path": "skills/secret-scanning",
@@ -13396,7 +13565,9 @@
       "name": "skill-share",
       "source": "composio-awesome",
       "path": "skill-share",
-      "categories": ["community"],
+      "categories": [
+        "community"
+      ],
       "description": "A skill that creates new Claude skills and automatically shares them on Slack using Rube for seamless team collaboration and skill discovery.",
       "description_ja": "Share skills across teams",
       "license": "Complete terms in LICENSE.txt"
@@ -13889,7 +14060,9 @@
       "name": "tailored-resume-generator",
       "source": "composio-awesome",
       "path": "tailored-resume-generator",
-      "categories": ["community"],
+      "categories": [
+        "community"
+      ],
       "description": "Analyzes job descriptions and generates tailored resumes that highlight relevant experience, skills, and achievements to maximize interview chances",
       "description_ja": "Tailored Resume Generator"
     },
@@ -14371,7 +14544,9 @@
       "name": "twitter-algorithm-optimizer",
       "source": "composio-awesome",
       "path": "twitter-algorithm-optimizer",
-      "categories": ["community"],
+      "categories": [
+        "community"
+      ],
       "description": "Analyze and optimize tweets for maximum reach using Twitter's open-source algorithm insights. Rewrite and edit user tweets to improve engagement and visibility based on how the recommendation system ranks content.",
       "description_ja": "Twitter Algorithm Optimizer",
       "license": "AGPL-3.0 (referencing Twitter's algorithm source)"

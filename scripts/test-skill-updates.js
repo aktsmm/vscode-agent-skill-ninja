@@ -40,7 +40,11 @@ vm.runInNewContext(
     },
   },
 );
-const { createSkillRevisionResolver, classifySkillUpdate } = moduleExports;
+const {
+  createSkillRevisionResolver,
+  classifySkillUpdate,
+  findRenamedSkillRevision,
+} = moduleExports;
 const hash = (digit) => digit.repeat(40);
 const commitSha = hash("a");
 const rootSha = hash("b");
@@ -88,8 +92,8 @@ function mock(values, expectedSignal) {
     const value = values[key];
     if (value instanceof Error) throw value;
     return {
-      ok: !value.status,
-      status: value.status || 200,
+      ok: typeof value.status !== "number",
+      status: typeof value.status === "number" ? value.status : 200,
       headers: new Headers(value.headers),
       text: async () => value.body || "",
       json: async () => value,
@@ -178,7 +182,9 @@ async function main() {
     classifySkillUpdate({ repairState: "failed" }, folder),
     "repair",
   );
-  await rejects(() => resolve({ ...target, remotePath: "missing.md" }));
+  await assert.rejects(() => resolve({ ...target, remotePath: "missing.md" }), {
+    name: "SkillSourcePathMissingError",
+  });
   for (const remotePath of [
     "../bad",
     "/absolute",
@@ -222,20 +228,137 @@ async function main() {
     ).contentSha,
     blobSha,
   );
-  await rejects(() =>
-    fallbackResolve({ ...target, remotePath: "skills/missing" }),
+  const missingPath = mock({
+    ...routes(),
+    [`git/trees/${rootSha}?recursive=1`]: tree(rootSha, [
+      entry("skills", "tree", hash("e")),
+    ]),
+  });
+  await assert.rejects(
+    createSkillRevisionResolver(
+      "test-token",
+      undefined,
+      missingPath.request,
+    )(target),
+    { name: "SkillSourcePathMissingError" },
+  );
+  const renamedHead = hash("f");
+  const renameRoutes = {
+    ...routes(),
+    "commits/feature%2Ftest": commit(renamedHead),
+    [`git/trees/${rootSha}?recursive=1`]: tree(rootSha, [
+      entry("skills/renamed", "tree", folderSha),
+    ]),
+    [`compare/${commitSha}...feature%2Ftest`]: {
+      status: "ahead",
+      ahead_by: 1,
+      total_commits: 1,
+      base_commit: { sha: commitSha },
+      merge_base_commit: { sha: commitSha },
+      commits: [{ sha: renamedHead }],
+      files: [
+        {
+          status: "renamed",
+          previous_filename: "skills/example/SKILL.md",
+          filename: "skills/renamed/SKILL.md",
+        },
+      ],
+    },
+  };
+  const rename = mock(renameRoutes);
+  const renamed = await findRenamedSkillRevision(
+    folder,
+    "test-token",
+    undefined,
+    rename.request,
+  );
+  assert.equal(renamed?.remotePath, "skills/renamed");
+  assert.equal(renamed?.commitSha, renamedHead);
+  assert.equal(renamed?.ref, folder.ref);
+  const renameKey = `compare/${commitSha}...feature%2Ftest`;
+  const accepted = {
+    status: "ahead",
+    ahead_by: 1,
+    total_commits: 1,
+    base_commit: { sha: commitSha },
+    merge_base_commit: { sha: commitSha },
+    commits: [{ sha: renamedHead }],
+    files: [
+      {
+        status: "renamed",
+        previous_filename: "skills/example/SKILL.md",
+        filename: "skills/renamed/SKILL.md",
+      },
+    ],
+  };
+  for (const rejected of [
+    { ...accepted, status: "diverged" },
+    { ...accepted, merge_base_commit: { sha: hash("d") } },
+    { ...accepted, total_commits: 251 },
+    {
+      ...accepted,
+      files: Array.from({ length: 300 }, () => accepted.files[0]),
+    },
+    { ...accepted, files: [] },
+    {
+      ...accepted,
+      files: [
+        ...accepted.files,
+        { ...accepted.files[0], filename: "skills/other/SKILL.md" },
+      ],
+    },
+    {
+      ...accepted,
+      files: [{ ...accepted.files[0], filename: "../unsafe/SKILL.md" }],
+    },
+    { ...accepted, commits: [{ sha: hash("e") }] },
+  ]) {
+    const candidate = mock({ ...renameRoutes, [renameKey]: rejected });
+    assert.equal(
+      await findRenamedSkillRevision(
+        folder,
+        "test-token",
+        undefined,
+        candidate.request,
+      ),
+      undefined,
+    );
+  }
+  const forbiddenRename = mock({
+    ...renameRoutes,
+    [renameKey]: { status: 403, body: "private-path ghp_secret" },
+  });
+  await assert.rejects(
+    () =>
+      findRenamedSkillRevision(
+        folder,
+        "test-token",
+        undefined,
+        forbiddenRename.request,
+      ),
+    (error) => {
+      assert.equal(error.kind, "auth-required");
+      assert.ok(!error.message.includes("ghp_secret"));
+      return true;
+    },
+  );
+  await assert.rejects(
+    () => fallbackResolve({ ...target, remotePath: "skills/missing" }),
+    { name: "SkillSourcePathMissingError" },
   );
   assert.equal(fallback.calls.length, 5);
   const missingFallback = mock({
     ...truncatedRoutes,
     [`git/trees/${hash("e")}`]: tree(hash("e"), []),
   });
-  await rejects(() =>
-    createSkillRevisionResolver(
-      "test-token",
-      undefined,
-      missingFallback.request,
-    )(target),
+  await assert.rejects(
+    () =>
+      createSkillRevisionResolver(
+        "test-token",
+        undefined,
+        missingFallback.request,
+      )(target),
+    { name: "SkillSourcePathMissingError" },
   );
 
   for (const status of [401, 403, 404, 429, 500]) {

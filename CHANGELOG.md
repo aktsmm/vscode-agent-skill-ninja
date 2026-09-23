@@ -7,6 +7,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.9.52] - 2026-09-24
+
+### Added
+
+- **Verified Upstream Rename Recovery** - Bulk updates identify affected skills and can offer a separate new-name installation when GitHub history proves a unique `SKILL.md` rename. The old copy is preserved and installation requires confirmation / 一括更新で対象スキルと理由を表示し、GitHub の履歴で `SKILL.md` の一意な名前変更を確認できた場合は新名での別途インストールを提案します。旧コピーを保持し、インストールには確認が必要です。
+
+### Fixed
+
+- **Accurate Update And Install Results** - An unindexed renamed skill is counted as unchanged when its recorded upstream revision still matches. Changed content is deferred until the index is refreshed. Install failures, incomplete installs and post-install output refresh failures now have distinct notices / 名前変更後のスキルが索引未登録でも、記録済みの配布元と一致すれば変更なしと判定します。内容の変更は索引更新まで保留します。導入失敗・不完全な導入・導入後の出力更新失敗を別々に通知します。
+
+### Changed
+
+- **Refreshed Google Preset Skills** - Re-scanned the Google source to replace four moved Genkit paths and include newly published skills. Catalog v1.30.0 contains 1878 skills across 13 sources; other sources retain their original scan dates / Google ソースを再走査し、移動した Genkit の4パスを修正して新規スキルを収録しました。同梱カタログ v1.30.0 は13ソース1878件です。他ソースの走査日時は維持します。
+
 ## [0.9.51] - 2026-09-07
 
 ### Fixed
