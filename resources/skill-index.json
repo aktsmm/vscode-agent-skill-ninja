@@ -1,6 +1,6 @@
 {
-  "version": "1.30.0",
-  "lastUpdated": "2026-08-18",
+  "version": "1.31.0",
+  "lastUpdated": "2026-09-29",
   "sources": [
     {
       "id": "anthropics-skills",
@@ -86,7 +86,7 @@
       "includePaths": [".agents/skills"],
       "description": "PRP Agentic Engineering",
       "description_ja": "PRP Agentic Engineering",
-      "lastIndexedAt": "2026-08-17T05:34:13.586Z"
+      "lastIndexedAt": "2026-09-29T03:59:04.014Z"
     },
     {
       "id": "claude-command-suite",
@@ -11764,6 +11764,14 @@
       "description_ja": ""
     },
     {
+      "name": "prp-bro",
+      "source": "prps-agentic",
+      "path": ".agents/skills/prp-bro",
+      "categories": [],
+      "description": "Restates the previous response in plain language, with no jargon. Use when the user says \"bro\", asks to \"say that plainly\", says \"explain it simply\", or invokes $prp-bro.",
+      "description_ja": ""
+    },
+    {
       "name": "prp-codebase-question",
       "source": "prps-agentic",
       "path": ".agents/skills/prp-codebase-question",
@@ -11785,6 +11793,14 @@
       "path": ".agents/skills/prp-debug",
       "categories": [],
       "description": "Diagnoses a bug, error, stack trace, regression, or unexplained behavior and publishes the evidence-backed root cause to GitHub. Use when the user says \"debug this\", \"find the root cause\", provides a bug report or stack trace, asks to investigate a GitHub issue, or invokes $prp-debug. Defaults to commenting on the matching open issue or creating one when none exists.",
+      "description_ja": ""
+    },
+    {
+      "name": "prp-deliver",
+      "source": "prps-agentic",
+      "path": ".agents/skills/prp-deliver",
+      "categories": [],
+      "description": "This is an experimental skill. Never use it unless the user explicitly tells you to invoke $prp-deliver.",
       "description_ja": ""
     },
     {
@@ -11812,11 +11828,27 @@
       "description_ja": ""
     },
     {
+      "name": "prp-issue-contract",
+      "source": "prps-agentic",
+      "path": ".agents/skills/prp-issue-contract",
+      "categories": [],
+      "description": "Creates GitHub issues from conversations, findings, or ideas and runs the precondition check before a planning-capable agent starts work. Use when the user asks to \"create an issue from this\", \"turn this into an issue\", \"check whether issue #42 is agent-ready\", \"check this issue before automation\", \"audit this issue contract\", \"update this issue to make it agent-ready\", or invokes $prp-issue-contract.",
+      "description_ja": ""
+    },
+    {
       "name": "prp-loop",
       "source": "prps-agentic",
       "path": ".agents/skills/prp-loop",
       "categories": [],
       "description": "Runs the detached, resumable PRP pipeline in fresh headless CLI sessions, cycling plan, implementation, PR, review, and corrections with persisted state and safety bounds. Use only when the user explicitly asks to \"run the full PRP loop\", \"run this detached\", \"continue across context windows\", use headless autonomous execution, resume a saved loop, or invokes $prp-loop. Use prp-issue for ordinary end-to-end delivery.",
+      "description_ja": ""
+    },
+    {
+      "name": "prp-maintainer-triage",
+      "source": "prps-agentic",
+      "path": ".agents/skills/prp-maintainer-triage",
+      "categories": [],
+      "description": "Quickly triages a contributor pull request or reported issue against repository policy and lightweight evidence without full review or root-cause analysis. Publishes the disposition to GitHub, and on a contributor pull request that links no issue it may open a tracking issue and close the pull request. Use when the user asks to \"triage this contributor PR\", \"sanity-check this PR\", \"triage this issue\", \"reproduce this reported issue\", \"check whether this bug still exists\", or invokes $prp-maintainer-triage.",
       "description_ja": ""
     },
     {
@@ -11832,7 +11864,7 @@
       "source": "prps-agentic",
       "path": ".agents/skills/prp-orchestrate",
       "categories": [],
-      "description": "Turn the current session into an SDLC orchestrator that coordinates parallel background agents running PRP skills in isolated worktrees - decompose work into workstreams, launch and steer autonomous deliveries, hold human-only and merge gates as the user's proxy, and sequence merges. Use when the user wants to \"spawn N agents in separate worktrees\", \"run prp-issue on these issues in parallel\", \"orchestrate these features\", \"act as my orchestrator\", \"coordinate agents through the PRP pipeline\", \"ship these issues in parallel\", or invokes $prp-orchestrate.",
+      "description": "Turns the current session into the operator's SDLC proxy for parallel PRP workstreams in isolated worktrees. It owns the combined outcome, steers autonomous deliveries, holds human and merge gates, verifies proof, and sequences merges. Use when the user wants to \"spawn N agents in separate worktrees\", \"run prp-issue on these issues in parallel\", \"orchestrate these features\", \"act as my orchestrator\", \"coordinate agents through the PRP pipeline\", \"ship these issues in parallel\", or invokes $prp-orchestrate.",
       "description_ja": ""
     },
     {
@@ -11872,7 +11904,7 @@
       "source": "prps-agentic",
       "path": ".agents/skills/prp-review",
       "categories": [],
-      "description": "Reviews GitHub pull requests through specialist review agents, runs repository validation, aggregates findings, and posts the result. Always uses the code reviewer and seam analyzer; add tests, comments, errors, types, docs, or simplify when the user requests those scopes. Use when the user asks to review a PR, check whether a PR is ready to merge, run review agents, or invokes $prp-review.",
+      "description": "Reviews GitHub pull requests through specialist review agents, runs repository validation, verifies corrections, aggregates findings, and posts the result. Scales reviewers to risk by default (code review alone for small or mechanical changes; code, seam, and simplification review for contracts, state, and security); the operator can add scopes or explicitly request only selected scopes. Use when the operator asks to review a PR, re-review fixes, check whether a PR is ready to merge, run review agents, or invokes $prp-review.",
       "description_ja": ""
     },
     {
@@ -11884,19 +11916,19 @@
       "description_ja": ""
     },
     {
+      "name": "prp-technical-writing",
+      "source": "prps-agentic",
+      "path": ".agents/skills/prp-technical-writing",
+      "categories": [],
+      "description": "Writes and edits developer documentation that is easy to act on and hard to misread. Use when writing or reviewing a README, RFC, tutorial, how-to guide, reference document, or technical explanation, when the operator says \"write the docs\", \"improve this README\", \"edit this RFC\", or invokes $prp-technical-writing.",
+      "description_ja": ""
+    },
+    {
       "name": "prp-worklist",
       "source": "prps-agentic",
       "path": ".agents/skills/prp-worklist",
       "categories": [],
       "description": "Render the open work of a repository as something worth looking at, so the maintainer can see what to take next. Deliberate invocation only — $prp-worklist.",
-      "description_ja": ""
-    },
-    {
-      "name": "prp-worktree",
-      "source": "prps-agentic",
-      "path": ".agents/skills/prp-worktree",
-      "categories": [],
-      "description": "Git-native worktree management via a bundled single-file CLI - create, list (with per-worktree git stats), and safely tear down isolated checkouts under .worktrees/ for parallel workstreams. Use when the user or an orchestrating skill wants to \"create a worktree\", \"work on this in a separate worktree\", \"spin up an isolated checkout\", \"list my worktrees\", \"clean up / remove a worktree\", or invokes $prp-worktree.",
       "description_ja": ""
     },
     {

@@ -51,15 +51,43 @@ function sanitizeHref(href: string): string {
     }
   } catch {
     // Relative URL: allow only safe-ish relative links
-    if (
-      (trimmed.startsWith("/") && !trimmed.startsWith("//")) ||
-      trimmed.startsWith("./") ||
-      trimmed.startsWith("../")
-    ) {
+    if (!trimmed.includes(":") && !trimmed.includes("\\") && !trimmed.startsWith("?")) {
       return trimmed;
     }
   }
   return "#";
+}
+
+export function resolvePreviewLink(href: string, githubUrl?: string): string | undefined {
+  if (sanitizeHref(href) !== href || href === "#" || href.startsWith("#")) {
+    return undefined;
+  }
+
+  try {
+    const url = new URL(href);
+    return url.toString();
+  } catch {
+    if (!githubUrl) return undefined;
+    try {
+      const base = new URL(githubUrl);
+      if (base.protocol !== "https:" || base.hostname !== "github.com") {
+        return undefined;
+      }
+      if (!base.pathname.endsWith(".md") && !base.pathname.endsWith("/")) {
+        base.pathname += "/";
+      }
+      const resolved = new URL(href, base);
+      const segments = resolved.pathname.split("/");
+      if (segments[3] === "tree" || segments[3] === "blob") {
+        const name = segments.at(-1) || "";
+        segments[3] = name.includes(".") ? "blob" : "tree";
+        resolved.pathname = segments.join("/");
+      }
+      return resolved.toString();
+    } catch {
+      return undefined;
+    }
+  }
 }
 
 function normalizeListMarkup(html: string): string {
@@ -102,7 +130,7 @@ function normalizeListMarkup(html: string): string {
 
 function formatHtmlBlocks(html: string): string {
   const blockPattern =
-    /(<pre>[\s\S]*?<\/pre>|<ul>[\s\S]*?<\/ul>|<ol>[\s\S]*?<\/ol>|<h[1-3]>[\s\S]*?<\/h[1-3]>)/g;
+    /(<pre>[\s\S]*?<\/pre>|<ul>[\s\S]*?<\/ul>|<ol>[\s\S]*?<\/ol>|<h[1-3]\b[^>]*>[\s\S]*?<\/h[1-3]>)/g;
   const segments = html
     .split(blockPattern)
     .filter((segment) => segment.length > 0);
@@ -303,10 +331,27 @@ export function markdownToHtml(markdown: string): string {
   let html = escapeHtml(text);
 
   // Headings
+  const headingIds = new Map<string, number>();
+  const renderHeading = (level: number, title: string): string => {
+    let plainTitle = title;
+    for (const [placeholder, markup] of placeholders) {
+      plainTitle = plainTitle.replaceAll(placeholder, markup.replace(/<[^>]+>/g, ""));
+    }
+    const slug = plainTitle
+      .toLowerCase()
+      .replace(/&(?:amp|lt|gt|quot|#39);/g, "")
+      .replace(/[^\p{L}\p{N}\s-]/gu, "")
+      .trim()
+      .replace(/\s+/g, "-");
+    const count = headingIds.get(slug) || 0;
+    headingIds.set(slug, count + 1);
+    const id = slug ? ` id="${slug}${count ? `-${count}` : ""}"` : "";
+    return `<h${level}${id}>${title}</h${level}>`;
+  };
   html = html
-    .replace(/^### (.+)$/gm, "<h3>$1</h3>")
-    .replace(/^## (.+)$/gm, "<h2>$1</h2>")
-    .replace(/^# (.+)$/gm, "<h1>$1</h1>");
+    .replace(/^### (.+)$/gm, (_match, title: string) => renderHeading(3, title))
+    .replace(/^## (.+)$/gm, (_match, title: string) => renderHeading(2, title))
+    .replace(/^# (.+)$/gm, (_match, title: string) => renderHeading(1, title));
 
   // Bold / italic
   html = html
@@ -355,11 +400,11 @@ function getWebviewContent(
   // インデックスにないスキル（検索結果から）の場合は Add Source ボタンを表示
   const addSourceButton = isInIndex
     ? ""
-    : `<button class="btn-secondary" onclick="addSource()">${messages.addSourceButtonLabel()}</button>`;
+    : `<button class="btn-secondary" data-command="addSource">${messages.addSourceButtonLabel()}</button>`;
 
   // インデックスにないスキルはお気に入り機能が使えないので非表示
   const favoriteButton = isInIndex
-    ? `<button class="btn-star ${starClass}" onclick="toggleFavorite()">
+    ? `<button class="btn-star ${starClass}" data-command="toggleFavorite">
         ${starIcon}
       </button>`
     : "";
@@ -495,11 +540,11 @@ function getWebviewContent(
     <h1 class="title">${safeSkillName}</h1>
     <div class="actions">
       ${favoriteButton}
-      <button class="btn-primary" onclick="install()">
+      <button class="btn-primary" data-command="install">
         ${messages.actionInstall()}
       </button>
       ${addSourceButton}
-      <button class="btn-primary" onclick="openGitHub()">
+      <button class="btn-primary" data-command="openGitHub">
         ${messages.githubButtonLabel()}
       </button>
     </div>
@@ -522,22 +567,19 @@ function getWebviewContent(
   </div>
   <script nonce="${nonce}">
     const vscode = acquireVsCodeApi();
-    
-    function install() {
-      vscode.postMessage({ command: 'install' });
-    }
-    
-    function addSource() {
-      vscode.postMessage({ command: 'addSource' });
-    }
-    
-    function openGitHub() {
-      vscode.postMessage({ command: 'openGitHub' });
-    }
-    
-    function toggleFavorite() {
-      vscode.postMessage({ command: 'toggleFavorite' });
-    }
+    document.querySelectorAll('button[data-command]').forEach(button => {
+      button.addEventListener('click', () => {
+        vscode.postMessage({ command: button.dataset.command });
+      });
+    });
+    document.querySelector('.content').addEventListener('click', event => {
+      const link = event.target.closest('a[href]');
+      if (!link) return;
+      const href = link.getAttribute('href');
+      if (href === '#' || href.startsWith('#')) return;
+      event.preventDefault();
+      vscode.postMessage({ command: 'openLink', href });
+    });
   </script>
 </body>
 </html>`;
@@ -757,6 +799,19 @@ export async function showSkillPreview(
               vscode.window.showWarningMessage(
                 messages.githubUrlNotDetermined(skill.name),
               );
+            }
+            break;
+          }
+          case "openLink": {
+            if (typeof message.href !== "string") break;
+            const href = message.href;
+            const isRelative = !/^[a-z][a-z0-9+.-]*:/i.test(href);
+            const githubUrl = isRelative
+              ? await getSkillGitHubUrlAsync(skill, sources, token)
+              : undefined;
+            const url = resolvePreviewLink(href, githubUrl);
+            if (url) {
+              await vscode.env.openExternal(vscode.Uri.parse(url));
             }
             break;
           }

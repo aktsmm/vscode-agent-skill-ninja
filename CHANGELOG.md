@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.9.53] - 2026-09-29
+
+### Fixed
+
+- **Working Skill Preview Actions And Links** - Install, GitHub, and favorite buttons now use CSP-compatible event listeners. Preview links open safe external URLs, resolve relative GitHub files and folders correctly, and navigate to headings including repeated, Japanese, and inline-code headings / インストール・GitHub・お気に入りボタンを Webview の CSP に対応させました。プレビュー内の外部リンク・GitHub 上の相対ファイルやフォルダー・重複や日本語、インラインコードを含む見出しへのリンクを修正しました。
+
+### Changed
+
+- **Refreshed PRP Preset Skills** - Removed one deleted upstream skill and indexed five new PRP skills. Catalog v1.31.0 contains 1882 skills across 13 sources; the other sources retain their individual scan dates / 配布元で削除されたPRPスキル1件を除き、新規5件を収録しました。同梱カタログ v1.31.0 は13ソース1882件です。他のソースの個別走査日時は維持します。
+
 ## [0.9.52] - 2026-09-24
 
 ### Added

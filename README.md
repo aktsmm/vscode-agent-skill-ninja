@@ -167,6 +167,7 @@ Settings → **Output Format** → Select `ref`, `full`, `compact`, or `legacy`
 
 - Japanese / English UI (auto-detect + manual switch)
 - Skill preview in Webview
+- Preview links open external pages, relative files/folders on GitHub, and in-page headings
 - Favorites feature
 
 ## 🎬 Demo

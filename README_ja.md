@@ -163,6 +163,7 @@ workspace skills では `skillNinja.refCatalogPath` の相対パスは workspace
 
 - 日本語 / 英語 UI（自動検出 + 手動切替）
 - Webview でスキルプレビュー
+- プレビュー内の外部リンク、GitHub 上の相対ファイル/フォルダーリンク、見出しリンクに対応
 - お気に入り機能
 
 ## 🎬 Demo

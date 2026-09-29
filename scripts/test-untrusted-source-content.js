@@ -61,7 +61,7 @@ function test(name, fn) {
 }
 
 function main() {
-  const { markdownToHtml } = requireTypeScriptModule(
+  const { markdownToHtml, resolvePreviewLink } = requireTypeScriptModule(
     path.join(__dirname, "..", "src", "skillPreview.ts"),
   );
 
@@ -111,6 +111,49 @@ function main() {
     assert.ok(html.includes('rel="noopener noreferrer"'));
   });
 
+  test("resolves preview links relative to the GitHub skill directory", () => {
+    const directory = "https://github.com/owner/repo/tree/main/skills/demo";
+    assert.ok(markdownToHtml("[guide](README.md)").includes('href="README.md"'));
+    assert.strictEqual(
+      resolvePreviewLink("README.md", directory),
+      "https://github.com/owner/repo/blob/main/skills/demo/README.md",
+    );
+    assert.strictEqual(
+      resolvePreviewLink("./reference.md", directory),
+      "https://github.com/owner/repo/blob/main/skills/demo/reference.md",
+    );
+    assert.strictEqual(
+      resolvePreviewLink("../README.md", directory),
+      "https://github.com/owner/repo/blob/main/skills/README.md",
+    );
+    assert.strictEqual(
+      resolvePreviewLink("./reference.md", "https://github.com/owner/repo/blob/main/skills/demo/SKILL.md"),
+      "https://github.com/owner/repo/blob/main/skills/demo/reference.md",
+    );
+    assert.strictEqual(
+      resolvePreviewLink("./references/", "https://github.com/owner/repo/blob/main/skills/demo/SKILL.md"),
+      "https://github.com/owner/repo/tree/main/skills/demo/references/",
+    );
+    assert.strictEqual(resolvePreviewLink("https://example.com/docs"), "https://example.com/docs");
+    for (const unsafe of ["javascript:alert(1)", "//evil.example/x", "#", "#section"]) {
+      assert.strictEqual(resolvePreviewLink(unsafe, directory), undefined);
+    }
+    assert.strictEqual(resolvePreviewLink("./reference.md", "https://example.com/skill"), undefined);
+  });
+
+  test("preview actions use nonce-script listeners instead of blocked inline handlers", () => {
+    const source = fs.readFileSync(
+      path.join(__dirname, "..", "src", "skillPreview.ts"),
+      "utf8",
+    );
+    assert.ok(!source.includes("onclick="));
+    for (const command of ["install", "addSource", "openGitHub", "toggleFavorite"]) {
+      assert.ok(source.includes(`data-command="${command}"`));
+    }
+    assert.ok(source.includes("button.addEventListener('click'"));
+    assert.ok(source.includes("command: 'openLink', href"));
+  });
+
   test("does not let the document forge an internal placeholder", () => {
     // レンダラは一時マーカーで安全な断片を退避する。
     // マーカーを本文に書ける限り、別ブロックの内容へ差し替えられる
@@ -131,10 +174,22 @@ function main() {
       "# Title\n\n- one\n- two\n\n**bold** and *soft*",
     );
 
-    assert.ok(html.includes("<h1>Title</h1>"));
+    assert.ok(html.includes('<h1 id="title">Title</h1>'));
     assert.ok(html.includes("<ul><li>one</li><li>two</li></ul>"));
     assert.ok(html.includes("<strong>bold</strong>"));
     assert.ok(html.includes("<em>soft</em>"));
+  });
+
+  test("links to repeated and non-ASCII preview headings stay within the preview", () => {
+    const html = markdownToHtml(
+      "# When to Use\n\n[go](#when-to-use)\n\n## 日本語 見出し\n\n## 日本語 見出し\n\n### Run `npm test`",
+    );
+    assert.ok(html.includes('<h1 id="when-to-use">When to Use</h1>'));
+    assert.ok(html.includes('<a href="#when-to-use"'));
+    assert.ok(html.includes('<h2 id="日本語-見出し">日本語 見出し</h2>'));
+    assert.ok(html.includes('<h2 id="日本語-見出し-1">日本語 見出し</h2>'));
+    assert.ok(html.includes('<h3 id="run-npm-test">Run <code>npm test</code></h3>'));
+    assert.ok(!html.includes("<p><h"));
   });
 
   const { normalizeStarCount, normalizeIndexText, normalizeIndexTags } =
