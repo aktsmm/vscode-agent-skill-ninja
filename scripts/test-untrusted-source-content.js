@@ -113,7 +113,9 @@ function main() {
 
   test("resolves preview links relative to the GitHub skill directory", () => {
     const directory = "https://github.com/owner/repo/tree/main/skills/demo";
-    assert.ok(markdownToHtml("[guide](README.md)").includes('href="README.md"'));
+    assert.ok(
+      markdownToHtml("[guide](README.md)").includes('href="README.md"'),
+    );
     assert.strictEqual(
       resolvePreviewLink("README.md", directory),
       "https://github.com/owner/repo/blob/main/skills/demo/README.md",
@@ -127,18 +129,35 @@ function main() {
       "https://github.com/owner/repo/blob/main/skills/README.md",
     );
     assert.strictEqual(
-      resolvePreviewLink("./reference.md", "https://github.com/owner/repo/blob/main/skills/demo/SKILL.md"),
+      resolvePreviewLink(
+        "./reference.md",
+        "https://github.com/owner/repo/blob/main/skills/demo/SKILL.md",
+      ),
       "https://github.com/owner/repo/blob/main/skills/demo/reference.md",
     );
     assert.strictEqual(
-      resolvePreviewLink("./references/", "https://github.com/owner/repo/blob/main/skills/demo/SKILL.md"),
+      resolvePreviewLink(
+        "./references/",
+        "https://github.com/owner/repo/blob/main/skills/demo/SKILL.md",
+      ),
       "https://github.com/owner/repo/tree/main/skills/demo/references/",
     );
-    assert.strictEqual(resolvePreviewLink("https://example.com/docs"), "https://example.com/docs");
-    for (const unsafe of ["javascript:alert(1)", "//evil.example/x", "#", "#section"]) {
+    assert.strictEqual(
+      resolvePreviewLink("https://example.com/docs"),
+      "https://example.com/docs",
+    );
+    for (const unsafe of [
+      "javascript:alert(1)",
+      "//evil.example/x",
+      "#",
+      "#section",
+    ]) {
       assert.strictEqual(resolvePreviewLink(unsafe, directory), undefined);
     }
-    assert.strictEqual(resolvePreviewLink("./reference.md", "https://example.com/skill"), undefined);
+    assert.strictEqual(
+      resolvePreviewLink("./reference.md", "https://example.com/skill"),
+      undefined,
+    );
   });
 
   test("preview actions use nonce-script listeners instead of blocked inline handlers", () => {
@@ -147,7 +166,12 @@ function main() {
       "utf8",
     );
     assert.ok(!source.includes("onclick="));
-    for (const command of ["install", "addSource", "openGitHub", "toggleFavorite"]) {
+    for (const command of [
+      "install",
+      "addSource",
+      "openGitHub",
+      "toggleFavorite",
+    ]) {
       assert.ok(source.includes(`data-command="${command}"`));
     }
     assert.ok(source.includes("button.addEventListener('click'"));
@@ -188,7 +212,9 @@ function main() {
     assert.ok(html.includes('<a href="#when-to-use"'));
     assert.ok(html.includes('<h2 id="日本語-見出し">日本語 見出し</h2>'));
     assert.ok(html.includes('<h2 id="日本語-見出し-1">日本語 見出し</h2>'));
-    assert.ok(html.includes('<h3 id="run-npm-test">Run <code>npm test</code></h3>'));
+    assert.ok(
+      html.includes('<h3 id="run-npm-test">Run <code>npm test</code></h3>'),
+    );
     assert.ok(!html.includes("<p><h"));
   });
 

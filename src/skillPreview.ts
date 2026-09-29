@@ -51,14 +51,21 @@ function sanitizeHref(href: string): string {
     }
   } catch {
     // Relative URL: allow only safe-ish relative links
-    if (!trimmed.includes(":") && !trimmed.includes("\\") && !trimmed.startsWith("?")) {
+    if (
+      !trimmed.includes(":") &&
+      !trimmed.includes("\\") &&
+      !trimmed.startsWith("?")
+    ) {
       return trimmed;
     }
   }
   return "#";
 }
 
-export function resolvePreviewLink(href: string, githubUrl?: string): string | undefined {
+export function resolvePreviewLink(
+  href: string,
+  githubUrl?: string,
+): string | undefined {
   if (sanitizeHref(href) !== href || href === "#" || href.startsWith("#")) {
     return undefined;
   }
@@ -335,7 +342,10 @@ export function markdownToHtml(markdown: string): string {
   const renderHeading = (level: number, title: string): string => {
     let plainTitle = title;
     for (const [placeholder, markup] of placeholders) {
-      plainTitle = plainTitle.replaceAll(placeholder, markup.replace(/<[^>]+>/g, ""));
+      plainTitle = plainTitle.replaceAll(
+        placeholder,
+        markup.replace(/<[^>]+>/g, ""),
+      );
     }
     const slug = plainTitle
       .toLowerCase()
