@@ -628,9 +628,11 @@ export function resolveWorkspaceSkillsRootUri(
   workspaceUri: vscode.Uri,
   skillNinjaConfig: vscode.WorkspaceConfiguration = vscode.workspace.getConfiguration(
     "skillNinja",
+    workspaceUri,
   ),
   resourceNinjaConfig: vscode.WorkspaceConfiguration = vscode.workspace.getConfiguration(
     "resourceNinja",
+    workspaceUri,
   ),
 ): vscode.Uri {
   return resolveWorkspaceSkillRootUris(
@@ -659,9 +661,11 @@ export function resolveWorkspaceSkillRootUris(
   workspaceUri: vscode.Uri,
   skillNinjaConfig: vscode.WorkspaceConfiguration = vscode.workspace.getConfiguration(
     "skillNinja",
+    workspaceUri,
   ),
   resourceNinjaConfig: vscode.WorkspaceConfiguration = vscode.workspace.getConfiguration(
     "resourceNinja",
+    workspaceUri,
   ),
 ): vscode.Uri[] {
   const skillsDirectory = resolveWorkspaceSkillsDirectory(
@@ -721,7 +725,10 @@ export async function getManagedSkillRoots(
 ): Promise<SkillRoot[]> {
   const roots: SkillRoot[] = [];
   const seen = new Set<string>();
-  const skillNinjaConfig = vscode.workspace.getConfiguration("skillNinja");
+  const skillNinjaConfig = vscode.workspace.getConfiguration(
+    "skillNinja",
+    workspaceUri,
+  );
 
   const addManagedRoot = (locationUri: vscode.Uri): void => {
     const normalizedRootPath = normalizeFileSystemPath(locationUri.fsPath);
@@ -796,6 +803,7 @@ export async function getManagedSkillRoots(
     const workspaceRootUris = resolveWorkspaceSkillRootUris(
       workspaceUri,
       skillNinjaConfig,
+      vscode.workspace.getConfiguration("resourceNinja", workspaceUri),
     );
     const { instructionFile } = await resolveOutputFormat(workspaceUri);
     const instructionUri =

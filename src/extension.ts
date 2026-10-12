@@ -14,6 +14,12 @@ import {
   getSkillGitHubUrlAsync,
 } from "./skillIndex";
 import { encodeGitRef } from "./sourceRefs";
+import {
+  synchronizeSkillGitignore,
+  reconcileSkillGitignores,
+  observeGitignoreSynchronization,
+  createGitignoreInventory,
+} from "./gitignoreManager";
 import { searchSkills, SkillQuickPickItem } from "./skillSearch";
 import {
   installSkill,
@@ -678,6 +684,67 @@ export function activate(
       ),
     showDetails: () => skillStateChannel.show(true),
   });
+  const storedGitignoreRoots = context.workspaceState.get<unknown>(
+    "gitignoreManagedRoots",
+    [],
+  );
+  const initialGitignoreRoots = [
+    ...(Array.isArray(storedGitignoreRoots) ? storedGitignoreRoots : [])
+      .filter((value) => typeof value === "string" && path.isAbsolute(value))
+      .map((value) => vscode.Uri.file(value)),
+    ...currentGitignoreRoots(),
+  ];
+  const gitignoreInventory = createGitignoreInventory({
+    initialRoots: initialGitignoreRoots,
+    currentRoots: currentGitignoreRoots,
+    reconcile: (current, previous) =>
+      reconcileSkillGitignores(current, previous, vscode.workspace),
+    save: (roots) =>
+      context.workspaceState.update(
+        "gitignoreManagedRoots",
+        roots.map((root) => root.fsPath),
+      ),
+    onFailure: () =>
+      skillStateChannel.appendLine("[Gitignore] inventory-update-failed"),
+  });
+  const gitignoreFeedback = createOutputWriteFeedback({
+    log: (_key, result) =>
+      skillStateChannel.appendLine(`[Gitignore ${result}]`),
+    detailsAction: messages.actionShowDetails,
+    warn: (action) =>
+      vscode.window.showWarningMessage(
+        isJapanese()
+          ? "Gitignore の同期を完了できませんでした。スキルのインストール結果とは別の問題です。詳細を確認し、解消後にビューを更新してください。"
+          : "Gitignore synchronization could not finish. This is separate from the skill installation result. Check Details, then Refresh View after resolving the cause.",
+        action,
+      ),
+    showDetails: () => skillStateChannel.show(true),
+  });
+  context.subscriptions.push(
+    new vscode.Disposable(
+      observeGitignoreSynchronization((root, result) => {
+        if (!isContextActive()) {
+          return;
+        }
+        if (
+          (result.status === "updated" || result.status === "unchanged") &&
+          result.managedBlock
+        ) {
+          void gitignoreInventory.remember(root);
+        }
+        const failed = result.status === "failed" || !!result.warning;
+        if (failed) {
+          skillStateChannel.appendLine(
+            `[Gitignore] ${result.warning || result.reason || "io-failure"}`,
+          );
+        }
+        gitignoreFeedback.record(
+          normalizeFileSystemPath(root.fsPath),
+          failed ? "failed" : "updated",
+        );
+      }),
+    ),
+  );
   context.subscriptions.push(
     new vscode.Disposable(
       observeOutputWrites(context, (uri, result) => {
@@ -2406,7 +2473,32 @@ export function activate(
   let resetSkillMdWatchers: () => void = () => undefined;
 
   // 設定変更を監視してビューをリフレッシュ
+  function currentGitignoreRoots(): vscode.Uri[] {
+    const roots: vscode.Uri[] = [];
+    for (const folder of vscode.workspace.workspaceFolders || []) {
+      roots.push(
+        ...resolveWorkspaceSkillRootUris(
+          folder.uri,
+          vscode.workspace.getConfiguration("skillNinja", folder.uri),
+          vscode.workspace.getConfiguration("resourceNinja", folder.uri),
+        ),
+      );
+    }
+    return roots;
+  }
+  function synchronizeWorkspaceGitignores(): Promise<void> {
+    return gitignoreInventory.synchronize();
+  }
+
   const configWatcher = vscode.workspace.onDidChangeConfiguration(async (e) => {
+    if (
+      e.affectsConfiguration("skillNinja.autoManageGitignore") ||
+      e.affectsConfiguration("skillNinja.skillsDirectory") ||
+      e.affectsConfiguration("skillNinja.additionalSkillRoots") ||
+      e.affectsConfiguration("resourceNinja.resourcesDirectory")
+    ) {
+      await synchronizeWorkspaceGitignores();
+    }
     if (e.affectsConfiguration("skillNinja.language")) {
       // 言語設定が変わったらインデックスを再読み込みしてツリービューをリフレッシュ
       // バンドル版の description_ja を反映させるため
@@ -2491,7 +2583,8 @@ export function activate(
   // Command: Refresh
   const refreshCmd = vscode.commands.registerCommand(
     "skillNinja.refresh",
-    () => {
+    async () => {
+      await synchronizeWorkspaceGitignores();
       refreshAllViews();
     },
   );
@@ -2499,7 +2592,8 @@ export function activate(
   // Command: Refresh Local
   const refreshLocalCmd = vscode.commands.registerCommand(
     "skillNinja.refreshLocal",
-    () => {
+    async () => {
+      await synchronizeWorkspaceGitignores();
       refreshInstalledViews();
     },
   );
@@ -2721,6 +2815,7 @@ export function activate(
         metaPath,
         Buffer.from(JSON.stringify(meta, null, 2), "utf-8"),
       );
+      await synchronizeSkillGitignore(skillRoot.rootUri, vscode.workspace);
 
       // AGENTS.md を更新
       if (config.get<boolean>("autoUpdateInstruction")) {

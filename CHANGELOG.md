@@ -7,6 +7,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.9.54] - 2026-10-13
+
+### Changed
+
+- **PRP Catalog And Dependency Refresh** - Re-scanned only the PRP source, replacing the unavailable `prp-diagram` path with current `prp-companion`; catalog v1.32.0 retains 1882 skills across 13 sources and other sources' scan dates. Updated vulnerable development-only dependencies; npm audit reports zero vulnerabilities / PRP ソースだけを再走査し、取得不能の `prp-diagram` を現行の `prp-companion` に同期しました。カタログ v1.32.0 は13ソース1882件で、他ソースの走査日時は維持します。開発用依存の脆弱性を更新し、npm audit は0件です。
+
+### Fixed
+
+- **Ordered Gitignore Inventory Updates** - Serialized root recording, reconciliation and persistence so delayed writes cannot restore stale inventories. Roots written between rapid setting changes remain cleanup candidates, and removal outcomes do not re-register deleted blocks / Gitignore の保存先記録・同期・永続化を直列化し、遅延書き込みによる古い在庫の復活を防止しました。連続した設定変更の途中で書き込んだ保存先も除去対象に保持し、除去通知による再登録を防ぎます。
+
+### Added
+
+- **Workspace Gitignore Management** - Default-on `skillNinja.autoManageGitignore` excludes external skill directories and managed metadata while preserving local skill content and existing rules. Supports repository/folder overrides, old-root cleanup, separate synchronization diagnostics, and a shared-lock contract for Agent Resources Ninja / 既定 ON の `skillNinja.autoManageGitignore` で外部スキルと管理メタデータを除外し、自作スキル本文と既存ルールを保持します。レポ・フォルダ別の上書き、旧保存先の除外解除、同期専用の診断、Agent Resources Ninja との共通ロック契約に対応しました。
+
 ## [0.9.53] - 2026-09-29
 
 ### Fixed

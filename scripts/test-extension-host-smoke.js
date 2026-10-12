@@ -78,6 +78,25 @@ for (const language of ["en", "ja"]) {
 console.log(
   "PASS Extension Host smoke environment isolates profile, storage and fixture without inherited credentials",
 );
+const suite = fs.readFileSync(
+  path.join(__dirname, "extension-host", "smoke-suite.js"),
+  "utf8",
+);
+assert.ok(
+  suite.includes(
+    'checks.push("gitignore-real-config-dirty-recovery-and-old-root-cleanup")',
+  ),
+);
+assert.ok(
+  suite.includes('vscode.commands.executeCommand("skillNinja.refreshLocal")'),
+);
+assert.match(
+  suite,
+  /rootConfig\.update\(\s*"autoManageGitignore",\s*false,\s*vscode\.ConfigurationTarget\.Workspace,?\s*\)/,
+);
+console.log(
+  "PASS Gitignore host smoke checks are required by the isolated runner",
+);
 
 async function checkTermination() {
   let launched = 0;

@@ -2,7 +2,7 @@
   "name": "agent-skill-ninja",
   "displayName": "%displayName%",
   "description": "%description%",
-  "version": "0.9.53",
+  "version": "0.9.54",
   "publisher": "yamapan",
   "license": "CC-BY-NC-SA-4.0",
   "icon": "resources/icon.png",
@@ -1107,12 +1107,21 @@
         },
         "skillNinja.skillsDirectory": {
           "type": "string",
+          "scope": "resource",
           "default": ".github/skills",
           "order": 4,
           "description": "%config.skillsDirectory.description%"
         },
+        "skillNinja.autoManageGitignore": {
+          "type": "boolean",
+          "default": true,
+          "scope": "resource",
+          "order": 100,
+          "markdownDescription": "%config.autoManageGitignore.markdownDescription%"
+        },
         "skillNinja.additionalSkillRoots": {
           "type": "array",
+          "scope": "resource",
           "default": [],
           "order": 5,
           "items": {

@@ -5,6 +5,7 @@ import * as vscode from "vscode";
 import * as path from "path";
 import { Skill, loadSkillIndex, Source, getSourceBranch } from "./skillIndex";
 import { encodeGitRef } from "./sourceRefs";
+import { synchronizeSkillGitignore } from "./gitignoreManager";
 import {
   createSkillRevisionResolver,
   type SkillDownloadTarget,
@@ -1297,6 +1298,7 @@ export async function installSkillUpdate(
       }
     }
     activeSkillUpdates.delete(lockPath);
+    await synchronizeSkillGitignore(root.rootUri, vscode.workspace);
   }
 }
 
@@ -1735,6 +1737,7 @@ export async function installSkill(
     metaPath,
     Buffer.from(JSON.stringify(enrichSkillMeta(meta), null, 2), "utf-8"),
   );
+  await synchronizeSkillGitignore(skillsRootUri, vscode.workspace);
 
   const result: SkillInstallResult = {
     status,
@@ -2033,6 +2036,7 @@ export async function uninstallSkill(
   } catch (error) {
     throw new Error(`Failed to delete skill directory: ${error}`);
   }
+  await synchronizeSkillGitignore(skillsPath, vscode.workspace);
 }
 
 async function readInstalledSkillMetaName(
@@ -2068,6 +2072,7 @@ export async function uninstallSkillByPath(
   } catch (error) {
     throw new Error(`Failed to delete skill directory: ${error}`);
   }
+  await synchronizeSkillGitignore(basePath, vscode.workspace);
 }
 
 /**
@@ -2575,6 +2580,9 @@ export async function refreshSkillMetadata(
     // skills ディレクトリがない場合は何もしない
   }
 
+  if (updatedCount > 0) {
+    await synchronizeSkillGitignore(skillsPath, vscode.workspace);
+  }
   return updatedCount;
 }
 
@@ -2636,6 +2644,9 @@ export async function refreshSingleSkillMetadata(
         metaPath,
         Buffer.from(JSON.stringify(meta, null, 2), "utf-8"),
       );
+      if (skillsRootUri) {
+        await synchronizeSkillGitignore(skillsRootUri, vscode.workspace);
+      }
       console.log(
         `[Skill Ninja] Updated metadata from SKILL.md: ${skillMdUri.fsPath}`,
       );

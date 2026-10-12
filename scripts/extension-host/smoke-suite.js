@@ -127,19 +127,17 @@ exports.run = async () => {
     fs.mkdirSync(outputPath);
     const sentinel = path.join(outputPath, "keep.txt");
     fs.writeFileSync(sentinel, "preserve this disposable fixture");
-    await vscode.workspace
-      .getConfiguration("skillNinja")
-      .update(
-        "outputTargets",
-        [
-          {
-            id: "workspace",
-            instructionFile: "SMOKE-OUTPUT.md",
-            format: "full",
-          },
-        ],
-        vscode.ConfigurationTarget.Workspace,
-      );
+    await vscode.workspace.getConfiguration("skillNinja").update(
+      "outputTargets",
+      [
+        {
+          id: "workspace",
+          instructionFile: "SMOKE-OUTPUT.md",
+          format: "full",
+        },
+      ],
+      vscode.ConfigurationTarget.Workspace,
+    );
     const blocked = await vscode.commands.executeCommand(
       "skillNinja.updateInstruction",
       item,
@@ -151,7 +149,10 @@ exports.run = async () => {
       "preserve this disposable fixture",
     );
     stage = "output-recovery";
-    fs.rmSync(outputPath, { recursive: true });
+    await vscode.workspace.fs.delete(vscode.Uri.file(outputPath), {
+      recursive: true,
+      useTrash: false,
+    });
     const recovered = await vscode.commands.executeCommand(
       "skillNinja.updateInstruction",
       item,
@@ -165,6 +166,82 @@ exports.run = async () => {
     );
     assert.equal(unchangedOutput.unchanged, 1);
     checks.push("blocked-output-preserved-and-recovered");
+    stage = "gitignore-host";
+    const rootConfig = vscode.workspace.getConfiguration(
+      "skillNinja",
+      workspace,
+    );
+    assert.equal(rootConfig.get("autoManageGitignore"), true);
+    const externalPath = path.join(skillsPath, "smoke-external");
+    fs.mkdirSync(externalPath);
+    fs.writeFileSync(
+      path.join(externalPath, "SKILL.md"),
+      "---\nname: smoke-external\n---\n",
+    );
+    fs.writeFileSync(
+      path.join(externalPath, ".skill-meta.json"),
+      JSON.stringify({
+        name: "smoke-external",
+        source: "smoke-catalog",
+        categories: [],
+      }),
+    );
+    const ignorePath = path.join(skillsPath, ".gitignore");
+    const userRules =
+      "# User rule\n/user-file\n# Agent Resources Ninja START\n/resource/\n# Agent Resources Ninja END\n";
+    fs.writeFileSync(ignorePath, userRules);
+    await vscode.commands.executeCommand("skillNinja.refreshLocal");
+    const managedIgnore = fs.readFileSync(ignorePath, "utf8");
+    assert.ok(managedIgnore.includes("/smoke-external/"));
+    assert.ok(managedIgnore.includes("/smoke-local/.skill-meta.json"));
+    assert.ok(!managedIgnore.includes("\n/smoke-local/\n"));
+    assert.ok(managedIgnore.startsWith(userRules));
+    const ignoreDocument = await vscode.workspace.openTextDocument(ignorePath);
+    const dirtyEdit = new vscode.WorkspaceEdit();
+    dirtyEdit.insert(
+      ignoreDocument.uri,
+      new vscode.Position(0, 0),
+      "# Unsaved fixture\n",
+    );
+    assert.equal(await vscode.workspace.applyEdit(dirtyEdit), true);
+    assert.equal(ignoreDocument.isDirty, true);
+    await rootConfig.update(
+      "autoManageGitignore",
+      false,
+      vscode.ConfigurationTarget.Workspace,
+    );
+    await vscode.commands.executeCommand("skillNinja.refreshLocal");
+    assert.equal(fs.readFileSync(ignorePath, "utf8"), managedIgnore);
+    await ignoreDocument.save();
+    await vscode.commands.executeCommand("skillNinja.refreshLocal");
+    const disabledIgnore = fs.readFileSync(ignorePath, "utf8");
+    assert.ok(!disabledIgnore.includes("# Agent Skills Ninja START"));
+    assert.ok(disabledIgnore.includes("# Agent Resources Ninja START"));
+    assert.ok(disabledIgnore.includes("# Unsaved fixture"));
+    await rootConfig.update(
+      "autoManageGitignore",
+      true,
+      vscode.ConfigurationTarget.Workspace,
+    );
+    await vscode.commands.executeCommand("skillNinja.refreshLocal");
+    assert.ok(fs.readFileSync(ignorePath, "utf8").includes("/smoke-external/"));
+    await rootConfig.update(
+      "skillsDirectory",
+      "other-skills",
+      vscode.ConfigurationTarget.Workspace,
+    );
+    await vscode.commands.executeCommand("skillNinja.refreshLocal");
+    assert.ok(
+      !fs
+        .readFileSync(ignorePath, "utf8")
+        .includes("# Agent Skills Ninja START"),
+    );
+    assert.ok(
+      fs
+        .readFileSync(ignorePath, "utf8")
+        .includes("# Agent Resources Ninja START"),
+    );
+    checks.push("gitignore-real-config-dirty-recovery-and-old-root-cleanup");
     fs.writeFileSync(
       resultPath,
       JSON.stringify({

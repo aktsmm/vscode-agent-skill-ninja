@@ -199,6 +199,11 @@ async function runSmoke(executable, language = "en") {
     assert.equal(result.language, language);
     assert.ok(result.checks.length >= 5);
     assert.ok(result.checks.includes("blocked-output-preserved-and-recovered"));
+    assert.ok(
+      result.checks.includes(
+        "gitignore-real-config-dirty-recovery-and-old-root-cleanup",
+      ),
+    );
     console.log(JSON.stringify(result));
     return result;
   } catch (error) {

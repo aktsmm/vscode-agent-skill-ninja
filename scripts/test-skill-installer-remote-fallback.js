@@ -127,9 +127,17 @@ function loadModule(options = {}) {
     },
     workspace: {
       fs: new FsBackedFs(),
+      getWorkspaceFolder() {
+        return options.workspacePath
+          ? { uri: makeUri(options.workspacePath) }
+          : undefined;
+      },
       getConfiguration() {
         return {
           get(_key, defaultValue) {
+            if (_key === "autoManageGitignore") {
+              return options.gitignoreEnabled ?? defaultValue;
+            }
             return defaultValue;
           },
         };
@@ -394,6 +402,62 @@ async function main() {
     );
 
     const skillMdPath = path.join(tmp, "local-media-transcription", "SKILL.md");
+    const managedRootPath = path.join(tmp, "managed-skills");
+    const managedRoot = {
+      isManaged: true,
+      isReadOnly: false,
+      rootUri: makeUri(managedRootPath),
+      rootPath: managedRootPath,
+    };
+    const managedOptions = { workspacePath: tmp };
+    const managedInstaller = loadModule(managedOptions);
+    const managedSkill = {
+      name: "local-media-transcription",
+      source: "aktsmm/Agent-Skills",
+      path: "local-media-transcription",
+      categories: [],
+      description: "Transcribe local media",
+      url: "https://github.com/aktsmm/Agent-Skills/tree/master/local-media-transcription",
+      rawUrl:
+        "https://raw.githubusercontent.com/aktsmm/Agent-Skills/master/local-media-transcription/SKILL.md",
+    };
+    await managedInstaller.installSkill(
+      managedSkill,
+      makeUri(tmp),
+      {},
+      managedRoot,
+    );
+    const managedIgnorePath = path.join(managedRootPath, ".gitignore");
+    assert(
+      fs
+        .readFileSync(managedIgnorePath, "utf8")
+        .includes("/local-media-transcription/"),
+    );
+    await managedInstaller.uninstallSkillByPath(
+      "local-media-transcription",
+      makeUri(tmp),
+      managedRoot.rootUri,
+    );
+    assert(
+      !fs
+        .readFileSync(managedIgnorePath, "utf8")
+        .includes("/local-media-transcription/"),
+    );
+    managedOptions.gitignoreEnabled = false;
+    await managedInstaller.installSkill(
+      managedSkill,
+      makeUri(tmp),
+      {},
+      managedRoot,
+    );
+    assert(
+      !fs
+        .readFileSync(managedIgnorePath, "utf8")
+        .includes("# Agent Skills Ninja START"),
+    );
+    console.log(
+      "PASS actual install and uninstall synchronize gitignore and respect folder opt-out",
+    );
     const referencePath = path.join(
       tmp,
       "local-media-transcription",

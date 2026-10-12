@@ -1,5 +1,5 @@
 {
-  "version": "1.31.0",
+  "version": "1.32.0",
   "lastUpdated": "2026-09-29",
   "sources": [
     {
@@ -86,7 +86,7 @@
       "includePaths": [".agents/skills"],
       "description": "PRP Agentic Engineering",
       "description_ja": "PRP Agentic Engineering",
-      "lastIndexedAt": "2026-09-29T03:59:04.014Z"
+      "lastIndexedAt": "2026-10-12T16:18:25.524Z"
     },
     {
       "id": "claude-command-suite",
@@ -11788,6 +11788,14 @@
       "description_ja": ""
     },
     {
+      "name": "prp-companion",
+      "source": "prps-agentic",
+      "path": ".agents/skills/prp-companion",
+      "categories": [],
+      "description": "Writes the visual HTML companion of a PRP plan or review - one self-contained page beside the markdown that shows a plan's change diagram, steps and risks, or a review's verdict, findings and a diagram of what the PR changed, with every item carrying a stable id a mark can point at. In helm a review or plan page is live: the operator sets each finding's or step's status and replies on the page. prp-plan and prp-review run it after writing their markdown. Use when the user wants to \"make it visual\", \"show me the plan\", \"visualize this review\", \"diagram this plan\", \"write the companion\", or invokes $prp-companion.",
+      "description_ja": ""
+    },
+    {
       "name": "prp-debug",
       "source": "prps-agentic",
       "path": ".agents/skills/prp-debug",
@@ -11801,14 +11809,6 @@
       "path": ".agents/skills/prp-deliver",
       "categories": [],
       "description": "This is an experimental skill. Never use it unless the user explicitly tells you to invoke $prp-deliver.",
-      "description_ja": ""
-    },
-    {
-      "name": "prp-diagram",
-      "source": "prps-agentic",
-      "path": ".agents/skills/prp-diagram",
-      "categories": [],
-      "description": "Generate a mermaid-only visual supplement for a plan artifact - the data-model, architecture, and flow diagrams a human wants when absorbing a plan. Use when the user wants to \"diagram this plan\", \"visualize the plan\", \"draw the plan's architecture\", \"make diagrams for this plan\", or invokes $prp-diagram.",
       "description_ja": ""
     },
     {

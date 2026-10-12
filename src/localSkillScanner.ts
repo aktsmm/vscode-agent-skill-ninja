@@ -3,6 +3,7 @@
 
 import * as path from "path";
 import * as vscode from "vscode";
+import { synchronizeSkillGitignore } from "./gitignoreManager";
 import { Skill } from "./skillIndex";
 import {
   SHARED_MARKER_END,
@@ -707,6 +708,7 @@ export async function registerLocalSkill(
       Buffer.from(JSON.stringify(meta, null, 2), "utf-8"),
     );
 
+    await synchronizeSkillGitignore(skill.root.rootUri, vscode.workspace);
     await updateInstructionFileForRoot(skill.root, context);
     return true;
   } catch (error) {
@@ -751,6 +753,7 @@ export async function unregisterLocalSkill(
       Buffer.from(JSON.stringify(meta, null, 2), "utf-8"),
     );
 
+    await synchronizeSkillGitignore(skill.root.rootUri, vscode.workspace);
     await updateInstructionFileForRoot(skill.root, context);
     return true;
   } catch (error) {

@@ -468,8 +468,25 @@ If you don't need MCP tools, you can disable them from GitHub Copilot Chat:
 |  16   | `skillNinja.coexistenceMode`              | `auto`                     | Coexistence with Agent Resources Ninja (`auto` / `independent`)                                                              |
 |  17   | `skillNinja.useSharedSourcesManifest`     | `false`                    | Share source-list SSOT with Agent Resources Ninja via `~/.agent-ninja/sources.json`                                          |
 |  18   | `skillNinja.language`                     | `auto`                     | UI language (auto / en / ja)                                                                                                 |
+|  19   | `skillNinja.autoManageGitignore`          | `true`                     | Manage a skill-root .gitignore; override per repository in Workspace or Folder settings                                      |
 
 > Settings are displayed in the order above
+
+### Gitignore Management
+
+`skillNinja.autoManageGitignore` defaults to `true`. Install, update, uninstall, local registration, and Refresh View synchronize an Agent Skills Ninja block in each workspace skill root's `.gitignore` (normally `.github/skills/.gitignore`). Activation alone does not create it. External skill directories are ignored; local skill content remains eligible for tracking, with only its managed `.skill-meta.json` excluded. Unknown provenance never causes a whole directory to be ignored. A remote parent containing local skills is not ignored as a whole.
+
+Set this resource-scoped option in User settings for a personal default, or in a repository's `.vscode/settings.json` for that project. Multi-root Folder settings take precedence for each destination. Setting it to `false` removes only Skills Ninja's block; existing user rules and Resources Ninja blocks remain. Already tracked files stay tracked: no `git rm --cached` is run. The generated `.gitignore` itself remains eligible for tracking. User/global roots, workspace-external paths and a root equal to the workspace folder are not modified.
+
+Both Ninja extensions must use `.gitignore.agent-ninja.lock` beside the file to serialize updates, read fresh content after acquiring it, and release only their own lock. Busy locks, unreadable or invalid metadata, malformed managed blocks, and unsaved `.gitignore` edits preserve existing rules and skip synchronization. Refresh View retries after resolving the blocker. A lock left by a crashed writer is not automatically stolen; confirm no writer is active before removing it. Gitignore rules also affect tools that respect Git ignores, such as default search filtering.
+
+Workspace and Folder overrides also apply to `skillsDirectory` and `additionalSkillRoots`. Changes to either root setting or `autoManageGitignore` reconcile the current roots and remove only Skills Ninja's block from previously managed roots. Failed cleanup stays in the workspace inventory for the next Refresh View. Inventory is local VS Code workspace state, not a repository file. Roots outside the currently open workspace are never modified.
+
+Inventory recording, cleanup and persistence share one serial queue: delayed saves cannot overwrite a newer root list, and a skill root written between successive setting changes remains a cleanup candidate. Cleanup results do not re-register removed blocks. Failed inventory saves can be retried with Refresh View. If settings were edited while VS Code was closed, use Refresh View after reopening to reconcile the restored inventory; reopening alone does not create a `.gitignore`.
+
+Hidden local skills and symbolic-link boundaries prevent blanket exclusion of their remote parent. Writes use an exclusively created temporary file, flush it, recheck the destination and unsaved editors (including path aliases), then replace the destination. A failed write or replacement leaves the original file intact. Both owners' missing, duplicated or nested block markers stop the update. Cooperating Ninja writers use the shared lock; an unrelated process that ignores it is not covered by that mutual-exclusion contract. Synchronization failures produce a separate warning with **Details**, and sanitized reason codes appear in **Agent Skills Ninja: Skill State**; a successful skill installation is not reclassified as a failure.
+
+Native UI verification remains required before release: in an isolated Extension Development Host with two disposable workspace folders, install one external skill and register one local skill, verify Git status, turn this option OFF for only one folder, change its skill root and verify the old block is removed. Make `.gitignore` dirty and refresh to verify the separate warning/Details path, then save and refresh to recover. No real skill root, home directory or user data should be used for this check.
 
 ### Source Index Refresh Behavior
 
