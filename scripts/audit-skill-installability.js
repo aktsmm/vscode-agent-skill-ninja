@@ -139,7 +139,21 @@ async function fetchJson(url) {
   return response.json();
 }
 
+const ALLOWED_FETCH_HOSTS = new Set([
+  "github.com",
+  "api.github.com",
+  "raw.githubusercontent.com",
+]);
+
+function assertAllowedUrl(url) {
+  const parsed = new URL(url);
+  if (parsed.protocol !== "https:" || !ALLOWED_FETCH_HOSTS.has(parsed.hostname)) {
+    throw new Error(`Blocked request to disallowed URL: ${url}`);
+  }
+}
+
 async function fetchOk(url) {
+  assertAllowedUrl(url);
   const response = await fetchWithTimeout(url, {
     method: "HEAD",
     headers: buildHeaders(url),
