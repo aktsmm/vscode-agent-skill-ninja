@@ -1121,9 +1121,15 @@ test("read-only extension skills expose only open/copy actions", () => {
     .map((item) => item.command)
     .sort();
 
+  // スラッシュコマンドのコピー・挿入は読み取り専用の操作なので read-only でも出す。
+  // 呼び出しモードの変更は SKILL.md を書き換えるため含めない。
   assert.deepStrictEqual(commands, [
     "skillNinja.copyPath",
     "skillNinja.copyPath",
+    "skillNinja.copySlashCommand",
+    "skillNinja.copySlashCommand",
+    "skillNinja.insertSlashCommandInChat",
+    "skillNinja.insertSlashCommandInChat",
     "skillNinja.openInTerminal",
     "skillNinja.openInTerminal",
     "skillNinja.openSkillFile",

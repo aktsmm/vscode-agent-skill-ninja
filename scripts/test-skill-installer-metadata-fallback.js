@@ -186,7 +186,11 @@ function writeSkill(rootPath, skillName, frontmatterDescription) {
 }
 
 async function main() {
-  const { getInstalledSkillsWithMeta, refreshSkillMetadata } = loadModule();
+  const {
+    getInstalledSkillsWithMeta,
+    refreshSkillMetadata,
+    refreshSingleSkillMetadata,
+  } = loadModule();
 
   {
     const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "skill-fallback-"));
@@ -229,6 +233,80 @@ async function main() {
       assert.strictEqual(meta.source, "local");
       assert.strictEqual(meta.name, "expense-report");
       console.log("PASS refreshSkillMetadata creates local source metadata");
+    } finally {
+      fs.rmSync(tmp, { recursive: true, force: true });
+    }
+  }
+
+  {
+    const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "skill-invocation-"));
+    try {
+      const skillMd = (name, extra) =>
+        ["---", `name: ${name}`, "description: demo", ...extra, "---", "", "# x"].join(
+          "\n",
+        );
+      const write = (name, extra, meta) => {
+        const dir = path.join(tmp, name);
+        fs.mkdirSync(dir, { recursive: true });
+        fs.writeFileSync(path.join(dir, "SKILL.md"), skillMd(name, extra));
+        if (meta) {
+          fs.writeFileSync(
+            path.join(dir, ".skill-meta.json"),
+            JSON.stringify({
+              name,
+              source: "local",
+              description: "demo",
+              categories: [],
+              installedAt: "",
+              ...meta,
+            }),
+          );
+        }
+      };
+      write("plain", []);
+      write("manual", ["disable-model-invocation: true"]);
+      write("hidden", ["user-invocable: false"]);
+      // SKILL.md が正本。保存済みの古い値には従わない
+      write("stale-meta", [], { invocation: "explicitOnly" });
+      write("fresh-meta", ["disable-model-invocation: true"], {});
+
+      const metas = await getInstalledSkillsWithMeta(
+        makeUri(tmp),
+        makeUri(tmp),
+      );
+      const byName = Object.fromEntries(metas.map((meta) => [meta.name, meta]));
+      assert.strictEqual(byName["plain"].invocation, undefined);
+      assert.ok(!("invocation" in byName["plain"]));
+      assert.strictEqual(byName["manual"].invocation, "explicitOnly");
+      assert.strictEqual(byName["hidden"].invocation, "modelOnly");
+      assert.ok(!("invocation" in byName["stale-meta"]));
+      assert.strictEqual(byName["fresh-meta"].invocation, "explicitOnly");
+
+      // frontmatter が変わったら refreshSingleSkillMetadata が変更ありと返し、meta を揃える
+      const staleDir = path.join(tmp, "stale-meta");
+      assert.strictEqual(
+        await refreshSingleSkillMetadata(
+          makeUri(path.join(staleDir, "SKILL.md")),
+          makeUri(tmp),
+        ),
+        true,
+      );
+      const refreshed = JSON.parse(
+        fs.readFileSync(path.join(staleDir, ".skill-meta.json"), "utf8"),
+      );
+      assert.ok(!("invocation" in refreshed));
+      const freshDir = path.join(tmp, "fresh-meta");
+      await refreshSingleSkillMetadata(
+        makeUri(path.join(freshDir, "SKILL.md")),
+        makeUri(tmp),
+      );
+      assert.strictEqual(
+        JSON.parse(
+          fs.readFileSync(path.join(freshDir, ".skill-meta.json"), "utf8"),
+        ).invocation,
+        "explicitOnly",
+      );
+      console.log("PASS installed skills read their invocation mode from SKILL.md");
     } finally {
       fs.rmSync(tmp, { recursive: true, force: true });
     }

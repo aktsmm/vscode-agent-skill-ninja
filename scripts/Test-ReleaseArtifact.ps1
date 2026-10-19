@@ -14,7 +14,11 @@ $archive = [System.IO.Compression.ZipFile]::OpenRead($resolvedVsix)
 function Get-ArchiveText {
     param([Parameter(Mandatory)][string]$EntryName)
 
-    $entry = $archive.GetEntry($EntryName)
+    # vsce の版によって収録名の大文字小文字が違う（CHANGELOG.md / changelog.md）。
+    # GetEntry は区別するので、必須判定と同じく大文字小文字を無視して引く。
+    $entry = $archive.Entries | Where-Object {
+        $_.FullName -ieq $EntryName
+    } | Select-Object -First 1
     if (-not $entry) {
         throw "Required VSIX entry is missing: $EntryName"
     }

@@ -9,6 +9,7 @@ const os = require("os");
 const path = require("path");
 const vm = require("vm");
 const ts = require("typescript");
+const { loadSrcModule } = require("./load-src-module");
 
 // deriveTargetId は os.homedir() を基準に標準ターゲットを判定するので、
 // テストでも実際の home を使う（ファイルへは一切書き込まない）。
@@ -111,6 +112,9 @@ function loadTranspiledModule(sourcePath, extraModules = {}) {
       }
       if (request in extraModules) {
         return extraModules[request];
+      }
+      if (request === "./skillInvocation") {
+        return loadSrcModule(request);
       }
       return require(request);
     },

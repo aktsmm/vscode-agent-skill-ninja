@@ -10,7 +10,7 @@ const scratch = fs.mkdtempSync(
   path.join(os.tmpdir(), "release-artifact-test-"),
 );
 
-function createFixture(name, changelog) {
+function createFixture(name, changelog, changelogName = "changelog.md") {
   const source = path.join(scratch, `${name}-source`);
   const extension = path.join(source, "extension");
   fs.mkdirSync(path.join(extension, "dist"), { recursive: true });
@@ -24,7 +24,7 @@ function createFixture(name, changelog) {
     path.join(extension, "package.json"),
     JSON.stringify({ version: "1.2.3" }),
   );
-  fs.writeFileSync(path.join(extension, "changelog.md"), changelog);
+  fs.writeFileSync(path.join(extension, changelogName), changelog);
   fs.writeFileSync(
     path.join(extension, "dist", "extension.js"),
     "module.exports = {};",
@@ -78,6 +78,18 @@ try {
   const cleanResult = verify(clean);
   assert.equal(cleanResult.status, 0, cleanResult.stderr);
   assert.match(cleanResult.stdout, /PASS/);
+
+  // vsce の版によって収録名が CHANGELOG.md になる。大文字でも検査できること
+  const upperCase = createFixture(
+    "upper-case",
+    ["# Changelog", "## [1.2.3] - 2026-09-07", "- Safe release notes"].join(
+      "\n",
+    ),
+    "CHANGELOG.md",
+  );
+  const upperCaseResult = verify(upperCase);
+  assert.equal(upperCaseResult.status, 0, upperCaseResult.stderr);
+  assert.match(upperCaseResult.stdout, /PASS/);
 
   const contaminated = createFixture(
     "contaminated",

@@ -5,6 +5,7 @@ const fs = require("fs");
 const path = require("path");
 const vm = require("vm");
 const ts = require("typescript");
+const { loadSrcModule } = require("./load-src-module");
 
 const sourcePath = path.join(__dirname, "..", "src", "treeProvider.ts");
 const source = fs.readFileSync(sourcePath, "utf8");
@@ -232,6 +233,9 @@ function loadModule() {
       }
       if (request === "./installedSkillIndex") {
         return { shouldCheckInstalledSkillAgainstIndex: () => false };
+      }
+      if (request === "./skillInvocation") {
+        return loadSrcModule(request);
       }
       return require(request);
     },

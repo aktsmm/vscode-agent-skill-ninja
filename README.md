@@ -137,6 +137,7 @@ Settings → **Output Format** → Select `ref`, `full`, `compact`, or `legacy`
 - **Install Feedback** - NEW badge, status bar notification, auto-select in tree view
 - **Open Folder** - Quick access to installed skill folder
 - **Explain Skill State** - Diagnose registration source, metadata path, coexistence owner, and instruction target from the tree item context menu
+- **Invocation Modes** - Skills with `disable-model-invocation: true` (manual only, `/name`) or `user-invocable: false` (model only) are marked in the tree with a distinct icon and label. Filter the views by mode, copy or insert `/name` in chat, or switch a skill's mode from the context menu. Manual-only skills are left out of the generated skill list by default (`skillNinja.explicitOnlySkillsInInstructions`).
 - **Index Integrity Check** - Auto-detect missing skills and prompt for index update
 
 ### 🔧 Multi-Tool Support
@@ -310,6 +311,7 @@ Preset index includes skills from official, curated, and community sources out o
 | `Agent Skills Ninja: Open Workspace Skill Output`                | Open the workspace skill output directly                                                                                                      |
 | `Agent Skills Ninja: Open User/Global Skill Output`              | Open the user/global skill output directly                                                                                                    |
 | `Agent Skills Ninja: Show Built-in Skills`                       | Show read-only built-in skills in the tree                                                                                                    |
+| `Agent Skills Ninja: Filter by Invocation Mode`                  | Show only auto, manual-only, or model-only skills in the Installed and User/Global views                                                      |
 | `Agent Skills Ninja: Open Settings`                              | Open this extension's settings                                                                                                                |
 | `Agent Skills Ninja: Reset Settings`                             | Reset this extension's settings to their defaults                                                                                             |
 | `Agent Skills Ninja: Report a Bug`                               | Open a prefilled GitHub issue                                                                                                                 |
@@ -331,6 +333,11 @@ These palette commands are also available by right-clicking a row in the tree.
 | Copy URL         | skill or source row         |
 | Copy Path        | installed skill or root row |
 | Open in Terminal | installed skill or root row |
+| Copy Slash Command | installed skill row |
+| Insert Slash Command in Chat | installed skill row |
+| Set Invocation Mode... | writable installed skill row |
+
+The view title also has **Filter by Invocation Mode**, which limits the Installed and User/Global views to auto, manual-only, or model-only skills.
 
 ### Output Targets
 
@@ -468,7 +475,8 @@ If you don't need MCP tools, you can disable them from GitHub Copilot Chat:
 |  16   | `skillNinja.coexistenceMode`              | `auto`                     | Coexistence with Agent Resources Ninja (`auto` / `independent`)                                                              |
 |  17   | `skillNinja.useSharedSourcesManifest`     | `false`                    | Share source-list SSOT with Agent Resources Ninja via `~/.agent-ninja/sources.json`                                          |
 |  18   | `skillNinja.language`                     | `auto`                     | UI language (auto / en / ja)                                                                                                 |
-|  19   | `skillNinja.autoManageGitignore`          | `true`                     | Manage a skill-root .gitignore; override per repository in Workspace or Folder settings                                      |
+|  19   | `skillNinja.explicitOnlySkillsInInstructions` | `exclude`              | How manual-only skills (`disable-model-invocation: true`) appear in the generated skill list (`exclude` / `separate` / `include`) |
+|  20   | `skillNinja.autoManageGitignore`          | `true`                     | Manage a skill-root .gitignore; override per repository in Workspace or Folder settings                                      |
 
 > Settings are displayed in the order above
 

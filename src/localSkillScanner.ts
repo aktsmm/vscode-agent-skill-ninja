@@ -17,6 +17,12 @@ import {
 } from "./skillInstaller";
 import { needsRepair } from "./installedSkillIndex";
 import {
+  normalizeExplicitOnlyHandling,
+  readSkillInvocationFromText,
+  type ExplicitOnlyHandling,
+  type SkillInvocation,
+} from "./skillInvocation";
+import {
   getBuiltInSkillRoots,
   getExtensionSkillRoots,
   getManagedSkillRoots,
@@ -47,6 +53,8 @@ export interface LocalSkill extends Skill {
   isReadOnly: boolean;
   remotePath?: string;
   incomplete?: boolean;
+  /** SKILL.md の frontmatter から決まる呼び出しモード */
+  invocation: SkillInvocation;
   reinstallDisabled?: boolean;
   reinstallDisabledReason?: string;
   reinstallDisabledAt?: string;
@@ -437,6 +445,7 @@ async function parseLocalSkillFile(
     categories,
     source,
     path: relativePath,
+    invocation: readSkillInvocationFromText(normalizedText),
     license: meta?.license,
     author: meta?.author,
     version: meta?.version,
@@ -611,9 +620,47 @@ async function scanSkillsForRoot(root: SkillRoot): Promise<LocalSkill[]> {
 
   if (root.isManaged) {
     await checkRegistrationStatusForRoot(skills, root);
+    markExcludedManualOnlySkillsRegistered(skills);
   }
 
   return skills;
+}
+
+/**
+ * 手動専用スキルは既定で生成一覧に載らない。metadata を持たないスキルは一覧への
+ * 掲載で登録済みと判定されるため、載らないことが「未登録」に見えてしまう。
+ * 意図して外している状態なので、登録済み扱いにして理由を残す。
+ * ユーザーが登録解除した skill（metadata あり）には触れない。
+ */
+function markExcludedManualOnlySkillsRegistered(skills: LocalSkill[]): void {
+  let handling: ExplicitOnlyHandling;
+  try {
+    handling = normalizeExplicitOnlyHandling(
+      vscode.workspace
+        .getConfiguration("skillNinja")
+        .get("explicitOnlySkillsInInstructions"),
+    );
+  } catch {
+    // 設定を読めない環境では既定（exclude）として扱う
+    handling = "exclude";
+  }
+  if (handling !== "exclude") {
+    return;
+  }
+
+  for (const skill of skills) {
+    if (
+      skill.invocation === "explicitOnly" &&
+      !skill.isRegistered &&
+      !skill.metadataPresent
+    ) {
+      skill.isRegistered = true;
+      skill.registrationState = "registered";
+      skill.registrationSource = "none";
+      skill.registrationReason =
+        "Manual-only skill (disable-model-invocation: true) is intentionally left out of the generated skill list (skillNinja.explicitOnlySkillsInInstructions = exclude).";
+    }
+  }
 }
 
 async function rootExists(rootUri: vscode.Uri): Promise<boolean> {

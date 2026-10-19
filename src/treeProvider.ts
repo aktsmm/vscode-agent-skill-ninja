@@ -25,6 +25,63 @@ import {
   buildInstalledSkillKey,
   shouldCheckInstalledSkillAgainstIndex,
 } from "./installedSkillIndex";
+import {
+  normalizeSkillInvocation,
+  type SkillInvocation,
+} from "./skillInvocation";
+
+/** ツリーに出すスキルを呼び出しモードで絞る。`all` は絞り込みなし。 */
+export type SkillInvocationFilter = "all" | SkillInvocation;
+
+let currentInvocationFilter: SkillInvocationFilter = "all";
+
+export function getSkillInvocationFilter(): SkillInvocationFilter {
+  return currentInvocationFilter;
+}
+
+export function setSkillInvocationFilter(filter: SkillInvocationFilter): void {
+  currentInvocationFilter = filter;
+}
+
+function matchesInvocationFilter(skill: Pick<WorkspaceSkill, "invocation">) {
+  return (
+    currentInvocationFilter === "all" ||
+    normalizeSkillInvocation(skill.invocation) === currentInvocationFilter
+  );
+}
+
+export function getInvocationLabel(
+  invocation: SkillInvocation | undefined,
+): string {
+  switch (normalizeSkillInvocation(invocation)) {
+    case "explicitOnly":
+      return isJapanese() ? "手動専用" : "Manual only";
+    case "modelOnly":
+      return isJapanese() ? "モデル専用" : "Model only";
+    default:
+      return isJapanese() ? "自動" : "Auto";
+  }
+}
+
+function getInvocationExplanation(
+  invocation: SkillInvocation | undefined,
+  name: string,
+): string {
+  switch (normalizeSkillInvocation(invocation)) {
+    case "explicitOnly":
+      return isJapanese()
+        ? `モデルは自動では使いません。/${name} で明示的に呼び出します (disable-model-invocation: true)`
+        : `The model does not load it on its own. Invoke it explicitly with /${name} (disable-model-invocation: true)`;
+    case "modelOnly":
+      return isJapanese()
+        ? `スラッシュメニューには出ず、モデルだけが使います (user-invocable: false)`
+        : `Hidden from the slash menu; only the model uses it (user-invocable: false)`;
+    default:
+      return isJapanese()
+        ? "モデルの自動利用と /name の明示呼び出しの両方に対応"
+        : "Available to the model and via /name";
+  }
+}
 
 /**
  * ワークスペーススキル情報（統合型）
@@ -51,6 +108,8 @@ export interface WorkspaceSkill {
   categories?: string[];
   remotePath?: string;
   incomplete?: boolean;
+  /** SKILL.md の frontmatter で決まる呼び出しモード */
+  invocation?: SkillInvocation;
   reinstallDisabled?: boolean;
   reinstallDisabledReason?: string;
   reinstallDisabledAt?: string;
@@ -400,6 +459,14 @@ export function getManagedSkillTreeItemLabel(
 export function getManagedSkillTreeItemDescription(
   skill: WorkspaceSkill,
 ): string {
+  const base = getManagedSkillBaseDescription(skill);
+  const invocation = normalizeSkillInvocation(skill.invocation);
+  return invocation === "auto"
+    ? base
+    : `${base} • ${getInvocationLabel(invocation)}`;
+}
+
+function getManagedSkillBaseDescription(skill: WorkspaceSkill): string {
   // Incomplete content matters more than registration state, so it wins the slot
   if (skill.incomplete) {
     return isJapanese()
@@ -460,6 +527,7 @@ function toWorkspaceSkill(skill: LocalSkill): WorkspaceSkill {
     categories: skill.categories,
     remotePath: skill.remotePath,
     incomplete: skill.incomplete,
+    invocation: skill.invocation,
     reinstallDisabled: skill.reinstallDisabled,
     reinstallDisabledReason: skill.reinstallDisabledReason,
     reinstallDisabledAt: skill.reinstallDisabledAt,
@@ -641,6 +709,7 @@ function createManagedSkillTreeItem(
       isReadOnly: skill.isReadOnly,
       remotePath: skill.remotePath,
       incomplete: skill.incomplete,
+      invocation: skill.invocation,
       reinstallDisabled: skill.reinstallDisabled,
       reinstallDisabledReason: skill.reinstallDisabledReason,
       reinstallDisabledAt: skill.reinstallDisabledAt,
@@ -657,10 +726,19 @@ function createManagedSkillTreeItem(
     skill.scope,
   );
 
+  const invocation = normalizeSkillInvocation(skill.invocation);
+  const iconId =
+    invocation === "explicitOnly"
+      ? "play-circle"
+      : invocation === "modelOnly"
+        ? "hubot"
+        : skill.isReadOnly
+          ? "library"
+          : "package";
   item.iconPath = skill.incomplete
     ? new vscode.ThemeIcon("warning", new vscode.ThemeColor("errorForeground"))
     : new vscode.ThemeIcon(
-        skill.isReadOnly ? "library" : "package",
+        iconId,
         skill.isReadOnly
           ? new vscode.ThemeColor("disabledForeground")
           : registrationState === "pending"
@@ -705,6 +783,11 @@ function createManagedSkillTreeItem(
 
   if (skill.source) {
     metaLines.push(`${isJapanese() ? "ソース" : "Source"}: ${skill.source}`);
+  }
+  if (invocation !== "auto") {
+    metaLines.push(
+      `${isJapanese() ? "呼び出し" : "Invocation"}: ${getInvocationLabel(invocation)} - ${getInvocationExplanation(invocation, skill.name)}`,
+    );
   }
   if (skill.remotePath) {
     metaLines.push(
@@ -827,12 +910,23 @@ export class WorkspaceSkillsProvider implements vscode.TreeDataProvider<SkillTre
       }
 
       if (this.workspaceSkills.length === 0) {
+        const filtered = getSkillInvocationFilter() !== "all";
         return [
           new SkillTreeItem(
-            isJapanese() ? "スキルが見つかりません" : "No skills found",
-            isJapanese()
-              ? "「スキルを検索」でインストールしてください"
-              : "Use 'Search Skills' to install skills",
+            filtered
+              ? isJapanese()
+                ? "絞り込みに一致するスキルがありません"
+                : "No skills match the filter"
+              : isJapanese()
+                ? "スキルが見つかりません"
+                : "No skills found",
+            filtered
+              ? isJapanese()
+                ? "ビュー上部のフィルタで「すべて」に戻せます"
+                : "Reset the filter in the view title to show all skills"
+              : isJapanese()
+                ? "「スキルを検索」でインストールしてください"
+                : "Use 'Search Skills' to install skills",
             vscode.TreeItemCollapsibleState.None,
             "placeholder",
           ),
@@ -883,7 +977,8 @@ export class WorkspaceSkillsProvider implements vscode.TreeDataProvider<SkillTre
     const visibleSkills = await scanVisibleSkills(this.workspaceUri);
     this.workspaceSkills = visibleSkills
       .filter((skill) => skill.scope === "workspace")
-      .map(toWorkspaceSkill);
+      .map(toWorkspaceSkill)
+      .filter(matchesInvocationFilter);
   }
 
   /**
@@ -1002,14 +1097,23 @@ export class UserGlobalSkillsProvider implements vscode.TreeDataProvider<SkillTr
       }
 
       if (this.userGlobalSkills.length === 0) {
+        const filtered = getSkillInvocationFilter() !== "all";
         return [
           new SkillTreeItem(
-            isJapanese()
-              ? "ユーザー / グローバル スキルが見つかりません"
-              : "No user/global skills found",
-            isJapanese()
-              ? "Settings の Agent Skill Locations または個人 skill root を確認してください"
-              : "Check Agent Skill Locations or your personal skill roots in Settings",
+            filtered
+              ? isJapanese()
+                ? "絞り込みに一致するスキルがありません"
+                : "No skills match the filter"
+              : isJapanese()
+                ? "ユーザー / グローバル スキルが見つかりません"
+                : "No user/global skills found",
+            filtered
+              ? isJapanese()
+                ? "ビュー上部のフィルタで「すべて」に戻せます"
+                : "Reset the filter in the view title to show all skills"
+              : isJapanese()
+                ? "Settings の Agent Skill Locations または個人 skill root を確認してください"
+                : "Check Agent Skill Locations or your personal skill roots in Settings",
             vscode.TreeItemCollapsibleState.None,
             "placeholder",
           ),
@@ -1252,7 +1356,8 @@ export class UserGlobalSkillsProvider implements vscode.TreeDataProvider<SkillTr
           skill.scope === "extension" ||
           skill.scope === "builtIn",
       )
-      .map(toWorkspaceSkill);
+      .map(toWorkspaceSkill)
+      .filter(matchesInvocationFilter);
   }
 }
 

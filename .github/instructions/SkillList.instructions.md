@@ -32,6 +32,29 @@ Setting: `skillNinja.coexistenceMode` (default: `auto`)
 | `auto`        | Single shared block. Owner is decided by capability (kinds set).         |
 | `independent` | Always write the legacy `<!-- skill-ninja-* -->` block (advanced users). |
 
+## Manual-only Skills
+
+Skills whose `SKILL.md` sets `disable-model-invocation: true` are meant to be
+called explicitly with `/skill-name`. Listing them in the shared block would
+invite the model to apply them on its own, so Skill Ninja controls their
+presence with `skillNinja.explicitOnlySkillsInInstructions`:
+
+| Value      | Behavior                                                                           |
+| ---------- | ---------------------------------------------------------------------------------- |
+| `exclude`  | Default. Left out of the block and the `ref` catalog.                              |
+| `separate` | Listed in an `### Explicit-only skills` section that says not to apply them alone. |
+| `include`  | Listed like any other skill.                                                       |
+
+`user-invocable: false` (model-only) skills are always listed. A manual-only
+skill left out by `exclude` is shown as registered in the tree because the
+omission is intentional, not a sync gap.
+
+The setting applies only while Skill Ninja writes the block. When Resources
+Ninja owns the shared block (the usual case when both are active), the block is
+written by that extension, which does not read this frontmatter yet, so
+manual-only skills can still appear in it. Aligning the sibling with this
+setting is tracked as a follow-up outside this repository.
+
 ## Owner Decision (Capability Beacon, protocol v3)
 
 Each extension publishes a beacon to `globalState` under

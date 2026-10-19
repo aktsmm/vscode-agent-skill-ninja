@@ -8,6 +8,7 @@ const fs = require("fs");
 const path = require("path");
 const vm = require("vm");
 const ts = require("typescript");
+const { loadSrcModule } = require("./load-src-module");
 
 const sourcePath = path.join(__dirname, "..", "src", "treeProvider.ts");
 const source = fs.readFileSync(sourcePath, "utf8");
@@ -101,6 +102,9 @@ function loadTreeProviderExports(japanese = false) {
             );
           },
         };
+      }
+      if (request === "./skillInvocation") {
+        return loadSrcModule(request);
       }
       return require(request);
     },
@@ -600,6 +604,33 @@ test("marks incomplete skills ahead of registration state", () => {
   assert.strictEqual(
     japaneseExports.getManagedSkillTreeItemDescription(incompleteSkill),
     "agents/broken-skill • 不完全",
+  );
+});
+
+test("shows invocation mode after the registration state", () => {
+  setViewRegistrationContext({ initialSyncPending: false });
+  const base = createSkill(
+    "Manual Skill",
+    "userGlobal",
+    "C:/Users/test/.copilot/skills",
+    "manual-skill",
+  );
+
+  // 既定の auto は何も足さない
+  assert.strictEqual(
+    getManagedSkillTreeItemDescription({ ...base, invocation: "auto" }),
+    getManagedSkillTreeItemDescription(base),
+  );
+  assert.strictEqual(
+    getManagedSkillTreeItemDescription({ ...base, invocation: "explicitOnly" }),
+    `${getManagedSkillTreeItemDescription(base)} • Manual only`,
+  );
+  assert.strictEqual(
+    japaneseExports.getManagedSkillTreeItemDescription({
+      ...base,
+      invocation: "modelOnly",
+    }),
+    `${japaneseExports.getManagedSkillTreeItemDescription(base)} • モデル専用`,
   );
 });
 

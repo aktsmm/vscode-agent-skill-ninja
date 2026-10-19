@@ -166,6 +166,91 @@ exports.run = async () => {
     );
     assert.equal(unchangedOutput.unchanged, 1);
     checks.push("blocked-output-preserved-and-recovered");
+    stage = "invocation-host";
+    for (const id of [
+      "copySlashCommand",
+      "insertSlashCommandInChat",
+      "setSkillInvocation",
+      "filterSkillsByInvocation",
+      "filterSkillsByInvocationActive",
+    ]) {
+      assert.ok(commands.includes(`skillNinja.${id}`), id);
+    }
+    const writeInvocationSkill = (name, flags) => {
+      const dir = path.join(skillsPath, name);
+      fs.mkdirSync(dir, { recursive: true });
+      const file = path.join(dir, "SKILL.md");
+      fs.writeFileSync(
+        file,
+        [
+          "---",
+          `name: ${name}`,
+          "description: Invocation fixture",
+          ...flags,
+          "---",
+          "",
+          "Disposable fixture.",
+        ].join("\n"),
+      );
+      return file;
+    };
+    const manualFile = writeInvocationSkill("smoke-manual", [
+      "disable-model-invocation: true",
+    ]);
+    writeInvocationSkill("smoke-model", ["user-invocable: false"]);
+    const readOutput = () => fs.readFileSync(outputPath, "utf8");
+    const regenerate = () =>
+      vscode.commands.executeCommand("skillNinja.updateInstruction", item);
+    await vscode.commands.executeCommand("skillNinja.refreshLocal");
+    await regenerate();
+    // 既定では手動専用スキルを一覧に載せず、モデル専用は載せる
+    assert.ok(readOutput().includes("smoke-model"));
+    assert.ok(!readOutput().includes("smoke-manual"));
+    const invocationConfig = vscode.workspace.getConfiguration(
+      "skillNinja",
+      workspace,
+    );
+    await invocationConfig.update(
+      "explicitOnlySkillsInInstructions",
+      "separate",
+      vscode.ConfigurationTarget.Workspace,
+    );
+    await regenerate();
+    assert.ok(readOutput().includes("### Explicit-only skills"));
+    assert.ok(readOutput().includes("smoke-manual"));
+    await invocationConfig.update(
+      "explicitOnlySkillsInInstructions",
+      undefined,
+      vscode.ConfigurationTarget.Workspace,
+    );
+    await regenerate();
+    assert.ok(!readOutput().includes("smoke-manual"));
+    // metadata を持たない手書きスキルのフラグを外したら、保存だけで出力へ戻る
+    fs.writeFileSync(
+      manualFile,
+      fs
+        .readFileSync(manualFile, "utf8")
+        .replace("disable-model-invocation: true\n", ""),
+    );
+    const deadline = Date.now() + 20000;
+    while (!readOutput().includes("smoke-manual")) {
+      assert.ok(
+        Date.now() < deadline,
+        "removing the manual-only flag must regenerate the output on save",
+      );
+      await new Promise((resolve) => setTimeout(resolve, 250));
+    }
+    for (const name of ["smoke-manual", "smoke-model"]) {
+      // 拡張の監視が掴んでいる間は Node の rm が EPERM になるため、host の API で消す
+      await vscode.workspace.fs.delete(
+        vscode.Uri.file(path.join(skillsPath, name)),
+        { recursive: true, useTrash: false },
+      );
+    }
+    // 削除イベントの debounce（500ms）が出力を再生成し終えてから次の段階へ進む
+    await new Promise((resolve) => setTimeout(resolve, 2000));
+    await vscode.commands.executeCommand("skillNinja.refreshLocal");
+    checks.push("invocation-mode-host");
     stage = "gitignore-host";
     const rootConfig = vscode.workspace.getConfiguration(
       "skillNinja",

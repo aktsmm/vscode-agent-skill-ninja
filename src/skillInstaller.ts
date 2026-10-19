@@ -47,17 +47,18 @@ import {
 } from "./pathSafety";
 import { createHash, randomUUID } from "crypto";
 import { realpathSync } from "fs";
+import {
+  normalizeSkillInvocation,
+  readSkillInvocationFromText,
+  type SkillInvocation,
+} from "./skillInvocation";
 
 function normalizeNewlines(text: string): string {
   return text.replace(/\r\n/g, "\n");
 }
 
 export type SkillInstallFailureKind =
-  | GitHubFailureKind
-  | "policy-limit"
-  | "filesystem"
-  | "cancelled"
-  | "unknown";
+  GitHubFailureKind | "policy-limit" | "filesystem" | "cancelled" | "unknown";
 
 export interface SkillInstallFailure {
   message: string;
@@ -364,8 +365,7 @@ async function listGitHubDirectoryInternal(
     throw failure;
   }
   const data = (await response.json()) as
-    | GitHubDirectoryEntry[]
-    | GitHubDirectoryEntry;
+    GitHubDirectoryEntry[] | GitHubDirectoryEntry;
 
   if (Array.isArray(data)) {
     return data;
@@ -2095,6 +2095,8 @@ export interface SkillMeta {
   registrationDisabled?: boolean;
   /** Set when only placeholder content could be written during install. */
   incomplete?: boolean;
+  /** SKILL.md の frontmatter 由来。省略は auto。出力の出し分けと変更検知に使う。 */
+  invocation?: SkillInvocation;
   /**
    * 修復が必要な状態。新規書き込みではこちらが正本で、`incomplete` は
    * 旧バージョンで書かれたメタデータを読むための互換入力として残す。
@@ -2530,6 +2532,15 @@ export async function refreshSkillMetadata(
           updated = true;
         }
 
+        if (
+          syncStoredInvocation(
+            meta,
+            await readInvocationFromSkillMd(skillMdPath),
+          )
+        ) {
+          updated = true;
+        }
+
         if (updated) {
           // メタデータを保存
           await vscode.workspace.fs.writeFile(
@@ -2639,6 +2650,12 @@ export async function refreshSingleSkillMetadata(
       updated = true;
     }
 
+    if (
+      syncStoredInvocation(meta, await readInvocationFromSkillMd(skillMdUri))
+    ) {
+      updated = true;
+    }
+
     if (updated) {
       await vscode.workspace.fs.writeFile(
         metaPath,
@@ -2658,6 +2675,48 @@ export async function refreshSingleSkillMetadata(
     // メタデータがない場合は何もしない（インストールされていないスキル）
     return false;
   }
+}
+
+/**
+ * SKILL.md の呼び出しモードを読む。読めないときは undefined を返し、
+ * 呼び出し側が保存済みの値へフォールバックできるようにする。
+ */
+async function readInvocationFromSkillMd(
+  skillMdUri: vscode.Uri,
+): Promise<SkillInvocation | undefined> {
+  try {
+    const content = await vscode.workspace.fs.readFile(skillMdUri);
+    return readSkillInvocationFromText(Buffer.from(content).toString("utf-8"));
+  } catch {
+    return undefined;
+  }
+}
+
+/** 保存形式では auto を省略する。 */
+function toStoredInvocation(
+  invocation: SkillInvocation | undefined,
+): SkillInvocation | undefined {
+  return invocation && invocation !== "auto" ? invocation : undefined;
+}
+
+/** 保存済みの invocation を SKILL.md の値に合わせる。変更したら true。 */
+function syncStoredInvocation(
+  meta: SkillMeta,
+  fresh: SkillInvocation | undefined,
+): boolean {
+  if (!fresh) {
+    return false;
+  }
+  const next = toStoredInvocation(fresh);
+  if (toStoredInvocation(normalizeSkillInvocation(meta.invocation)) === next) {
+    return false;
+  }
+  if (next) {
+    meta.invocation = next;
+  } else {
+    delete meta.invocation;
+  }
+  return true;
 }
 
 /**
@@ -2696,6 +2755,16 @@ export async function getInstalledSkillsWithMeta(
           JSON.parse(Buffer.from(content).toString("utf-8")) as SkillMeta,
           entry.relativePath,
         );
+        // SKILL.md が正本。読めたときだけ保存済みの値を上書きする
+        const stored = toStoredInvocation(
+          (await readInvocationFromSkillMd(entry.skillMdPath)) ??
+            normalizeSkillInvocation(meta.invocation),
+        );
+        if (stored) {
+          meta.invocation = stored;
+        } else {
+          delete meta.invocation;
+        }
         metas.push(meta);
       } catch {
         // メタデータがない場合は SKILL.md から name と description を読み取る
@@ -2703,11 +2772,15 @@ export async function getInstalledSkillsWithMeta(
           await extractMetadataFromSkillMd(entry.skillMdPath, entry.folderName);
         // When to Use セクションも抽出
         const whenToUse = await extractWhenToUseFromSkillMd(entry.skillMdPath);
+        const invocation = toStoredInvocation(
+          await readInvocationFromSkillMd(entry.skillMdPath),
+        );
         metas.push({
           name,
           source: FALLBACK_LOCAL_SOURCE,
           description,
           whenToUse: whenToUse || undefined,
+          ...(invocation ? { invocation } : {}),
           categories: [],
           installedAt: "",
           relativePath: entry.relativePath,

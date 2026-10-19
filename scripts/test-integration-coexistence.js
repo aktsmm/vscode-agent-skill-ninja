@@ -21,6 +21,7 @@ const path = require("path");
 const os = require("os");
 const vm = require("vm");
 const ts = require("typescript");
+const { loadSrcModule } = require("./load-src-module");
 
 const REPO_ROOT = path.resolve(__dirname, "..");
 const FIXTURE_ROOT = path.join(
@@ -440,6 +441,7 @@ function loadInstructionManager(vscodeStub, injectedSkills, options = {}) {
         return skillLocationsStub;
       }
       if (req === "path") return path;
+      if (req === "./skillInvocation") return loadSrcModule(req);
       return require(req);
     },
   };

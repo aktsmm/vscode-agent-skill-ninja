@@ -59,14 +59,24 @@ import { registerSkillUpdateCommands } from "./skillUpdateCommands";
 import { createSkillRevisionResolver } from "./skillUpdates";
 import {
   BrowseSkillsProvider,
+  getInvocationLabel,
+  getSkillInvocationFilter,
   getSkillRootFromTreeItem,
   resolveCurrentSkillRoot,
   getSkillRootGroupLabel,
+  setSkillInvocationFilter,
+  SkillInvocationFilter,
   SkillTreeItem,
   setViewRegistrationContext,
   UserGlobalSkillsProvider,
   WorkspaceSkillsProvider,
 } from "./treeProvider";
+import {
+  normalizeExplicitOnlyHandling,
+  normalizeSkillInvocation,
+  setSkillInvocationInText,
+  type SkillInvocation,
+} from "./skillInvocation";
 import {
   updateIndexFromSources,
   updateIndexFromSingleSource,
@@ -190,6 +200,7 @@ const LAST_MANAGED_INSTRUCTION_PATHS_KEY =
   "skillNinja.lastManagedInstructionPaths";
 // v1 は単一配列で multi-root を表現できなかった。旧キーは downgrade 時の互換のため触らない。
 const LAST_MANAGED_OUTPUT_PATHS_KEY = "skillNinja.lastManagedOutputPaths.v2";
+const INVOCATION_FILTER_STATE_KEY = "skillNinja.invocationFilter";
 const GLOBAL_OUTPUT_BUCKET_KEY = "__global__";
 const LAST_STALE_SOURCE_INDEX_PROMPT_DATE_KEY =
   "skillNinja.lastStaleSourceIndexPromptDate";
@@ -284,8 +295,7 @@ interface BulkInstallItem {
 
 /** リトライ後の instruction 更新とビュー更新は activate スコープにしかないので注入する。 */
 let applyBulkInstallSideEffects:
-  | ((roots: SkillRoot[]) => Promise<void>)
-  | undefined;
+  ((roots: SkillRoot[]) => Promise<void>) | undefined;
 
 interface BulkInstallOutcome {
   item: BulkInstallItem;
@@ -1003,6 +1013,24 @@ export function activate(
     browseProvider.refresh();
   }
 
+  function applyInvocationFilter(filter: SkillInvocationFilter): void {
+    setSkillInvocationFilter(filter);
+    void vscode.commands.executeCommand(
+      "setContext",
+      "skillNinja.invocationFilterActive",
+      filter !== "all",
+    );
+    // 絞り込み中であることをビュー上に出す。忘れたまま「スキルが無い」と誤解しないため
+    const message =
+      filter === "all"
+        ? undefined
+        : messages.invocationFilterActiveMessage(getInvocationLabel(filter));
+    installedTreeView.message = message;
+    userGlobalTreeView.message = message;
+    workspaceProvider.refresh();
+    userGlobalProvider.refresh();
+  }
+
   applyBulkInstallSideEffects = async (roots: SkillRoot[]) => {
     await updateInstructionFilesForRoots(roots);
     refreshAllViews();
@@ -1515,7 +1543,8 @@ export function activate(
     for (const target of targets.filter((entry) =>
       isWorkspacePath(entry.filePath),
     )) {
-      await remove(target);
+      // 同じファイルを書く明示コマンドや reconcile と、read-modify-write を重ねない
+      await withOutputWriteLock("workspace", () => remove(target));
     }
 
     const sharedTargets = targets.filter(
@@ -2206,8 +2235,7 @@ export function activate(
         return error.code === "FileNotFound";
       }
       const candidate = error as
-        | { code?: string; message?: string }
-        | undefined;
+        { code?: string; message?: string } | undefined;
       return (
         candidate?.code === "FileNotFound" ||
         candidate?.message?.includes("FileNotFound") === true
@@ -2434,6 +2462,17 @@ export function activate(
     showCollapseAll: true,
   });
 
+  const storedInvocationFilter = context.workspaceState.get<string>(
+    INVOCATION_FILTER_STATE_KEY,
+  );
+  if (
+    storedInvocationFilter === "auto" ||
+    storedInvocationFilter === "explicitOnly" ||
+    storedInvocationFilter === "modelOnly"
+  ) {
+    applyInvocationFilter(storedInvocationFilter);
+  }
+
   // ダブルクリックでインストール機能
   let lastClickTime = 0;
   let lastClickedItem: string | undefined;
@@ -2515,6 +2554,7 @@ export function activate(
       e.affectsConfiguration("skillNinja.skillsDirectory") ||
       e.affectsConfiguration("skillNinja.additionalSkillRoots") ||
       e.affectsConfiguration("skillNinja.useVsCodeAgentSkillLocations") ||
+      e.affectsConfiguration("skillNinja.explicitOnlySkillsInInstructions") ||
       e.affectsConfiguration("skillNinja.showBuiltInSkills")
     ) {
       refreshAllViews();
@@ -2559,6 +2599,7 @@ export function activate(
       e.affectsConfiguration("skillNinja.instructionFile") ||
       e.affectsConfiguration("skillNinja.customInstructionPath") ||
       e.affectsConfiguration("skillNinja.outputFormat") ||
+      e.affectsConfiguration("skillNinja.explicitOnlySkillsInInstructions") ||
       e.affectsConfiguration("skillNinja.refCatalogPath") ||
       e.affectsConfiguration("skillNinja.refCatalogFormat") ||
       e.affectsConfiguration("skillNinja.outputTargets")
@@ -3069,8 +3110,7 @@ export function activate(
         skillName = item.skill.name;
         const skillAny = item.skill as unknown as Record<string, unknown>;
         relativePath = (skillAny.relativePath || skillAny.path) as
-          | string
-          | undefined;
+          string | undefined;
         targetRoot = getSkillRootFromItem(item);
       } else if (item && item.label) {
         // ラベルからステータスアイコンを除去してスキル名を取得
@@ -5639,6 +5679,169 @@ Add examples here
     },
   );
 
+  /** `/name` で呼べるスキルだけに action を実行する。呼べない場合は理由をユーザーに出す。 */
+  async function withSlashCommand(
+    item: SkillTreeItem,
+    action: (command: string) => Promise<void>,
+  ): Promise<void> {
+    const skill = item?.skill as (Skill & Partial<LocalSkill>) | undefined;
+    if (!skill?.name) {
+      vscode.window.showWarningMessage(messages.commandNeedsSkillSelection());
+      return;
+    }
+    if (normalizeSkillInvocation(skill.invocation) === "modelOnly") {
+      vscode.window.showWarningMessage(
+        messages.slashCommandModelOnly(skill.name),
+      );
+      return;
+    }
+    await action(`/${skill.name}`);
+  }
+
+  // Command: Copy slash command (/skill-name)
+  const copySlashCommandCmd = vscode.commands.registerCommand(
+    "skillNinja.copySlashCommand",
+    async (item: SkillTreeItem) =>
+      withSlashCommand(item, async (command) => {
+        await vscode.env.clipboard.writeText(command);
+        vscode.window.showInformationMessage(
+          messages.copiedToClipboardWithValue(command),
+        );
+      }),
+  );
+
+  // Command: Insert slash command into the chat input
+  const insertSlashCommandInChatCmd = vscode.commands.registerCommand(
+    "skillNinja.insertSlashCommandInChat",
+    async (item: SkillTreeItem) =>
+      withSlashCommand(item, async (command) => {
+        try {
+          await vscode.commands.executeCommand("workbench.action.chat.open", {
+            query: `${command} `,
+            isPartialQuery: true,
+          });
+        } catch (error) {
+          console.warn("[Skill Ninja] Failed to open chat with a query", error);
+          await vscode.env.clipboard.writeText(command);
+          vscode.window.showInformationMessage(
+            messages.copiedToClipboardWithValue(command),
+          );
+        }
+      }),
+  );
+
+  // Command: Change the invocation mode (auto / manual only / model only)
+  const setSkillInvocationCmd = vscode.commands.registerCommand(
+    "skillNinja.setSkillInvocation",
+    async (item: SkillTreeItem) => {
+      const skill = item?.skill as (Skill & Partial<LocalSkill>) | undefined;
+      if (!skill?.name || !skill.fullPath) {
+        vscode.window.showWarningMessage(messages.commandNeedsSkillSelection());
+        return;
+      }
+      if (skill.isReadOnly) {
+        vscode.window.showWarningMessage(messages.invocationReadOnly());
+        return;
+      }
+
+      const current = normalizeSkillInvocation(skill.invocation);
+      const modes: Array<{ mode: SkillInvocation; detail: string }> = [
+        { mode: "auto", detail: messages.invocationAutoDetail() },
+        { mode: "explicitOnly", detail: messages.invocationExplicitDetail() },
+        { mode: "modelOnly", detail: messages.invocationModelDetail() },
+      ];
+      const picked = await vscode.window.showQuickPick(
+        modes.map(({ mode, detail }) => ({
+          label: getInvocationLabel(mode),
+          description: mode === current ? "✓" : undefined,
+          detail,
+          mode,
+        })),
+        { placeHolder: messages.invocationPickPlaceholder(skill.name) },
+      );
+      if (!picked) {
+        return;
+      }
+
+      const skillMdUri = vscode.Uri.file(skill.fullPath);
+      try {
+        const raw = Buffer.from(
+          await vscode.workspace.fs.readFile(skillMdUri),
+        ).toString("utf-8");
+        const next = setSkillInvocationInText(raw, picked.mode);
+        if (next === undefined) {
+          vscode.window.showWarningMessage(
+            messages.invocationNoFrontmatter(skill.name),
+          );
+          return;
+        }
+        if (next !== raw) {
+          await vscode.workspace.fs.writeFile(
+            skillMdUri,
+            Buffer.from(next, "utf-8"),
+          );
+        }
+      } catch (error) {
+        console.error("[Skill Ninja] Failed to update invocation mode", error);
+        vscode.window.showErrorMessage(
+          messages.invocationUpdateFailed(skill.name),
+        );
+        return;
+      }
+
+      // 保存済みの meta を先に合わせてから、ビューと出力を更新する
+      if (skill.root?.rootUri) {
+        await refreshSingleSkillMetadata(skillMdUri, skill.root.rootUri);
+      }
+      refreshAllViews();
+      if (
+        vscode.workspace
+          .getConfiguration("skillNinja")
+          .get<boolean>("autoUpdateInstruction", true)
+      ) {
+        await scheduleOutputReconcile();
+      }
+      vscode.window.showInformationMessage(
+        messages.invocationUpdated(skill.name, getInvocationLabel(picked.mode)),
+      );
+    },
+  );
+
+  // Command: Filter the skill views by invocation mode
+  const filterSkillsByInvocationHandler = async () => {
+    const current = getSkillInvocationFilter();
+    const filters: Array<{ filter: SkillInvocationFilter; label: string }> = [
+      { filter: "all", label: messages.invocationFilterAll() },
+      { filter: "auto", label: getInvocationLabel("auto") },
+      { filter: "explicitOnly", label: getInvocationLabel("explicitOnly") },
+      { filter: "modelOnly", label: getInvocationLabel("modelOnly") },
+    ];
+    const picked = await vscode.window.showQuickPick(
+      filters.map(({ filter, label }) => ({
+        label,
+        description: filter === current ? "✓" : undefined,
+        filter,
+      })),
+      { placeHolder: messages.invocationFilterPlaceholder() },
+    );
+    if (!picked || picked.filter === current) {
+      return;
+    }
+    await context.workspaceState.update(
+      INVOCATION_FILTER_STATE_KEY,
+      picked.filter === "all" ? undefined : picked.filter,
+    );
+    applyInvocationFilter(picked.filter);
+  };
+  const filterSkillsByInvocationCmd = vscode.commands.registerCommand(
+    "skillNinja.filterSkillsByInvocation",
+    filterSkillsByInvocationHandler,
+  );
+  const filterSkillsByInvocationActiveCmd = vscode.commands.registerCommand(
+    "skillNinja.filterSkillsByInvocationActive",
+    filterSkillsByInvocationHandler,
+  );
+
   // Command: Copy Path (for Installed/Local skills)
   const copyPathCmd = vscode.commands.registerCommand(
     "skillNinja.copyPath",
@@ -5718,6 +5921,16 @@ Add examples here
       );
       lines.push(`Registration Src : ${skill.registrationSource || "unknown"}`);
       lines.push(`Registration Why : ${skill.registrationReason || "(none)"}`);
+      lines.push(
+        `Invocation       : ${normalizeSkillInvocation(skill.invocation)}`,
+      );
+      lines.push(
+        `Manual-only List : ${normalizeExplicitOnlyHandling(
+          vscode.workspace
+            .getConfiguration("skillNinja")
+            .get("explicitOnlySkillsInInstructions"),
+        )}`,
+      );
       lines.push(`Metadata Present : ${skill.metadataPresent ? "yes" : "no"}`);
       lines.push(`Metadata Path    : ${skill.metadataPath || "(none)"}`);
       lines.push(`Source           : ${skill.source || "(none)"}`);
@@ -6044,6 +6257,11 @@ Add examples here
     clearGitHubTokenCmd,
     copyUrlCmd,
     copyPathCmd,
+    copySlashCommandCmd,
+    insertSlashCommandInChatCmd,
+    setSkillInvocationCmd,
+    filterSkillsByInvocationCmd,
+    filterSkillsByInvocationActiveCmd,
     openInTerminalCmd,
     explainSkillStateCmd,
     reportBugCmd,
@@ -6101,10 +6319,19 @@ Add examples here
           return;
         }
 
-        const updated = await refreshSingleSkillMetadata(
+        const metadataUpdated = await refreshSingleSkillMetadata(
           uri,
           skillRoot.rootUri,
         );
+        // metadata を持たない手書きスキルは、保存済みの値と比べて変化を検知できない。
+        // 一覧と出力は SKILL.md から直接読まれるので、保存のたびに変更として扱う
+        const hasMetadata = await vscode.workspace.fs
+          .stat(vscode.Uri.joinPath(uri, "..", ".skill-meta.json"))
+          .then(
+            () => true,
+            () => false,
+          );
+        const updated = metadataUpdated || !hasMetadata;
         if (updated) {
           // ビューを更新
           refreshAllViews();

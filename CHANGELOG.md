@@ -7,6 +7,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.9.55] - 2026-10-19
+
+### Added
+
+- **Invocation Mode Awareness** - Skills with `disable-model-invocation: true` (manual only, called with `/name`) or `user-invocable: false` (model only) are now recognized from SKILL.md. The tree shows a distinct icon, a "Manual only" / "Model only" label, and a tooltip explanation. A view-title filter limits the Installed and User/Global views by mode, and the context menu adds Copy Slash Command, Insert Slash Command in Chat, and Set Invocation Mode... (rewrites only the two frontmatter keys) / `disable-model-invocation: true`（手動専用、`/name` で呼び出し）と `user-invocable: false`（モデル専用）を SKILL.md から判別します。ツリーにアイコン・ラベル・ツールチップで表示し、ビュータイトルのフィルタで絞り込み、右クリックで スラッシュコマンドのコピー・チャットへの挿入・呼び出しモードの変更（該当する 2 つの frontmatter キーだけを書き換え）ができます。
+
+### Changed
+
+- **Google Skills Catalog Refresh** - Re-scanned only the Google Skills source after upstream moved `bigquery-slot-cost-optimizer`; the bundled catalog now lists 1899 skills across 13 sources (was 1882) and a raw installability audit passes for all of them. Other sources' entries and the catalog freshness date are unchanged / 上流で `bigquery-slot-cost-optimizer` のパスが移動したため、Google Skills ソースだけを再走査しました。同梱カタログは 13 ソース 1899 件（従来 1882 件）となり、全件の raw installability 監査に合格しています。他ソースの内容とカタログの鮮度日付は変更していません。
+- **Manual-only Skills Leave The Generated Skill List By Default** - New `skillNinja.explicitOnlySkillsInInstructions` (`exclude` / `separate` / `include`, default `exclude`) controls whether manual-only skills appear in AGENTS.md / copilot-instructions.md / CLAUDE.md and the `ref` catalog. Listing them invites the model to apply skills meant for explicit calls. Existing managed blocks are regenerated without them on the next update; set `include` to keep the old output / 手動専用スキルを AGENTS.md などの生成ブロックと `ref` カタログに載せるかを新設定 `skillNinja.explicitOnlySkillsInInstructions`（既定 `exclude`）で選べます。明示呼び出し前提のスキルを一覧に載せるとモデルが自動で使おうとするためです。既存の管理ブロックは次回更新時に手動専用スキルなしで再生成されます。従来の出力を保つには `include` を指定してください。
+
+### Fixed
+
+- **Output Writes Are Serialized In-process** - Workspace skill-list writes (including block cleanup) now run one at a time. A background regeneration started by a setting change could previously overlap an explicit Update Instruction and overwrite each other's read-modify-write / 設定変更が起こす背景の再生成と明示の「instruction を更新」が同じファイルを同時に読み書きして互いを上書きし得たため、workspace の出力書き込み（管理ブロックの掃除を含む）を 1 本ずつ実行するようにしました。
+- **Filter State Is Visible** - While the invocation filter is active, the Installed and User/Global views show a message naming it, so a hidden skill is not mistaken for a missing one / 呼び出しモードで絞り込み中は、Installed と User/Global ビューに絞り込み中である旨を表示します。
+- **Manual-only Skills Stay Registered And Follow Edits** - A hand-written manual-only skill left out of the generated list is no longer shown as "Not registered"; the tree explains the omission is intentional (changing the setting refreshes the views). Saving `SKILL.md` of a skill that has no `.skill-meta.json` now refreshes the views and regenerates the output, so adding or removing `disable-model-invocation` takes effect without a manual refresh. Explain Skill State reports the invocation mode and the list setting / 生成一覧から外れた手書きの手動専用スキルが「未登録」と表示されなくなりました（意図した除外として説明を表示し、設定変更でビューも更新）。`.skill-meta.json` を持たないスキルの `SKILL.md` を保存すると、ビューと出力が更新され、`disable-model-invocation` の追加・削除が手動更新なしで反映されます。スキル状態の診断に呼び出しモードと一覧の設定を表示します。
+
 ## [0.9.54] - 2026-10-13
 
 ### Changed

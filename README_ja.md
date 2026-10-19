@@ -133,6 +133,7 @@ workspace skills では `skillNinja.refCatalogPath` の相対パスは workspace
 - **インストール通知** - NEW バッジ、ステータスバー表示、ツリービューで自動選択
 - **フォルダを開く** - インストール済みスキルのフォルダにクイックアクセス
 - **スキル状態を診断** - ツリー項目のコンテキストメニューから、登録ソース、metadata path、共存オーナー、instruction file の向き先を確認可能
+- **呼び出しモード** - `disable-model-invocation: true`（手動専用、`/name`）や `user-invocable: false`（モデル専用）のスキルを、ツリー上でアイコンとラベルで区別します。モードでのビュー絞り込み、`/name` のコピー・チャットへの挿入、コンテキストメニューからのモード変更に対応。手動専用スキルは既定で生成するスキル一覧から外します（`skillNinja.explicitOnlySkillsInInstructions`）。
 - **インデックス整合性チェック** - 未登録スキルを自動検出し、インデックス更新を提案
 
 ### 🔧 マルチツール対応
@@ -305,6 +306,7 @@ ext install yamapan.agent-skill-ninja
 | `Agent Skills Ninja: ワークスペースのスキル出力を開く`              | ワークスペースのスキル出力を直接開く                                                                                          |
 | `Agent Skills Ninja: ユーザー / グローバルのスキル出力を開く`       | ユーザー / グローバルのスキル出力を直接開く                                                                                   |
 | `Agent Skills Ninja: Built-in Skills を表示`                        | 読み取り専用の built-in スキルをツリーに表示する                                                                              |
+| `Agent Skills Ninja: 呼び出しモードで絞り込み`                      | Installed と User/Global ビューを、自動 / 手動専用 / モデル専用のスキルだけに絞る                                              |
 | `Agent Skills Ninja: 設定を開く`                                    | この拡張の設定を開く                                                                                                          |
 | `Agent Skills Ninja: 初期化`                                        | この拡張の設定を既定値へ戻す                                                                                                  |
 | `Agent Skills Ninja: バグを報告`                                    | 内容を埋めた GitHub issue を開く                                                                                              |
@@ -326,6 +328,11 @@ ext install yamapan.agent-skill-ninja
 | URLをコピー            | スキル / ソースの行        |
 | パスをコピー           | 導入済みスキル / root の行 |
 | ターミナルで開く       | 導入済みスキル / root の行 |
+| スラッシュコマンドをコピー | 導入済みスキルの行     |
+| チャットにスラッシュコマンドを挿入 | 導入済みスキルの行 |
+| 呼び出しモードを変更... | 書き込み可能な導入済みスキルの行 |
+
+ビュータイトルの **呼び出しモードで絞り込み** で、Installed と User/Global ビューを 自動 / 手動専用 / モデル専用のスキルだけに絞れます。
 
 ### 出力ターゲット
 
@@ -463,7 +470,8 @@ MCP ツールが不要な場合は、GitHub Copilot Chat のツール一覧か�
 |  16  | `skillNinja.coexistenceMode`              | `auto`                     | Agent Resources Ninja との共存モード（`auto` / `independent`）                                             |
 |  17  | `skillNinja.useSharedSourcesManifest`     | `false`                    | `~/.agent-ninja/sources.json` 経由で Agent Resources Ninja と source list SSOT を共有                      |
 |  18  | `skillNinja.language`                     | `auto`                     | UI 言語（auto / en / ja）                                                                                  |
-|  19  | `skillNinja.autoManageGitignore`          | `true`                     | 保存先直下の .gitignore を自動管理。ワークスペース・フォルダ設定でレポごとに上書き可能                     |
+|  19  | `skillNinja.explicitOnlySkillsInInstructions` | `exclude`              | 手動専用スキル（`disable-model-invocation: true`）を生成するスキル一覧にどう載せるか（`exclude` / `separate` / `include`） |
+|  20  | `skillNinja.autoManageGitignore`          | `true`                     | 保存先直下の .gitignore を自動管理。ワークスペース・フォルダ設定でレポごとに上書き可能                     |
 
 > 設定画面では上記の順序で表示されます
 

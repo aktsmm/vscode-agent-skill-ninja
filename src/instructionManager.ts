@@ -22,6 +22,10 @@ import {
   resolveOutputGroups,
 } from "./outputTargets";
 import { getCoexistenceMode, getEffectiveOwnership } from "./coexistence";
+import {
+  normalizeExplicitOnlyHandling,
+  type ExplicitOnlyHandling,
+} from "./skillInvocation";
 
 // セクションマーカー（共通マーカー / coexistence v3 で導入）。
 // 同居拡張 (Resource NINJA) と Skill NINJA はこの共通マーカーへ書く。
@@ -353,13 +357,21 @@ async function resolveGroupsForWorkspace(
  *
  * `vscode.workspace.fs` はキャンセルできないため、lease 内の I/O に打ち切り時間は
  * 設けていない。奪われた lease は heartbeat の世代不一致で検出される。
+ *
+ * workspace の出力はプロセス内で 1 本ずつ実行する。設定変更が起こす背景の reconcile と
+ * 明示コマンドが同じファイルを同時に read-modify-write すると、更新が互いを上書きする。
+ * 前の処理が失敗しても後続は実行する。
  */
+let workspaceOutputQueue: Promise<unknown> = Promise.resolve();
+
 export async function withOutputWriteLock<T>(
   scope: "workspace" | "userGlobal",
   task: () => Promise<T>,
 ): Promise<T | undefined> {
   if (scope !== "userGlobal") {
-    return task();
+    const run = workspaceOutputQueue.then(task, task);
+    workspaceOutputQueue = run.catch(() => undefined);
+    return run;
   }
 
   try {
@@ -505,6 +517,7 @@ async function writeOutputGroupUnlocked(
         localSkills,
         "",
         group.format,
+        getExplicitOnlyHandling(),
       ),
       SHARED_MARKERS,
       targetMarkers,
@@ -593,6 +606,22 @@ export async function updateAllInstructionFiles(
   return results;
 }
 
+/** 手動専用スキルを管理ブロックへ載せる方法。既定は載せない。 */
+function getExplicitOnlyHandling(): ExplicitOnlyHandling {
+  return normalizeExplicitOnlyHandling(
+    vscode.workspace
+      .getConfiguration("skillNinja")
+      .get<string>("explicitOnlySkillsInInstructions", "exclude"),
+  );
+}
+
+interface SectionOptions {
+  /** 手動専用スキルを通常の表とは別の小節にまとめる */
+  separateExplicit?: boolean;
+  /** 一覧から外した手動専用スキルの数（空表示の文言用） */
+  excludedCount?: number;
+}
+
 /**
  * フォーマットに応じたスキルセクションを生成
  */
@@ -601,16 +630,51 @@ function generateSkillSectionForFormat(
   localSkills: LocalSkill[],
   skillsDir: string,
   format: OutputFormat,
+  handling: ExplicitOnlyHandling,
 ): string {
+  const isExplicitOnly = (skill: { invocation?: string }) =>
+    skill.invocation === "explicitOnly";
+  const options: SectionOptions = {};
+  if (handling === "exclude") {
+    const keptInstalled = installedSkills.filter(
+      (skill) => !isExplicitOnly(skill),
+    );
+    const keptLocal = localSkills.filter((skill) => !isExplicitOnly(skill));
+    options.excludedCount =
+      installedSkills.length +
+      localSkills.length -
+      keptInstalled.length -
+      keptLocal.length;
+    installedSkills = keptInstalled;
+    localSkills = keptLocal;
+  } else if (handling === "separate") {
+    options.separateExplicit = true;
+  }
+
   switch (format) {
     case "compact":
-      return generateCompactSection(installedSkills, localSkills, skillsDir);
+      return generateCompactSection(
+        installedSkills,
+        localSkills,
+        skillsDir,
+        options,
+      );
     case "legacy":
-      return generateLegacySection(installedSkills, localSkills, skillsDir);
+      return generateLegacySection(
+        installedSkills,
+        localSkills,
+        skillsDir,
+        options,
+      );
     case "ref":
     case "full":
     default:
-      return generateFullSection(installedSkills, localSkills, skillsDir);
+      return generateFullSection(
+        installedSkills,
+        localSkills,
+        skillsDir,
+        options,
+      );
   }
 }
 
@@ -627,7 +691,40 @@ type SkillCatalogRow = {
   qualifierPath?: string;
   description: string;
   incomplete?: boolean;
+  /** `disable-model-invocation: true` のスキル。モデルは自動で使わない。 */
+  explicitOnly?: boolean;
 };
+
+/** 表が空でも、手動専用スキルを外したせいで空なのかを書き分ける。 */
+function buildEmptySkillMessage(excludedCount: number | undefined): string {
+  if (excludedCount && excludedCount > 0) {
+    return `No skills are available for automatic use. ${excludedCount} explicit-only skill(s) are left out of this list (setting: skillNinja.explicitOnlySkillsInInstructions).`;
+  }
+  return 'No skills installed yet. Use "Agent Skills Ninja: Search Skills" to install skills.';
+}
+
+/** 手動専用スキルだけの小節。通常の表より後ろに置き、自動では使わないと明記する。 */
+function renderExplicitOnlyBlock(
+  rows: Array<SkillCatalogRow & { displayName: string }>,
+  skillsDir: string,
+  withPathColumn: boolean,
+): string {
+  if (rows.length === 0) {
+    return "";
+  }
+
+  let content = `\n### Explicit-only skills\n\n> Do not apply these on your own. Use one only when the user explicitly invokes it by name (for example \`/skill-name\`).\n\n`;
+  content += withPathColumn
+    ? "| Skill | Path | Description |\n|-------|------|-------------|\n"
+    : "| Skill | Description |\n|-------|-------------|\n";
+  for (const row of rows) {
+    const link = `[${row.displayName}](${buildSkillMarkdownPath(skillsDir, row.path)})`;
+    content += withPathColumn
+      ? `| ${link} | \`${row.path}\` | ${row.description} |\n`
+      : `| ${link} | ${row.description} |\n`;
+  }
+  return content;
+}
 
 function formatDuplicateSkillQualifier(skillPath: string): string {
   const segments = skillPath.split("/").filter(Boolean);
@@ -721,6 +818,7 @@ async function writeCatalogFile(
     localSkills,
     "",
     group.catalogFormat,
+    getExplicitOnlyHandling(),
   );
 
   const existingCatalog = await readExistingOutput(catalogUri);
@@ -772,6 +870,7 @@ function generateLegacySection(
   installedSkills: SkillMeta[],
   localSkills: LocalSkill[],
   skillsDir: string,
+  options: SectionOptions = {},
 ): string {
   const hasInstalled = installedSkills.length > 0;
   const hasLocal = localSkills.length > 0;
@@ -780,12 +879,12 @@ function generateLegacySection(
     return `${MARKER_START}
 ## Agent Skills
 
-No skills installed yet. Use "Agent Skills Ninja: Search Skills" to install skills.
+${buildEmptySkillMessage(options.excludedCount)}
 
 ${MARKER_END}`;
   }
 
-  const rows = withDisplayNames([
+  const allRows = withDisplayNames([
     ...installedSkills.map((skill) => {
       const desc = buildDescription(
         skill.description,
@@ -797,6 +896,7 @@ ${MARKER_END}`;
         qualifierPath: skill.qualifierPath,
         description: desc.replace(/\|/g, "\\|"),
         incomplete: skill.incomplete,
+        explicitOnly: skill.invocation === "explicitOnly",
       };
     }),
     ...localSkills.map((skill) => {
@@ -809,24 +909,36 @@ ${MARKER_END}`;
         qualifierPath: skill.relativePath,
         description: truncatedDesc.replace(/\|/g, "\\|"),
         incomplete: skill.incomplete,
+        explicitOnly: skill.invocation === "explicitOnly",
       };
     }),
   ]);
+  const rows = options.separateExplicit
+    ? allRows.filter((row) => !row.explicitOnly)
+    : allRows;
+  const explicitRows = options.separateExplicit
+    ? allRows.filter((row) => row.explicitOnly)
+    : [];
 
   let content = `${MARKER_START}
 ## Agent Skills
 
-| Skill | Description |
-|-------|-------------|
 `;
 
-  content += rows
-    .map(
-      (row) =>
-        `| [${row.displayName}](${buildSkillMarkdownPath(skillsDir, row.path)}) | ${row.description} |`,
-    )
-    .join("\n");
-  content += "\n";
+  if (rows.length > 0) {
+    content += `| Skill | Description |
+|-------|-------------|
+`;
+    content += rows
+      .map(
+        (row) =>
+          `| [${row.displayName}](${buildSkillMarkdownPath(skillsDir, row.path)}) | ${row.description} |`,
+      )
+      .join("\n");
+    content += "\n";
+  }
+
+  content += renderExplicitOnlyBlock(explicitRows, skillsDir, false);
 
   content += `\n${MARKER_END}`;
 
@@ -1012,8 +1124,9 @@ function generateCompactSection(
   installedSkills: SkillMeta[],
   localSkills: LocalSkill[],
   skillsDir: string,
+  options: SectionOptions = {},
 ): string {
-  const allSkills = withDisplayNames([
+  const everySkill = withDisplayNames([
     ...installedSkills.map((s) => ({
       name: s.name,
       path: s.relativePath || s.name,
@@ -1025,6 +1138,7 @@ function generateCompactSection(
           : s.description
         : "",
       incomplete: s.incomplete,
+      explicitOnly: s.invocation === "explicitOnly",
     })),
     ...localSkills.map((s) => ({
       name: s.name,
@@ -1036,17 +1150,30 @@ function generateCompactSection(
           : s.description
         : "",
       incomplete: s.incomplete,
+      explicitOnly: s.invocation === "explicitOnly",
     })),
   ]);
 
-  if (allSkills.length === 0) {
+  if (everySkill.length === 0) {
     return `${MARKER_START}
 ## Agent Skills (Compressed Index)
 
-No skills installed yet. Use "Agent Skills Ninja: Search Skills" to install skills.
+${buildEmptySkillMessage(options.excludedCount)}
 
 ${MARKER_END}`;
   }
+
+  const allSkills = options.separateExplicit
+    ? everySkill.filter((skill) => !skill.explicitOnly)
+    : everySkill;
+  const explicitSkills = options.separateExplicit
+    ? everySkill
+        .filter((skill) => skill.explicitOnly)
+        .map((skill) => ({
+          ...skill,
+          description: skill.description.replace(/\|/g, "\\|"),
+        }))
+    : [];
 
   // ヘッダー部分
   let content = `${MARKER_START}
@@ -1054,19 +1181,25 @@ ${MARKER_END}`;
 
 > **IMPORTANT**: Prefer skill-led reasoning over pre-training-led reasoning.
 > Read the relevant SKILL.md before working on tasks covered by these skills.
+`;
 
+  if (allSkills.length > 0) {
+    content += `
 ### Skills Index
 
 | Skill | Path | Description |
 |-------|------|-------------|
 `;
 
-  // 各スキルのインデックスを生成（テーブル形式）
-  for (const skill of allSkills) {
-    // パイプをエスケープ
-    const safeDesc = skill.description.replace(/\|/g, "\\|");
-    content += `| [${skill.displayName}](${buildSkillMarkdownPath(skillsDir, skill.path)}) | \`${skill.path}\` | ${safeDesc} |\n`;
+    // 各スキルのインデックスを生成（テーブル形式）
+    for (const skill of allSkills) {
+      // パイプをエスケープ
+      const safeDesc = skill.description.replace(/\|/g, "\\|");
+      content += `| [${skill.displayName}](${buildSkillMarkdownPath(skillsDir, skill.path)}) | \`${skill.path}\` | ${safeDesc} |\n`;
+    }
   }
+
+  content += renderExplicitOnlyBlock(explicitSkills, skillsDir, true);
 
   content += `\n${MARKER_END}`;
   return content;
@@ -1080,8 +1213,9 @@ function generateFullSection(
   installedSkills: SkillMeta[],
   localSkills: LocalSkill[],
   skillsDir: string,
+  options: SectionOptions = {},
 ): string {
-  const allSkills = withDisplayNames([
+  const everySkill = withDisplayNames([
     ...installedSkills.map((s) => ({
       name: s.name,
       path: s.relativePath || s.name,
@@ -1091,6 +1225,7 @@ function generateFullSection(
         s.customWhenToUse || s.whenToUse,
       ),
       incomplete: s.incomplete,
+      explicitOnly: s.invocation === "explicitOnly",
     })),
     ...localSkills.map((s) => ({
       name: s.name,
@@ -1102,17 +1237,30 @@ function generateFullSection(
           ? s.description.substring(0, 197) + "..."
           : s.description || "",
       incomplete: s.incomplete,
+      explicitOnly: s.invocation === "explicitOnly",
     })),
   ]);
 
-  if (allSkills.length === 0) {
+  if (everySkill.length === 0) {
     return `${MARKER_START}
 ## Agent Skills
 
-No skills installed yet. Use "Agent Skills Ninja: Search Skills" to install skills.
+${buildEmptySkillMessage(options.excludedCount)}
 
 ${MARKER_END}`;
   }
+
+  const allSkills = options.separateExplicit
+    ? everySkill.filter((skill) => !skill.explicitOnly)
+    : everySkill;
+  const explicitSkills = options.separateExplicit
+    ? everySkill
+        .filter((skill) => skill.explicitOnly)
+        .map((skill) => ({
+          ...skill,
+          description: skill.description.replace(/\|/g, "\\|"),
+        }))
+    : [];
 
   // 従来の Markdown テーブル
   let content = `${MARKER_START}
@@ -1120,17 +1268,23 @@ ${MARKER_END}`;
 
 > **IMPORTANT**: Prefer skill-led reasoning over pre-training-led reasoning.
 > Read the relevant SKILL.md before working on tasks covered by these skills.
+`;
 
+  if (allSkills.length > 0) {
+    content += `
 ### Skills
 
 | Skill | Description |
 |-------|-------------|
 `;
 
-  for (const skill of allSkills) {
-    const safeDesc = skill.description.replace(/\|/g, "\\|");
-    content += `| [${skill.displayName}](${buildSkillMarkdownPath(skillsDir, skill.path)}) | ${safeDesc} |\n`;
+    for (const skill of allSkills) {
+      const safeDesc = skill.description.replace(/\|/g, "\\|");
+      content += `| [${skill.displayName}](${buildSkillMarkdownPath(skillsDir, skill.path)}) | ${safeDesc} |\n`;
+    }
   }
+
+  content += renderExplicitOnlyBlock(explicitSkills, skillsDir, false);
 
   content += `\n${MARKER_END}`;
   return content;

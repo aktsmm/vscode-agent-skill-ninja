@@ -18,6 +18,7 @@ const fs = require("fs");
 const path = require("path");
 const vm = require("vm");
 const ts = require("typescript");
+const { loadSrcModule } = require("./load-src-module");
 
 const sourcePath = path.join(__dirname, "..", "src", "instructionManager.ts");
 const source = fs.readFileSync(sourcePath, "utf8");
@@ -93,6 +94,9 @@ const sandbox = {
             siblingInstalled: false,
           }),
       };
+    }
+    if (request === "./skillInvocation") {
+      return loadSrcModule(request);
     }
     return require(request);
   },

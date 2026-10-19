@@ -269,6 +269,24 @@ const jaMessages = {
     "{0} の登録状態を更新できませんでした。読み取り専用のスキルか、書き込みに失敗した可能性があります。",
   skillStateUnavailable:
     "この項目にはスキル情報がないため、状態を説明できません。",
+  slashCommandModelOnly:
+    "{0} はモデル専用 (user-invocable: false) のため、/ コマンドでは呼び出せません。",
+  invocationReadOnly:
+    "読み取り専用のスキルは、呼び出しモードを変更できません。",
+  invocationNoFrontmatter:
+    "{0} の SKILL.md に frontmatter がないため、呼び出しモードを変更できません。",
+  invocationUpdated: "✅ {0} を「{1}」に変更しました",
+  invocationUpdateFailed: "{0} の呼び出しモードを更新できませんでした。",
+  invocationPickPlaceholder: "{0} の呼び出しモードを選択",
+  invocationAutoDetail: "モデルの自動利用と /name の明示呼び出しの両方（既定）",
+  invocationExplicitDetail:
+    "モデルは自動で使わず、/name で明示的に呼び出す (disable-model-invocation: true)",
+  invocationModelDetail:
+    "/ メニューには出さず、モデルだけが使う (user-invocable: false)",
+  invocationFilterPlaceholder: "呼び出しモードでスキルを絞り込み",
+  invocationFilterAll: "すべて表示",
+  invocationFilterActiveMessage:
+    "絞り込み中: {0}（タイトルのフィルタアイコンで変更）",
   createSkillPrompt: "スキル名を入力してください",
   createSkillPlaceholder: "my-awesome-skill",
   skillCreated: "✅ {0} を作成しました",
@@ -561,6 +579,24 @@ const enMessages: MessageDictionary = {
     "Could not update the registration state for {0}. The skill may be read-only, or the write failed.",
   skillStateUnavailable:
     "This item has no skill metadata, so its state cannot be explained.",
+  slashCommandModelOnly:
+    "{0} is model-only (user-invocable: false), so it cannot be invoked with a slash command.",
+  invocationReadOnly: "Read-only skills cannot change their invocation mode.",
+  invocationNoFrontmatter:
+    "{0} has no frontmatter in SKILL.md, so its invocation mode cannot be changed.",
+  invocationUpdated: '✅ {0} is now "{1}"',
+  invocationUpdateFailed: "Could not update the invocation mode of {0}.",
+  invocationPickPlaceholder: "Choose how {0} is invoked",
+  invocationAutoDetail:
+    "Both the model and an explicit /name call can use it (default)",
+  invocationExplicitDetail:
+    "The model never loads it on its own; call it with /name (disable-model-invocation: true)",
+  invocationModelDetail:
+    "Hidden from the slash menu; only the model uses it (user-invocable: false)",
+  invocationFilterPlaceholder: "Filter skills by invocation mode",
+  invocationFilterAll: "Show all",
+  invocationFilterActiveMessage:
+    "Filtered by: {0} (change it with the filter icon in the view title)",
   createSkillPrompt: "Enter skill name",
   createSkillPlaceholder: "my-awesome-skill",
   skillCreated: "✅ {0} created",
@@ -968,6 +1004,24 @@ export const messages = {
   localSkillRegistrationFailed: (name: string) =>
     localize("localSkillRegistrationFailed", name),
   skillStateUnavailable: () => localize("skillStateUnavailable"),
+  slashCommandModelOnly: (name: string) =>
+    localize("slashCommandModelOnly", name),
+  invocationReadOnly: () => localize("invocationReadOnly"),
+  invocationNoFrontmatter: (name: string) =>
+    localize("invocationNoFrontmatter", name),
+  invocationUpdated: (name: string, label: string) =>
+    localize("invocationUpdated", name, label),
+  invocationUpdateFailed: (name: string) =>
+    localize("invocationUpdateFailed", name),
+  invocationPickPlaceholder: (name: string) =>
+    localize("invocationPickPlaceholder", name),
+  invocationAutoDetail: () => localize("invocationAutoDetail"),
+  invocationExplicitDetail: () => localize("invocationExplicitDetail"),
+  invocationModelDetail: () => localize("invocationModelDetail"),
+  invocationFilterPlaceholder: () => localize("invocationFilterPlaceholder"),
+  invocationFilterAll: () => localize("invocationFilterAll"),
+  invocationFilterActiveMessage: (label: string) =>
+    localize("invocationFilterActiveMessage", label),
   createSkillPrompt: () => localize("createSkillPrompt"),
   createSkillPlaceholder: () => localize("createSkillPlaceholder"),
   skillCreated: (name: string) => localize("skillCreated", name),
