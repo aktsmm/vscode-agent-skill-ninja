@@ -78,6 +78,29 @@ export function resolveSkillInvocation(flags: {
   return "auto";
 }
 
+/**
+ * 既にパース済みの frontmatter 値（引用符・コメント除去済み）から呼び出しモードを決める。
+ * リモートスキルのインデックス生成が、ローカル走査と同じ判定規則を使うための入口。
+ */
+export function resolveSkillInvocationFromValues(values: {
+  disableModelInvocation?: string;
+  userInvocable?: string;
+}): SkillInvocation {
+  return resolveSkillInvocation({
+    disableModelInvocation: parseBoolean(values.disableModelInvocation ?? ""),
+    userInvocable: parseBoolean(values.userInvocable ?? ""),
+  });
+}
+
+/** `context: fork`（サブエージェントで実行）だけを認識する。実験的機能なので他の値は無視する。 */
+export type SkillExecutionContext = "fork";
+
+export function parseSkillExecutionContext(
+  value: string | undefined,
+): SkillExecutionContext | undefined {
+  return value?.trim().toLowerCase() === "fork" ? "fork" : undefined;
+}
+
 export function readSkillInvocationFromText(text: string): SkillInvocation {
   const range = locateFrontmatter(text);
   if (!range) {
@@ -102,6 +125,35 @@ export function readSkillInvocationFromText(text: string): SkillInvocation {
 
 export function normalizeSkillInvocation(value: unknown): SkillInvocation {
   return value === "explicitOnly" || value === "modelOnly" ? value : "auto";
+}
+
+export function getInvocationLabelText(
+  invocation: unknown,
+  isJa: boolean,
+): string {
+  switch (normalizeSkillInvocation(invocation)) {
+    case "explicitOnly":
+      return isJa ? "手動専用" : "Manual only";
+    case "modelOnly":
+      return isJa ? "モデル専用" : "Model only";
+    default:
+      return isJa ? "自動" : "Auto";
+  }
+}
+
+/** 手動専用 / モデル専用を一覧で見分けるための codicon id。通常スキルは fallback を使う。 */
+export function getInvocationIconId(
+  invocation: unknown,
+  fallback: string,
+): string {
+  switch (normalizeSkillInvocation(invocation)) {
+    case "explicitOnly":
+      return "play-circle";
+    case "modelOnly":
+      return "hubot";
+    default:
+      return fallback;
+  }
 }
 
 /** 手動専用スキルを生成する一覧へ載せる方法（skillNinja.explicitOnlySkillsInInstructions）。 */

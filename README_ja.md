@@ -306,7 +306,8 @@ ext install yamapan.agent-skill-ninja
 | `Agent Skills Ninja: ワークスペースのスキル出力を開く`              | ワークスペースのスキル出力を直接開く                                                                                          |
 | `Agent Skills Ninja: ユーザー / グローバルのスキル出力を開く`       | ユーザー / グローバルのスキル出力を直接開く                                                                                   |
 | `Agent Skills Ninja: Built-in Skills を表示`                        | 読み取り専用の built-in スキルをツリーに表示する                                                                              |
-| `Agent Skills Ninja: 呼び出しモードで絞り込み`                      | Installed と User/Global ビューを、自動 / 手動専用 / モデル専用のスキルだけに絞る                                              |
+| `Agent Skills Ninja: スキルの絞り込みと並べ替え`                    | Installed と User/Global ビューを、呼び出しモード（自動 / 手動専用 / モデル専用）で絞り込み、名前順・呼び出しモード順に並べ替える |
+| `Agent Skills Ninja: Browse スキルの絞り込みと並べ替え`             | Browse ビューを呼び出しモードで絞り込み、名前順・スター数順に並べ替える                                                       |
 | `Agent Skills Ninja: 設定を開く`                                    | この拡張の設定を開く                                                                                                          |
 | `Agent Skills Ninja: 初期化`                                        | この拡張の設定を既定値へ戻す                                                                                                  |
 | `Agent Skills Ninja: バグを報告`                                    | 内容を埋めた GitHub issue を開く                                                                                              |
@@ -332,7 +333,9 @@ ext install yamapan.agent-skill-ninja
 | チャットにスラッシュコマンドを挿入 | 導入済みスキルの行 |
 | 呼び出しモードを変更... | 書き込み可能な導入済みスキルの行 |
 
-ビュータイトルの **呼び出しモードで絞り込み** で、Installed と User/Global ビューを 自動 / 手動専用 / モデル専用のスキルだけに絞れます。
+ビュータイトルの **スキルの絞り込みと並べ替え**（Installed / User/Global）と **Browse スキルの絞り込みと並べ替え**（Browse）で、呼び出しモード（すべて / 自動 / 手動専用 / モデル専用）による絞り込みと並び順（Installed 系は 既定 / 名前順 / 呼び出しモード順、Browse は 既定 / 名前順 / スター数順）を 1 つのピッカーから変えられます。選ぶとすぐ反映され、絞り込みや並べ替え中はアイコンが塗りつぶしになりツリー上部にメッセージが出ます。選択はワークスペースごとに記憶されます。
+
+Browse は、インデックス更新時に各スキルの SKILL.md から `disable-model-invocation` / `user-invocable` / `argument-hint` / `context` を読み取ります。手動専用・モデル専用のスキルは専用アイコンとラベルで区別され、ツールチップに `/name <argument-hint>` の使い方が出ます。自分で追加したソースは **インデックス更新** で呼び出しモードが入ります（同梱インデックスには入っています）。インデックスに情報がない間は、Browse の絞り込みで空のツリーではなくその旨を案内します。スキル検索結果とプレビューにも呼び出しモードを表示し、プレビューには `/name <argument-hint>` の使い方も出ます。
 
 ### 出力ターゲット
 

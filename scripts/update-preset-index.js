@@ -9,7 +9,13 @@
 
 const fs = require("fs");
 const path = require("path");
-
+// 判定規則はローカル走査・拡張機能側のインデックス更新と共通にする
+const {
+  DISABLE_MODEL_INVOCATION_KEY,
+  USER_INVOCABLE_KEY,
+  parseSkillExecutionContext,
+  resolveSkillInvocationFromValues,
+} = require("./load-src-module").loadSrcModule("./skillInvocation");
 const INDEX_PATH = path.join(__dirname, "..", "resources", "skill-index.json");
 const FETCH_TIMEOUT = 15000;
 const CONCURRENCY = 5;
@@ -373,6 +379,10 @@ async function processTree(data, owner, repoName, branch, source) {
             path: file.path
               .replace(/\/SKILL\.md$/i, "")
               .replace(/^SKILL\.md$/i, ""),
+            // 呼び出し関連は path の直後に置く。末尾へ足すと全行の直前行にカンマが入り、diff が倍になる
+            invocation: skillInfo.invocation,
+            argumentHint: skillInfo.argumentHint,
+            context: skillInfo.context,
             categories: skillInfo.categories || [],
             description: skillInfo.description || "",
             description_ja: skillInfo.description_ja,
@@ -413,12 +423,21 @@ function parseSkillFrontmatter(content, filePath) {
   let license;
   let author;
   let version;
+  let invocation = "auto";
+  let argumentHint;
+  let context;
 
   if (frontmatterMatch) {
     const frontmatter = parseTopLevelFrontmatter(frontmatterMatch[1]);
     const metadataMatch = frontmatterMatch[1].match(
       /metadata:[\s\S]*?author:\s*["']?([^"'\n]+)["']?/m,
     );
+    invocation = resolveSkillInvocationFromValues({
+      disableModelInvocation: frontmatter.get(DISABLE_MODEL_INVOCATION_KEY),
+      userInvocable: frontmatter.get(USER_INVOCABLE_KEY),
+    });
+    argumentHint = frontmatter.get("argument-hint") || undefined;
+    context = parseSkillExecutionContext(frontmatter.get("context"));
     name = frontmatter.get("name") || "";
     description = frontmatter.get("description") || "";
     description_ja = frontmatter.get("description_ja") || "";
@@ -492,6 +511,9 @@ function parseSkillFrontmatter(content, filePath) {
     license,
     author,
     version,
+    invocation,
+    argumentHint,
+    context,
   };
 }
 

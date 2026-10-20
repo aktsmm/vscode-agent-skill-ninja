@@ -103,7 +103,7 @@ function loadTreeProviderExports(japanese = false) {
           },
         };
       }
-      if (request === "./skillInvocation") {
+      if (request === "./skillInvocation" || request === "./skillListOptions") {
         return loadSrcModule(request);
       }
       return require(request);

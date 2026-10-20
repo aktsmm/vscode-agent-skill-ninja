@@ -61,6 +61,9 @@ applyTo: "**/resources/skill-index.json"
 - 指定値: `skill-md` / `claude-commands` / `top-level-dirs` / `registry-json`
 - 未指定のときだけ repo 名ベースの legacy 判定へ落ちる。この判定は rename で黙って外れるため、プリセット source では依存しない
 - `skill-md` 以外を指定した source は `scripts/update-preset-index.js` で再生成できない（SKILL.md が 0 件のとき明示的に失敗する）。その場合は拡張機能側から更新する
+- スキルの `invocation` / `argumentHint` / `context` は SKILL.md の frontmatter から生成される。手で書かない。`path` の直後に置く（末尾へ足すと全エントリの直前行にカンマが入り diff が倍になる）
+- スクリプトが組織の SAML 強制（Tree API の 403）で止まる場合、`GITHUB_TOKEN` / `GH_TOKEN` を外した匿名実行なら通ることがある（公開 repo のみ）
+- 上流の増減を混ぜずにフィールドだけ足したいときは、再生成結果から既存エントリへ該当フィールドだけ移し、`version` と `lastUpdated` は変えない（ソース単位の再生成と同じ扱い）
 
 ## 更新時のチェックリスト
 

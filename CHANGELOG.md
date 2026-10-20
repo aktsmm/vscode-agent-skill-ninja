@@ -7,6 +7,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.9.56] - 2026-10-20
+
+### Added
+
+- **Find Manual-only Skills In Browse** - The Browse view now has a filter for invocation mode (auto / manual-only / model-only). The index update reads `disable-model-invocation`, `user-invocable`, `argument-hint` and `context` from each SKILL.md, manual-only and model-only skills get their own icon and label, and the tooltip shows the `/name <argument-hint>` usage and whether the skill runs in a forked context. The bundled index already carries these fields for 1,897 skills; run Update Index to refresh your own sources. Skill search results and the preview also show the invocation mode, and the preview shows the `/name <argument-hint>` usage. If the index has no invocation-mode data yet, the filter says so instead of showing an empty tree / Browse ビューを呼び出しモード（自動 / 手動専用 / モデル専用）で絞り込めるようになりました。インデックス更新時に各 SKILL.md の `disable-model-invocation` / `user-invocable` / `argument-hint` / `context` を読み取り、手動専用・モデル専用のスキルを専用アイコンとラベルで区別し、ツールチップに `/name <argument-hint>` の使い方とフォーク実行かどうかを表示します。同梱インデックスには 1,897 件分が入っています。自分のソースは「インデックス更新」で反映されます。スキル検索結果とプレビューにも呼び出しモードを表示し、プレビューには `/name <argument-hint>` の使い方も出ます。インデックスに情報がない間は、空のツリーではなくその旨を表示します。
+- **Sort The Skill Views** - One **Filter and Sort** picker now serves every view: the Installed and User/Global views sort by default / name / invocation mode (manual-only first), and Browse sorts by default / name / most stars. Changes apply immediately, the filled title icon plus a message above the tree show what is active, and the choice is remembered per workspace / 全ビュー共通の「絞り込みと並べ替え」ピッカーを追加しました。Installed と User/Global は 既定 / 名前順 / 呼び出しモード順（手動専用を先頭）、Browse は 既定 / 名前順 / スター数順で並べ替えられます。選ぶとすぐ反映され、塗りつぶしアイコンとツリー上部のメッセージで状態が分かり、選択はワークスペースごとに記憶されます。
+
+### Changed
+
+- **MicrosoftDocs Source Refreshed** - Re-scanned only the MicrosoftDocs Agent Skills source, dropping `azure-anomaly-detector` whose upstream path no longer exists (1,899 to 1,898 skills); other sources are untouched / MicrosoftDocs Agent Skills ソースだけを再走査し、上流にパスが無くなった `azure-anomaly-detector` を除外しました（1,899 件から 1,898 件）。他のソースは変更していません。
+- **Installed Rows Show Usage Too** -  Installed and User/Global rows now read `argument-hint` and `context: fork` from SKILL.md, so their tooltip shows the same `/name <argument-hint>` usage and forked-context note as Browse / Installed と User/Global の行も SKILL.md の `argument-hint` と `context: fork` を読み取り、ツールチップに Browse と同じ `/name <argument-hint>` の使い方とフォーク実行の注記を表示します。
+- **Invocation Filter Command Renamed** -  `Filter by Invocation Mode` is now `Filter and Sort Skills` (Browse has its own `Filter and Sort Browse Skills`). Command ids are unchanged, and a filter saved by 0.9.55 is carried over / コマンド名を「スキルの絞り込みと並べ替え」へ変更しました（Browse は別コマンド）。コマンド ID は変わらず、0.9.55 で保存した絞り込みも引き継がれます。
+- **Test Harness Resolves Nested Source Imports** - `scripts/load-src-module.js` now resolves relative `.ts` imports between `src` modules, so a pure helper that imports another pure helper can be loaded by tests / テスト用ローダーが `src` 内の相対 `.ts` import を解決するようになりました。
+
 ## [0.9.55] - 2026-10-19
 
 ### Added

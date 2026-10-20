@@ -494,6 +494,17 @@ async function scannerTests() {
       registrationDisabled: true,
     });
     writeSkill("manual-meta", ["disable-model-invocation: true"], {});
+    writeSkill("hinted", [
+      'argument-hint: "[file] [options]"',
+      "context: fork",
+    ]);
+    writeSkill("inline-context", ["context: inline", "argument-hint:"]);
+    // CRLF の SKILL.md でも、引用符付きの値が崩れずに読める
+    fs.mkdirSync(path.join(tmp, "crlf-hint"), { recursive: true });
+    fs.writeFileSync(
+      path.join(tmp, "crlf-hint", "SKILL.md"),
+      "---\r\nname: crlf-hint\r\ndescription: demo\r\nargument-hint: '[issue number]'\r\n---\r\n",
+    );
 
     const scan = async (handling) => {
       const uri = (fsPath) => ({ fsPath });
@@ -599,6 +610,15 @@ async function scannerTests() {
     assert.strictEqual(excluded["manual"].invocation, "explicitOnly");
     assert.strictEqual(excluded["hidden"].invocation, "modelOnly");
     assert.strictEqual(excluded["plain"].invocation, "auto");
+    // /name 実行時のヒントとフォーク実行は、Browse と同じ項目でローカル行にも載る
+    assert.strictEqual(excluded["hinted"].argumentHint, "[file] [options]");
+    assert.strictEqual(excluded["hinted"].context, "fork");
+    assert.strictEqual(excluded["crlf-hint"].argumentHint, "[issue number]");
+    assert.strictEqual(excluded["plain"].argumentHint, undefined);
+    assert.strictEqual(excluded["plain"].context, undefined);
+    // 空のヒントと未対応の context 値は無視する
+    assert.strictEqual(excluded["inline-context"].argumentHint, undefined);
+    assert.strictEqual(excluded["inline-context"].context, undefined);
     // 一覧から外れる手動専用スキルを「未登録」と表示しない
     assert.strictEqual(excluded["manual"].registrationState, "registered");
     assert.strictEqual(excluded["manual"].isRegistered, true);

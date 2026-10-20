@@ -49,6 +49,14 @@ import {
   resolveSourceRename,
   shouldPreserveSkillsOnEmptyScan,
 } from "./sourceUpdateReconcile";
+import {
+  DISABLE_MODEL_INVOCATION_KEY,
+  USER_INVOCABLE_KEY,
+  parseSkillExecutionContext,
+  resolveSkillInvocationFromValues,
+  type SkillExecutionContext,
+  type SkillInvocation,
+} from "./skillInvocation";
 
 const FETCH_CONCURRENCY = 8;
 const GITHUB_API_VERSION = "2022-11-28";
@@ -519,8 +527,7 @@ async function resolveRepository(
   }
 
   const info = (await response.json().catch(() => undefined)) as
-    | { full_name?: string; default_branch?: string; id?: number }
-    | undefined;
+    { full_name?: string; default_branch?: string; id?: number } | undefined;
   const [resolvedOwner, resolvedRepo] = (info?.full_name || "").split("/");
   const resolved: ResolvedRepository = {
     owner: resolvedOwner || owner,
@@ -842,6 +849,13 @@ async function processTreeResponse(
         }
         if (skillInfo.version) {
           skill.version = skillInfo.version;
+        }
+        skill.invocation = skillInfo.invocation;
+        if (skillInfo.argumentHint) {
+          skill.argumentHint = skillInfo.argumentHint;
+        }
+        if (skillInfo.context) {
+          skill.context = skillInfo.context;
         }
         return skill;
       } catch (error) {
@@ -1371,7 +1385,7 @@ function parseRegistryJson(
 /**
  * SKILL.md の frontmatter を解析
  */
-function parseSkillFrontmatter(
+export function parseSkillFrontmatter(
   content: string,
   filePath: string,
 ): {
@@ -1384,6 +1398,9 @@ function parseSkillFrontmatter(
   license?: string;
   author?: string;
   version?: string;
+  invocation: SkillInvocation;
+  argumentHint?: string;
+  context?: SkillExecutionContext;
 } | null {
   const normalizedContent = content.replace(/\r\n/g, "\n");
   // frontmatter を抽出
@@ -1427,6 +1444,12 @@ function parseSkillFrontmatter(
       license: frontmatter.get("license")?.trim(),
       author: frontmatter.get("author")?.trim() || metadataMatch?.[1]?.trim(),
       version: frontmatter.get("version")?.trim(),
+      invocation: resolveSkillInvocationFromValues({
+        disableModelInvocation: frontmatter.get(DISABLE_MODEL_INVOCATION_KEY),
+        userInvocable: frontmatter.get(USER_INVOCABLE_KEY),
+      }),
+      argumentHint: frontmatter.get("argument-hint")?.trim() || undefined,
+      context: parseSkillExecutionContext(frontmatter.get("context")),
     };
   }
 
@@ -1439,6 +1462,7 @@ function parseSkillFrontmatter(
     name: dirName,
     description,
     categories: [],
+    invocation: "auto",
   };
 }
 

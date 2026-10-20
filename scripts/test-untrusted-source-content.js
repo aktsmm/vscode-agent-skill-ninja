@@ -26,9 +26,9 @@ Module._load = function patchedLoad(request, parent, isMain) {
     return {};
   }
   // vscode 非依存の純粋ヘルパーは実モジュールを使う。書き写すと実装と乖離する
-  if (request === "./sourceRefs") {
+  if (request === "./sourceRefs" || request === "./skillInvocation") {
     return requireTypeScriptModule(
-      path.join(__dirname, "..", "src", "sourceRefs.ts"),
+      path.join(__dirname, "..", "src", `${request.slice(2)}.ts`),
     );
   }
   return originalLoad.call(this, request, parent, isMain);
@@ -218,10 +218,44 @@ function main() {
     assert.ok(!html.includes("<p><h"));
   });
 
-  const { normalizeStarCount, normalizeIndexText, normalizeIndexTags } =
-    requireTypeScriptModule(
-      path.join(__dirname, "..", "src", "indexUpdater.ts"),
+  const {
+    normalizeStarCount,
+    normalizeIndexText,
+    normalizeIndexTags,
+    parseSkillFrontmatter,
+  } = requireTypeScriptModule(
+    path.join(__dirname, "..", "src", "indexUpdater.ts"),
+  );
+
+  test("records the invocation mode, argument hint and forked context from SKILL.md", () => {
+    const skillMd = (...lines) =>
+      [
+        "---",
+        "name: demo",
+        "description: Demo skill",
+        ...lines,
+        "---",
+        "# Demo",
+      ].join("\n");
+    const parse = (...lines) =>
+      parseSkillFrontmatter(skillMd(...lines), "skills/demo/SKILL.md");
+
+    const manual = parse(
+      "disable-model-invocation: true",
+      'argument-hint: "[file] [options]"',
+      "context: fork",
     );
+    assert.strictEqual(manual.invocation, "explicitOnly");
+    assert.strictEqual(manual.argumentHint, "[file] [options]");
+    assert.strictEqual(manual.context, "fork");
+
+    assert.strictEqual(parse("user-invocable: false").invocation, "modelOnly");
+
+    const plain = parse();
+    assert.strictEqual(plain.invocation, "auto");
+    assert.strictEqual(plain.argumentHint, undefined);
+    assert.strictEqual(plain.context, undefined);
+  });
 
   test("drops a star count that a remote index did not send as a number", () => {
     assert.strictEqual(normalizeStarCount(1234), 1234);
@@ -253,6 +287,21 @@ function main() {
     assert.ok(
       source.includes("escapeHtml(skill.stars.toLocaleString())"),
       "the star count is remote data and must be escaped at the HTML boundary",
+    );
+  });
+
+  test("the preview escapes the argument hint it renders", () => {
+    const source = fs.readFileSync(
+      path.join(__dirname, "..", "src", "skillPreview.ts"),
+      "utf8",
+    );
+
+    // argument-hint は任意リポジトリの SKILL.md 由来なので、HTML へ入る前に必ず escape する
+    assert.ok(
+      /escapeHtml\(\s*`\/\$\{skill\.name\} \$\{skill\.argumentHint\}`/.test(
+        source,
+      ),
+      "the argument hint is remote data and must be escaped at the HTML boundary",
     );
   });
 

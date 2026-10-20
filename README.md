@@ -311,7 +311,8 @@ Preset index includes skills from official, curated, and community sources out o
 | `Agent Skills Ninja: Open Workspace Skill Output`                | Open the workspace skill output directly                                                                                                      |
 | `Agent Skills Ninja: Open User/Global Skill Output`              | Open the user/global skill output directly                                                                                                    |
 | `Agent Skills Ninja: Show Built-in Skills`                       | Show read-only built-in skills in the tree                                                                                                    |
-| `Agent Skills Ninja: Filter by Invocation Mode`                  | Show only auto, manual-only, or model-only skills in the Installed and User/Global views                                                      |
+| `Agent Skills Ninja: Filter and Sort Skills`                     | Filter the Installed and User/Global views by invocation mode (auto / manual-only / model-only) and sort them by name or invocation mode  |
+| `Agent Skills Ninja: Filter and Sort Browse Skills`              | Filter the Browse view by invocation mode and sort it by name or GitHub stars                                                                 |
 | `Agent Skills Ninja: Open Settings`                              | Open this extension's settings                                                                                                                |
 | `Agent Skills Ninja: Reset Settings`                             | Reset this extension's settings to their defaults                                                                                             |
 | `Agent Skills Ninja: Report a Bug`                               | Open a prefilled GitHub issue                                                                                                                 |
@@ -337,7 +338,9 @@ These palette commands are also available by right-clicking a row in the tree.
 | Insert Slash Command in Chat | installed skill row |
 | Set Invocation Mode... | writable installed skill row |
 
-The view title also has **Filter by Invocation Mode**, which limits the Installed and User/Global views to auto, manual-only, or model-only skills.
+The view title also has **Filter and Sort Skills** (Installed and User/Global) and **Filter and Sort Browse Skills** (Browse). One picker covers both: pick an invocation mode to filter (all / auto / manual-only / model-only) and a sort order (default / name / invocation mode for the installed views, default / name / most stars for Browse). Changes apply immediately, the filled icon and a message above the tree show that a filter or sort is active, and the choice is remembered per workspace.
+
+Browse reads each skill's `disable-model-invocation`, `user-invocable`, `argument-hint` and `context` from its SKILL.md when the index is updated. Manual-only and model-only skills get their own icon and label, and the tooltip shows the `/name <argument-hint>` usage. Run **Update Index** to pick up invocation modes for sources you added yourself; the bundled index already has them. If an index has no invocation-mode data yet, the Browse filter reports that instead of showing an empty tree. Skill search results and the preview show the mode too, and the preview shows the `/name <argument-hint>` usage.
 
 ### Output Targets
 

@@ -92,9 +92,9 @@ Module._load = function patchedLoad(request, parent, isMain) {
     );
   }
   // vscode 非依存の純粋ヘルパーは実モジュールを使う。書き写すと実装と乖離する
-  if (request === "./sourceRefs") {
+  if (request === "./sourceRefs" || request === "./skillInvocation") {
     return requireTypeScriptModule(
-      path.join(__dirname, "..", "src", "sourceRefs.ts"),
+      path.join(__dirname, "..", "src", `${request.slice(2)}.ts`),
     );
   }
   return originalLoad.call(this, request, parent, isMain);

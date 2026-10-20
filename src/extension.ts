@@ -60,17 +60,27 @@ import { createSkillRevisionResolver } from "./skillUpdates";
 import {
   BrowseSkillsProvider,
   getInvocationLabel,
-  getSkillInvocationFilter,
   getSkillRootFromTreeItem,
+  getSkillViewOptions,
   resolveCurrentSkillRoot,
   getSkillRootGroupLabel,
-  setSkillInvocationFilter,
-  SkillInvocationFilter,
+  setSkillViewOptions,
   SkillTreeItem,
   setViewRegistrationContext,
   UserGlobalSkillsProvider,
   WorkspaceSkillsProvider,
+  type SkillViewScope,
 } from "./treeProvider";
+import {
+  normalizeInvocationFilter,
+  normalizeSortMode,
+  type SkillViewOptions,
+} from "./skillListOptions";
+import {
+  describeViewOptions,
+  getSortModes,
+  showSkillViewOptionsPicker,
+} from "./skillViewOptionsPicker";
 import {
   normalizeExplicitOnlyHandling,
   normalizeSkillInvocation,
@@ -200,7 +210,16 @@ const LAST_MANAGED_INSTRUCTION_PATHS_KEY =
   "skillNinja.lastManagedInstructionPaths";
 // v1 は単一配列で multi-root を表現できなかった。旧キーは downgrade 時の互換のため触らない。
 const LAST_MANAGED_OUTPUT_PATHS_KEY = "skillNinja.lastManagedOutputPaths.v2";
-const INVOCATION_FILTER_STATE_KEY = "skillNinja.invocationFilter";
+// 旧: Installed / User-Global の呼び出しモード絞り込みだけを保存していたキー。読み込み時のみ引き継ぐ。
+const LEGACY_INVOCATION_FILTER_STATE_KEY = "skillNinja.invocationFilter";
+const VIEW_OPTIONS_STATE_KEYS: Record<SkillViewScope, string> = {
+  local: "skillNinja.viewOptions.local",
+  browse: "skillNinja.viewOptions.browse",
+};
+const VIEW_FILTER_CONTEXT_KEYS: Record<SkillViewScope, string> = {
+  local: "skillNinja.invocationFilterActive",
+  browse: "skillNinja.browseFilterActive",
+};
 const GLOBAL_OUTPUT_BUCKET_KEY = "__global__";
 const LAST_STALE_SOURCE_INDEX_PROMPT_DATE_KEY =
   "skillNinja.lastStaleSourceIndexPromptDate";
@@ -1013,22 +1032,28 @@ export function activate(
     browseProvider.refresh();
   }
 
-  function applyInvocationFilter(filter: SkillInvocationFilter): void {
-    setSkillInvocationFilter(filter);
+  /** 絞り込み・並べ替えをビューへ反映する。既定から外れている間はタイトルのアイコンを塗りつぶしにする。 */
+  function applyViewOptions(
+    scope: SkillViewScope,
+    options: SkillViewOptions,
+  ): void {
+    setSkillViewOptions(scope, options);
     void vscode.commands.executeCommand(
       "setContext",
-      "skillNinja.invocationFilterActive",
-      filter !== "all",
+      VIEW_FILTER_CONTEXT_KEYS[scope],
+      options.filter !== "all" || options.sort !== "default",
     );
     // 絞り込み中であることをビュー上に出す。忘れたまま「スキルが無い」と誤解しないため
-    const message =
-      filter === "all"
-        ? undefined
-        : messages.invocationFilterActiveMessage(getInvocationLabel(filter));
-    installedTreeView.message = message;
-    userGlobalTreeView.message = message;
-    workspaceProvider.refresh();
-    userGlobalProvider.refresh();
+    const message = describeViewOptions(scope, options);
+    if (scope === "local") {
+      installedTreeView.message = message;
+      userGlobalTreeView.message = message;
+      workspaceProvider.refresh();
+      userGlobalProvider.refresh();
+    } else {
+      browseTreeView.message = message;
+      browseProvider.refreshView();
+    }
   }
 
   applyBulkInstallSideEffects = async (roots: SkillRoot[]) => {
@@ -2462,15 +2487,22 @@ export function activate(
     showCollapseAll: true,
   });
 
-  const storedInvocationFilter = context.workspaceState.get<string>(
-    INVOCATION_FILTER_STATE_KEY,
-  );
-  if (
-    storedInvocationFilter === "auto" ||
-    storedInvocationFilter === "explicitOnly" ||
-    storedInvocationFilter === "modelOnly"
-  ) {
-    applyInvocationFilter(storedInvocationFilter);
+  // 保存済みの絞り込み・並べ替えを復元する（旧バージョンの保存値も引き継ぐ）
+  for (const scope of ["local", "browse"] as const) {
+    const stored = context.workspaceState.get<Partial<SkillViewOptions>>(
+      VIEW_OPTIONS_STATE_KEYS[scope],
+    );
+    const legacyFilter =
+      scope === "local"
+        ? context.workspaceState.get<string>(LEGACY_INVOCATION_FILTER_STATE_KEY)
+        : undefined;
+    const restored: SkillViewOptions = {
+      filter: normalizeInvocationFilter(stored?.filter ?? legacyFilter),
+      sort: normalizeSortMode(stored?.sort, getSortModes(scope)),
+    };
+    if (restored.filter !== "all" || restored.sort !== "default") {
+      applyViewOptions(scope, restored);
+    }
   }
 
   // ダブルクリックでインストール機能
@@ -5807,39 +5839,48 @@ Add examples here
     },
   );
 
-  // Command: Filter the skill views by invocation mode
-  const filterSkillsByInvocationHandler = async () => {
-    const current = getSkillInvocationFilter();
-    const filters: Array<{ filter: SkillInvocationFilter; label: string }> = [
-      { filter: "all", label: messages.invocationFilterAll() },
-      { filter: "auto", label: getInvocationLabel("auto") },
-      { filter: "explicitOnly", label: getInvocationLabel("explicitOnly") },
-      { filter: "modelOnly", label: getInvocationLabel("modelOnly") },
-    ];
-    const picked = await vscode.window.showQuickPick(
-      filters.map(({ filter, label }) => ({
-        label,
-        description: filter === current ? "✓" : undefined,
-        filter,
-      })),
-      { placeHolder: messages.invocationFilterPlaceholder() },
-    );
-    if (!picked || picked.filter === current) {
-      return;
-    }
-    await context.workspaceState.update(
-      INVOCATION_FILTER_STATE_KEY,
-      picked.filter === "all" ? undefined : picked.filter,
-    );
-    applyInvocationFilter(picked.filter);
-  };
+  // Commands: Filter and sort the skill views (local = Installed / User-Global, browse = Browse)
+  // 戻り値は確定後の設定。Extension Host テストが、ピッカー操作の結果を観測するために使う
+  const createViewOptionsHandler =
+    (scope: SkillViewScope) => async (): Promise<SkillViewOptions> => {
+      await showSkillViewOptionsPicker(
+        scope,
+        getSkillViewOptions(scope),
+        async (next) => {
+          // 見た目を先に更新し、保存の遅れで反映が待たされないようにする
+          applyViewOptions(scope, next);
+          await context.workspaceState.update(
+            VIEW_OPTIONS_STATE_KEYS[scope],
+            next.filter === "all" && next.sort === "default" ? undefined : next,
+          );
+          // 旧キーが残っていると、次回起動時に「すべて」へ戻した後でも絞り込みが復活する
+          if (scope === "local") {
+            await context.workspaceState.update(
+              LEGACY_INVOCATION_FILTER_STATE_KEY,
+              undefined,
+            );
+          }
+        },
+      );
+      return getSkillViewOptions(scope);
+    };
+  const localViewOptionsHandler = createViewOptionsHandler("local");
+  const browseViewOptionsHandler = createViewOptionsHandler("browse");
   const filterSkillsByInvocationCmd = vscode.commands.registerCommand(
     "skillNinja.filterSkillsByInvocation",
-    filterSkillsByInvocationHandler,
+    localViewOptionsHandler,
   );
   const filterSkillsByInvocationActiveCmd = vscode.commands.registerCommand(
     "skillNinja.filterSkillsByInvocationActive",
-    filterSkillsByInvocationHandler,
+    localViewOptionsHandler,
+  );
+  const filterBrowseSkillsCmd = vscode.commands.registerCommand(
+    "skillNinja.filterBrowseSkills",
+    browseViewOptionsHandler,
+  );
+  const filterBrowseSkillsActiveCmd = vscode.commands.registerCommand(
+    "skillNinja.filterBrowseSkillsActive",
+    browseViewOptionsHandler,
   );
 
   // Command: Copy Path (for Installed/Local skills)
@@ -6262,6 +6303,8 @@ Add examples here
     setSkillInvocationCmd,
     filterSkillsByInvocationCmd,
     filterSkillsByInvocationActiveCmd,
+    filterBrowseSkillsCmd,
+    filterBrowseSkillsActiveCmd,
     openInTerminalCmd,
     explainSkillStateCmd,
     reportBugCmd,

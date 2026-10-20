@@ -32,6 +32,8 @@ function loadSrcModule(relativeRequest) {
   const loaded = new Module(filePath, module);
   loaded.filename = filePath;
   loaded.paths = Module._nodeModulePaths(path.dirname(filePath));
+  // src 内の相対 import（.ts）も実体へ解決する。標準の解決は .ts を探さない。
+  loaded.require = (request) => requireSrcOrNodeModule(request);
   loaded._compile(output, filePath);
 
   cache.set(moduleName, loaded.exports);

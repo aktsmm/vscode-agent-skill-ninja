@@ -18,8 +18,10 @@ import {
 import { needsRepair } from "./installedSkillIndex";
 import {
   normalizeExplicitOnlyHandling,
+  parseSkillExecutionContext,
   readSkillInvocationFromText,
   type ExplicitOnlyHandling,
+  type SkillExecutionContext,
   type SkillInvocation,
 } from "./skillInvocation";
 import {
@@ -391,6 +393,8 @@ async function parseLocalSkillFile(
   let description = "";
   let description_ja = "";
   let categories: string[] = [];
+  let argumentHint: string | undefined;
+  let context: SkillExecutionContext | undefined;
 
   if (frontmatterMatch) {
     const frontmatter = parseTopLevelFrontmatter(frontmatterMatch[1]);
@@ -398,6 +402,8 @@ async function parseLocalSkillFile(
     description = frontmatter.get("description")?.trim() || "";
     description_ja = frontmatter.get("description_ja")?.trim() || "";
     categories = parseInlineYamlArray(frontmatter.get("categories") || "[]");
+    argumentHint = frontmatter.get("argument-hint")?.trim() || undefined;
+    context = parseSkillExecutionContext(frontmatter.get("context"));
   }
 
   // 名前がない場合は # ヘッダーから取得
@@ -446,6 +452,8 @@ async function parseLocalSkillFile(
     source,
     path: relativePath,
     invocation: readSkillInvocationFromText(normalizedText),
+    argumentHint,
+    context,
     license: meta?.license,
     author: meta?.author,
     version: meta?.version,

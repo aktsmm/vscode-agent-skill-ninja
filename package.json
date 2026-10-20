@@ -2,7 +2,7 @@
   "name": "agent-skill-ninja",
   "displayName": "%displayName%",
   "description": "%description%",
-  "version": "0.9.55",
+  "version": "0.9.56",
   "publisher": "yamapan",
   "license": "CC-BY-NC-SA-4.0",
   "icon": "resources/icon.png",
@@ -729,6 +729,18 @@
         "title": "%command.filterSkillsByInvocation%",
         "category": "Agent Skills Ninja",
         "icon": "$(filter-filled)"
+      },
+      {
+        "command": "skillNinja.filterBrowseSkills",
+        "title": "%command.filterBrowseSkills%",
+        "category": "Agent Skills Ninja",
+        "icon": "$(filter)"
+      },
+      {
+        "command": "skillNinja.filterBrowseSkillsActive",
+        "title": "%command.filterBrowseSkills%",
+        "category": "Agent Skills Ninja",
+        "icon": "$(filter-filled)"
       }
     ],
     "menus": {
@@ -862,6 +874,16 @@
           "command": "skillNinja.createSkill",
           "when": "view == skillNinja.browseView",
           "group": "navigation@5"
+        },
+        {
+          "command": "skillNinja.filterBrowseSkills",
+          "when": "view == skillNinja.browseView && !skillNinja.browseFilterActive",
+          "group": "navigation@6"
+        },
+        {
+          "command": "skillNinja.filterBrowseSkillsActive",
+          "when": "view == skillNinja.browseView && skillNinja.browseFilterActive",
+          "group": "navigation@6"
         },
         {
           "command": "skillNinja.openSettings",
@@ -1114,6 +1136,10 @@
         },
         {
           "command": "skillNinja.filterSkillsByInvocationActive",
+          "when": "false"
+        },
+        {
+          "command": "skillNinja.filterBrowseSkillsActive",
           "when": "false"
         },
         {

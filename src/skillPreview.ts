@@ -13,6 +13,10 @@ import {
 } from "./skillIndex";
 import { encodeGitRef } from "./sourceRefs";
 import messages, { isJapanese } from "./i18n";
+import {
+  getInvocationLabelText,
+  readSkillInvocationFromText,
+} from "./skillInvocation";
 import { getGitHubToken } from "./githubAuth";
 import { fetchGitHubWithOptionalAuthRetry } from "./githubFetch";
 import { randomBytes } from "crypto";
@@ -404,6 +408,20 @@ function getWebviewContent(
     ?.map((requiredSkill) => escapeHtml(requiredSkill))
     .join(", ");
   const safeBundle = skill.bundle ? escapeHtml(skill.bundle) : "";
+  // インデックスに無い（検索結果由来の）スキルは、取得した SKILL.md の frontmatter から判定する
+  const invocation = skill.invocation ?? readSkillInvocationFromText(content);
+  const invocationMeta =
+    invocation === "auto"
+      ? ""
+      : ` | <strong>${messages.invocationLabel()}:</strong> ${escapeHtml(
+          getInvocationLabelText(invocation, isJapanese()),
+        )}`;
+  const usageMeta =
+    skill.argumentHint && invocation !== "modelOnly"
+      ? ` | <strong>${messages.usageLabel()}:</strong> <code>${escapeHtml(
+          `/${skill.name} ${skill.argumentHint}`,
+        )}</code>`
+      : "";
   const starIcon = isFavorite ? "★" : "☆";
   const starClass = isFavorite ? "favorite" : "";
 
@@ -569,7 +587,7 @@ function getWebviewContent(
       safeBundle
         ? ` | <strong>${messages.bundleLabel()}:</strong> ${safeBundle}`
         : ""
-    }
+    }${invocationMeta}${usageMeta}
   </div>
   ${standaloneWarning}
   <div class="content">

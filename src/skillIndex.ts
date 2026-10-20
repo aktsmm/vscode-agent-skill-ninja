@@ -11,6 +11,7 @@ import {
   readSharedSourcesManifestResult,
   syncSharedSourcesManifestFromSources,
 } from "./shared-sources-manifest-store";
+import type { SkillExecutionContext, SkillInvocation } from "./skillInvocation";
 
 // スキル情報の型定義
 export interface Skill {
@@ -33,6 +34,15 @@ export interface Skill {
   license?: string; // ライセンス（例: MIT, Apache-2.0）
   author?: string; // 作成者
   version?: string; // バージョン
+  /**
+   * SKILL.md の frontmatter から取った呼び出しモード。未設定はインデックス未更新（不明）で、
+   * 取得済みの通常スキルは "auto" が入る。
+   */
+  invocation?: SkillInvocation;
+  /** frontmatter の `argument-hint`。`/name` 実行時にチャット入力欄へ出るヒント */
+  argumentHint?: string;
+  /** frontmatter の `context: fork`（サブエージェントで実行する実験的機能） */
+  context?: SkillExecutionContext;
 }
 
 /**
@@ -614,6 +624,9 @@ function shouldPersistMergedIndex(
       localSkill.license !== mergedSkill.license ||
       localSkill.author !== mergedSkill.author ||
       localSkill.version !== mergedSkill.version ||
+      localSkill.invocation !== mergedSkill.invocation ||
+      localSkill.argumentHint !== mergedSkill.argumentHint ||
+      localSkill.context !== mergedSkill.context ||
       !areStringArraysEqual(localSkill.categories, mergedSkill.categories) ||
       !areStringArraysEqual(localSkill.requires, mergedSkill.requires)
     ) {

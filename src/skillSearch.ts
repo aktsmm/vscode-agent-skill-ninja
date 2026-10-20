@@ -9,6 +9,11 @@ import {
   getLocalizedDescription,
 } from "./skillIndex";
 import { isJapanese } from "./i18n";
+import {
+  getInvocationIconId,
+  getInvocationLabelText,
+  normalizeSkillInvocation,
+} from "./skillInvocation";
 
 export const MAX_SEARCH_RESULTS = 100;
 
@@ -152,10 +157,16 @@ function skillToQuickPickItem(skill: Skill): SkillQuickPickItem {
       ? skill.categories.map((c) => `#${c}`).join(" ")
       : "";
   const desc = getLocalizedDescription(skill, isJa);
+  // 手動専用 / モデル専用は、探している最中に見分けられるようアイコンとラベルで示す
+  const invocation = normalizeSkillInvocation(skill.invocation);
+  const invocationBadge =
+    invocation === "auto"
+      ? ""
+      : ` • ${getInvocationLabelText(invocation, isJa)}`;
 
   return {
-    label: `$(package) ${skill.name}`,
-    description: `$(repo) ${skill.source}`,
+    label: `$(${getInvocationIconId(invocation, "package")}) ${skill.name}`,
+    description: `$(repo) ${skill.source}${invocationBadge}`,
     detail: `${desc || (isJa ? "説明なし" : "No description")}${
       categoryTags ? `  ${categoryTags}` : ""
     }`,

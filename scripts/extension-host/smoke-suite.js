@@ -173,6 +173,8 @@ exports.run = async () => {
       "setSkillInvocation",
       "filterSkillsByInvocation",
       "filterSkillsByInvocationActive",
+      "filterBrowseSkills",
+      "filterBrowseSkillsActive",
     ]) {
       assert.ok(commands.includes(`skillNinja.${id}`), id);
     }
@@ -251,6 +253,60 @@ exports.run = async () => {
     await new Promise((resolve) => setTimeout(resolve, 2000));
     await vscode.commands.executeCommand("skillNinja.refreshLocal");
     checks.push("invocation-mode-host");
+    stage = "view-options-host";
+    const pause = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+    const pickerKeys = {
+      next: "workbench.action.quickOpenSelectNext",
+      previous: "workbench.action.quickOpenSelectPrevious",
+      accept: "workbench.action.acceptSelectedQuickOpenItem",
+    };
+    // 実際の QuickPick をキー操作で動かす。ピッカーは選択後も開いたままなので、最後に閉じて戻り値を受け取る
+    const driveViewOptions = async (commandId, keys) => {
+      const pending = vscode.commands.executeCommand(commandId);
+      await pause(800);
+      for (const key of keys) {
+        await vscode.commands.executeCommand(pickerKeys[key]);
+        await pause(250);
+      }
+      await vscode.commands.executeCommand("workbench.action.closeQuickOpen");
+      return pending;
+    };
+    const repeat = (key, count) => Array(count).fill(key);
+    for (const [commandId, sortSteps, expectedSort] of [
+      // 項目順: 絞り込み(all/auto/explicitOnly/modelOnly) → 並べ替え。ローカルは default/name/invocation、Browse は default/name/stars
+      ["skillNinja.filterSkillsByInvocation", 4, "invocation"],
+      ["skillNinja.filterBrowseSkills", 3, "name"],
+    ]) {
+      const changed = await driveViewOptions(commandId, [
+        ...repeat("next", 2),
+        "accept",
+        ...repeat("next", sortSteps),
+        "accept",
+      ]);
+      assert.deepEqual(
+        { ...changed },
+        { filter: "explicitOnly", sort: expectedSort },
+        `${commandId} must apply a filter and a sort from one open picker`,
+      );
+      const unchanged = await driveViewOptions(commandId, []);
+      assert.deepEqual(
+        { ...unchanged },
+        { ...changed },
+        `${commandId} must keep the applied options`,
+      );
+      const reset = await driveViewOptions(commandId, [
+        ...repeat("previous", 2),
+        "accept",
+        ...repeat("next", 4),
+        "accept",
+      ]);
+      assert.deepEqual(
+        { ...reset },
+        { filter: "all", sort: "default" },
+        `${commandId} must return to the default view`,
+      );
+    }
+    checks.push("view-options-picker-host");
     stage = "gitignore-host";
     const rootConfig = vscode.workspace.getConfiguration(
       "skillNinja",
