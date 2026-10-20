@@ -17,12 +17,47 @@ import {
 import {
   normalizeFileSystemPath,
   resolveConfiguredPathToUri,
+  resolveWorkspaceSkillsDirectoryPreset,
   SkillRoot,
 } from "./skillLocations";
 
 export type RefCatalogFormat = Exclude<OutputFormat, "ref" | "none">;
 
 export const DEFAULT_REF_CATALOG_PATH = ".github/skills/README.md";
+
+/**
+ * ref カタログの既定の置き場所を決める。
+ * `refCatalogPath` を明示していればそれを使う。明示しておらず、フォルダのプリセット
+ * （`skillsDirectoryPreset`）を選んでいるときだけ、そのフォルダの README.md に追従させる
+ * （Claude Code 向けを選んだのに `.github/skills/` が作られないように）。
+ * プリセットを使わない既存ユーザーの置き場所は変えない。
+ */
+export function resolveRefCatalogPath(
+  config: Pick<vscode.WorkspaceConfiguration, "get" | "inspect">,
+  options: { applyPreset?: boolean } = {},
+): string {
+  const inspected = config.inspect<string>("refCatalogPath");
+  const explicit =
+    inspected?.workspaceFolderValue ??
+    inspected?.workspaceValue ??
+    inspected?.globalValue;
+  if (typeof explicit === "string" && explicit.trim()) {
+    return explicit;
+  }
+
+  // プリセットはワークスペースのフォルダ向け。ユーザー / グローバルの出力先は動かさない。
+  const presetPath =
+    options.applyPreset === false
+      ? undefined
+      : resolveWorkspaceSkillsDirectoryPreset(
+          config.get<unknown>("skillsDirectoryPreset"),
+        );
+  if (presetPath) {
+    return `${presetPath}/README.md`;
+  }
+
+  return config.get<string>("refCatalogPath") || DEFAULT_REF_CATALOG_PATH;
+}
 
 /** settings.json に書かれる生の要素。すべて optional（未指定は全体既定に追従）。 */
 export interface OutputTargetConfig {
@@ -203,8 +238,7 @@ export async function getOutputDefaults(
   const { format } = await resolveOutputFormat();
   return {
     format,
-    catalogPath:
-      config.get<string>("refCatalogPath") || DEFAULT_REF_CATALOG_PATH,
+    catalogPath: resolveRefCatalogPath(config, { applyPreset: false }),
     catalogFormat: normalizeRefCatalogFormat(
       config.get<string>("refCatalogFormat"),
     ),
@@ -267,6 +301,7 @@ export async function resolveOutputGroups(
   options: {
     config?: vscode.WorkspaceConfiguration;
     workspaceFolderUris?: readonly vscode.Uri[];
+    getFolderConfig?: (folderUri: vscode.Uri) => vscode.WorkspaceConfiguration;
   } = {},
 ): Promise<ResolvedOutputGroup[]> {
   const config =
@@ -278,6 +313,21 @@ export async function resolveOutputGroups(
   const folderUris =
     options.workspaceFolderUris ||
     (vscode.workspace.workspaceFolders || []).map((folder) => folder.uri);
+
+  // skillsDirectoryPreset は resource スコープなので、フォルダごとの値で既定の catalog を決める
+  const defaultCatalogPathFor = (
+    scope: "workspace" | "userGlobal",
+    folderUri?: vscode.Uri,
+  ): string => {
+    if (scope !== "workspace" || !folderUri) {
+      return defaults.catalogPath;
+    }
+    const folderConfig =
+      options.getFolderConfig?.(folderUri) ??
+      options.config ??
+      vscode.workspace.getConfiguration("skillNinja", folderUri);
+    return resolveRefCatalogPath(folderConfig);
+  };
 
   const groups = new Map<string, ResolvedOutputGroup>();
   const groupPriority = new Map<string, { priority: number; index: number }>();
@@ -340,7 +390,8 @@ export async function resolveOutputGroups(
         );
         existing.formatIsExplicit = !!targetConfig?.format;
         existing.catalogPath =
-          targetConfig?.catalogPath ?? defaults.catalogPath;
+          targetConfig?.catalogPath ??
+          defaultCatalogPathFor(existing.scope, existing.workspaceFolderUri);
         existing.catalogFormat = normalizeRefCatalogFormat(
           targetConfig?.catalogFormat ?? defaults.catalogFormat,
         );
@@ -358,7 +409,9 @@ export async function resolveOutputGroups(
     const format = normalizeOutputFormat(
       targetConfig?.format ?? defaults.format,
     );
-    const catalogPath = targetConfig?.catalogPath ?? defaults.catalogPath;
+    const catalogPath =
+      targetConfig?.catalogPath ??
+      defaultCatalogPathFor(scope, workspaceFolderUri);
     const group: ResolvedOutputGroup = {
       id: groupKey,
       scope,

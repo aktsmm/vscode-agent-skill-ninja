@@ -313,6 +313,7 @@ Preset index includes skills from official, curated, and community sources out o
 | `Agent Skills Ninja: Show Built-in Skills`                       | Show read-only built-in skills in the tree                                                                                                    |
 | `Agent Skills Ninja: Filter and Sort Skills`                     | Filter the Installed and User/Global views by invocation mode (auto / manual-only / model-only) and sort them by name or invocation mode  |
 | `Agent Skills Ninja: Filter and Sort Browse Skills`              | Filter the Browse view by invocation mode and sort it by name or GitHub stars                                                                 |
+| `Agent Skills Ninja: Install Multiple Skills`                    | Pick several skills in a checkbox picker (it follows the Browse filter and sort; installed skills cannot be selected) and install them together |
 | `Agent Skills Ninja: Open Settings`                              | Open this extension's settings                                                                                                                |
 | `Agent Skills Ninja: Reset Settings`                             | Reset this extension's settings to their defaults                                                                                             |
 | `Agent Skills Ninja: Report a Bug`                               | Open a prefilled GitHub issue                                                                                                                 |
@@ -325,6 +326,8 @@ These palette commands are also available by right-clicking a row in the tree.
 | ---------------- | --------------------------- |
 | Install Skill    | remote skill row            |
 | Install Bundle   | bundle row                  |
+| Install Selected Skills | several remote skill rows selected with Ctrl / Shift + click |
+| Install All Shown Skills from This Source | source row (only the skills that match the Browse filter) |
 | Reinstall Skill  | installed skill row         |
 | Preview Skill    | remote skill row            |
 | Open SKILL.md    | installed skill row         |
@@ -341,6 +344,29 @@ These palette commands are also available by right-clicking a row in the tree.
 The view title also has **Filter and Sort Skills** (Installed and User/Global) and **Filter and Sort Browse Skills** (Browse). One picker covers both: pick an invocation mode to filter (all / auto / manual-only / model-only) and a sort order (default / name / invocation mode for the installed views, default / name / most stars for Browse). Changes apply immediately, the filled icon and a message above the tree show that a filter or sort is active, and the choice is remembered per workspace.
 
 Browse reads each skill's `disable-model-invocation`, `user-invocable`, `argument-hint` and `context` from its SKILL.md when the index is updated. Manual-only and model-only skills get their own icon and label, and the tooltip shows the `/name <argument-hint>` usage. Run **Update Index** to pick up invocation modes for sources you added yourself; the bundled index already has them. If an index has no invocation-mode data yet, the Browse filter reports that instead of showing an empty tree. Skill search results and the preview show the mode too, and the preview shows the `/name <argument-hint>` usage.
+
+**Installing several skills at once** has three entry points, all sharing one progress and cancel control, one target-root choice for the whole batch, and one summary:
+
+- Select several skill rows in Browse with Ctrl / Shift + click, then right-click **Install Selected Skills**.
+- **Install Multiple Skills** (the cloud-download icon in the Browse title) opens a checkbox picker that follows the Browse filter and sort. Installed skills are shown but cannot be selected.
+- Right-click a source and choose **Install All Shown Skills from This Source**. With a filter active, only the matching skills are installed, and a confirmation shows the count.
+
+Skills that are already installed, duplicates, and skills whose install folder collides with an installed skill in the target root you pick, or with another skill in the same batch, are skipped and counted in the summary. The folder name is the lower-cased skill name with spaces and punctuation turned into hyphens, so `Code Review`, `code-review` and `code.review` all land in the same folder and would overwrite each other.
+
+With `skillNinja.singleClickInstall` on, clicking a row installs it, so starting a multi-selection by clicking would begin an install. Use the picker or the source row in that case.
+
+### Choosing the Workspace Skills Folder
+
+Pick the folder for your tool from the **Skills Directory Preset** dropdown (`skillNinja.skillsDirectoryPreset`) in Settings. Use `custom` (the default) to type any path into `skillNinja.skillsDirectory`.
+
+| Preset   | Folder            | Read by                                    |
+| -------- | ----------------- | ------------------------------------------ |
+| `custom` | `skillsDirectory` | Whatever you set (default `.github/skills`) |
+| `github` | `.github/skills`  | GitHub Copilot, VS Code                    |
+| `claude` | `.claude/skills`  | Claude Code, VS Code                       |
+| `agents` | `.agents/skills`  | Codex, VS Code                             |
+
+Switching the preset does not move skills that are already installed, and the previous folder stops being listed (its files stay). To keep seeing it, add it to `skillNinja.additionalSkillRoots`. The generated skill catalog of that workspace folder follows the preset unless you set `skillNinja.refCatalogPath` yourself; user-level locations (`~/.copilot`, `~/.claude`, `~/.agents`) are not affected.
 
 ### Output Targets
 
@@ -463,23 +489,24 @@ If you don't need MCP tools, you can disable them from GitHub Copilot Chat:
 |   1   | `skillNinja.autoUpdateInstruction`        | `true`                     | **Auto-update instruction file on install**. Deprecated: turning it off now removes the managed block instead of freezing it |
 |   2   | `skillNinja.instructionFile`              | `AGENTS.md`                | Instruction file format _(requires Auto Update)_                                                                             |
 |   3   | `skillNinja.customInstructionPath`        | `""`                       | Custom path _(only when 'custom' selected)_                                                                                  |
-|   4   | `skillNinja.skillsDirectory`              | `.github/skills`           | Primary directory to install and manage workspace skills                                                                     |
-|   5   | `skillNinja.additionalSkillRoots`         | `[]`                       | Additional workspace skill roots, for example `copilot-skills/skills`                                                        |
-|   6   | `skillNinja.useVsCodeAgentSkillLocations` | `true`                     | Discover standard personal roots and extra user/global skill roots                                                           |
-|   7   | `skillNinja.showBuiltInSkills`            | `true`                     | Show read-only built-in skills                                                                                               |
-|   8   | `skillNinja.outputFormat`                 | `ref`                      | Output format (ref / full / compact / legacy)                                                                                |
-|   9   | `skillNinja.refCatalogPath`               | `.github/skills/README.md` | Catalog file path used by the `ref` format                                                                                   |
-|  10   | `skillNinja.refCatalogFormat`             | `full`                     | Catalog detail format used when `outputFormat` is `ref`                                                                      |
-|  11   | `skillNinja.outputTargets`                | _(unset)_                  | Per-location on/off and format overrides. Unset writes every discovered location; an explicit `[]` writes none               |
-|  12   | `skillNinja.autoUpdateSkillsOnUpgrade`    | `prompt`                   | Update installed skills after extension upgrade                                                                              |
-|  13   | `skillNinja.staleSourceIndexUpdateMode`   | `prompt`                   | Refresh source indexes older than 30 days on startup (`always` / `prompt` / `never`)                                         |
-|  14   | `skillNinja.githubToken`                  | `""`                       | Legacy GitHub Token setting (user settings only); copied to SecretStorage when present                                       |
-|  15   | `skillNinja.singleClickInstall`           | `false`                    | Install remote skills with single click                                                                                      |
-|  16   | `skillNinja.coexistenceMode`              | `auto`                     | Coexistence with Agent Resources Ninja (`auto` / `independent`)                                                              |
-|  17   | `skillNinja.useSharedSourcesManifest`     | `false`                    | Share source-list SSOT with Agent Resources Ninja via `~/.agent-ninja/sources.json`                                          |
-|  18   | `skillNinja.language`                     | `auto`                     | UI language (auto / en / ja)                                                                                                 |
-|  19   | `skillNinja.explicitOnlySkillsInInstructions` | `exclude`              | How manual-only skills (`disable-model-invocation: true`) appear in the generated skill list (`exclude` / `separate` / `include`) |
-|  20   | `skillNinja.autoManageGitignore`          | `true`                     | Manage a skill-root .gitignore; override per repository in Workspace or Folder settings                                      |
+|   4   | `skillNinja.skillsDirectoryPreset`        | `custom`                   | Standard workspace skills folder for the tool you use (`custom` / `github` / `claude` / `agents`). `custom` uses `skillsDirectory` |
+|   5   | `skillNinja.skillsDirectory`              | `.github/skills`           | Primary directory to install and manage workspace skills _(only when the preset is `custom`)_                                |
+|   6   | `skillNinja.additionalSkillRoots`         | `[]`                       | Additional workspace skill roots, for example `copilot-skills/skills`                                                        |
+|   7   | `skillNinja.useVsCodeAgentSkillLocations` | `true`                     | Discover standard personal roots and extra user/global skill roots                                                           |
+|   8   | `skillNinja.showBuiltInSkills`            | `true`                     | Show read-only built-in skills                                                                                               |
+|   9   | `skillNinja.outputFormat`                 | `ref`                      | Output format (ref / full / compact / legacy)                                                                                |
+|  10   | `skillNinja.refCatalogPath`               | `.github/skills/README.md` | Catalog file path used by the `ref` format                                                                                   |
+|  11   | `skillNinja.refCatalogFormat`             | `full`                     | Catalog detail format used when `outputFormat` is `ref`                                                                      |
+|  12   | `skillNinja.outputTargets`                | _(unset)_                  | Per-location on/off and format overrides. Unset writes every discovered location; an explicit `[]` writes none               |
+|  13   | `skillNinja.autoUpdateSkillsOnUpgrade`    | `prompt`                   | Update installed skills after extension upgrade                                                                              |
+|  14   | `skillNinja.staleSourceIndexUpdateMode`   | `prompt`                   | Refresh source indexes older than 30 days on startup (`always` / `prompt` / `never`)                                         |
+|  15   | `skillNinja.githubToken`                  | `""`                       | Legacy GitHub Token setting (user settings only); copied to SecretStorage when present                                       |
+|  16   | `skillNinja.singleClickInstall`           | `false`                    | Install remote skills with single click                                                                                      |
+|  17   | `skillNinja.coexistenceMode`              | `auto`                     | Coexistence with Agent Resources Ninja (`auto` / `independent`)                                                              |
+|  18   | `skillNinja.useSharedSourcesManifest`     | `false`                    | Share source-list SSOT with Agent Resources Ninja via `~/.agent-ninja/sources.json`                                          |
+|  19   | `skillNinja.language`                     | `auto`                     | UI language (auto / en / ja)                                                                                                 |
+|  20   | `skillNinja.explicitOnlySkillsInInstructions` | `exclude`              | How manual-only skills (`disable-model-invocation: true`) appear in the generated skill list (`exclude` / `separate` / `include`) |
+|  21   | `skillNinja.autoManageGitignore`          | `true`                     | Manage a skill-root .gitignore; override per repository in Workspace or Folder settings                                      |
 
 > Settings are displayed in the order above
 

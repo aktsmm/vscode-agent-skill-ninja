@@ -552,6 +552,38 @@ export function resolveUserGlobalInstructionPath(
 
 export const DEFAULT_WORKSPACE_SKILLS_DIRECTORY = ".github/skills";
 
+/**
+ * ワークスペースのスキルフォルダのプリセット。
+ * `custom` は「`skillNinja.skillsDirectory` の値を使う」（既定）で、既存ユーザーの挙動を変えない。
+ * それ以外は、各ツールが標準で読むリポジトリ内のパス。
+ * 出典（2026-10-20 確認）: VS Code / Claude Code / Codex の各公式ドキュメント。
+ */
+export type WorkspaceSkillsDirectoryPreset =
+  "custom" | "github" | "claude" | "agents";
+
+export const WORKSPACE_SKILLS_DIRECTORY_PRESET_PATHS: Readonly<
+  Record<Exclude<WorkspaceSkillsDirectoryPreset, "custom">, string>
+> = {
+  github: ".github/skills",
+  claude: ".claude/skills",
+  agents: ".agents/skills",
+};
+
+/** 知らない値（手書きの誤りや将来の値）は、プリセットなし（= custom）として扱う。 */
+export function resolveWorkspaceSkillsDirectoryPreset(
+  value: unknown,
+): string | undefined {
+  return typeof value === "string" &&
+    Object.prototype.hasOwnProperty.call(
+      WORKSPACE_SKILLS_DIRECTORY_PRESET_PATHS,
+      value,
+    )
+    ? WORKSPACE_SKILLS_DIRECTORY_PRESET_PATHS[
+        value as keyof typeof WORKSPACE_SKILLS_DIRECTORY_PRESET_PATHS
+      ]
+    : undefined;
+}
+
 export function parseAdditionalWorkspaceSkillRootPaths(
   rawValue: unknown,
 ): string[] {
@@ -589,8 +621,10 @@ export function parseAdditionalWorkspaceSkillRootPaths(
 }
 
 /**
- * Resolve the workspace skills directory for the workspace scope. Honors the
- * Skill NINJA setting first; if Skill NINJA is left at its default value but
+ * Resolve the workspace skills directory for the workspace scope. A folder preset
+ * (`skillNinja.skillsDirectoryPreset`) other than `custom` wins, because the user
+ * picked it explicitly. Otherwise it honors the Skill NINJA `skillsDirectory`
+ * setting first; if that is left at its default value but
  * the sister extension Resource NINJA has a non-default `resourcesDirectory`
  * configured, mirror that value to keep both extensions pointing at the same
  * folder (Workspace Path Drift prevention, see plan v3 §6).
@@ -603,6 +637,13 @@ export function resolveWorkspaceSkillsDirectory(
     "resourceNinja",
   ),
 ): string {
+  const presetPath = resolveWorkspaceSkillsDirectoryPreset(
+    skillNinjaConfig.get<unknown>("skillsDirectoryPreset"),
+  );
+  if (presetPath) {
+    return presetPath;
+  }
+
   const own = skillNinjaConfig.get<string>("skillsDirectory");
   const ownTrimmed = (own || "").trim();
   const isOwnDefault =

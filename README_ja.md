@@ -308,6 +308,7 @@ ext install yamapan.agent-skill-ninja
 | `Agent Skills Ninja: Built-in Skills を表示`                        | 読み取り専用の built-in スキルをツリーに表示する                                                                              |
 | `Agent Skills Ninja: スキルの絞り込みと並べ替え`                    | Installed と User/Global ビューを、呼び出しモード（自動 / 手動専用 / モデル専用）で絞り込み、名前順・呼び出しモード順に並べ替える |
 | `Agent Skills Ninja: Browse スキルの絞り込みと並べ替え`             | Browse ビューを呼び出しモードで絞り込み、名前順・スター数順に並べ替える                                                       |
+| `Agent Skills Ninja: 複数のスキルをインストール`                    | チェックボックス付きのピッカーで複数のスキルを選んでまとめてインストールする（Browse の絞り込み・並べ替えを反映、インストール済みは選べない） |
 | `Agent Skills Ninja: 設定を開く`                                    | この拡張の設定を開く                                                                                                          |
 | `Agent Skills Ninja: 初期化`                                        | この拡張の設定を既定値へ戻す                                                                                                  |
 | `Agent Skills Ninja: バグを報告`                                    | 内容を埋めた GitHub issue を開く                                                                                              |
@@ -320,6 +321,8 @@ ext install yamapan.agent-skill-ninja
 | ---------------------- | -------------------------- |
 | スキルをインストール   | リモートスキルの行         |
 | バンドルをインストール | バンドルの行               |
+| 選択したスキルをインストール | Ctrl / Shift + クリックで選んだ複数のリモートスキルの行 |
+| このソースの表示中のスキルをすべてインストール | ソースの行（Browse の絞り込みに一致するスキルだけ） |
 | スキルを再インストール | 導入済みスキルの行         |
 | スキルをプレビュー     | リモートスキルの行         |
 | SKILL.md を開く        | 導入済みスキルの行         |
@@ -336,6 +339,29 @@ ext install yamapan.agent-skill-ninja
 ビュータイトルの **スキルの絞り込みと並べ替え**（Installed / User/Global）と **Browse スキルの絞り込みと並べ替え**（Browse）で、呼び出しモード（すべて / 自動 / 手動専用 / モデル専用）による絞り込みと並び順（Installed 系は 既定 / 名前順 / 呼び出しモード順、Browse は 既定 / 名前順 / スター数順）を 1 つのピッカーから変えられます。選ぶとすぐ反映され、絞り込みや並べ替え中はアイコンが塗りつぶしになりツリー上部にメッセージが出ます。選択はワークスペースごとに記憶されます。
 
 Browse は、インデックス更新時に各スキルの SKILL.md から `disable-model-invocation` / `user-invocable` / `argument-hint` / `context` を読み取ります。手動専用・モデル専用のスキルは専用アイコンとラベルで区別され、ツールチップに `/name <argument-hint>` の使い方が出ます。自分で追加したソースは **インデックス更新** で呼び出しモードが入ります（同梱インデックスには入っています）。インデックスに情報がない間は、Browse の絞り込みで空のツリーではなくその旨を案内します。スキル検索結果とプレビューにも呼び出しモードを表示し、プレビューには `/name <argument-hint>` の使い方も出ます。
+
+**複数のスキルをまとめてインストール**する入口は 3 つあります。どれも、進捗とキャンセル、インストール先の選択（全件で 1 回）、最後のまとめ表示は共通です。
+
+- Browse で Ctrl / Shift + クリックで複数のスキルの行を選び、右クリックの **選択したスキルをインストール**。
+- **複数のスキルをインストール**（Browse タイトルのクラウドダウンロードのアイコン）。チェックボックス付きのピッカーが開き、Browse の絞り込み・並べ替えを反映します。インストール済みは表示されますが選べません。
+- ソースを右クリックして **このソースの表示中のスキルをすべてインストール**。絞り込み中は一致するスキルだけが対象で、件数を確認してから実行します。
+
+インストール済み、重複、インストール先のフォルダが、選んだインストール先にあるインストール済みのスキルや、同じ一括内の別のスキルと重なるものは除外し、まとめに件数を表示します。フォルダ名は小文字化して空白や記号をハイフンにした名前で決まるため、`Code Review`・`code-review`・`code.review` は同じフォルダになり、上書きし合います。
+
+`skillNinja.singleClickInstall` が有効だと、行をクリックした時点でインストールが始まるため、クリックで複数選択を始められません。その場合は、ピッカーかソース行の入口を使ってください。
+
+### ワークスペーススキルフォルダの選択
+
+設定の **Skills Directory Preset**（`skillNinja.skillsDirectoryPreset`）のドロップダウンから、利用ツール向けのフォルダを選べます。任意のパスを使うときは `custom`（既定）のまま `skillNinja.skillsDirectory` に入力します。
+
+| プリセット | フォルダ          | 読み込むツール                              |
+| ---------- | ----------------- | ------------------------------------------- |
+| `custom`   | `skillsDirectory` | 設定したパス（既定 `.github/skills`）       |
+| `github`   | `.github/skills`  | GitHub Copilot、VS Code                     |
+| `claude`   | `.claude/skills`  | Claude Code、VS Code                        |
+| `agents`   | `.agents/skills`  | Codex、VS Code                              |
+
+プリセットを切り替えても、インストール済みのスキルは移動せず、元のフォルダは一覧に表示されなくなります（ファイルは残ります）。引き続き表示したい場合は `skillNinja.additionalSkillRoots` にそのフォルダを追加してください。そのワークスペースフォルダで生成されるスキルカタログは、`skillNinja.refCatalogPath` を自分で設定していない限りプリセットに追従します。ユーザー単位の場所（`~/.copilot`、`~/.claude`、`~/.agents`）は影響を受けません。
 
 ### 出力ターゲット
 
@@ -458,23 +484,24 @@ MCP ツールが不要な場合は、GitHub Copilot Chat のツール一覧か�
 |  1   | `skillNinja.autoUpdateInstruction`        | `true`                     | **インストール時に instruction file を自動更新**。非推奨: 無効にすると凍結ではなく管理ブロックを削除します |
 |  2   | `skillNinja.instructionFile`              | `AGENTS.md`                | スキルを登録するファイル形式 _(要: Auto Update)_                                                           |
 |  3   | `skillNinja.customInstructionPath`        | `""`                       | カスタムパス _(instructionFile が 'custom' の時のみ)_                                                      |
-|  4   | `skillNinja.skillsDirectory`              | `.github/skills`           | ワークスペーススキルをインストール・管理する primary ディレクトリ                                          |
-|  5   | `skillNinja.additionalSkillRoots`         | `[]`                       | 追加の workspace skill root。例: `copilot-skills/skills`                                                   |
-|  6   | `skillNinja.useVsCodeAgentSkillLocations` | `true`                     | 標準 personal root と追加の user/global skill root を検出して管理する                                      |
-|  7   | `skillNinja.showBuiltInSkills`            | `true`                     | 読み取り専用の Built-in Skills を表示する                                                                  |
-|  8   | `skillNinja.outputFormat`                 | `ref`                      | 出力形式（ref / full / compact / legacy）                                                                  |
-|  9   | `skillNinja.refCatalogPath`               | `.github/skills/README.md` | `ref` 形式で使う catalog file path                                                                         |
-|  10  | `skillNinja.refCatalogFormat`             | `full`                     | `outputFormat` が `ref` のときの catalog 詳細形式                                                          |
-|  11  | `skillNinja.outputTargets`                | _(未設定)_                 | 出力先ごとの ON/OFF と形式の上書き。未設定なら検出した全出力先へ書き、明示的な `[]` はどこにも書かない     |
-|  12  | `skillNinja.autoUpdateSkillsOnUpgrade`    | `prompt`                   | 拡張機能アップグレード後のスキル更新                                                                       |
-|  13  | `skillNinja.staleSourceIndexUpdateMode`   | `prompt`                   | 30 日以上古い source index を起動時に更新（`always` / `prompt` / `never`）                                 |
-|  14  | `skillNinja.githubToken`                  | `""`                       | 互換用 GitHub Token 設定（ユーザー設定のみ）。設定時は SecretStorage にコピーして利用                      |
-|  15  | `skillNinja.singleClickInstall`           | `false`                    | リモートスキルをシングルクリックでインストール                                                             |
-|  16  | `skillNinja.coexistenceMode`              | `auto`                     | Agent Resources Ninja との共存モード（`auto` / `independent`）                                             |
-|  17  | `skillNinja.useSharedSourcesManifest`     | `false`                    | `~/.agent-ninja/sources.json` 経由で Agent Resources Ninja と source list SSOT を共有                      |
-|  18  | `skillNinja.language`                     | `auto`                     | UI 言語（auto / en / ja）                                                                                  |
-|  19  | `skillNinja.explicitOnlySkillsInInstructions` | `exclude`              | 手動専用スキル（`disable-model-invocation: true`）を生成するスキル一覧にどう載せるか（`exclude` / `separate` / `include`） |
-|  20  | `skillNinja.autoManageGitignore`          | `true`                     | 保存先直下の .gitignore を自動管理。ワークスペース・フォルダ設定でレポごとに上書き可能                     |
+|  4   | `skillNinja.skillsDirectoryPreset`        | `custom`                   | 利用ツール向けの標準ワークスペーススキルフォルダ（`custom` / `github` / `claude` / `agents`）。`custom` は `skillsDirectory` を使用 |
+|  5   | `skillNinja.skillsDirectory`              | `.github/skills`           | ワークスペーススキルをインストール・管理する primary ディレクトリ _(プリセットが `custom` のときのみ)_                                          |
+|  6   | `skillNinja.additionalSkillRoots`         | `[]`                       | 追加の workspace skill root。例: `copilot-skills/skills`                                                   |
+|  7   | `skillNinja.useVsCodeAgentSkillLocations` | `true`                     | 標準 personal root と追加の user/global skill root を検出して管理する                                      |
+|  8   | `skillNinja.showBuiltInSkills`            | `true`                     | 読み取り専用の Built-in Skills を表示する                                                                  |
+|  9   | `skillNinja.outputFormat`                 | `ref`                      | 出力形式（ref / full / compact / legacy）                                                                  |
+|  10  | `skillNinja.refCatalogPath`               | `.github/skills/README.md` | `ref` 形式で使う catalog file path                                                                         |
+|  11  | `skillNinja.refCatalogFormat`             | `full`                     | `outputFormat` が `ref` のときの catalog 詳細形式                                                          |
+|  12  | `skillNinja.outputTargets`                | _(未設定)_                 | 出力先ごとの ON/OFF と形式の上書き。未設定なら検出した全出力先へ書き、明示的な `[]` はどこにも書かない     |
+|  13  | `skillNinja.autoUpdateSkillsOnUpgrade`    | `prompt`                   | 拡張機能アップグレード後のスキル更新                                                                       |
+|  14  | `skillNinja.staleSourceIndexUpdateMode`   | `prompt`                   | 30 日以上古い source index を起動時に更新（`always` / `prompt` / `never`）                                 |
+|  15  | `skillNinja.githubToken`                  | `""`                       | 互換用 GitHub Token 設定（ユーザー設定のみ）。設定時は SecretStorage にコピーして利用                      |
+|  16  | `skillNinja.singleClickInstall`           | `false`                    | リモートスキルをシングルクリックでインストール                                                             |
+|  17  | `skillNinja.coexistenceMode`              | `auto`                     | Agent Resources Ninja との共存モード（`auto` / `independent`）                                             |
+|  18  | `skillNinja.useSharedSourcesManifest`     | `false`                    | `~/.agent-ninja/sources.json` 経由で Agent Resources Ninja と source list SSOT を共有                      |
+|  19  | `skillNinja.language`                     | `auto`                     | UI 言語（auto / en / ja）                                                                                  |
+|  20  | `skillNinja.explicitOnlySkillsInInstructions` | `exclude`              | 手動専用スキル（`disable-model-invocation: true`）を生成するスキル一覧にどう載せるか（`exclude` / `separate` / `include`） |
+|  21  | `skillNinja.autoManageGitignore`          | `true`                     | 保存先直下の .gitignore を自動管理。ワークスペース・フォルダ設定でレポごとに上書き可能                     |
 
 > 設定画面では上記の順序で表示されます
 

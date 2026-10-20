@@ -7,6 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.9.57] - 2026-10-20
+
+### Added
+
+- **Skills Directory Preset** - New dropdown setting `skillNinja.skillsDirectoryPreset` in the Settings UI picks the workspace skills folder for your tool without typing a path: `github` (`.github/skills`), `claude` (`.claude/skills`) or `agents` (`.agents/skills`, read by Codex). The default `custom` keeps using `skillNinja.skillsDirectory`, so existing setups are unchanged. A non-custom preset takes priority over `skillsDirectory` and the Agent Resources Ninja sibling mirror, and the generated skill catalog follows it unless `skillNinja.refCatalogPath` is set. Installed skills are not moved when you switch, and the previous folder stops being listed unless you add it to `skillNinja.additionalSkillRoots` / 設定画面のドロップダウン `skillNinja.skillsDirectoryPreset` で、パスを入力せずに利用ツール向けのワークスペーススキルフォルダを選べるようになりました: `github`（`.github/skills`）、`claude`（`.claude/skills`）、`agents`（Codex が読む `.agents/skills`）。既定の `custom` は従来どおり `skillNinja.skillsDirectory` を使うため、既存の設定は変わりません。`custom` 以外は `skillsDirectory` と Agent Resources Ninja の兄弟ミラーより優先され、生成されるスキルカタログも `skillNinja.refCatalogPath` 未設定ならプリセットに追従します。切り替えてもインストール済みのスキルは移動せず、元のフォルダは `skillNinja.additionalSkillRoots` に追加しない限り一覧に表示されなくなります。
+
+- **Install Several Skills At Once** - Three entry points now install many skills in one run with a shared progress and cancel control, one target-root choice for the whole batch and one summary: select several rows in Browse with Ctrl / Shift + click and use **Install Selected Skills**; run **Install Multiple Skills** (checkbox picker that follows the Browse filter and sort, installed skills shown but not selectable); or right-click a source for **Install All Shown Skills from This Source** (only the skills matching the filter, after a count confirmation). Already-installed skills, duplicates and skills whose install folder collides with an installed skill in the target root you pick, or with another skill in the batch are skipped and counted in the summary. The folder is the lower-cased name with spaces and punctuation turned into hyphens, so `Code Review`, `code-review` and `code.review` would overwrite each other, silently when they come from the same source. Starting another bulk install while one is running or waiting for confirmation is refused with a notice instead of running in parallel. With `skillNinja.singleClickInstall` on, clicking a row installs it, so use the picker or the source row instead of click-selecting / 複数のスキルを 1 回でまとめてインストールできるようになりました。入口は 3 つで、進捗とキャンセル、インストール先の選択（全件で 1 回）、まとめ表示は共通です。Browse で Ctrl / Shift + クリックで複数選んで「選択したスキルをインストール」、Browse の絞り込み・並べ替えを反映するチェックボックス付きの「複数のスキルをインストール」（インストール済みは表示されるが選べない）、ソースを右クリックして「このソースの表示中のスキルをすべてインストール」（絞り込みに一致する分だけ、件数を確認してから実行）。インストール済み、重複、インストール先のフォルダが衝突するスキル（選んだインストール先にあるインストール済みのもの、または同じ一括内の別のもの。フォルダ名は小文字化し空白や記号をハイフンにした名前で決まり、名前が違っても上書きし合うため）は除外し、まとめに件数を表示します。`skillNinja.singleClickInstall` が有効だと、クリックした時点でインストールが始まるので、クリックでの複数選択ではなくピッカーかソース行を使ってください。
+
+### Fixed
+
+- **Install Button Survives Multi-select** - The Browse tree now allows multi-select, which passes the selection as a second argument to menu commands. `Install Skill` treated that array as the target root; it now accepts only a real skill root / Browse ツリーを複数選択可能にすると、メニューコマンドの第 2 引数に選択配列が渡ります。「スキルをインストール」がその配列をインストール先として扱わないよう、実際のスキルルートだけを受け付けるようにしました。
+
 ## [0.9.56] - 2026-10-20
 
 ### Added

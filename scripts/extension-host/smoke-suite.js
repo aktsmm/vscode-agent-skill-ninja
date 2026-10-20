@@ -307,6 +307,24 @@ exports.run = async () => {
       );
     }
     checks.push("view-options-picker-host");
+    stage = "bulk-install-host";
+    for (const id of [
+      "installMultiple",
+      "installSelectedSkills",
+      "installSourceSkills",
+    ]) {
+      assert.ok(commands.includes(`skillNinja.${id}`), id);
+    }
+    // 選択が無いときは例外にせず案内する（ネットワークも使わない）
+    await vscode.commands.executeCommand("skillNinja.installSelectedSkills");
+    // 実際のピッカーを開き、何も選ばずに閉じる。約 1,900 件の候補でも開閉でき、何もインストールされない
+    const bulkPending = vscode.commands.executeCommand(
+      "skillNinja.installMultiple",
+    );
+    await pause(1500);
+    await vscode.commands.executeCommand("workbench.action.closeQuickOpen");
+    await bulkPending;
+    checks.push("bulk-install-entry-points-host");
     stage = "gitignore-host";
     const rootConfig = vscode.workspace.getConfiguration(
       "skillNinja",
@@ -383,6 +401,45 @@ exports.run = async () => {
         .includes("# Agent Resources Ninja START"),
     );
     checks.push("gitignore-real-config-dirty-recovery-and-old-root-cleanup");
+    stage = "skills-directory-preset-host";
+    // プリセットは skillsDirectory（上で other-skills にしてある）より優先され、実際の root が切り替わる
+    const claudeSkillPath = path.join(
+      workspace.fsPath,
+      ".claude",
+      "skills",
+      "smoke-claude",
+    );
+    fs.mkdirSync(claudeSkillPath, { recursive: true });
+    fs.writeFileSync(
+      path.join(claudeSkillPath, "SKILL.md"),
+      "---\nname: smoke-claude\n---\n",
+    );
+    fs.writeFileSync(
+      path.join(claudeSkillPath, ".skill-meta.json"),
+      JSON.stringify({
+        name: "smoke-claude",
+        source: "smoke-catalog",
+        categories: [],
+      }),
+    );
+    await rootConfig.update(
+      "skillsDirectoryPreset",
+      "claude",
+      vscode.ConfigurationTarget.Workspace,
+    );
+    await vscode.commands.executeCommand("skillNinja.refreshLocal");
+    const claudeIgnorePath = path.join(
+      workspace.fsPath,
+      ".claude",
+      "skills",
+      ".gitignore",
+    );
+    assert.ok(
+      fs.existsSync(claudeIgnorePath) &&
+        fs.readFileSync(claudeIgnorePath, "utf8").includes("/smoke-claude/"),
+      "the claude preset must become the managed skills root",
+    );
+    checks.push("skills-directory-preset-host");
     fs.writeFileSync(
       resultPath,
       JSON.stringify({

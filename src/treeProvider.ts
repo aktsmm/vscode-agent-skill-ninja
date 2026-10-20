@@ -1422,12 +1422,16 @@ export class BrowseSkillsProvider implements vscode.TreeDataProvider<SkillTreeIt
   readonly onDidChangeTreeData = this._onDidChangeTreeData.event;
   private skillIndex: SkillIndex | undefined;
   private installedSkillKeys: Set<string> = new Set();
+  /** ルートごとの、インストール済みスキルのフォルダ名（小文字）。別のスキルが同じ場所を使っていないかの判定に使う */
+  private installedSkillFolders: Map<string, Set<string>> = new Map();
+  private installedStateLoading: Promise<void> | undefined;
 
   constructor(private context: vscode.ExtensionContext) {}
 
   refresh(): void {
     this.skillIndex = undefined;
     this.installedSkillKeys.clear();
+    this.installedSkillFolders.clear();
     this._onDidChangeTreeData.fire();
   }
 
@@ -1442,6 +1446,7 @@ export class BrowseSkillsProvider implements vscode.TreeDataProvider<SkillTreeIt
   setIndex(index: SkillIndex): void {
     this.skillIndex = index;
     this.installedSkillKeys.clear();
+    this.installedSkillFolders.clear();
     this._onDidChangeTreeData.fire();
   }
 
@@ -1532,8 +1537,72 @@ export class BrowseSkillsProvider implements vscode.TreeDataProvider<SkillTreeIt
     return this.installedSkillKeys.has(buildInstalledSkillKey(skill));
   }
 
+  /**
+   * そのフォルダ名を、インストール済みのスキルが既に使っているか（ソース・スキル名は問わない）。
+   * インストール先はフォルダ名で決まるので、名前が違っても同じフォルダなら上書きになる。
+   * 上書きされるのは選んだインストール先のルートだけなので、rootPath を渡してそのルートで判定する。
+   * 省略したときは、どのルートかを問わない。
+   */
+  isInstallFolderTaken(folder: string, rootPath?: string): boolean {
+    const name = folder.toLowerCase();
+    if (rootPath !== undefined) {
+      const folders = this.installedSkillFolders.get(
+        normalizeFileSystemPath(rootPath),
+      );
+      return folders?.has(name) ?? false;
+    }
+    for (const folders of this.installedSkillFolders.values()) {
+      if (folders.has(name)) {
+        return true;
+      }
+    }
+    return false;
+  }
+
   getTreeItem(element: SkillTreeItem): vscode.TreeItem {
     return element;
+  }
+
+  /**
+   * インストール済みの判定材料を読み込む。ツリーを開かずに一括インストールを始めても、
+   * 「入っているのに未インストール扱い」にならないよう、外からも呼べるようにしてある。
+   */
+  async ensureInstalledSkillKeys(): Promise<void> {
+    // 読み込み中の呼び出しは、途中の（不完全な）集合を見ずに完了を待つ
+    if (this.installedStateLoading) {
+      await this.installedStateLoading;
+      return;
+    }
+    if (this.installedSkillKeys.size > 0) {
+      return;
+    }
+    this.installedStateLoading = this.loadInstalledSkillKeys().finally(() => {
+      this.installedStateLoading = undefined;
+    });
+    await this.installedStateLoading;
+  }
+
+  private async loadInstalledSkillKeys(): Promise<void> {
+    const wsFolder = vscode.workspace.workspaceFolders?.[0];
+    if (!wsFolder) {
+      return;
+    }
+    const managedRoots = await getManagedSkillRoots(wsFolder.uri);
+    for (const root of managedRoots) {
+      const installedMeta = await getInstalledSkillsWithMeta(
+        wsFolder.uri,
+        root.rootUri,
+      );
+      const rootKey = normalizeFileSystemPath(root.rootPath);
+      const rootFolders =
+        this.installedSkillFolders.get(rootKey) ?? new Set<string>();
+      installedMeta.forEach((meta) => {
+        this.installedSkillKeys.add(buildInstalledSkillKey(meta));
+        // relativePath は導入時のフォルダ名。古いメタで無いときだけスキル名で代用する
+        rootFolders.add((meta.relativePath || meta.name).toLowerCase());
+      });
+      this.installedSkillFolders.set(rootKey, rootFolders);
+    }
   }
 
   async getChildren(element?: SkillTreeItem): Promise<SkillTreeItem[]> {
@@ -1554,21 +1623,7 @@ export class BrowseSkillsProvider implements vscode.TreeDataProvider<SkillTreeIt
     const categories = Array.isArray(index.categories) ? index.categories : [];
 
     // インストール済みスキルを取得（メタデータの name を使用）
-    if (this.installedSkillKeys.size === 0) {
-      const wsFolder = vscode.workspace.workspaceFolders?.[0];
-      if (wsFolder) {
-        const managedRoots = await getManagedSkillRoots(wsFolder.uri);
-        for (const root of managedRoots) {
-          const installedMeta = await getInstalledSkillsWithMeta(
-            wsFolder.uri,
-            root.rootUri,
-          );
-          installedMeta.forEach((meta) =>
-            this.installedSkillKeys.add(buildInstalledSkillKey(meta)),
-          );
-        }
-      }
-    }
+    await this.ensureInstalledSkillKeys();
 
     if (!element) {
       // ルートレベル: Favorites + ソース一覧

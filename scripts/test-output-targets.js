@@ -77,6 +77,13 @@ const skillLocationsStub = {
       ? makeUri(path.resolve(baseUri.fsPath, configuredPath))
       : undefined;
   },
+  resolveWorkspaceSkillsDirectoryPreset(value) {
+    return {
+      github: ".github/skills",
+      claude: ".claude/skills",
+      agents: ".agents/skills",
+    }[value];
+  },
 };
 
 const toolDetectorStub = {
@@ -162,15 +169,16 @@ const {
   parseOutputTargets,
   planOutputCleanup,
   resolveOutputGroups,
+  resolveRefCatalogPath,
 } = outputTargets;
 
-function makeConfig({ values = {}, outputTargetsValue } = {}) {
+function makeConfig({ values = {}, outputTargetsValue, inspected = {} } = {}) {
   return {
     get: (key) => (key === "outputTargets" ? outputTargetsValue : values[key]),
     inspect: (key) =>
       key === "outputTargets"
         ? { key, globalValue: outputTargetsValue }
-        : undefined,
+        : inspected[key],
   };
 }
 
@@ -264,6 +272,92 @@ async function main() {
     });
     // home 直下でない `.copilot` は標準ターゲット扱いしない
     assert.ok(deriveTargetId(nestedCopilot, HOME).startsWith("custom:"));
+  });
+
+  await test("resolveRefCatalogPath follows the preset unless the path is set explicitly", () => {
+    const withPreset = (preset, extra = {}) =>
+      makeConfig({
+        values: {
+          skillsDirectoryPreset: preset,
+          refCatalogPath: ".github/skills/README.md",
+        },
+        ...extra,
+      });
+    assert.strictEqual(
+      resolveRefCatalogPath(withPreset("claude")),
+      ".claude/skills/README.md",
+    );
+    assert.strictEqual(
+      resolveRefCatalogPath(withPreset("agents")),
+      ".agents/skills/README.md",
+    );
+    assert.strictEqual(
+      resolveRefCatalogPath(withPreset("custom")),
+      ".github/skills/README.md",
+    );
+    assert.strictEqual(
+      resolveRefCatalogPath(
+        withPreset("claude", {
+          inspected: { refCatalogPath: { workspaceValue: "docs/skills.md" } },
+        }),
+      ),
+      "docs/skills.md",
+    );
+    assert.strictEqual(
+      resolveRefCatalogPath(
+        withPreset("claude", {
+          inspected: { refCatalogPath: { globalValue: "   " } },
+        }),
+      ),
+      ".claude/skills/README.md",
+    );
+    assert.strictEqual(
+      resolveRefCatalogPath(makeConfig()),
+      ".github/skills/README.md",
+    );
+  });
+
+  await test("catalog default follows each folder's preset, never the user-global one", async () => {
+    toolDetectorStub.__format = "ref";
+    const presetByFolder = new Map([
+      [normalizeFileSystemPath(workspaceA), "claude"],
+      [normalizeFileSystemPath(workspaceB), "custom"],
+    ]);
+    const groups = await resolveOutputGroups(allRoots, {
+      config: makeConfig({
+        values: { refCatalogPath: ".github/skills/README.md" },
+      }),
+      workspaceFolderUris: [makeUri(workspaceA), makeUri(workspaceB)],
+      getFolderConfig: (folderUri) =>
+        makeConfig({
+          values: {
+            refCatalogPath: ".github/skills/README.md",
+            skillsDirectoryPreset: presetByFolder.get(
+              normalizeFileSystemPath(folderUri.fsPath),
+            ),
+          },
+        }),
+    });
+
+    assert.strictEqual(
+      findGroup(groups, path.join(workspaceA, "AGENTS.md")).catalogPath,
+      ".claude/skills/README.md",
+    );
+    assert.strictEqual(
+      findGroup(groups, path.join(workspaceB, "AGENTS.md")).catalogPath,
+      ".github/skills/README.md",
+    );
+    assert.strictEqual(
+      findGroup(groups, path.join(HOME, ".claude/CLAUDE.md")).catalogPath,
+      ".github/skills/README.md",
+    );
+    assert.strictEqual(
+      resolveRefCatalogPath(
+        makeConfig({ values: { skillsDirectoryPreset: "claude" } }),
+        { applyPreset: false },
+      ),
+      ".github/skills/README.md",
+    );
   });
 
   await test("treats unset outputTargets as legacy mode", () => {

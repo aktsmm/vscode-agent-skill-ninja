@@ -45,8 +45,8 @@ function getSortLabel(scope: SkillViewScope, mode: SkillSortMode): string {
   }
 }
 
-/** ビュー上部に出す「今こう絞っている」表示。既定のままなら undefined（何も出さない）。 */
-export function describeViewOptions(
+/** 「絞り込み: 手動専用 / 並べ替え: 名前順」のような短い状態表示。既定のままなら undefined。 */
+export function describeViewOptionsParts(
   scope: SkillViewScope,
   options: SkillViewOptions,
 ): string | undefined {
@@ -58,9 +58,16 @@ export function describeViewOptions(
   if (sort !== "default") {
     parts.push(messages.viewOptionsSortPart(getSortLabel(scope, sort)));
   }
-  return parts.length > 0
-    ? messages.viewOptionsActiveMessage(parts.join(" / "))
-    : undefined;
+  return parts.length > 0 ? parts.join(" / ") : undefined;
+}
+
+/** ビュー上部に出す「今こう絞っている」表示。既定のままなら undefined（何も出さない）。 */
+export function describeViewOptions(
+  scope: SkillViewScope,
+  options: SkillViewOptions,
+): string | undefined {
+  const parts = describeViewOptionsParts(scope, options);
+  return parts ? messages.viewOptionsActiveMessage(parts) : undefined;
 }
 
 type OptionItem = vscode.QuickPickItem &

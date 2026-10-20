@@ -192,6 +192,7 @@ test("settings order matches the documented primary flow", () => {
       "skillNinja.autoUpdateInstruction",
       "skillNinja.instructionFile",
       "skillNinja.customInstructionPath",
+      "skillNinja.skillsDirectoryPreset",
       "skillNinja.skillsDirectory",
       "skillNinja.additionalSkillRoots",
       "skillNinja.useVsCodeAgentSkillLocations",
@@ -213,21 +214,22 @@ test("settings order matches the documented primary flow", () => {
       ["skillNinja.autoUpdateInstruction", 1],
       ["skillNinja.instructionFile", 2],
       ["skillNinja.customInstructionPath", 3],
-      ["skillNinja.skillsDirectory", 4],
-      ["skillNinja.additionalSkillRoots", 5],
-      ["skillNinja.useVsCodeAgentSkillLocations", 6],
-      ["skillNinja.showBuiltInSkills", 7],
-      ["skillNinja.outputFormat", 8],
-      ["skillNinja.refCatalogPath", 9],
-      ["skillNinja.refCatalogFormat", 10],
-      ["skillNinja.outputTargets", 11],
-      ["skillNinja.autoUpdateSkillsOnUpgrade", 12],
-      ["skillNinja.staleSourceIndexUpdateMode", 13],
-      ["skillNinja.githubToken", 14],
-      ["skillNinja.singleClickInstall", 15],
-      ["skillNinja.coexistenceMode", 16],
-      ["skillNinja.useSharedSourcesManifest", 17],
-      ["skillNinja.language", 18],
+      ["skillNinja.skillsDirectoryPreset", 4],
+      ["skillNinja.skillsDirectory", 5],
+      ["skillNinja.additionalSkillRoots", 6],
+      ["skillNinja.useVsCodeAgentSkillLocations", 7],
+      ["skillNinja.showBuiltInSkills", 8],
+      ["skillNinja.outputFormat", 9],
+      ["skillNinja.refCatalogPath", 10],
+      ["skillNinja.refCatalogFormat", 11],
+      ["skillNinja.outputTargets", 12],
+      ["skillNinja.autoUpdateSkillsOnUpgrade", 13],
+      ["skillNinja.staleSourceIndexUpdateMode", 14],
+      ["skillNinja.githubToken", 15],
+      ["skillNinja.singleClickInstall", 16],
+      ["skillNinja.coexistenceMode", 17],
+      ["skillNinja.useSharedSourcesManifest", 18],
+      ["skillNinja.language", 19],
       ["skillNinja.includeLocalSkills", 90],
     ],
   );
@@ -2354,6 +2356,42 @@ test("configWatcher watches root and ref catalog settings", () => {
     ),
     "configWatcher must watch refCatalogFormat",
   );
+  assert.ok(
+    extensionSource.includes(
+      'affectsConfiguration("skillNinja.skillsDirectoryPreset")',
+    ),
+    "configWatcher must watch skillsDirectoryPreset",
+  );
+});
+
+test("skillsDirectoryPreset is a localized dropdown that defaults to custom", () => {
+  const prop =
+    pkg.contributes.configuration.properties[
+      "skillNinja.skillsDirectoryPreset"
+    ];
+  const nlsEn = JSON.parse(
+    fs.readFileSync(path.join(root, "package.nls.json"), "utf8"),
+  );
+  const nlsJa = JSON.parse(
+    fs.readFileSync(path.join(root, "package.nls.ja.json"), "utf8"),
+  );
+  assert.deepStrictEqual(prop.enum, ["custom", "github", "claude", "agents"]);
+  assert.strictEqual(prop.default, "custom");
+  assert.strictEqual(prop.enumItemLabels.length, prop.enum.length);
+  assert.strictEqual(prop.enumDescriptions.length, prop.enum.length);
+  const keys = [
+    ...[prop.description, prop.markdownDescription],
+    ...prop.enumItemLabels,
+    ...prop.enumDescriptions,
+  ].map((value) => value.replace(/^%|%$/g, ""));
+  for (const key of keys) {
+    assert.ok(nlsEn[key], `package.nls.json is missing ${key}`);
+    assert.ok(nlsJa[key], `package.nls.ja.json is missing ${key}`);
+  }
+  // 切り替えると元のフォルダが一覧から消えるため、戻し方を設定画面で案内する
+  const guide = "config.skillsDirectoryPreset.markdownDescription";
+  assert.ok(nlsEn[guide].includes("skillNinja.additionalSkillRoots"));
+  assert.ok(nlsJa[guide].includes("skillNinja.additionalSkillRoots"));
 });
 
 test("openInstructionFile is ref-catalog aware", () => {

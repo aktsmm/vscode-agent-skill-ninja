@@ -464,6 +464,17 @@ async function main() {
       resolveSkillFolderName({ name: "Docx Helper", source: "s", path: "p" }),
       "docx-helper",
     );
+
+    // 一括インストールの衝突判定が前提にしている規則。名前が違っても同じフォルダに入る
+    // （scripts/test-skill-bulk-selection.js はこの規則を複製して使うので、変わったら両方を見直す）
+    const folderOf = (name) =>
+      resolveSkillFolderName({ name, source: "s", path: "p" });
+    assert.strictEqual(folderOf("Code Review"), "code-review");
+    assert.strictEqual(folderOf("code-review"), "code-review");
+    assert.strictEqual(folderOf("code.review"), "code-review");
+    assert.strictEqual(folderOf("Code  Review!"), "code-review");
+    // アンダースコアは残るので別フォルダ
+    assert.strictEqual(folderOf("code_review"), "code_review");
     assert.strictEqual(
       resolveSkillFolderName({
         name: "expense-report",

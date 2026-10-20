@@ -422,6 +422,47 @@ function makeConfigStub(values) {
     );
   });
 
+  await test("resolveWorkspaceSkillsDirectory: a preset wins over skillsDirectory and the sibling mirror", () => {
+    const sibling = makeConfigStub({ resourcesDirectory: "shared/path" });
+    for (const [preset, expected] of [
+      ["github", ".github/skills"],
+      ["claude", ".claude/skills"],
+      ["agents", ".agents/skills"],
+    ]) {
+      const own = makeConfigStub({
+        skillsDirectoryPreset: preset,
+        skillsDirectory: "custom/skills",
+      });
+      assert.strictEqual(
+        resolveWorkspaceSkillsDirectory(own, sibling),
+        expected,
+      );
+    }
+  });
+
+  await test("resolveWorkspaceSkillsDirectory: custom and unknown presets keep the existing behavior", () => {
+    const sibling = makeConfigStub({ resourcesDirectory: "shared/path" });
+    for (const preset of ["custom", "unknown", "", undefined, 3]) {
+      assert.strictEqual(
+        resolveWorkspaceSkillsDirectory(
+          makeConfigStub({
+            skillsDirectoryPreset: preset,
+            skillsDirectory: "custom/skills",
+          }),
+          sibling,
+        ),
+        "custom/skills",
+      );
+      assert.strictEqual(
+        resolveWorkspaceSkillsDirectory(
+          makeConfigStub({ skillsDirectoryPreset: preset }),
+          sibling,
+        ),
+        "shared/path",
+      );
+    }
+  });
+
   await test("parseAdditionalWorkspaceSkillRootPaths keeps non-empty unique string entries", () => {
     assert.deepStrictEqual(
       JSON.parse(
@@ -510,6 +551,26 @@ function makeConfigStub(values) {
       [
         path.join(workspaceUri.fsPath, ".github", "skills"),
         path.join(workspaceUri.fsPath, "custom", "mixed", "path"),
+      ],
+    );
+  });
+
+  await test("resolveWorkspaceSkillRootUris: a preset is the primary root and keeps the old folder via additional roots", () => {
+    const workspaceUri = vscodeStub.Uri.file(
+      path.join(path.sep, "workspace", "repo"),
+    );
+    const own = makeConfigStub({
+      skillsDirectoryPreset: "claude",
+      skillsDirectory: "ignored/skills",
+      additionalSkillRoots: [".github/skills", ".claude/skills"],
+    });
+    const roots = resolveWorkspaceSkillRootUris(workspaceUri, own);
+
+    assert.deepStrictEqual(
+      JSON.parse(JSON.stringify(roots.map((root) => root.fsPath))),
+      [
+        path.join(workspaceUri.fsPath, ".claude", "skills"),
+        path.join(workspaceUri.fsPath, ".github", "skills"),
       ],
     );
   });

@@ -240,6 +240,31 @@ const jaMessages = {
   invocationLabel: "呼び出し",
   usageLabel: "使い方",
   viewOptionsSelected: "選択中",
+  installMultipleTitle: "複数のスキルをインストール",
+  installMultiplePlaceholder:
+    "インストールするスキルを選択（複数選択可、インストール済みは選べません）",
+  installMultipleNoCandidates:
+    "インストールできるスキルがありません。絞り込みを「すべて」に戻すか、インデックスを更新してください。",
+  installedBadge: "インストール済み",
+  installSelectedTitle: "選択したスキル",
+  installSelectedNone:
+    "インストールできるスキル行が選択されていません。Browse でスキルを選択してください。",
+  bulkInstallNothing:
+    "インストールできるスキルがありません（インストール済み {0} 個、インストール先が重複する {1} 個）",
+  bulkInstallConfirm: "{1} のスキル {0} 個をインストールしますか？",
+  bulkInstallConfirmDetail: "インストール済みの {0} 個は対象から除きます。",
+  bulkInstallConfirmConflictDetail:
+    "インストール先のフォルダが、インストール済みの別のスキルや、この一括内の別のスキルと重なる {0} 個は対象から除きます（フォルダ名は小文字化し空白や記号をハイフンにした名前で決まり、名前が違っても上書きし合うため）。",
+  installMultipleNoneSelected: "インストールするスキルが選択されていません。",
+  bulkInstallBusy:
+    "別の一括インストールが実行中、または確認中です。終わってからもう一度実行してください。",
+  bulkInstallLargeWarning:
+    "件数が多いため、時間がかかり GitHub のレート制限に達する可能性があります。途中で中断することもできます。",
+  bulkInstallingTitle: "{0} をインストール中...",
+  bulkInstallAllOk: "{0}: {1} 個のスキルをインストールしました{2}",
+  bulkInstallSomeFailed: "{0}: {1}/{2} 個インストール完了（{3} 個失敗）{4}",
+  bulkInstallSkippedInstalled: "（インストール済み {0} 個は除外）",
+  bulkInstallNameConflict: "（インストール先が重複する {0} 個は除外）",
   bundleInstallRecommended: "（バンドル全体のインストール推奨）",
   previewFailed: "プレビューに失敗しました: {0}",
   sourceNotFoundInPreview:
@@ -563,6 +588,32 @@ const enMessages: MessageDictionary = {
   invocationLabel: "Invocation",
   usageLabel: "Usage",
   viewOptionsSelected: "Selected",
+  installMultipleTitle: "Install Multiple Skills",
+  installMultiplePlaceholder:
+    "Select skills to install (multiple selection; installed skills cannot be selected)",
+  installMultipleNoCandidates:
+    "No skills to install. Reset the filter to show all, or update the index.",
+  installedBadge: "Installed",
+  installSelectedTitle: "Selected skills",
+  installSelectedNone:
+    "No installable skill rows are selected. Select skills in Browse first.",
+  bulkInstallNothing:
+    "No skills to install ({0} already installed, {1} with a colliding install folder)",
+  bulkInstallConfirm: "Install {0} skills ({1})?",
+  bulkInstallConfirmDetail: "{0} already installed skill(s) are excluded.",
+  bulkInstallConfirmConflictDetail:
+    "{0} skill(s) are excluded because their install folder collides with another installed skill or another skill in this batch (the folder name is the lower-cased skill name with spaces and punctuation turned into hyphens, so differently named skills can still overwrite each other).",
+  installMultipleNoneSelected: "No skills are selected to install.",
+  bulkInstallBusy:
+    "Another bulk install is running or waiting for confirmation. Try again when it finishes.",
+  bulkInstallLargeWarning:
+    "This is a large batch. It can take a while and may hit the GitHub rate limit. You can cancel part-way.",
+  bulkInstallingTitle: "Installing {0}...",
+  bulkInstallAllOk: "{0}: installed {1} skills{2}",
+  bulkInstallSomeFailed: "{0}: {1}/{2} installed ({3} failed){4}",
+  bulkInstallSkippedInstalled: " ({0} already installed, skipped)",
+  bulkInstallNameConflict:
+    " ({0} skill(s) with a colliding install folder skipped)",
   bundleInstallRecommended: "(Install full bundle recommended)",
   previewFailed: "Preview failed: {0}",
   sourceNotFoundInPreview:
@@ -992,6 +1043,39 @@ export const messages = {
   invocationLabel: () => localize("invocationLabel"),
   usageLabel: () => localize("usageLabel"),
   viewOptionsSelected: () => localize("viewOptionsSelected"),
+  installMultipleTitle: () => localize("installMultipleTitle"),
+  installMultiplePlaceholder: () => localize("installMultiplePlaceholder"),
+  installMultipleNoCandidates: () => localize("installMultipleNoCandidates"),
+  installedBadge: () => localize("installedBadge"),
+  installSelectedTitle: () => localize("installSelectedTitle"),
+  installSelectedNone: () => localize("installSelectedNone"),
+  bulkInstallNothing: (alreadyInstalled: number, nameConflicts: number) =>
+    localize("bulkInstallNothing", alreadyInstalled, nameConflicts),
+  bulkInstallConfirm: (count: number, label: string) =>
+    localize("bulkInstallConfirm", count, label),
+  bulkInstallConfirmDetail: (alreadyInstalled: number) =>
+    localize("bulkInstallConfirmDetail", alreadyInstalled),
+  bulkInstallConfirmConflictDetail: (count: number) =>
+    localize("bulkInstallConfirmConflictDetail", count),
+  installMultipleNoneSelected: () => localize("installMultipleNoneSelected"),
+  bulkInstallBusy: () => localize("bulkInstallBusy"),
+  bulkInstallLargeWarning: () => localize("bulkInstallLargeWarning"),
+  bulkInstallingTitle: (label: string) =>
+    localize("bulkInstallingTitle", label),
+  bulkInstallAllOk: (label: string, count: number, suffix: string) =>
+    localize("bulkInstallAllOk", label, count, suffix),
+  bulkInstallSomeFailed: (
+    label: string,
+    succeeded: number,
+    total: number,
+    failed: number,
+    suffix: string,
+  ) =>
+    localize("bulkInstallSomeFailed", label, succeeded, total, failed, suffix),
+  bulkInstallSkippedInstalled: (count: number) =>
+    localize("bulkInstallSkippedInstalled", count),
+  bulkInstallNameConflict: (count: number) =>
+    localize("bulkInstallNameConflict", count),
   bundleInstallRecommended: () => localize("bundleInstallRecommended"),
   previewFailed: (error: string) => localize("previewFailed", error),
   sourceNotFoundInPreview: (source: string) =>

@@ -326,6 +326,7 @@ function loadInstructionManager(vscodeStub, injectedSkills, options = {}) {
 
   // instructionManager sandbox
   const skillLocationsStub = {
+    resolveWorkspaceSkillsDirectoryPreset: () => undefined,
     computeRelativeDirectoryPath: (from, to) => {
       const r = path.relative(path.dirname(from), to).replace(/\\/g, "/");
       return r || ".";

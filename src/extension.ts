@@ -10,6 +10,7 @@ import {
   buildGitHubContentUrl,
   normalizeGitHubRepoUrl,
   loadSkillIndex,
+  getLocalizedDescription,
   getSkillGitHubUrl,
   getSkillGitHubUrlAsync,
 } from "./skillIndex";
@@ -33,6 +34,7 @@ import {
   findIncompleteInstalledSkills,
   findRootLevelSkillArtifacts,
   resolveManagedSkillDirUri,
+  resolveSkillFolderName,
   SkillInstallIncompleteError,
   classifySkillInstallFailure,
   isRetryableInstallFailure,
@@ -78,10 +80,22 @@ import {
 } from "./skillListOptions";
 import {
   describeViewOptions,
+  describeViewOptionsParts,
   getSortModes,
   showSkillViewOptionsPicker,
 } from "./skillViewOptionsPicker";
 import {
+  BULK_INSTALL_LARGE_THRESHOLD,
+  collectSkillsFromTreeArgs,
+  isSkillRootLike,
+  keepSelectable,
+  listBulkCandidates,
+  planBulkInstall,
+  type BulkInstallPlan,
+} from "./skillBulkSelection";
+import {
+  getInvocationIconId,
+  getInvocationLabelText,
   normalizeExplicitOnlyHandling,
   normalizeSkillInvocation,
   setSkillInvocationInText,
@@ -138,6 +152,7 @@ import {
   planOutputCleanup,
   ResolvedOutputGroup,
   resolveOutputGroups,
+  resolveRefCatalogPath,
 } from "./outputTargets";
 import { resolveOutputFormat } from "./toolDetector";
 import { MAX_SEARCH_RESULTS } from "./skillSearch";
@@ -607,6 +622,161 @@ function formatCancelledSuffix(
   return isJapanese()
     ? `（中断: ${processedCount}/${requestedCount} 件を処理）`
     : ` (cancelled: processed ${processedCount}/${requestedCount})`;
+}
+
+/** 一括インストールが activate スコープの関数へ依存する分。遅延参照で渡し、起動時の処理に含めない。 */
+interface BulkInstallDeps {
+  context: vscode.ExtensionContext;
+  browseProvider: BrowseSkillsProvider;
+  resolveInstallTargetRoot: (
+    workspaceUri: vscode.Uri,
+  ) => Promise<SkillRoot | undefined>;
+  markRecentlyInstalled: (skill: Skill) => void;
+  updateInstructionFilesForRoots: (roots: SkillRoot[]) => Promise<unknown>;
+  refreshAllViews: () => void;
+}
+
+interface BulkInstallRequest {
+  skills: Skill[];
+  label: string;
+  /** 実行前の確認。false を返すと何もせず終える（入口が確認を求めるときだけ渡す） */
+  confirm?: (plan: BulkInstallPlan<Skill>) => Promise<boolean>;
+}
+
+/** 一括インストールの操作中（確認・インストール先の選択・実行中）。同じフォルダへ 2 つの処理が書き込まないようにする */
+let bulkInstallActive = false;
+
+/**
+ * 複数スキルの一括インストール。入口（ツリーの複数選択 / ピッカー / ソース行）が違っても、
+ * 重複・インストール済み・フォルダ衝突の除外、進捗とキャンセル、リトライ、まとめ表示を共通にする。
+ * 操作中にもう一度起動されたときは、並行して走らせず案内する。
+ */
+async function installSkillsBulk(
+  deps: BulkInstallDeps,
+  request: BulkInstallRequest,
+): Promise<void> {
+  if (bulkInstallActive) {
+    vscode.window.showInformationMessage(messages.bulkInstallBusy());
+    return;
+  }
+  bulkInstallActive = true;
+  try {
+    await runSkillsBulkInstall(deps, request);
+  } finally {
+    bulkInstallActive = false;
+  }
+}
+
+async function runSkillsBulkInstall(
+  deps: BulkInstallDeps,
+  request: BulkInstallRequest,
+): Promise<void> {
+  const wsFolder = vscode.workspace.workspaceFolders?.[0];
+  if (!wsFolder) {
+    vscode.window.showErrorMessage(messages.noWorkspace());
+    return;
+  }
+
+  if (request.skills.length === 0) {
+    vscode.window.showInformationMessage(messages.bulkInstallNothing(0, 0));
+    return;
+  }
+
+  await deps.browseProvider.ensureInstalledSkillKeys();
+
+  // 上書きになるのは選んだインストール先のルートだけなので、先に選んでからそのルートで判定する。
+  // 全件で 1 回だけ選ぶ（バンドルのインストールと同じ）
+  const targetRoot = await deps.resolveInstallTargetRoot(wsFolder.uri);
+  if (!targetRoot) {
+    return;
+  }
+
+  const plan = planBulkInstall(
+    request.skills,
+    (skill) => deps.browseProvider.isSkillInstalled(skill),
+    (folder) =>
+      deps.browseProvider.isInstallFolderTaken(folder, targetRoot.rootPath),
+    (skill) => resolveSkillFolderName(skill),
+  );
+  if (plan.toInstall.length === 0) {
+    vscode.window.showInformationMessage(
+      messages.bulkInstallNothing(
+        plan.alreadyInstalled,
+        plan.nameConflicts + plan.installedNameConflicts,
+      ),
+    );
+    return;
+  }
+
+  if (request.confirm && !(await request.confirm(plan))) {
+    return;
+  }
+
+  const items: BulkInstallItem[] = plan.toInstall.map((skill) => ({
+    skill,
+    root: targetRoot,
+    label: skill.name,
+  }));
+
+  let cancelled = false;
+  const outcomes = await vscode.window.withProgress(
+    {
+      location: vscode.ProgressLocation.Notification,
+      title: messages.bulkInstallingTitle(request.label),
+      cancellable: true,
+    },
+    async (progress, token) => {
+      const result = await runBulkInstall(
+        items,
+        deps.context,
+        wsFolder.uri,
+        progress,
+        { autoRetry: true, token },
+      );
+      cancelled = token.isCancellationRequested;
+      return result;
+    },
+  );
+
+  for (const outcome of outcomes) {
+    if (outcome.status !== "failed") {
+      deps.markRecentlyInstalled(outcome.item.skill);
+    }
+  }
+
+  const summary = summarizeBulkInstall(outcomes);
+  const suffix = [
+    plan.alreadyInstalled > 0
+      ? messages.bulkInstallSkippedInstalled(plan.alreadyInstalled)
+      : "",
+    plan.nameConflicts + plan.installedNameConflicts > 0
+      ? messages.bulkInstallNameConflict(
+          plan.nameConflicts + plan.installedNameConflicts,
+        )
+      : "",
+    formatUnsafeSkipSuffix(summary.unsafeSkips),
+    formatPartialInstallSuffix(summary.partialCount),
+    // 中断した分を成功件数へ入れないよう、処理した件数を分母にする
+    formatCancelledSuffix(outcomes.length, items.length, cancelled),
+  ].join("");
+
+  await showBulkInstallSummary(
+    summary.failedCount > 0
+      ? messages.bulkInstallSomeFailed(
+          request.label,
+          outcomes.length - summary.failedCount,
+          outcomes.length,
+          summary.failedCount,
+          suffix,
+        )
+      : messages.bulkInstallAllOk(request.label, outcomes.length, suffix),
+    outcomes,
+    deps.context,
+    wsFolder.uri,
+  );
+
+  await deps.updateInstructionFilesForRoots([targetRoot]);
+  deps.refreshAllViews();
 }
 
 function formatStaleSourceSummary(staleSources: StaleSourceInfo[]): string {
@@ -2288,9 +2458,13 @@ export function activate(
     const activeWorkspaceUri = getActiveWorkspaceUri();
     const { format } = await resolveOutputFormat(activeWorkspaceUri);
     if (format === "ref") {
-      const config = vscode.workspace.getConfiguration("skillNinja");
-      const configuredCatalogPath =
-        config.get<string>("refCatalogPath") || ".github/skills/README.md";
+      const config = vscode.workspace.getConfiguration(
+        "skillNinja",
+        targetRoot.scope === "workspace" ? activeWorkspaceUri : undefined,
+      );
+      const configuredCatalogPath = resolveRefCatalogPath(config, {
+        applyPreset: targetRoot.scope === "workspace",
+      });
       const instructionDirUri = vscode.Uri.file(
         path.dirname(instructionUri.fsPath),
       );
@@ -2485,6 +2659,8 @@ export function activate(
   const browseTreeView = vscode.window.createTreeView("skillNinja.browseView", {
     treeDataProvider: browseProvider,
     showCollapseAll: true,
+    // Ctrl / Shift クリックで複数のスキルを選び、まとめてインストールできるようにする
+    canSelectMany: true,
   });
 
   // 保存済みの絞り込み・並べ替えを復元する（旧バージョンの保存値も引き継ぐ）
@@ -2565,6 +2741,7 @@ export function activate(
     if (
       e.affectsConfiguration("skillNinja.autoManageGitignore") ||
       e.affectsConfiguration("skillNinja.skillsDirectory") ||
+      e.affectsConfiguration("skillNinja.skillsDirectoryPreset") ||
       e.affectsConfiguration("skillNinja.additionalSkillRoots") ||
       e.affectsConfiguration("resourceNinja.resourcesDirectory")
     ) {
@@ -2584,6 +2761,7 @@ export function activate(
 
     if (
       e.affectsConfiguration("skillNinja.skillsDirectory") ||
+      e.affectsConfiguration("skillNinja.skillsDirectoryPreset") ||
       e.affectsConfiguration("skillNinja.additionalSkillRoots") ||
       e.affectsConfiguration("skillNinja.useVsCodeAgentSkillLocations") ||
       e.affectsConfiguration("skillNinja.explicitOnlySkillsInInstructions") ||
@@ -2594,6 +2772,7 @@ export function activate(
 
     if (
       e.affectsConfiguration("skillNinja.skillsDirectory") ||
+      e.affectsConfiguration("skillNinja.skillsDirectoryPreset") ||
       e.affectsConfiguration("skillNinja.additionalSkillRoots")
     ) {
       resetSkillMdWatchers();
@@ -2633,6 +2812,8 @@ export function activate(
       e.affectsConfiguration("skillNinja.outputFormat") ||
       e.affectsConfiguration("skillNinja.explicitOnlySkillsInInstructions") ||
       e.affectsConfiguration("skillNinja.refCatalogPath") ||
+      // プリセットを選ぶと、refCatalogPath が未設定のときの置き場所も変わる
+      e.affectsConfiguration("skillNinja.skillsDirectoryPreset") ||
       e.affectsConfiguration("skillNinja.refCatalogFormat") ||
       e.affectsConfiguration("skillNinja.outputTargets")
     ) {
@@ -3011,8 +3192,11 @@ export function activate(
         return;
       }
 
+      // 複数選択のツリーでは第 2 引数に選択配列が入る。配列をインストール先として使わない
       const targetRoot =
-        explicitTargetRoot || (await resolveInstallTargetRoot(wsFolder.uri));
+        (isSkillRootLike(explicitTargetRoot)
+          ? explicitTargetRoot
+          : undefined) || (await resolveInstallTargetRoot(wsFolder.uri));
       if (!targetRoot) {
         return;
       }
@@ -3983,6 +4167,187 @@ export function activate(
       refreshAllViews();
     },
   );
+
+  // Command: Install the skills selected in the Browse tree (Ctrl / Shift + click)
+  // ハンドラーは起動後に呼ばれるので、後ろで宣言する bulkInstallDeps を参照してよい
+  const installSelectedSkillsCmd = vscode.commands.registerCommand(
+    "skillNinja.installSelectedSkills",
+    async (clicked?: SkillTreeItem, selection?: SkillTreeItem[]) => {
+      const skills = collectSkillsFromTreeArgs<Skill>(clicked, selection);
+      if (skills.length === 0) {
+        vscode.window.showInformationMessage(messages.installSelectedNone());
+        return;
+      }
+      await installSkillsBulk(bulkInstallDeps, {
+        skills,
+        label: messages.installSelectedTitle(),
+      });
+    },
+  );
+
+  // Command: Pick several skills from the Browse list (respects its filter and sort)
+  const installMultipleCmd = vscode.commands.registerCommand(
+    "skillNinja.installMultiple",
+    async () => {
+      if (!vscode.workspace.workspaceFolders?.[0]) {
+        vscode.window.showErrorMessage(messages.noWorkspace());
+        return;
+      }
+
+      const index = await loadSkillIndex(context);
+      await browseProvider.ensureInstalledSkillKeys();
+      const options = getSkillViewOptions("browse");
+      const candidates = listBulkCandidates(index.skills, options);
+      if (candidates.length === 0) {
+        vscode.window.showInformationMessage(
+          messages.installMultipleNoCandidates(),
+        );
+        return;
+      }
+
+      const isJa = isJapanese();
+      const isInstalled = (skill: Skill) =>
+        browseProvider.isSkillInstalled(skill);
+      type PickItem = vscode.QuickPickItem & { skill: Skill };
+      const pickItems: PickItem[] = candidates.map((skill) => {
+        const invocation = normalizeSkillInvocation(skill.invocation);
+        const badges = [skill.source];
+        if (isInstalled(skill)) {
+          badges.push(messages.installedBadge());
+        }
+        if (invocation !== "auto") {
+          badges.push(getInvocationLabelText(invocation, isJa));
+        }
+        return {
+          label: `$(${
+            isInstalled(skill)
+              ? "check"
+              : getInvocationIconId(invocation, "package")
+          }) ${skill.name}`,
+          description: badges.join(" • "),
+          detail: getLocalizedDescription(skill, isJa),
+          skill,
+        };
+      });
+
+      const picked = await new Promise<Skill[] | undefined>((resolve) => {
+        const picker = vscode.window.createQuickPick<PickItem>();
+        const activeOptions = describeViewOptionsParts("browse", options);
+        picker.title = activeOptions
+          ? `${messages.installMultipleTitle()} — ${activeOptions}`
+          : messages.installMultipleTitle();
+        picker.placeholder = messages.installMultiplePlaceholder();
+        picker.canSelectMany = true;
+        picker.matchOnDescription = true;
+        picker.matchOnDetail = true;
+        picker.items = pickItems;
+
+        let accepted = false;
+        // QuickPick は項目を無効化できないので、選ばれたインストール済みを即座に外す
+        picker.onDidChangeSelection((selected) => {
+          const selectable = keepSelectable(selected, (item) =>
+            isInstalled(item.skill),
+          );
+          if (selectable.length !== selected.length) {
+            picker.selectedItems = selectable;
+          }
+        });
+        picker.onDidAccept(() => {
+          accepted = true;
+          resolve(
+            keepSelectable(picker.selectedItems, (item) =>
+              isInstalled(item.skill),
+            ).map((item) => item.skill),
+          );
+          picker.hide();
+        });
+        picker.onDidHide(() => {
+          if (!accepted) {
+            resolve(undefined);
+          }
+          picker.dispose();
+        });
+        picker.show();
+      });
+
+      if (!picked) {
+        return;
+      }
+      if (picked.length === 0) {
+        // Enter を押したのに何も起きないと、壊れたように見える
+        vscode.window.showInformationMessage(
+          messages.installMultipleNoneSelected(),
+        );
+        return;
+      }
+      await installSkillsBulk(bulkInstallDeps, {
+        skills: picked,
+        label: messages.installSelectedTitle(),
+      });
+    },
+  );
+
+  // Command: Install every skill shown under a source (respects the Browse filter)
+  const installSourceSkillsCmd = vscode.commands.registerCommand(
+    "skillNinja.installSourceSkills",
+    async (item?: SkillTreeItem) => {
+      const source = item?.source;
+      if (!source) {
+        vscode.window.showErrorMessage(
+          isJapanese() ? "ソース情報がありません" : "No source information",
+        );
+        return;
+      }
+
+      const index = await loadSkillIndex(context);
+      const options = getSkillViewOptions("browse");
+      const skills = listBulkCandidates(
+        index.skills.filter((skill) => skill.source === source.id),
+        options,
+      );
+      const activeOptions = describeViewOptionsParts("browse", options);
+      const label = activeOptions
+        ? `${source.name} (${activeOptions})`
+        : source.name;
+
+      await installSkillsBulk(bulkInstallDeps, {
+        skills,
+        label: source.name,
+        confirm: async (plan) => {
+          const excluded = plan.nameConflicts + plan.installedNameConflicts;
+          const detail = [
+            plan.alreadyInstalled > 0
+              ? messages.bulkInstallConfirmDetail(plan.alreadyInstalled)
+              : "",
+            excluded > 0
+              ? messages.bulkInstallConfirmConflictDetail(excluded)
+              : "",
+            plan.toInstall.length > BULK_INSTALL_LARGE_THRESHOLD
+              ? messages.bulkInstallLargeWarning()
+              : "",
+          ]
+            .filter(Boolean)
+            .join("\n\n");
+          const answer = await vscode.window.showInformationMessage(
+            messages.bulkInstallConfirm(plan.toInstall.length, label),
+            { modal: true, detail },
+            isJapanese() ? "インストール" : "Install",
+          );
+          return answer !== undefined;
+        },
+      });
+    },
+  );
+
+  // 一括インストールが使う activate スコープの関数。値を渡すだけで、ここでは何も呼ばない
+  const bulkInstallDeps: BulkInstallDeps = {
+    context,
+    browseProvider,
+    resolveInstallTargetRoot,
+    markRecentlyInstalled,
+    updateInstructionFilesForRoots,
+    refreshAllViews,
+  };
 
   // Command: Uninstall multiple skills (QuickPick)
   const uninstallMultipleCmd = vscode.commands.registerCommand(
@@ -6268,6 +6633,9 @@ Add examples here
     reinstallCmd,
     uninstallAllCmd,
     installBundleCmd,
+    installSelectedSkillsCmd,
+    installMultipleCmd,
+    installSourceSkillsCmd,
     uninstallMultipleCmd,
     reinstallMultipleCmd,
     showInstalledCmd,

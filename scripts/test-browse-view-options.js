@@ -45,6 +45,9 @@ const vscodeStub = {
 };
 
 let currentIndex;
+// 既定ではワークスペースも導入済みスキルも無い。必要なテストだけが差し替える
+let installedMetas = [];
+let managedRoots = [];
 
 function loadTreeProvider() {
   const moduleExports = {};
@@ -61,7 +64,12 @@ function loadTreeProvider() {
             getLocalizedDescription: (skill) => skill.description,
           };
         case "./skillInstaller":
-          return { getInstalledSkillsWithMeta: async () => [] };
+          return {
+            getInstalledSkillsWithMeta: async (_workspace, rootUri) =>
+              typeof installedMetas === "function"
+                ? installedMetas(rootUri)
+                : installedMetas,
+          };
         case "./localSkillScanner":
           return { scanVisibleSkills: async () => [] };
         case "./i18n":
@@ -74,7 +82,7 @@ function loadTreeProvider() {
         case "./skillLocations":
           return {
             normalizeFileSystemPath: (value) => String(value).toLowerCase(),
-            getManagedSkillRoots: async () => [],
+            getManagedSkillRoots: async () => managedRoots,
           };
         case "./installedSkillIndex":
           return {
@@ -268,6 +276,134 @@ async function main() {
       setSkillViewOptions("local", { filter: "all", sort: "name" });
       assert.deepStrictEqual(order(), ["alpha,delta,gamma", "beta,zeta"]);
       setSkillViewOptions("local", { filter: "all", sort: "default" });
+    },
+  );
+
+  await run(
+    "installed state is readable without opening the tree, by exact skill and by name",
+    async () => {
+      vscodeStub.workspace.workspaceFolders = [{ uri: { fsPath: "/ws" } }];
+      managedRoots = [{ rootUri: { fsPath: "/ws/.github/skills" } }];
+      // 導入時のフォルダ名は relativePath。スキル名（Code Review）とは別物になりうる
+      installedMetas = [
+        { name: "Review", source: "s1", relativePath: "review" },
+        { name: "Code Review", source: "s1", relativePath: "code-review" },
+        { name: "Nested", source: "s1", relativePath: "pack/nested" },
+        { name: "Legacy Skill", source: "s1" },
+      ];
+      try {
+        const provider = newProvider(makeIndex());
+        // ツリーを開く前は、まだ何も読み込んでいない
+        assert.strictEqual(provider.isInstallFolderTaken("review"), false);
+
+        await provider.ensureInstalledSkillKeys();
+        assert.strictEqual(
+          provider.isSkillInstalled({ name: "Review", source: "s1" }),
+          true,
+        );
+        // 同名の別ソースは「インストール済み」ではないが、フォルダは使われている
+        assert.strictEqual(
+          provider.isSkillInstalled({ name: "Review", source: "s2" }),
+          false,
+        );
+        assert.strictEqual(provider.isInstallFolderTaken("review"), true);
+        assert.strictEqual(provider.isInstallFolderTaken("REVIEW"), true);
+        assert.strictEqual(provider.isInstallFolderTaken("other"), false);
+        // フォルダ名で判定する。「Code Review」は code-review という場所を使っている
+        assert.strictEqual(provider.isInstallFolderTaken("code-review"), true);
+        assert.strictEqual(provider.isInstallFolderTaken("code review"), false);
+        // 入れ子のスキル（pack/nested）は、最上位の nested というフォルダを使っていない
+        assert.strictEqual(provider.isInstallFolderTaken("pack/nested"), true);
+        assert.strictEqual(provider.isInstallFolderTaken("nested"), false);
+        // relativePath が無い古いメタは、スキル名で代用する
+        assert.strictEqual(provider.isInstallFolderTaken("legacy skill"), true);
+
+        // 更新後は読み直す。古い名前を持ち越さない
+        installedMetas = [];
+        provider.refresh();
+        await provider.ensureInstalledSkillKeys();
+        assert.strictEqual(provider.isInstallFolderTaken("review"), false);
+
+        // 上書きになるのは選んだ 1 つのルートだけ。別のルートにあるフォルダは衝突にしない
+        const ws = "/ws/.github/skills";
+        const userRoot = "/home/user/.copilot/skills";
+        managedRoots = [
+          { rootPath: ws, rootUri: { fsPath: ws } },
+          { rootPath: userRoot, rootUri: { fsPath: userRoot } },
+        ];
+        installedMetas = async (rootUri) =>
+          rootUri.fsPath === userRoot
+            ? [{ name: "Review", source: "s1", relativePath: "review" }]
+            : [{ name: "Own", source: "s1", relativePath: "own" }];
+        const perRoot = newProvider(makeIndex());
+        await perRoot.ensureInstalledSkillKeys();
+        assert.strictEqual(
+          perRoot.isInstallFolderTaken("review", userRoot),
+          true,
+        );
+        assert.strictEqual(perRoot.isInstallFolderTaken("review", ws), false);
+        assert.strictEqual(perRoot.isInstallFolderTaken("own", ws), true);
+        assert.strictEqual(
+          perRoot.isInstallFolderTaken("own", userRoot),
+          false,
+        );
+        // ルートを指定しなければ、どのルートでも探す
+        assert.strictEqual(perRoot.isInstallFolderTaken("review"), true);
+        assert.strictEqual(perRoot.isInstallFolderTaken("missing"), false);
+        // パスの大文字小文字や区切りの違いで取り違えない
+        assert.strictEqual(
+          perRoot.isInstallFolderTaken("review", userRoot.toUpperCase()),
+          true,
+        );
+
+        installedMetas = [];
+        managedRoots = [{ rootPath: ws, rootUri: { fsPath: ws } }];
+        provider.refresh();
+        await provider.ensureInstalledSkillKeys();
+        assert.strictEqual(provider.isInstallFolderTaken("review"), false);
+        // 2 つ目のルートだけ遅らせ、「1 つ目を読んだ時点で size > 0」の状態を作る
+        managedRoots = [
+          { rootUri: { fsPath: "/a" } },
+          { rootUri: { fsPath: "/b" } },
+        ];
+        let releaseSlowRoot;
+        const slowRootGate = new Promise((resolve) => {
+          releaseSlowRoot = resolve;
+        });
+        installedMetas = async (rootUri) => {
+          if (rootUri.fsPath === "/b") {
+            await slowRootGate;
+            return [{ name: "Slow", source: "s1" }];
+          }
+          return [{ name: "Fast", source: "s1" }];
+        };
+        const parallel = newProvider(makeIndex());
+        const first = parallel.ensureInstalledSkillKeys();
+        // 1 つ目のルートの読み込みが終わり、2 つ目で止まるまで進める
+        await new Promise((resolve) => setTimeout(resolve, 20));
+        assert.strictEqual(parallel.isInstallFolderTaken("fast"), true);
+        assert.strictEqual(parallel.isInstallFolderTaken("slow"), false);
+
+        let secondDone = false;
+        const second = parallel.ensureInstalledSkillKeys().then(() => {
+          secondDone = true;
+        });
+        await new Promise((resolve) => setTimeout(resolve, 20));
+        assert.strictEqual(
+          secondDone,
+          false,
+          "a concurrent caller must wait for the load, not read a partial set",
+        );
+
+        releaseSlowRoot();
+        await Promise.all([first, second]);
+        assert.strictEqual(secondDone, true);
+        assert.strictEqual(parallel.isInstallFolderTaken("slow"), true);
+      } finally {
+        vscodeStub.workspace.workspaceFolders = undefined;
+        managedRoots = [];
+        installedMetas = [];
+      }
     },
   );
 }
