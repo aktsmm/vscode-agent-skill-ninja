@@ -58,6 +58,26 @@ async function main() {
   });
   assert.equal(pending.record("two", "failed"), undefined);
   assert.equal(logs[0].result, "unreadable");
+
+  // detail が変われば同じ result でも再度警告する（sync 失敗→cleanup 失敗を隠さない）
+  const detailed = [];
+  const byDetail = createOutputWriteFeedback({
+    log() {},
+    detailsAction: () => "Details",
+    warn: (action, key) => {
+      detailed.push(key);
+      return Promise.resolve(undefined);
+    },
+    showDetails() {},
+  });
+  byDetail.record("root", "failed", "sync|busy|");
+  byDetail.record("root", "failed", "sync|busy|");
+  assert.equal(detailed.length, 1);
+  byDetail.record("root", "failed", "cleanup|busy|");
+  assert.equal(detailed.length, 2);
+  byDetail.record("root", "updated", "");
+  byDetail.record("root", "failed", "cleanup|busy|");
+  assert.equal(detailed.length, 3);
   console.log(
     "PASS output failure feedback is bounded, recoverable, result-aware and non-blocking",
   );

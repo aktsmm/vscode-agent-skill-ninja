@@ -61,6 +61,14 @@ const REVIEWED_STARTUP_DIALOGS = {
     mechanical: false,
     why: "reached only from checkStaleSourceIndexesOnStartup, which is already throttled, or from an explicit user command",
   },
+  notifySourceUnavailable: {
+    mechanical: false,
+    why: "reached only from updateStaleSourceIndexes, once per source and failure kind (the record is persisted before the dialog), and the source is retried at most weekly; it offers Skip from Now On",
+  },
+  disableGitignoreManagement: {
+    mechanical: false,
+    why: "reached only after the user clicks Turn Off Auto-manage on the Gitignore failure warning; its single message reports a failed write",
+  },
   saveRateLimitResumeStateFromBatch: {
     mechanical: false,
     why: "reached only from updateStaleSourceIndexes, and only when a run actually hit the rate limit; the resume it offers refuses to rerun before the reset time, so it cannot loop",

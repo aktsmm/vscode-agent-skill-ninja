@@ -43,11 +43,13 @@ import {
   GITHUB_REQUEST_TIMEOUT_MS,
 } from "./githubFetch";
 import {
+  createEmptyScanError,
   createSourceBundleKey,
   hasRepositoryIdentityChanged,
   reconcileSourceBundles,
   resolveSourceRename,
   shouldPreserveSkillsOnEmptyScan,
+  SourceScanError,
 } from "./sourceUpdateReconcile";
 import {
   DISABLE_MODEL_INVOCATION_KEY,
@@ -540,7 +542,13 @@ async function resolveRepository(
   return resolved;
 }
 
-type ScanResult = { skills: Skill[]; source: Source; bundles?: Bundle[] };
+type ScanResult = {
+  skills: Skill[];
+  source: Source;
+  bundles?: Bundle[];
+  /** リモートから読みに行った候補ファイル数。0 件の結果が「空」なのか「取得失敗」なのかの判定に使う。 */
+  skillFileCount?: number;
+};
 
 function withResolvedRepoId(result: ScanResult, repoId?: number): ScanResult {
   if (repoId === undefined) {
@@ -558,7 +566,7 @@ export async function scanRepositoryForSkills(
   token?: string,
   preferredBranch?: string, // skill-index.json で指定されたブランチ
   sourceOptions?: SourceScanOptions,
-): Promise<{ skills: Skill[]; source: Source; bundles?: Bundle[] } | null> {
+): Promise<ScanResult | null> {
   // URLからowner/repoを抽出
   const match = repoUrl.match(/github\.com\/([^/]+)\/([^/]+)/);
   if (!match) {
@@ -580,6 +588,7 @@ export async function scanRepositoryForSkills(
   const branch = preferredBranch || resolved.defaultBranch || "main";
 
   // claude-skill-registry 特別処理: registry.json から読み込む
+  let registryFallback = false;
   if (resolveSourceScanner(repoName, sourceOptions) === "registry-json") {
     const registryResult = await scanSkillRegistryJson(
       owner,
@@ -591,8 +600,17 @@ export async function scanRepositoryForSkills(
     if (registryResult) {
       return withResolvedRepoId(registryResult, resolved.repoId);
     }
-    // registry.json がない場合は通常処理にフォールバック
+    // registry.json がない、または取得に失敗した。通常処理へフォールバックする
+    registryFallback = true;
   }
+  // registry の取得失敗を確認済みの「空」と混同しないよう、候補あり扱いにする
+  const finalizeTreeResult = (result: ScanResult): ScanResult =>
+    withResolvedRepoId(
+      registryFallback
+        ? { ...result, skillFileCount: result.skillFileCount || 1 }
+        : result,
+      resolved.repoId,
+    );
 
   // リポジトリのツリーを取得
   const treeUrl = `https://api.github.com/repos/${owner}/${repoName}/git/trees/${encodeGitRef(branch)}?recursive=1`;
@@ -609,7 +627,7 @@ export async function scanRepositoryForSkills(
           tree: Array<{ path: string; type: string }>;
           truncated?: boolean;
         };
-        return withResolvedRepoId(
+        return finalizeTreeResult(
           await processTreeResponse(
             fallbackData,
             owner,
@@ -619,7 +637,6 @@ export async function scanRepositoryForSkills(
             token,
             sourceOptions,
           ),
-          resolved.repoId,
         );
       }
       const fallbackBody = await fallbackResponse
@@ -633,12 +650,14 @@ export async function scanRepositoryForSkills(
           `GitHub tree request failed for ${owner}/${repoName}`,
         );
       }
-      throw new Error(
+      throw new SourceScanError(
+        "not-found",
         `Repository or branch not found: ${owner}/${repoName} (branch: ${branch}).${getPrivateRepositoryAuthHint(token)}`,
       );
     }
     if (response.status === 404) {
-      throw new Error(
+      throw new SourceScanError(
+        "not-found",
         `Repository or branch not found: ${owner}/${repoName} (branch: ${branch}).${getPrivateRepositoryAuthHint(token)}`,
       );
     }
@@ -657,7 +676,7 @@ export async function scanRepositoryForSkills(
     tree: Array<{ path: string; type: string }>;
     truncated?: boolean;
   };
-  return withResolvedRepoId(
+  return finalizeTreeResult(
     await processTreeResponse(
       responseData,
       owner,
@@ -667,7 +686,6 @@ export async function scanRepositoryForSkills(
       token,
       sourceOptions,
     ),
-    resolved.repoId,
   );
 }
 
@@ -718,7 +736,7 @@ async function processTreeResponse(
   branch: string,
   token?: string,
   sourceOptions?: SourceScanOptions,
-): Promise<{ skills: Skill[]; source: Source; bundles?: Bundle[] }> {
+): Promise<ScanResult> {
   if (data.truncated) {
     throw new Error(
       `GitHub tree response was truncated for ${owner}/${repoName}. Narrow the source with includePaths or split the repository into smaller sources.`,
@@ -757,7 +775,17 @@ async function processTreeResponse(
       includePaths: sourceOptions?.includePaths,
       excludePaths: sourceOptions?.excludePaths,
     };
-    return { skills: claudeCommandSkills, source };
+    return {
+      skills: claudeCommandSkills,
+      source,
+      skillFileCount: data.tree.filter(
+        (item) =>
+          item.type === "blob" &&
+          item.path.startsWith(".claude/commands/") &&
+          item.path.endsWith(".md") &&
+          isSkillPathAllowed(item.path, sourceOptions),
+      ).length,
+    };
   }
 
   if (scanner === "top-level-dirs" && canUseLegacyFallbackScanner) {
@@ -906,7 +934,12 @@ async function processTreeResponse(
     excludePaths: sourceOptions?.excludePaths,
   };
 
-  return { skills: deduplicatedSkills, source, bundles };
+  return {
+    skills: deduplicatedSkills,
+    source,
+    bundles,
+    skillFileCount: skillFiles.length,
+  };
 }
 
 export function normalizeSkillRootPathFromSkillFile(filePath: string): string {
@@ -1569,7 +1602,8 @@ export async function updateSingleSource(
     }
 
     if (hasRepositoryIdentityChanged(source.repoId, result.source.repoId)) {
-      throw new Error(
+      throw new SourceScanError(
+        "identity-changed",
         messages.sourceIndexRepositoryIdentityChanged(
           source.repoId as number,
           result.source.repoId as number,
@@ -1578,7 +1612,10 @@ export async function updateSingleSource(
     }
 
     if (shouldPreserveSkillsOnEmptyScan(result.skills.length, oldSkillCount)) {
-      throw new Error(messages.sourceIndexEmptyScanKept(oldSkillCount));
+      throw createEmptyScanError(
+        messages.sourceIndexEmptyScanKept(oldSkillCount),
+        result.skillFileCount,
+      );
     }
 
     // 新しいスキルを追加（既存の説明があれば保持）
@@ -1925,7 +1962,8 @@ export async function updateIndexFromSingleSource(
   );
 
   if (hasRepositoryIdentityChanged(source.repoId, result.source.repoId)) {
-    throw new Error(
+    throw new SourceScanError(
+      "identity-changed",
       messages.sourceIndexRepositoryIdentityChanged(
         source.repoId as number,
         result.source.repoId as number,
@@ -1939,8 +1977,9 @@ export async function updateIndexFromSingleSource(
       existingSkillsForSource.length,
     )
   ) {
-    throw new Error(
+    throw createEmptyScanError(
       messages.sourceIndexEmptyScanKept(existingSkillsForSource.length),
+      result.skillFileCount,
     );
   }
 

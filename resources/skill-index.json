@@ -1,6 +1,11 @@
 {
-  "version": "1.32.0",
-  "lastUpdated": "2026-09-29",
+  "version": "1.33.0",
+  "lastUpdated": "2026-10-21",
+  "retiredSources": [
+    {
+      "id": "openai-codex"
+    }
+  ],
   "sources": [
     {
       "id": "anthropics-skills",

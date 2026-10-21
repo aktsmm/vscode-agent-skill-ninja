@@ -76,6 +76,80 @@ export interface IgnoreEntry {
   metadata: boolean;
 }
 
+const FAILURE_TEXT: Record<
+  NonNullable<GitignoreSyncResult["reason"]>,
+  { ja: string; en: string }
+> = {
+  "out-of-scope": {
+    ja: "対象外のフォルダーです",
+    en: "the folder is out of scope",
+  },
+  missing: { ja: "フォルダーが見つかりません", en: "the folder is missing" },
+  busy: {
+    ja: `ロックファイル（${GITIGNORE_LOCK_NAME}）が残っているか、他の処理が使用中です。他の VS Code ウィンドウや Agent Resources Ninja が動いていないことを確認し、残っている場合だけ手動で削除してください`,
+    en: `the lock file (${GITIGNORE_LOCK_NAME}) is left behind or in use. Make sure no other VS Code window or Agent Resources Ninja is running, and delete it manually only if it remains`,
+  },
+  "invalid-metadata": {
+    ja: ".skill-meta.json が壊れているか、name / source がありません",
+    en: ".skill-meta.json is corrupt or lacks name / source",
+  },
+  "invalid-block": {
+    ja: ".gitignore の Agent Skills Ninja ブロック（START / END）が壊れています",
+    en: "the Agent Skills Ninja block (START / END) in .gitignore is corrupt",
+  },
+  dirty: {
+    ja: ".gitignore に未保存の変更があります。保存または破棄してください",
+    en: ".gitignore has unsaved changes. Save or discard them",
+  },
+  changed: {
+    ja: "同期中に .gitignore が変更されました",
+    en: ".gitignore changed during synchronization",
+  },
+  "unsafe-path": {
+    ja: "スキルフォルダーが symlink / junction か、ワークスペース外を指しています",
+    en: "the skill folder is a symlink / junction or points outside the workspace",
+  },
+  limit: {
+    ja: "スキルの走査上限を超えました",
+    en: "the skill scan limit was exceeded",
+  },
+  "io-failure": {
+    ja: "ファイルの読み書きに失敗しました（権限や OneDrive などの同期ロックの可能性）",
+    en: "reading or writing a file failed (permissions or a sync lock such as OneDrive)",
+  },
+};
+
+/**
+ * 通知に原因と対象を出すための文言。cleanup は管理ブロックを外す側の失敗で、
+ * 失敗すると除外設定が .gitignore に残るため、同期失敗とは別の言い方にする。
+ */
+export function formatGitignoreFailure(
+  result: GitignoreSyncResult,
+  options: { rootLabel: string; japanese: boolean; cleanup: boolean },
+): string {
+  const lang = options.japanese ? "ja" : "en";
+  const parts: string[] = [];
+  if (result.reason) {
+    parts.push(FAILURE_TEXT[result.reason][lang]);
+  }
+  if (result.warning === "cleanup-failed") {
+    parts.push(
+      options.japanese
+        ? "一時ファイルまたはロックを削除できませんでした。以降の同期がブロックされる場合があります"
+        : "a temporary file or lock could not be removed, which may block later synchronization",
+    );
+  }
+  const cause = parts.join(options.japanese ? "。" : "; ");
+  if (options.japanese) {
+    return options.cleanup
+      ? `Gitignore の管理ブロックを外せませんでした（${options.rootLabel}）。除外設定が .gitignore に残っている可能性があります。原因: ${cause}。スキルのインストール結果とは別の問題です。`
+      : `Gitignore の同期を完了できませんでした（${options.rootLabel}）。原因: ${cause}。スキルのインストール結果とは別の問題です。`;
+  }
+  return options.cleanup
+    ? `Could not remove the managed Gitignore block (${options.rootLabel}); exclusions may remain in .gitignore. Cause: ${cause}. This is separate from the skill installation result.`
+    : `Gitignore synchronization could not finish (${options.rootLabel}). Cause: ${cause}. This is separate from the skill installation result.`;
+}
+
 export function escapeIgnorePath(relativePath: string): string {
   const segments = relativePath.split("/");
   if (

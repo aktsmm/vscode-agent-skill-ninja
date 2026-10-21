@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.9.58] - 2026-10-21
+
+### Fixed
+
+- **Dead Sources No Longer Warn On Every Startup** - A source whose scan can never succeed again (0 skills found, repository or branch no longer reachable, or the URL now points to a different repository) used to fail on every startup, leave `lastIndexedAt` untouched and raise the same "source index update failed" warning each time. These failures are now recorded per source: the warning is shown once per cause with **Open URL**, **Skip from Now On** and **Remove** actions, the source is retried at most once every 7 days, and a record is dropped when the source definition changes or a manual update succeeds. Rate-limit, authentication and network failures keep their existing behavior. The bundled index now retires the `openai-codex` preset (its `.codex/skills/` folder no longer exists upstream) / 取得結果が 0 件、リポジトリやブランチへ到達できない、URL の参照先が別のリポジトリに変わった、のように再試行しても成功しない source が、起動のたびに失敗して `lastIndexedAt` が進まず、同じ「source index の更新失敗」警告を毎回出していました。失敗を source ごとに記録し、同じ原因では警告を 1 回だけ表示します（「URL を開く」「今後スキップ」「削除」付き）。再試行は最長でも 7 日に 1 回で、source の定義が変わるか手動更新に成功すると記録は消えます。レート制限・認証・通信エラーの扱いは従来どおりです。同梱 index では `openai-codex` プリセットを退役させました（上流の `.codex/skills/` が無くなったため）。
+- **Gitignore Warning Says Why** - The "Gitignore synchronization could not finish" warning now names the cause (lock file in use, unsaved `.gitignore`, symlinked skill root, corrupt metadata or block, I/O failure), the affected folder, and whether the failure is about removing the managed block. It adds **Reveal Lock File** for lock problems (the lock is never deleted automatically) and **Turn Off Auto-manage** that verifies the effective setting afterwards / 「Gitignore の同期を完了できませんでした」警告に、原因（ロックファイル使用中、`.gitignore` の未保存、symlink のスキルルート、メタデータやブロックの破損、I/O 失敗）、対象フォルダー、管理ブロックを外す側の失敗かどうかを表示します。ロック問題には「ロックを表示」（ロックは自動削除しません）、「自動管理をオフ」（実効値を確認します）を追加しました。
+
 ## [0.9.57] - 2026-10-20
 
 ### Added
@@ -29,8 +36,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 
 - **MicrosoftDocs Source Refreshed** - Re-scanned only the MicrosoftDocs Agent Skills source, dropping `azure-anomaly-detector` whose upstream path no longer exists (1,899 to 1,898 skills); other sources are untouched / MicrosoftDocs Agent Skills ソースだけを再走査し、上流にパスが無くなった `azure-anomaly-detector` を除外しました（1,899 件から 1,898 件）。他のソースは変更していません。
-- **Installed Rows Show Usage Too** -  Installed and User/Global rows now read `argument-hint` and `context: fork` from SKILL.md, so their tooltip shows the same `/name <argument-hint>` usage and forked-context note as Browse / Installed と User/Global の行も SKILL.md の `argument-hint` と `context: fork` を読み取り、ツールチップに Browse と同じ `/name <argument-hint>` の使い方とフォーク実行の注記を表示します。
-- **Invocation Filter Command Renamed** -  `Filter by Invocation Mode` is now `Filter and Sort Skills` (Browse has its own `Filter and Sort Browse Skills`). Command ids are unchanged, and a filter saved by 0.9.55 is carried over / コマンド名を「スキルの絞り込みと並べ替え」へ変更しました（Browse は別コマンド）。コマンド ID は変わらず、0.9.55 で保存した絞り込みも引き継がれます。
+- **Installed Rows Show Usage Too** - Installed and User/Global rows now read `argument-hint` and `context: fork` from SKILL.md, so their tooltip shows the same `/name <argument-hint>` usage and forked-context note as Browse / Installed と User/Global の行も SKILL.md の `argument-hint` と `context: fork` を読み取り、ツールチップに Browse と同じ `/name <argument-hint>` の使い方とフォーク実行の注記を表示します。
+- **Invocation Filter Command Renamed** - `Filter by Invocation Mode` is now `Filter and Sort Skills` (Browse has its own `Filter and Sort Browse Skills`). Command ids are unchanged, and a filter saved by 0.9.55 is carried over / コマンド名を「スキルの絞り込みと並べ替え」へ変更しました（Browse は別コマンド）。コマンド ID は変わらず、0.9.55 で保存した絞り込みも引き継がれます。
 - **Test Harness Resolves Nested Source Imports** - `scripts/load-src-module.js` now resolves relative `.ts` imports between `src` modules, so a pure helper that imports another pure helper can be loaded by tests / テスト用ローダーが `src` 内の相対 `.ts` import を解決するようになりました。
 
 ## [0.9.55] - 2026-10-19

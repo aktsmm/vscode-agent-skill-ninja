@@ -431,6 +431,7 @@ async function run() {
       id: 42,
     };
     let repoInfoStatus = 200;
+    let treeEntries = [];
 
     const indexUpdaterStubs = {
       "./skillIndex": {
@@ -468,6 +469,9 @@ async function run() {
           if (/^https:\/\/api\.github\.com\/repos\/[^/]+\/[^/]+$/.test(url)) {
             return jsonResponse(repoInfoPayload, repoInfoStatus);
           }
+          if (treeEntries.length > 0 && url.includes("/git/trees/")) {
+            return jsonResponse({ tree: treeEntries, truncated: false });
+          }
           return emptyTreeResponse();
         },
       },
@@ -475,6 +479,7 @@ async function run() {
 
     const {
       updateIndexFromSources,
+      updateIndexFromSingleSource,
       scanRepositoryForSkills,
       clearRepositoryResolutionCache,
       resolveSourceScanner,
@@ -569,6 +574,111 @@ async function run() {
           default_branch: "development",
           id: 42,
         };
+        clearRepositoryResolutionCache();
+      }
+    });
+
+    await test("a tree with no SKILL.md reports zero remote candidates", async () => {
+      clearRepositoryResolutionCache();
+      const result = await scanRepositoryForSkills(
+        "https://github.com/old-owner/old-repo",
+      );
+      assert.strictEqual(result.skills.length, 0);
+      assert.strictEqual(result.skillFileCount, 0);
+    });
+
+    await test("a registry source that fell back to the tree is never treated as confirmed-empty", async () => {
+      clearRepositoryResolutionCache();
+      const result = await scanRepositoryForSkills(
+        "https://github.com/old-owner/old-repo",
+        undefined,
+        undefined,
+        { scanner: "registry-json" },
+      );
+      assert.strictEqual(result.skills.length, 0);
+      assert.ok(
+        result.skillFileCount > 0,
+        "a registry fetch failure must stay transient",
+      );
+    });
+
+    await test("single-source update classifies a confirmed-empty scan as persistent", async () => {
+      clearRepositoryResolutionCache();
+      const index = {
+        version: "1.0.0",
+        lastUpdated: "2026-07-01",
+        categories: [],
+        sources: [
+          {
+            id: "dead",
+            name: "Dead",
+            url: "https://github.com/example/dead",
+            type: "official",
+            branch: "main",
+            description: "dead",
+          },
+        ],
+        skills: [
+          {
+            name: "old-skill",
+            source: "dead",
+            path: ".codex/skills/old",
+            categories: [],
+            description: "old",
+          },
+        ],
+        bundles: [],
+      };
+
+      await assert.rejects(
+        () => updateIndexFromSingleSource({}, index, "dead"),
+        (error) =>
+          error.name === "SourceScanError" && error.kind === "empty-scan",
+      );
+    });
+
+    await test("candidates that could not be read are a transient failure, not a persistent one", async () => {
+      clearRepositoryResolutionCache();
+      treeEntries = [{ path: "skills/foo/SKILL.md", type: "blob" }];
+      const index = {
+        version: "1.0.0",
+        lastUpdated: "2026-07-01",
+        categories: [],
+        sources: [
+          {
+            id: "flaky",
+            name: "Flaky",
+            url: "https://github.com/example/flaky",
+            type: "official",
+            branch: "main",
+            description: "flaky",
+          },
+        ],
+        skills: [
+          {
+            name: "old-skill",
+            source: "flaky",
+            path: "skills/old",
+            categories: [],
+            description: "old",
+          },
+        ],
+        bundles: [],
+      };
+
+      try {
+        const scan = await scanRepositoryForSkills(
+          "https://github.com/example/flaky",
+        );
+        assert.strictEqual(scan.skills.length, 0);
+        assert.strictEqual(scan.skillFileCount, 1);
+
+        await assert.rejects(
+          () => updateIndexFromSingleSource({}, index, "flaky"),
+          (error) => error.name !== "SourceScanError",
+        );
+      } finally {
+        treeEntries = [];
         clearRepositoryResolutionCache();
       }
     });

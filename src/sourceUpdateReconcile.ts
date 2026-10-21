@@ -1,5 +1,35 @@
 import type { Bundle } from "./skillIndex";
 
+/** 再試行しても結果が変わりにくい scan 失敗。通知の抑制と再試行間隔の判定に使う。 */
+export type SourceScanFailureKind =
+  | "empty-scan"
+  | "not-found"
+  | "identity-changed";
+
+/** 文言は翻訳されるため、分類は message ではなく kind で行う。 */
+export class SourceScanError extends Error {
+  constructor(
+    public readonly kind: SourceScanFailureKind,
+    message: string,
+  ) {
+    super(message);
+    this.name = "SourceScanError";
+  }
+}
+
+/**
+ * 読みに行った候補があるのに 0 件なら、通信失敗や一時的な取得失敗かもしれない。
+ * その場合は恒久的な空スキャンとして記録せず、従来どおり通常の失敗として扱う。
+ */
+export function createEmptyScanError(
+  message: string,
+  skillFileCount: number | undefined,
+): Error {
+  return skillFileCount
+    ? new Error(message)
+    : new SourceScanError("empty-scan", message);
+}
+
 /**
  * スキャンは成功したがスキルが 0 件だった場合に既存スキルを保持するか判定する。
  * 一時的な upstream 側の空応答で登録済みスキルを失わないためのガード。

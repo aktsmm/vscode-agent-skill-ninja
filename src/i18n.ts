@@ -70,6 +70,18 @@ const jaMessages = {
     "保存済み GitHub トークンをクリア（SecretStorage のみ）",
   actionUpdateNow: "今すぐ更新",
   actionLater: "後で",
+  actionOpenSourceUrl: "URL を開く",
+  actionSkipSource: "今後スキップ",
+  sourceIndexSourceUnavailable:
+    "「{0}」を更新できません: {1}。同じ原因では再通知せず、自動更新は 7 日に 1 回だけ再試行します。",
+  sourceIndexSourceSkipped:
+    "「{0}」を自動更新の対象から外しました。ソースを手動で更新して成功すると再開します。",
+  sourceIndexFailureEmptyScan:
+    "取得結果が 0 件でした（リポジトリの構造変更の可能性）",
+  sourceIndexFailureNotFound:
+    "リポジトリまたはブランチにアクセスできません（削除・private 化・ブランチ変更・認証不足の可能性）",
+  sourceIndexFailureIdentityChanged:
+    "URL の参照先が別のリポジトリに変わっています",
   chatFollowupSearchSkills: "スキルを検索",
   chatFollowupListInstalled: "インストール済み一覧",
   chatFollowupRecommend: "おすすめ",
@@ -421,6 +433,18 @@ const enMessages: MessageDictionary = {
     "Clear Stored GitHub Token (SecretStorage only)",
   actionUpdateNow: "Update Now",
   actionLater: "Later",
+  actionOpenSourceUrl: "Open URL",
+  actionSkipSource: "Skip from Now On",
+  sourceIndexSourceUnavailable:
+    'Cannot update "{0}": {1}. This is not shown again for the same cause, and automatic updates retry only once every 7 days.',
+  sourceIndexSourceSkipped:
+    '"{0}" was removed from automatic updates. A successful manual update of the source resumes them.',
+  sourceIndexFailureEmptyScan:
+    "The scan returned 0 skills (the repository layout may have changed)",
+  sourceIndexFailureNotFound:
+    "The repository or branch is not accessible (it may have been deleted, made private, had its branch changed, or needs authentication)",
+  sourceIndexFailureIdentityChanged:
+    "The URL now resolves to a different repository",
   chatFollowupSearchSkills: "Search Skills",
   chatFollowupListInstalled: "List Installed",
   chatFollowupRecommend: "Recommend",
@@ -843,6 +867,16 @@ export const messages = {
   actionClearStoredGitHubToken: () => localize("actionClearStoredGitHubToken"),
   actionUpdateNow: () => localize("actionUpdateNow"),
   actionLater: () => localize("actionLater"),
+  actionOpenSourceUrl: () => localize("actionOpenSourceUrl"),
+  actionSkipSource: () => localize("actionSkipSource"),
+  sourceIndexSourceUnavailable: (name: string, reason: string) =>
+    localize("sourceIndexSourceUnavailable", name, reason),
+  sourceIndexSourceSkipped: (name: string) =>
+    localize("sourceIndexSourceSkipped", name),
+  sourceIndexFailureEmptyScan: () => localize("sourceIndexFailureEmptyScan"),
+  sourceIndexFailureNotFound: () => localize("sourceIndexFailureNotFound"),
+  sourceIndexFailureIdentityChanged: () =>
+    localize("sourceIndexFailureIdentityChanged"),
   chatFollowupSearchSkills: () => localize("chatFollowupSearchSkills"),
   chatFollowupListInstalled: () => localize("chatFollowupListInstalled"),
   chatFollowupRecommend: () => localize("chatFollowupRecommend"),

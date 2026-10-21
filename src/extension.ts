@@ -20,6 +20,10 @@ import {
   reconcileSkillGitignores,
   observeGitignoreSynchronization,
   createGitignoreInventory,
+  formatGitignoreFailure,
+  GITIGNORE_LOCK_NAME,
+  GITIGNORE_SETTING,
+  type GitignoreSyncResult,
 } from "./gitignoreManager";
 import { searchSkills, SkillQuickPickItem } from "./skillSearch";
 import {
@@ -172,6 +176,7 @@ import {
   decideStaleSourceIndexAction,
   getSourceIndexAgeDays,
   getStaleSources,
+  MAX_STALE_SOURCE_UPDATES_PER_RUN,
   selectStaleSourcesForRun,
   type StaleSourceInfo,
 } from "./sourceIndexFreshness";
@@ -195,6 +200,19 @@ import {
   getSourceIndexUpdateNotificationKind,
   scaleSourceIndexProgressIncrement,
 } from "./sourceIndexUpdatePresentation";
+import {
+  SOURCE_INDEX_FAILURES_KEY,
+  classifyPersistentFailure,
+  clearFailure,
+  clearRecoveredSources,
+  filterEligibleEntries,
+  muteSource,
+  normalizeFailureState,
+  pruneFailureState,
+  recordPersistentFailure,
+  type SourceFailureState,
+} from "./sourceIndexFailures";
+import type { SourceScanFailureKind } from "./sourceUpdateReconcile";
 import {
   publishBeacon,
   clearBeacon,
@@ -246,6 +264,8 @@ const MISSING_INDEX_WARNING_DISMISSED_KEY =
   "skillNinja.missingIndexWarningDismissed";
 
 type StaleSourceIndexUpdateMode = "always" | "prompt" | "never";
+/** 一度の更新で出す「source を更新できません」通知の上限。バッチ上限と同じにして、通常は溜めない。 */
+const MAX_SOURCE_UNAVAILABLE_NOTICES = MAX_STALE_SOURCE_UPDATES_PER_RUN;
 
 async function resolveSkillGitHubUrl(
   skill: Skill,
@@ -329,7 +349,8 @@ interface BulkInstallItem {
 
 /** リトライ後の instruction 更新とビュー更新は activate スコープにしかないので注入する。 */
 let applyBulkInstallSideEffects:
-  ((roots: SkillRoot[]) => Promise<void>) | undefined;
+  | ((roots: SkillRoot[]) => Promise<void>)
+  | undefined;
 
 interface BulkInstallOutcome {
   item: BulkInstallItem;
@@ -906,17 +927,94 @@ export function activate(
     onFailure: () =>
       skillStateChannel.appendLine("[Gitignore] inventory-update-failed"),
   });
+  const gitignoreFailures = new Map<
+    string,
+    { root: vscode.Uri; result: GitignoreSyncResult }
+  >();
+  /** cleanup は管理ブロックを外す側の失敗。自動管理オフ、または現在の root ではない場合。 */
+  function describeGitignoreRoot(root: vscode.Uri): {
+    enabled: boolean;
+    isCurrent: boolean;
+    cleanup: boolean;
+  } {
+    const enabled = vscode.workspace
+      .getConfiguration("skillNinja", root)
+      .get<boolean>(GITIGNORE_SETTING, true);
+    const key = normalizeFileSystemPath(root.fsPath);
+    const isCurrent = currentGitignoreRoots().some(
+      (candidate) => normalizeFileSystemPath(candidate.fsPath) === key,
+    );
+    return { enabled, isCurrent, cleanup: !enabled || !isCurrent };
+  }
+  async function disableGitignoreManagement(root: vscode.Uri): Promise<void> {
+    const japanese = isJapanese();
+    try {
+      await vscode.workspace
+        .getConfiguration("skillNinja", root)
+        .update(
+          GITIGNORE_SETTING,
+          false,
+          vscode.ConfigurationTarget.WorkspaceFolder,
+        );
+    } catch {
+      // 下の実効値の確認で失敗として扱う
+    }
+    // resource スコープの設定は、書き込んだ場所より優先度の高い値で上書きされ得る
+    const stillEnabled = vscode.workspace
+      .getConfiguration("skillNinja", root)
+      .get<boolean>(GITIGNORE_SETTING, true);
+    if (stillEnabled) {
+      void vscode.window.showWarningMessage(
+        japanese
+          ? "skillNinja.autoManageGitignore をオフにできませんでした。より優先度の高い設定を確認してください。"
+          : "Could not turn off skillNinja.autoManageGitignore. Check for a higher-priority setting.",
+      );
+    }
+  }
   const gitignoreFeedback = createOutputWriteFeedback({
     log: (_key, result) =>
       skillStateChannel.appendLine(`[Gitignore ${result}]`),
     detailsAction: messages.actionShowDetails,
-    warn: (action) =>
-      vscode.window.showWarningMessage(
-        isJapanese()
-          ? "Gitignore の同期を完了できませんでした。スキルのインストール結果とは別の問題です。詳細を確認し、解消後にビューを更新してください。"
-          : "Gitignore synchronization could not finish. This is separate from the skill installation result. Check Details, then Refresh View after resolving the cause.",
-        action,
-      ),
+    warn: async (action, key) => {
+      const failure = gitignoreFailures.get(key);
+      if (!failure) {
+        return undefined;
+      }
+      const { root, result } = failure;
+      const japanese = isJapanese();
+      const { enabled, isCurrent, cleanup } = describeGitignoreRoot(root);
+      const lockAction = japanese ? "ロックを表示" : "Reveal Lock File";
+      const disableAction = japanese
+        ? "自動管理をオフ"
+        : "Turn Off Auto-manage";
+      const actions = [action];
+      if (result.reason === "busy" || result.warning === "cleanup-failed") {
+        actions.push(lockAction);
+      }
+      if (enabled && isCurrent) {
+        actions.push(disableAction);
+      }
+      const choice = await vscode.window.showWarningMessage(
+        formatGitignoreFailure(result, {
+          rootLabel: vscode.workspace.asRelativePath(root, true),
+          japanese,
+          cleanup,
+        }),
+        ...actions,
+      );
+      if (choice === lockAction) {
+        const lockUri = vscode.Uri.joinPath(root, GITIGNORE_LOCK_NAME);
+        try {
+          await vscode.workspace.fs.stat(lockUri);
+          await vscode.commands.executeCommand("revealFileInOS", lockUri);
+        } catch {
+          await vscode.commands.executeCommand("revealFileInOS", root);
+        }
+      } else if (choice === disableAction) {
+        await disableGitignoreManagement(root);
+      }
+      return choice;
+    },
     showDetails: () => skillStateChannel.show(true),
   });
   context.subscriptions.push(
@@ -932,14 +1030,21 @@ export function activate(
           void gitignoreInventory.remember(root);
         }
         const failed = result.status === "failed" || !!result.warning;
+        const gitignoreKey = normalizeFileSystemPath(root.fsPath);
         if (failed) {
           skillStateChannel.appendLine(
             `[Gitignore] ${result.warning || result.reason || "io-failure"}`,
           );
+          gitignoreFailures.set(gitignoreKey, { root, result });
+        } else {
+          gitignoreFailures.delete(gitignoreKey);
         }
         gitignoreFeedback.record(
-          normalizeFileSystemPath(root.fsPath),
+          gitignoreKey,
           failed ? "failed" : "updated",
+          failed
+            ? `${describeGitignoreRoot(root).cleanup ? "cleanup" : "sync"}|${result.reason ?? ""}|${result.warning ?? ""}`
+            : "",
         );
       }),
     ),
@@ -1268,7 +1373,11 @@ export function activate(
         config.get<string>("staleSourceIndexUpdateMode"),
       );
 
-      const staleSources = getStaleSources(resumedIndex);
+      // 再試行しても結果が変わらない失敗を起動のたびに繰り返さない
+      const staleSources = filterEligibleEntries(
+        getStaleSources(resumedIndex),
+        pruneFailureState(readSourceFailureState(), resumedIndex.sources),
+      );
       const today = getUtcDateKey();
       const decision = decideStaleSourceIndexAction({
         mode,
@@ -1381,7 +1490,13 @@ export function activate(
       return index;
     }
 
-    const pending = toStaleSourceInfos(index, state.sourceIds);
+    const allPending = toStaleSourceInfos(index, state.sourceIds);
+    const pending = options.manual
+      ? allPending
+      : filterEligibleEntries(
+          allPending,
+          pruneFailureState(readSourceFailureState(), index.sources),
+        );
     if (pending.length === 0) {
       await writeRateLimitResumeState(undefined);
       if (options.manual) {
@@ -1404,6 +1519,77 @@ export function activate(
     }
 
     return await updateStaleSourceIndexes(index, pending);
+  }
+
+  function readSourceFailureState(): SourceFailureState {
+    return normalizeFailureState(
+      context.globalState.get<unknown>(SOURCE_INDEX_FAILURES_KEY),
+    );
+  }
+
+  async function writeSourceFailureState(
+    state: SourceFailureState,
+  ): Promise<void> {
+    await context.globalState.update(SOURCE_INDEX_FAILURES_KEY, state);
+  }
+
+  /** 手動更新は成功した source だけ lastIndexedAt が進むので、前後を比べて失敗記録を解除する。 */
+  async function forgetRecoveredSourceFailures(
+    before: SkillIndex,
+    after: SkillIndex,
+  ): Promise<void> {
+    const current = readSourceFailureState();
+    const next = clearRecoveredSources(current, before.sources, after.sources);
+    if (next !== current) {
+      await writeSourceFailureState(next);
+    }
+  }
+
+  function describeSourceScanFailure(kind: SourceScanFailureKind): string {
+    switch (kind) {
+      case "empty-scan":
+        return messages.sourceIndexFailureEmptyScan();
+      case "not-found":
+        return messages.sourceIndexFailureNotFound();
+      case "identity-changed":
+        return messages.sourceIndexFailureIdentityChanged();
+    }
+  }
+
+  async function notifySourceUnavailable(
+    source: Source,
+    kind: SourceScanFailureKind,
+  ): Promise<void> {
+    const detailAction = messages.actionShowDetails();
+    const openAction = messages.actionOpenSourceUrl();
+    const skipAction = messages.actionSkipSource();
+    const removeAction = messages.actionRemove();
+    const action = await vscode.window.showWarningMessage(
+      messages.sourceIndexSourceUnavailable(
+        getSourceDisplayName(source),
+        describeSourceScanFailure(kind),
+      ),
+      detailAction,
+      openAction,
+      skipAction,
+      removeAction,
+    );
+    if (action === detailAction) {
+      sourceIndexChannel.show(true);
+    } else if (action === openAction) {
+      await vscode.env.openExternal(vscode.Uri.parse(source.url));
+    } else if (action === skipAction) {
+      await writeSourceFailureState(
+        muteSource(readSourceFailureState(), source),
+      );
+      vscode.window.showInformationMessage(
+        messages.sourceIndexSourceSkipped(getSourceDisplayName(source)),
+      );
+    } else if (action === removeAction) {
+      await vscode.commands.executeCommand("skillNinja.removeSource", {
+        source,
+      });
+    }
   }
 
   async function updateStaleSourceIndexes(
@@ -1453,11 +1639,22 @@ export function activate(
     );
 
     const { value: nextIndex, succeeded, failures, skipped } = batchResult;
+    let failureState = pruneFailureState(
+      readSourceFailureState(),
+      nextIndex.sources,
+    );
     for (const entry of succeeded) {
       sourceIndexChannel.appendLine(
         `[OK] ${getSourceDisplayName(entry.source)}`,
       );
+      failureState = clearFailure(failureState, entry.source.id);
     }
+    // 同じ原因で通知済みの失敗はログのみ。認証・通信系は従来どおり毎回通知する
+    const transientFailures: typeof failures = [];
+    const unavailableToNotify: Array<{
+      source: Source;
+      kind: SourceScanFailureKind;
+    }> = [];
     for (const failure of failures) {
       const reason = formatStaleSourceFailureReason(failure.error);
       sourceIndexChannel.appendLine(
@@ -1466,6 +1663,28 @@ export function activate(
       console.warn(
         `[Skill Ninja] Failed to update stale source ${failure.entry.source.id}:`,
         failure.error,
+      );
+      const kind = classifyPersistentFailure(failure.error);
+      if (!kind) {
+        transientFailures.push(failure);
+        continue;
+      }
+      const recorded = recordPersistentFailure(
+        failureState,
+        failure.entry.source,
+        kind,
+        new Date(),
+        unavailableToNotify.length < MAX_SOURCE_UNAVAILABLE_NOTICES,
+      );
+      failureState = recorded.state;
+      if (recorded.shouldNotify) {
+        unavailableToNotify.push({ source: failure.entry.source, kind });
+      }
+    }
+    await writeSourceFailureState(failureState);
+    for (const item of unavailableToNotify) {
+      void notifySourceUnavailable(item.source, item.kind).catch(
+        () => undefined,
       );
     }
     for (const entry of skipped) {
@@ -1492,8 +1711,8 @@ export function activate(
       );
     }
 
-    if (notificationKind === "warning") {
-      const firstFailure = failures[0];
+    if (transientFailures.length > 0) {
+      const firstFailure = transientFailures[0];
       const reason = formatStaleSourceFailureReason(firstFailure.error);
       const detailAction = messages.actionShowDetails();
       const authAction = messages.actionConfigureGitHubAuth();
@@ -1507,9 +1726,9 @@ export function activate(
       const action = await vscode.window.showWarningMessage(
         messages.staleSourceIndexPartialFailed(
           updatedCount,
-          failures.length,
+          transientFailures.length,
           allStaleSources.length,
-          failures
+          transientFailures
             .slice(0, 3)
             .map((failure) => getSourceDisplayName(failure.entry.source))
             .join(", "),
@@ -1530,7 +1749,7 @@ export function activate(
           onRecovered: async () => {
             const retryEntries = toStaleSourceInfos(
               nextIndex,
-              failures.map((failure) => failure.entry.source.id),
+              transientFailures.map((failure) => failure.entry.source.id),
             );
             if (retryEntries.length > 0) {
               skillIndex = await updateStaleSourceIndexes(
@@ -2430,7 +2649,8 @@ export function activate(
         return error.code === "FileNotFound";
       }
       const candidate = error as
-        { code?: string; message?: string } | undefined;
+        | { code?: string; message?: string }
+        | undefined;
       return (
         candidate?.code === "FileNotFound" ||
         candidate?.message?.includes("FileNotFound") === true
@@ -3326,7 +3546,8 @@ export function activate(
         skillName = item.skill.name;
         const skillAny = item.skill as unknown as Record<string, unknown>;
         relativePath = (skillAny.relativePath || skillAny.path) as
-          string | undefined;
+          | string
+          | undefined;
         targetRoot = getSkillRootFromItem(item);
       } else if (item && item.label) {
         // ラベルからステータスアイコンを除去してスキル名を取得
@@ -4691,6 +4912,7 @@ export function activate(
               currentIndex,
               progress,
             );
+            await forgetRecoveredSourceFailures(currentIndex, skillIndex);
           },
         );
         const updatedIndex = await getRemoteSourceIndex();
@@ -4763,6 +4985,7 @@ export function activate(
               sourceId,
               progress,
             );
+            await forgetRecoveredSourceFailures(currentIndex, skillIndex);
           },
         );
         const updatedIndex = await getRemoteSourceIndex();

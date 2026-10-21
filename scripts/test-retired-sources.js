@@ -125,3 +125,19 @@ test("retired ids ignore blank entries", () => {
 
   assert.deepStrictEqual(Array.from(ids).sort(), ["real", "spaced"]);
 });
+
+test("the bundled index retires openai-codex and no longer ships it", () => {
+  const bundled = JSON.parse(
+    require("fs").readFileSync(
+      require("path").join(__dirname, "..", "resources", "skill-index.json"),
+      "utf8",
+    ),
+  );
+
+  assert.ok(
+    getRetiredSourceIds(bundled.retiredSources).has("openai-codex"),
+    "openai-codex must be declared as retired",
+  );
+  assert.ok(!bundled.sources.some((source) => source.id === "openai-codex"));
+  assert.ok(!bundled.skills.some((skill) => skill.source === "openai-codex"));
+});
