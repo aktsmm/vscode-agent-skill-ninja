@@ -2,7 +2,7 @@
   "name": "agent-skill-ninja",
   "displayName": "%displayName%",
   "description": "%description%",
-  "version": "0.9.58",
+  "version": "0.9.59",
   "publisher": "yamapan",
   "license": "CC-BY-NC-SA-4.0",
   "icon": "resources/icon.png",
@@ -107,7 +107,7 @@
         "toolReferenceName": "installSkill",
         "displayName": "Install Agent Skill",
         "icon": "$(cloud-download)",
-        "modelDescription": "Install an Agent Skill / エージェントスキルをインストール / スキル忍者 / NINJA. Installs into a managed skill root and updates the configured instruction file.",
+        "modelDescription": "Install an Agent Skill / エージェントスキルをインストール / スキル忍者 / NINJA. Installs into a managed skill root and updates the configured instruction file. Default target is the workspace skill root; pass rootId (from listSkills/reinstallSkills, e.g. home-copilot, home-codex) to install into a Home root. If several skills share the name (e.g. public and private sources) nothing is installed and the candidates are returned; pass candidateId from searchSkills to choose.",
         "canBeReferencedInPrompt": true,
         "inputSchema": {
           "type": "object",
@@ -115,6 +115,18 @@
             "skillName": {
               "type": "string",
               "description": "Name of the skill to install"
+            },
+            "candidateId": {
+              "type": "string",
+              "description": "Optional. Exact Candidate ID (source::path) from searchSkills or an ambiguity response"
+            },
+            "source": {
+              "type": "string",
+              "description": "Optional. Restrict the match to this source ID"
+            },
+            "rootId": {
+              "type": "string",
+              "description": "Optional. Target skill root ID (e.g. home-copilot, home-codex). Omit for the workspace skill root"
             }
           },
           "required": [
@@ -136,11 +148,24 @@
         "toolReferenceName": "listSkills",
         "displayName": "List Installed Skills",
         "icon": "$(list-tree)",
-        "modelDescription": "List all installed Agent Skills / インストール済みエージェントスキル一覧 / スキル忍者 / NINJA. Shows skills across all managed skill roots.",
+        "modelDescription": "List all installed Agent Skills / インストール済みエージェントスキル一覧 / スキル忍者 / NINJA. Shows skills across all managed skill roots with Entry ID, root (label + real path + rootId), source, remote path, recorded revision and provenance. Works without an open workspace for Home roots (~/.copilot, ~/.claude, ~/.agents, ~/.codex). Optional filters: rootId, source, name.",
         "canBeReferencedInPrompt": true,
         "inputSchema": {
           "type": "object",
-          "properties": {}
+          "properties": {
+            "rootId": {
+              "type": "string",
+              "description": "Optional. Only this skill root (e.g. home-copilot, home-codex, home-agents, home-claude)"
+            },
+            "source": {
+              "type": "string",
+              "description": "Optional. Only skills recorded from this source ID"
+            },
+            "name": {
+              "type": "string",
+              "description": "Optional. Only skills with this exact name"
+            }
+          }
         }
       },
       {
@@ -179,18 +204,134 @@
         "toolReferenceName": "uninstallSkill",
         "displayName": "Uninstall Skill",
         "icon": "$(trash)",
-        "modelDescription": "Uninstall an Agent Skill / エージェントスキルをアンインストール / 削除 / NINJA. Removes a skill from its managed root and updates the configured instruction file.",
+        "modelDescription": "Uninstall an Agent Skill / エージェントスキルをアンインストール / 削除 / NINJA. Removes a skill from its managed root and updates the configured instruction file. The same skill name can exist in several roots; pass entryId from listSkills to target exactly one installed copy (a name alone stops with the candidates when ambiguous).",
         "canBeReferencedInPrompt": true,
         "inputSchema": {
           "type": "object",
           "properties": {
             "skillName": {
               "type": "string",
-              "description": "Name of the skill to uninstall"
+              "description": "Name of the skill to uninstall (not needed when entryId is given)"
+            },
+            "entryId": {
+              "type": "string",
+              "description": "Optional. Entry ID from listSkills; identifies exactly one installed copy"
+            },
+            "rootId": {
+              "type": "string",
+              "description": "Optional. Restrict the name match to this skill root"
+            }
+          }
+        }
+      },
+      {
+        "name": "skillNinja_reinstall",
+        "tags": [
+          "skills",
+          "agent",
+          "skill-ninja",
+          "reinstall",
+          "update",
+          "metadata",
+          "再インストール",
+          "メタデータ"
+        ],
+        "toolReferenceName": "reinstallSkills",
+        "displayName": "Reinstall Existing Skills",
+        "icon": "$(refresh)",
+        "modelDescription": "Reinstall already-installed Agent Skills from their source through Skill Ninja's regular install path, so .skill-meta.json and sourceRevision are generated and updated (never hand-copy files or write metadata yourself). Always call with mode 'preview' first (read-only): it shows per skill the root, source, what would be overwritten and why something is on hold, and returns a planId. Then call mode 'apply' with the same targets/flags and that planId. Targets must be explicit: entryIds (from listSkills) or rootIds (+ optional sources/names). Skills without metadata are never matched by name alone: the preview lists candidates with evidence and you pass adopt [{entryId, candidateId}] only after the user chooses. Locally edited skills stay on hold unless the user approves allowLocalEdits; switching to a different source needs allowSourceSwitch.",
+        "canBeReferencedInPrompt": true,
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "mode": {
+              "type": "string",
+              "enum": [
+                "preview",
+                "apply"
+              ],
+              "description": "preview = read-only plan (no changes). apply = execute the ready items of the previewed plan"
+            },
+            "targets": {
+              "type": "object",
+              "description": "Explicit selection. Provide entryIds and/or rootIds",
+              "properties": {
+                "entryIds": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  },
+                  "description": "Entry IDs from listSkills (exactly these installed copies)"
+                },
+                "rootIds": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  },
+                  "description": "Skill root IDs, e.g. home-copilot, home-codex. All skills in these roots are considered unless narrowed below"
+                },
+                "sources": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  },
+                  "description": "Only skills recorded from these source IDs. Unrecorded skills are matched only against candidates from these sources"
+                },
+                "names": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  },
+                  "description": "Only skills with these exact names"
+                },
+                "includeOriginUnknown": {
+                  "type": "boolean",
+                  "description": "With sources: also plan skills that have no recorded source (candidates only, never automatic). Default true"
+                }
+              }
+            },
+            "adopt": {
+              "type": "array",
+              "description": "User-approved first association (or source switch) per skill",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "entryId": {
+                    "type": "string"
+                  },
+                  "candidateId": {
+                    "type": "string",
+                    "description": "Candidate ID (source::path) shown in the preview"
+                  }
+                },
+                "required": [
+                  "entryId",
+                  "candidateId"
+                ]
+              }
+            },
+            "allowLocalEdits": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              },
+              "description": "Entry IDs whose local edits the user agreed to overwrite"
+            },
+            "allowSourceSwitch": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              },
+              "description": "Entry IDs the user agreed to switch to a different source (e.g. public to private)"
+            },
+            "planId": {
+              "type": "string",
+              "description": "Required for apply: the planId returned by the preview with the same targets/flags"
             }
           },
           "required": [
-            "skillName"
+            "mode",
+            "targets"
           ]
         }
       },
@@ -1333,6 +1474,13 @@
           "scope": "machine",
           "description": "%config.githubToken.description%",
           "markdownDescription": "%config.githubToken.markdownDescription%"
+        },
+        "skillNinja.includeCodexHome": {
+          "type": "boolean",
+          "default": true,
+          "order": 22,
+          "description": "%config.includeCodexHome.description%",
+          "markdownDescription": "%config.includeCodexHome.markdownDescription%"
         },
         "skillNinja.language": {
           "type": "string",

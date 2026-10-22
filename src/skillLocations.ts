@@ -3,6 +3,7 @@ import * as path from "path";
 import * as vscode from "vscode";
 import { resolveOutputFormat } from "./toolDetector";
 import { isContainedPath } from "./pathSafety";
+import { getCodexHomeSkillsPath } from "./skillRootIds";
 
 export type SkillScope = "workspace" | "userGlobal" | "extension" | "builtIn";
 
@@ -771,13 +772,32 @@ export async function getManagedSkillRoots(
     workspaceUri,
   );
 
-  const addManagedRoot = (locationUri: vscode.Uri): void => {
+  const addManagedRoot = (
+    locationUri: vscode.Uri,
+    options: { writeInstruction?: boolean } = {},
+  ): void => {
     const normalizedRootPath = normalizeFileSystemPath(locationUri.fsPath);
     if (seen.has(normalizedRootPath)) {
       return;
     }
 
     if (workspaceUri && isInsidePath(workspaceUri.fsPath, locationUri.fsPath)) {
+      return;
+    }
+
+    // Codex は ~/.codex/skills を自分で走査するので、スキル一覧を instruction へ書かない。
+    // instruction を持たない root は、出力の更新・登録状態の照合の対象外になる。
+    if (options.writeInstruction === false) {
+      roots.push({
+        scope: "userGlobal",
+        label: "User / Global Skills",
+        rootUri: locationUri,
+        rootPath: locationUri.fsPath,
+        displayPath: pathToDisplayPath(locationUri.fsPath),
+        isManaged: true,
+        isReadOnly: false,
+      });
+      seen.add(normalizedRootPath);
       return;
     }
 
@@ -878,6 +898,14 @@ export async function getManagedSkillRoots(
     }
 
     addManagedRoot(locationUri);
+  }
+
+  // 明示的に設定されたパスを優先するため、設定値の後に追加する。
+  // 先に追加すると、既に ~/.codex/skills を設定していた利用者の instruction 出力が消える。
+  if (skillNinjaConfig.get<boolean>("includeCodexHome") !== false) {
+    addManagedRoot(vscode.Uri.file(getCodexHomeSkillsPath()), {
+      writeInstruction: false,
+    });
   }
 
   return roots;

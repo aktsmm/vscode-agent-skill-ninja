@@ -16,6 +16,7 @@ const MCP_TOOLS_PATH = path.join(SRC_DIR, "mcpTools.ts");
 const MUTATING_TOOL_CLASSES = [
   "SkillInstallTool",
   "SkillUninstallTool",
+  "SkillReinstallTool",
   "AddSourceTool",
   "RemoveSourceTool",
   "LocalizeSkillsTool",

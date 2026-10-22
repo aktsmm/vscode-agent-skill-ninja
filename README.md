@@ -160,7 +160,7 @@ Settings → **Output Format** → Select `ref`, `full`, `compact`, or `legacy`
 ### 🤖 MCP Tools Integration
 
 - Automatically available as tools in **Agent Mode**
-- **10 Tools**: `#searchSkills`, `#installSkill`, `#uninstallSkill`, `#listSkills`, `#recommendSkills`, `#updateSkillIndex`, `#webSearchSkills`, `#addSkillSource`, `#removeSkillSource`, `#localizeSkill`
+- **11 Tools**: `#searchSkills`, `#installSkill`, `#uninstallSkill`, `#listSkills`, `#reinstallSkills`, `#recommendSkills`, `#updateSkillIndex`, `#webSearchSkills`, `#addSkillSource`, `#removeSkillSource`, `#localizeSkill`
 - Trust badges (Official / Curated / Community)
 - Auto-update instruction file on install
 
@@ -441,7 +441,8 @@ In GitHub Copilot's **Agent Mode**, tools are automatically available.
 | `#searchSkills`      | Search skills by keyword          |
 | `#installSkill`      | Install a skill                   |
 | `#uninstallSkill`    | Uninstall a skill                 |
-| `#listSkills`        | List installed skills             |
+| `#listSkills`        | List installed skills (Entry ID, root, source, revision) |
+| `#reinstallSkills`   | Preview, then reinstall existing skills from their source (keeps `.skill-meta.json` / revision current) |
 | `#recommendSkills`   | Get project-based recommendations |
 | `#updateSkillIndex`  | Update skill index                |
 | `#webSearchSkills`   | Web search skills on GitHub       |
@@ -463,6 +464,13 @@ In GitHub Copilot's **Agent Mode**, tools are automatically available.
 
 💬 "What skills would you recommend for this project?"
    → #recommendSkills analyzes workspace and recommends
+
+💬 "Show my installed skills in Copilot Home and Codex Home"
+   → #listSkills shows Entry ID, root (label + real path), source, revision, provenance
+
+💬 "Reinstall my own skills in Copilot Home from my repository"
+   → #reinstallSkills previews first (read-only): what is ready, what is on hold and why,
+     candidates for skills without metadata. Apply runs only after you approve the plan
 ```
 
 ### Features
@@ -507,6 +515,7 @@ If you don't need MCP tools, you can disable them from GitHub Copilot Chat:
 |  19   | `skillNinja.language`                     | `auto`                     | UI language (auto / en / ja)                                                                                                 |
 |  20   | `skillNinja.explicitOnlySkillsInInstructions` | `exclude`              | How manual-only skills (`disable-model-invocation: true`) appear in the generated skill list (`exclude` / `separate` / `include`) |
 |  21   | `skillNinja.autoManageGitignore`          | `true`                     | Manage a skill-root .gitignore; override per repository in Workspace or Folder settings                                      |
+|  22   | `skillNinja.includeCodexHome`             | `true`                     | Also manage Codex skills in `~/.codex/skills` (shown only when it contains skills; no instruction file is written for it)    |
 
 > Settings are displayed in the order above
 
@@ -562,7 +571,7 @@ Installing, cleaning up, and removing skills all report what actually happened:
 - **Bulk delete reports what actually happened.** Uninstall All Skills and Uninstall Multiple Skills count real successes and report how many could not be deleted, instead of always claiming the full requested count.
 - **Uninstalling by name never deletes a different skill.** A name like `foo!` sanitizes to the folder `foo`. If that folder exists, it is only removed when its `.skill-meta.json` records the same skill; a folder owned by another skill, a hand-made local skill with no metadata, or unreadable metadata is refused instead.
 - **A failed reinstall does not destroy your only copy.** Uninstall, the replace step of a reinstall, and cleanup after a failed install into a folder that already existed all move the folder to the OS trash, so it can be restored. Only a folder the install itself created is deleted permanently, and the confirmation wording matches which of the two will happen.
-- **A destructive chat tool asks first.** `#installSkill`, `#uninstallSkill`, `#addSkillSource`, `#removeSkillSource` and `#localizeSkill` show a confirmation before running. `#uninstallSkill` confirms the resolved skill together with its skill root, and refuses to act when the name matches more than one installed skill, so the confirmed target is the one that is removed.
+- **A destructive chat tool asks first.** `#installSkill`, `#uninstallSkill`, `#addSkillSource`, `#removeSkillSource` and `#localizeSkill` show a confirmation before running. `#uninstallSkill` confirms the resolved skill together with its skill root and `entryId`, and refuses to act when the name matches more than one installed skill (it lists the candidates with their `entryId`; pass one to target a single copy), so the confirmed target is the one that is removed. `#reinstallSkills` previews first, never replaces locally edited, unknown-origin or app-synced (`synced/`) skills without your explicit approval or at all, and re-reads the result to verify it.
 - **A visible action either acts or says why it cannot.** Every command shown in a tree view context menu is exercised against each context value its menu condition admits; one that cannot act reports the reason instead of doing nothing silently.
 - **A startup prompt can be turned off.** Every dialog shown during activation offers a way to stop it returning, and the choice is remembered. `Reset Settings (including token)` brings the suppressed prompts back.
 

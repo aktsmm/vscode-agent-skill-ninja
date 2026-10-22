@@ -103,7 +103,11 @@ function loadTreeProviderExports(japanese = false) {
           },
         };
       }
-      if (request === "./skillInvocation" || request === "./skillListOptions") {
+      if (
+        request === "./skillInvocation" ||
+        request === "./skillListOptions" ||
+        request === "./skillRootIds"
+      ) {
         return loadSrcModule(request);
       }
       return require(request);
@@ -546,7 +550,67 @@ test("keeps root descriptions path-aware without using the path as the label", (
       ).root,
       3,
     ),
-    "3 skills • C:/Users/test/.copilot/skills",
+    "3 skills • C:/Users/test/.copilot/skills • Read by: GitHub Copilot",
+  );
+
+  // 同じ形のパスでも、読み手が分かる root だけに付く
+  assert.strictEqual(
+    getSkillRootGroupDescription(
+      createSkill(
+        "agents",
+        "userGlobal",
+        "C:/Users/test/.agents/skills",
+        "agents",
+      ).root,
+      2,
+    ),
+    "2 skills • C:/Users/test/.agents/skills • Read by: Codex, GitHub Copilot",
+  );
+  assert.strictEqual(
+    getSkillRootGroupDescription(
+      createSkill(
+        "codex",
+        "userGlobal",
+        "C:/Users/test/.codex/skills",
+        "codex",
+      ).root,
+      1,
+    ),
+    "1 skills • C:/Users/test/.codex/skills • Read by: Codex",
+  );
+  assert.strictEqual(
+    getSkillRootGroupLabel(
+      createSkill(
+        "agents",
+        "userGlobal",
+        "C:/Users/test/.agents/skills",
+        "agents",
+      ).root,
+    ),
+    "Shared Agents Home",
+  );
+  assert.strictEqual(
+    getSkillRootGroupLabel(
+      createSkill(
+        "codex",
+        "userGlobal",
+        "C:/Users/test/.codex/skills",
+        "codex",
+      ).root,
+    ),
+    "Codex Home",
+  );
+  assert.strictEqual(
+    getSkillRootGroupDescription(
+      createSkill(
+        "custom",
+        "userGlobal",
+        "C:/Users/test/elsewhere/skills",
+        "custom",
+      ).root,
+      1,
+    ),
+    "1 skills • C:/Users/test/elsewhere/skills",
   );
 });
 
@@ -698,7 +762,7 @@ test("localizes root labels and descriptions for Japanese UI", () => {
       ).root,
       2,
     ),
-    "2 件のスキル • C:/Users/test/.copilot/skills",
+    "2 件のスキル • C:/Users/test/.copilot/skills • 参照: GitHub Copilot",
   );
 
   assert.strictEqual(

@@ -40,6 +40,10 @@ import {
   sortSkills,
   type SkillViewOptions,
 } from "./skillListOptions";
+import {
+  formatRootReaders,
+  resolveSkillRootIdentity,
+} from "./skillRootIds";
 
 /** local = Installed / User-Global、browse = Browse。ビューごとに独立した絞り込み・並べ替えを持つ。 */
 export type SkillViewScope = "local" | "browse";
@@ -384,14 +388,14 @@ export function getExtensionVariantLabel(root: SkillRoot): string | undefined {
 function getRootLabelFromPath(root: SkillRoot): string | undefined {
   const normalizedRootPath = normalizeFileSystemPath(root.rootPath);
 
-  if (normalizedRootPath.endsWith("/.copilot/skills")) {
-    return localizeRootLabel("GitHub Copilot Home", "GitHub Copilot ホーム");
-  }
-  if (normalizedRootPath.endsWith("/.claude/skills")) {
-    return localizeRootLabel("Claude Home", "Claude ホーム");
-  }
-  if (normalizedRootPath.endsWith("/.agents/skills")) {
-    return localizeRootLabel("Global Agent Home", "グローバル Agent ホーム");
+  const homeIdentity = resolveSkillRootIdentity(
+    root,
+    undefined,
+    undefined,
+    { matchBySuffix: true },
+  );
+  if (homeIdentity.kind.startsWith("home-")) {
+    return localizeRootLabel(homeIdentity.label.en, homeIdentity.label.ja);
   }
   if (normalizedRootPath.includes("/appdata/roaming/code/user/")) {
     return localizeRootLabel(
@@ -461,7 +465,15 @@ export function getSkillRootGroupDescription(
   const countText = isJapanese()
     ? `${skillCount} 件のスキル`
     : `${skillCount} skills`;
-  return `${countText} • ${root.displayPath}`;
+  const readers = formatRootReaders(
+    resolveSkillRootIdentity(root, undefined, undefined, {
+      matchBySuffix: true,
+    }),
+    isJapanese(),
+  );
+  return readers
+    ? `${countText} • ${root.displayPath} • ${readers}`
+    : `${countText} • ${root.displayPath}`;
 }
 
 /**

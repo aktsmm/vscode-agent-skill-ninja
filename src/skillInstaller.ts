@@ -1055,8 +1055,19 @@ export async function installSkillUpdate(
   root: SkillRoot,
   meta: SkillMeta,
   revision: SkillSourceRevision,
-  options?: { signal?: AbortSignal; isCancelled?: () => boolean },
+  options?: {
+    signal?: AbortSignal;
+    isCancelled?: () => boolean;
+    /**
+     * 出所が未記録の配置への初回関連付け、または明示承認済みの source 切り替え。
+     * 既存の所有者検証の代わりに、取得先リポジトリ・パスの整合だけを検証する。
+     */
+    rebind?: boolean;
+    /** 入れ替える直前に呼ばれる。例外を投げると、元のフォルダに触れずに中止する */
+    beforeSwap?: () => Promise<void>;
+  },
 ): Promise<SkillInstallResult> {
+  const rebind = options?.rebind === true;
   const checkCancelled = () => {
     if (options?.signal?.aborted || options?.isCancelled?.()) {
       const error = new Error("Skill update cancelled");
@@ -1108,21 +1119,24 @@ export async function installSkillUpdate(
       ? normalizeGitHubRepoRef(source.url)
       : normalizeGitHubRepoRef(skill.rawUrl) ||
         normalizeGitHubRepoRef(skill.url);
-    if (
-      identity(meta) !==
-        identity({ source: skill.source, remotePath: skill.path }) ||
-      !meta.remotePath ||
-      normalizeRemoteSkillPath(meta.remotePath) !== remotePath ||
-      normalizeRemoteSkillPath(skill.path || "") !== remotePath ||
-      repoRef !== `${revision.owner}/${revision.repo}`.toLowerCase() ||
-      (revision.kind === "blob") !== /\.md$/i.test(remotePath) ||
-      (meta.sourceRevision &&
-        (`${meta.sourceRevision.owner}/${meta.sourceRevision.repo}`.toLowerCase() !==
-          repoRef ||
-          normalizeRemoteSkillPath(meta.sourceRevision.remotePath) !==
-            remotePath ||
-          meta.sourceRevision.ref !== revision.ref))
-    ) {
+    const ownershipChanged = rebind
+      ? normalizeRemoteSkillPath(skill.path || "") !== remotePath ||
+        repoRef !== `${revision.owner}/${revision.repo}`.toLowerCase() ||
+        (revision.kind === "blob") !== /\.md$/i.test(remotePath)
+      : identity(meta) !==
+          identity({ source: skill.source, remotePath: skill.path }) ||
+        !meta.remotePath ||
+        normalizeRemoteSkillPath(meta.remotePath) !== remotePath ||
+        normalizeRemoteSkillPath(skill.path || "") !== remotePath ||
+        repoRef !== `${revision.owner}/${revision.repo}`.toLowerCase() ||
+        (revision.kind === "blob") !== /\.md$/i.test(remotePath) ||
+        (meta.sourceRevision &&
+          (`${meta.sourceRevision.owner}/${meta.sourceRevision.repo}`.toLowerCase() !==
+            repoRef ||
+            normalizeRemoteSkillPath(meta.sourceRevision.remotePath) !==
+              remotePath ||
+            meta.sourceRevision.ref !== revision.ref));
+    if (ownershipChanged) {
       throw new Error("Skill update source ownership changed");
     }
     const readCurrent = async (): Promise<SkillMeta> => {
@@ -1132,6 +1146,30 @@ export async function installSkillUpdate(
         vscode.FileType.SymbolicLink
       ) {
         throw new Error("Skill update cannot replace symbolic links");
+      }
+      if (rebind) {
+        // メタが無い配置は、無いままであることを確認する。あるなら計画時と同じ出所のままか確認する。
+        let stored: SkillMeta | undefined;
+        try {
+          stored = JSON.parse(
+            Buffer.from(
+              await vscode.workspace.fs.readFile(
+                vscode.Uri.joinPath(destination, ".skill-meta.json"),
+              ),
+            ).toString("utf-8"),
+          ) as SkillMeta;
+        } catch {
+          stored = undefined;
+        }
+        if (
+          stored &&
+          (identity(stored) !== identity(meta) ||
+            normalizeRemoteSkillPath(stored.remotePath ?? "") !==
+              normalizeRemoteSkillPath(meta.remotePath ?? ""))
+        ) {
+          throw new Error("Skill update source ownership changed");
+        }
+        return stored ?? meta;
       }
       const current = JSON.parse(
         Buffer.from(
@@ -1260,6 +1298,9 @@ export async function installSkillUpdate(
     assertContained(staged);
     assertContained(backup);
     await readCurrent();
+    // 取得に時間がかかる間の編集を、入れ替える直前に呼び出し側が確認できるようにする
+    await options?.beforeSwap?.();
+    checkCancelled();
     await vscode.workspace.fs.rename(destination, backup, { overwrite: false });
     try {
       checkCancelled();

@@ -234,7 +234,11 @@ function loadModule() {
       if (request === "./installedSkillIndex") {
         return { shouldCheckInstalledSkillAgainstIndex: () => false };
       }
-      if (request === "./skillInvocation" || request === "./skillListOptions") {
+      if (
+        request === "./skillInvocation" ||
+        request === "./skillListOptions" ||
+        request === "./skillRootIds"
+      ) {
         return loadSrcModule(request);
       }
       return require(request);
@@ -270,7 +274,7 @@ async function test(name, fn) {
     assert.strictEqual(rootItems[0].label, "GitHub Copilot Home");
     assert.strictEqual(
       rootItems[0].description,
-      "1 skills • ~/.copilot/skills",
+      "1 skills • ~/.copilot/skills • Read by: GitHub Copilot",
     );
 
     const skillItems = await provider.getChildren(rootItems[0]);

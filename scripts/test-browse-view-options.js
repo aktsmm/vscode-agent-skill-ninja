@@ -91,6 +91,7 @@ function loadTreeProvider() {
           };
         case "./skillInvocation":
         case "./skillListOptions":
+        case "./skillRootIds":
           return loadSrcModule(request);
         default:
           return require(request);

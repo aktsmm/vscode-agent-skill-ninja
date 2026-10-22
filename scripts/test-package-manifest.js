@@ -1937,10 +1937,61 @@ test("MCP source tools support private add and source removal flows", () => {
   assert.ok(readmeJa.includes("#removeSkillSource"));
   assert.ok(readme.includes("#localizeSkill"));
   assert.ok(readmeJa.includes("#localizeSkill"));
-  assert.ok(readme.includes("**10 Tools**"));
-  assert.ok(readmeJa.includes("**10 ツール**"));
+  assert.ok(readme.includes("**11 Tools**"));
+  assert.ok(readmeJa.includes("**11 ツール**"));
   assert.ok(readme.includes("Private source repositories are supported"));
   assert.ok(readmeJa.includes("Private source repository"));
+});
+
+test("reinstallSkills is previewed first, explicit about targets, and documented", () => {
+  const tool = pkg.contributes.languageModelTools.find(
+    (entry) => entry.toolReferenceName === "reinstallSkills",
+  );
+  assert.ok(tool, "reinstallSkills tool is contributed");
+  assert.strictEqual(tool.name, "skillNinja_reinstall");
+  assert.deepStrictEqual(tool.inputSchema.properties.mode.enum, [
+    "preview",
+    "apply",
+  ]);
+  assert.deepStrictEqual(tool.inputSchema.required, ["mode", "targets"]);
+  for (const key of [
+    "entryIds",
+    "rootIds",
+    "sources",
+    "names",
+  ]) {
+    assert.ok(tool.inputSchema.properties.targets.properties[key], key);
+  }
+  for (const key of ["adopt", "allowLocalEdits", "allowSourceSwitch", "planId"]) {
+    assert.ok(tool.inputSchema.properties[key], key);
+  }
+  assert.ok(
+    mcpToolsSource.includes('["skillNinja_reinstall", "reinstallSkills"]'),
+  );
+  assert.ok(readme.includes("#reinstallSkills"));
+  assert.ok(readmeJa.includes("#reinstallSkills"));
+});
+
+test("existing tools keep their required arguments and gain optional targeting", () => {
+  const byReference = new Map(
+    pkg.contributes.languageModelTools.map((tool) => [
+      tool.toolReferenceName,
+      tool,
+    ]),
+  );
+  const install = byReference.get("installSkill");
+  assert.deepStrictEqual(install.inputSchema.required, ["skillName"]);
+  for (const key of ["candidateId", "source", "rootId"]) {
+    assert.ok(install.inputSchema.properties[key], `installSkill.${key}`);
+  }
+  const uninstall = byReference.get("uninstallSkill");
+  for (const key of ["skillName", "entryId", "rootId"]) {
+    assert.ok(uninstall.inputSchema.properties[key], `uninstallSkill.${key}`);
+  }
+  const list = byReference.get("listSkills");
+  for (const key of ["rootId", "source", "name"]) {
+    assert.ok(list.inputSchema.properties[key], `listSkills.${key}`);
+  }
 });
 
 test("GitHub token docs mention private repository read permissions", () => {

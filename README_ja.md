@@ -156,7 +156,7 @@ workspace skills では `skillNinja.refCatalogPath` の相対パスは workspace
 ### 🤖 MCP ツール連携
 
 - **Agent Mode** で自動的にツールとして利用可能
-- **10 ツール**: `#searchSkills`, `#installSkill`, `#uninstallSkill`, `#listSkills`, `#recommendSkills`, `#updateSkillIndex`, `#webSearchSkills`, `#addSkillSource`, `#removeSkillSource`, `#localizeSkill`
+- **11 ツール**: `#searchSkills`, `#installSkill`, `#uninstallSkill`, `#listSkills`, `#reinstallSkills`, `#recommendSkills`, `#updateSkillIndex`, `#webSearchSkills`, `#addSkillSource`, `#removeSkillSource`, `#localizeSkill`
 - 信頼度バッジ（Official / Curated / Community）
 - インストール時に instruction file 自動更新
 
@@ -436,7 +436,8 @@ GitHub Copilot の **Agent Mode** では、自動的に MCP ツールとして�
 | `#searchSkills`      | キーワードでスキル検索     |
 | `#installSkill`      | スキルをインストール       |
 | `#uninstallSkill`    | スキルをアンインストール   |
-| `#listSkills`        | インストール済みスキル一覧 |
+| `#listSkills`        | インストール済みスキル一覧（Entry ID・ルート・source・revision 付き） |
+| `#reinstallSkills`   | 既存スキルをプレビューしてから取得元で再インストール（`.skill-meta.json` / revision を更新） |
 | `#recommendSkills`   | プロジェクトに合った推奨   |
 | `#updateSkillIndex`  | スキルインデックスを更新   |
 | `#webSearchSkills`   | GitHub でスキルを Web 検索 |
@@ -458,6 +459,13 @@ GitHub Copilot の **Agent Mode** では、自動的に MCP ツールとして�
 
 💬 "このプロジェクトにおすすめのスキルは？"
    → #recommendSkills でワークスペースを分析して推奨
+
+💬 "Copilot ホームと Codex ホームのスキルを一覧して"
+   → #listSkills が Entry ID・ルート（名称 + 実パス）・source・revision・出所を表示
+
+💬 "Copilot ホームの自分のスキルを自分のリポジトリから入れ直して"
+   → #reinstallSkills がまずプレビュー（読み取りのみ）: 実行できるもの、保留と理由、
+     メタデータのないスキルの候補を表示。承認した計画だけを実行
 ```
 
 ### 特徴
@@ -502,6 +510,7 @@ MCP ツールが不要な場合は、GitHub Copilot Chat のツール一覧か�
 |  19  | `skillNinja.language`                     | `auto`                     | UI 言語（auto / en / ja）                                                                                  |
 |  20  | `skillNinja.explicitOnlySkillsInInstructions` | `exclude`              | 手動専用スキル（`disable-model-invocation: true`）を生成するスキル一覧にどう載せるか（`exclude` / `separate` / `include`） |
 |  21  | `skillNinja.autoManageGitignore`          | `true`                     | 保存先直下の .gitignore を自動管理。ワークスペース・フォルダ設定でレポごとに上書き可能                     |
+|  22  | `skillNinja.includeCodexHome`             | `true`                     | Codex のスキル（`~/.codex/skills`）も管理する（中身があるときだけ表示。instruction ファイルは書き込まない） |
 
 > 設定画面では上記の順序で表示されます
 
@@ -557,7 +566,7 @@ MCP ツールが不要な場合は、GitHub Copilot Chat のツール一覧か�
 - **一括削除は実際の結果を報告します。** 全スキルを削除 / 複数スキルを削除では、実際に成功した件数を数え、削除できなかった件数を報告します。要求件数をそのまま削除済みとして表示することはありません。
 - **名前指定のアンインストールが別のスキルを消すことはありません。** `foo!` のような名前はフォルダ名 `foo` にサニタイズされますが、そのフォルダが実在する場合は `.skill-meta.json` が同じスキルを記録しているときだけ削除します。別スキルのフォルダ、メタデータの無い手作りのローカルスキル、壊れたメタデータは拒否します。
 - **再インストールが失敗しても唯一のコピーを失いません。** アンインストール、再インストール時の置き換え、既存フォルダへの上書きインストールが失敗したときの後片付けは、いずれもフォルダを OS のごみ箱へ移動するので復元できます。永久削除するのはそのインストールが自分で作ったフォルダだけで、確認ダイアログの文言も実際の削除方式に合わせています。
-- **破壊的なチャットツールは先に確認します。** `#installSkill`、`#uninstallSkill`、`#addSkillSource`、`#removeSkillSource`、`#localizeSkill` は実行前に確認ダイアログを出します。`#uninstallSkill` は解決済みのスキル名とスキルルートを確認し、複数のインストール済みスキルに一致する場合は何も削除しないため、確認した対象がそのまま削除対象になります。
+- **破壊的なチャットツールは先に確認します。** `#installSkill`、`#uninstallSkill`、`#addSkillSource`、`#removeSkillSource`、`#localizeSkill` は実行前に確認ダイアログを出します。`#uninstallSkill` は解決済みのスキル名・スキルルート・`entryId` を確認し、複数のインストール済みスキルに一致する場合は何も削除せず、候補を `entryId` 付きで示します（1 件を指定するには `entryId` を渡します）。そのため確認した対象がそのまま削除対象になります。`#reinstallSkills` は先にプレビューし、独自編集・出所不明のスキルは明示承認なしに、アプリ同期（`synced/`）のスキルは承認の有無にかかわらず置き換えず、実行後に読み戻して検証します。
 - **見えている操作は、動くか理由を返すかのどちらかです。** ツリービューのコンテキストメニューに出るコマンドは、その表示条件が許す全 context value に対して検査され、実行できない場合は無言で終わらず理由を表示します。
 - **起動時のプロンプトは止められます。** 起動中に出るダイアログはすべて再表示を止める手段を持ち、その選択を覚えます。`すべての設定をリセット（トークン含む）` で再表示できます。
 

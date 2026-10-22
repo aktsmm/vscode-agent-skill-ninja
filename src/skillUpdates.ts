@@ -413,3 +413,53 @@ export function classifySkillUpdate(
     ? "unchanged"
     : "changed";
 }
+
+export interface SkillRemoteFiles {
+  /** スキルフォルダからの相対パス → git blob SHA */
+  files: Map<string, string>;
+  truncated: boolean;
+}
+
+/**
+ * 指定した revision のスキルフォルダに含まれるファイルと blob SHA を返す。
+ * ローカルの内容との照合（独自編集・取得元との一致）にだけ使い、書き込みはしない。
+ */
+export async function readSkillRemoteFiles(
+  target: SkillSourceRevision,
+  token?: string,
+  signal?: AbortSignal,
+  request: typeof fetchGitHubWithOptionalAuthRetry = fetchGitHubWithOptionalAuthRetry,
+): Promise<SkillRemoteFiles> {
+  if (!revision(target)) {
+    throw failure();
+  }
+  if (target.kind === "blob") {
+    return {
+      files: new Map([["SKILL.md", target.contentSha.toLowerCase()]]),
+      truncated: false,
+    };
+  }
+  assertActive(signal);
+  const response = await request(
+    `https://api.github.com/repos/${target.owner.toLowerCase()}/${target.repo.toLowerCase()}/git/trees/${target.contentSha.toLowerCase()}?recursive=1`,
+    { accept: "application/vnd.github.v3+json", token, retry: { signal } },
+  );
+  assertActive(signal);
+  if (!response.ok) {
+    const body = await response.text().catch(() => "");
+    throw createGitHubResponseError(response, body, "Skill content check");
+  }
+  const parsed = parseTree(
+    await response.json(),
+    target.contentSha.toLowerCase(),
+    true,
+  );
+  return {
+    files: new Map(
+      parsed.entries
+        .filter((entry) => entry.type === "blob")
+        .map((entry) => [entry.path, entry.sha]),
+    ),
+    truncated: parsed.truncated,
+  };
+}

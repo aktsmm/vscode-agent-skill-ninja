@@ -384,6 +384,71 @@ function makeConfigStub(values) {
     ]);
   });
 
+  await test("getManagedSkillRoots: manages Codex Home by default without writing an instruction file", async () => {
+    vscodeStub.__configBySection.skillNinja = {};
+    try {
+      const roots = JSON.parse(JSON.stringify(await getManagedSkillRoots()));
+      const byPath = new Map(roots.map((root) => [root.rootPath, root]));
+      const codexPath = path.join(os.homedir(), ".codex", "skills");
+      assert.ok(byPath.has(codexPath), "Codex Home is a managed root");
+      const codex = byPath.get(codexPath);
+      assert.strictEqual(codex.isManaged, true);
+      assert.strictEqual(codex.isReadOnly, false);
+      // Codex は自分で ~/.codex/skills を走査するので、スキル一覧を書き込む先を持たない
+      assert.strictEqual(codex.instructionPath, undefined);
+      assert.strictEqual(codex.instructionUri, undefined);
+      assert.strictEqual(codex.linkPathFromInstruction, undefined);
+
+      // 他の Home は従来どおり instruction を持つ
+      const copilot = byPath.get(path.join(os.homedir(), ".copilot", "skills"));
+      assert.ok(copilot.instructionPath);
+      assert.ok(roots.map((root) => root.rootPath).indexOf(codexPath) >= 3);
+    } finally {
+      vscodeStub.__configBySection.skillNinja = {};
+    }
+  });
+
+  await test("getManagedSkillRoots: Codex Home can be turned off, and follows the personal-locations switch", async () => {
+    const codexPath = path.join(os.homedir(), ".codex", "skills");
+    const homeRoots = async () =>
+      JSON.parse(JSON.stringify(await getManagedSkillRoots())).map(
+        (root) => root.rootPath,
+      );
+    try {
+      vscodeStub.__configBySection.skillNinja = { includeCodexHome: false };
+      const withoutCodex = await homeRoots();
+      assert.ok(!withoutCodex.includes(codexPath));
+      assert.ok(withoutCodex.includes(path.join(os.homedir(), ".agents", "skills")));
+
+      vscodeStub.__configBySection.skillNinja = {
+        useVsCodeAgentSkillLocations: false,
+      };
+      assert.deepStrictEqual(await homeRoots(), []);
+    } finally {
+      vscodeStub.__configBySection.skillNinja = {};
+    }
+  });
+
+  await test("getManagedSkillRoots: an explicitly configured Codex path keeps its instruction file", async () => {
+    const codexPath = path.join(os.homedir(), ".codex", "skills");
+    vscodeStub.__configBySection.skillNinja = {};
+    vscodeStub.__configBySection.__root = {
+      "chat.agentSkillsLocations": { [codexPath]: true },
+    };
+    try {
+      const roots = JSON.parse(JSON.stringify(await getManagedSkillRoots()));
+      const matching = roots.filter((root) => root.rootPath === codexPath);
+      assert.strictEqual(matching.length, 1, "the root is listed once");
+      assert.strictEqual(
+        matching[0].instructionPath,
+        path.join(os.homedir(), ".codex", "AGENTS.md"),
+      );
+    } finally {
+      delete vscodeStub.__configBySection.__root;
+      vscodeStub.__configBySection.skillNinja = {};
+    }
+  });
+
   await test("resolveWorkspaceSkillsDirectory: own value wins when set explicitly", () => {
     const own = makeConfigStub({ skillsDirectory: "custom/skills" });
     const sibling = makeConfigStub({ resourcesDirectory: "should/be/ignored" });

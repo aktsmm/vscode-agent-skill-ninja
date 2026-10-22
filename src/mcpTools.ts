@@ -14,7 +14,6 @@ import {
 } from "./skillIndex";
 import {
   installSkill,
-  getManagedInstalledSkillsWithMeta,
   uninstallSkillByPath,
 } from "./skillInstaller";
 import { updateInstructionFileForRoot } from "./instructionManager";
@@ -23,6 +22,26 @@ import { searchGitHub, addSource, removeSource } from "./indexUpdater";
 import { isJapanese, messages } from "./i18n";
 import { getGitHubToken } from "./githubAuth";
 import { getManagedSkillRoots, type SkillRoot } from "./skillLocations";
+import {
+  applyReinstallPlan,
+  collectInstalledEntries,
+  createReinstallPlan,
+  listManagedRoots,
+  findExistingSkillFolder,
+  type ApplyResult,
+  type InstalledEntry,
+  type PlanContext,
+  type ReinstallInput,
+} from "./skillReinstall";
+import {
+  buildCandidateId,
+  describeProvenance,
+  findNameCandidates,
+  selectSkillForInstall,
+  type ContentDiff,
+  type PlanItem,
+  type ReinstallReason,
+} from "./skillReinstallPlan";
 
 let extContext: vscode.ExtensionContext | undefined;
 
@@ -254,6 +273,15 @@ export function registerMcpTools(context: vscode.ExtensionContext): void {
       },
     );
 
+    // スキル再インストールツール
+    registerToolAliases(
+      context,
+      ["skillNinja_reinstall", "reinstallSkills"],
+      () => {
+        return new SkillReinstallTool();
+      },
+    );
+
     // インデックス更新ツール
     registerToolAliases(
       context,
@@ -371,7 +399,7 @@ ${guidanceTable}
     // 結果をフォーマット（信頼度バッジ付き）
     const isJa = isJapanese();
     const resultsTable = renderMarkdownTable(
-      ["Skill", "Description", "Categories", "Trust"],
+      ["Skill", "Description", "Categories", "Trust", "Candidate ID"],
       results.map((skill: Skill) => {
         const stars = skill.stars ? ` ⭐${skill.stars}` : "";
         const categories = skill.categories?.join(", ") || "";
@@ -382,6 +410,7 @@ ${guidanceTable}
           desc || (isJa ? "説明なし" : "No description"),
           categories,
           `${trust}${stars}`,
+          skill.path ? buildCandidateId(skill.source, skill.path) : "",
         ];
       }),
     );
@@ -460,15 +489,20 @@ ${discoveryTable}
 /**
  * スキルインストールツール
  */
-class SkillInstallTool implements vscode.LanguageModelTool<{
+interface SkillInstallInput {
   skillName: string;
-}> {
+  /** searchSkills が返す Candidate ID（`source::path`）。同名の候補が複数あるときに指定する */
+  candidateId?: string;
+  source?: string;
+  /** listSkills / reinstallSkills が返す rootId。省略時は従来どおりワークスペースのルート */
+  rootId?: string;
+}
+
+class SkillInstallTool implements vscode.LanguageModelTool<SkillInstallInput> {
   prepareInvocation(
-    options: vscode.LanguageModelToolInvocationPrepareOptions<{
-      skillName: string;
-    }>,
+    options: vscode.LanguageModelToolInvocationPrepareOptions<SkillInstallInput>,
   ): vscode.PreparedToolInvocation {
-    const skillName = options.input.skillName;
+    const { skillName, rootId, candidateId } = options.input;
     return {
       invocationMessage: localizeMcpText(
         "Installing skill",
@@ -476,30 +510,63 @@ class SkillInstallTool implements vscode.LanguageModelTool<{
       ),
       confirmationMessages: buildConfirmation(
         localizeMcpText("Install skill", "スキルをインストール"),
-        localizeMcpText(
-          "This writes skill files into the workspace skill root.",
-          "ワークスペースのスキルルートにスキルファイルを書き込みます。",
-        ),
-        skillName,
+        rootId
+          ? localizeMcpText(
+              `This writes skill files into the skill root "${rootId}".`,
+              `スキルルート "${rootId}" にスキルファイルを書き込みます。`,
+            )
+          : localizeMcpText(
+              "This writes skill files into the workspace skill root.",
+              "ワークスペースのスキルルートにスキルファイルを書き込みます。",
+            ),
+        candidateId ? `${skillName} (${candidateId})` : skillName,
       ),
     };
   }
 
   async invoke(
-    options: vscode.LanguageModelToolInvocationOptions<{ skillName: string }>,
+    options: vscode.LanguageModelToolInvocationOptions<SkillInstallInput>,
     _token: vscode.CancellationToken,
   ): Promise<vscode.LanguageModelToolResult> {
-    const skillName = options.input.skillName;
+    const { skillName, candidateId, source, rootId } = options.input;
     const index = await getSkillIndex();
     const skills = getIndexSkills(index);
-    const lowerName = skillName.toLowerCase();
 
-    // スキルを検索
-    const skill =
-      skills.find((s: Skill) => s.name.toLowerCase() === lowerName) ||
-      skills.find((s: Skill) => s.name.toLowerCase().includes(lowerName));
+    // 同名の候補が複数あるときは、先頭を選ばずに候補を返して止まる
+    const selection = selectSkillForInstall(skills, {
+      skillName,
+      candidateId,
+      source,
+    });
 
-    if (!skill) {
+    if (selection.kind === "ambiguous") {
+      const candidatesTable = renderMarkdownTable(
+        ["Candidate ID", "Source", "Path", "Trust"],
+        selection.skills.map((candidate: Skill) => [
+          buildCandidateId(candidate.source, candidate.path),
+          candidate.source,
+          candidate.path,
+          getTrustBadge(candidate.source || ""),
+        ]),
+      );
+      return new vscode.LanguageModelToolResult([
+        new vscode.LanguageModelTextPart(
+          `❌ ${localizeMcpText(
+            `"${skillName}" matches several skills, so nothing was installed.`,
+            `"${skillName}" は複数のスキルに一致するため、何もインストールしていません。`,
+          )}
+
+${candidatesTable}
+
+---
+**Agent Instructions:**
+- Ask the user which candidate to install, then call this tool again with that exact \`candidateId\` (and the same \`skillName\`)
+- Never pick one by order or by your own guess`,
+        ),
+      ]);
+    }
+
+    if (selection.kind === "none") {
       return new vscode.LanguageModelToolResult([
         new vscode.LanguageModelTextPart(
           `❌ ${localizeMcpText(`Skill "${skillName}" not found.`, `スキル "${skillName}" が見つかりません。`)}
@@ -512,16 +579,58 @@ class SkillInstallTool implements vscode.LanguageModelTool<{
       ]);
     }
 
+    const skill = selection.skill;
     const workspaceFolder = vscode.workspace.workspaceFolders?.[0];
-    if (!workspaceFolder) {
-      return new vscode.LanguageModelToolResult([
-        new vscode.LanguageModelTextPart(messages.chatNoWorkspaceFolderOpen()),
-      ]);
+    const context = requireExtContext();
+
+    let targetRoot: SkillRoot | undefined;
+    let installWorkspaceUri = workspaceFolder?.uri;
+    if (rootId) {
+      const managedRoots = await listManagedRoots(
+        workspaceFolder?.uri,
+        isJapanese(),
+      );
+      const matched = managedRoots.find((entry) => entry.rootId === rootId);
+      if (!matched) {
+        return new vscode.LanguageModelToolResult([
+          new vscode.LanguageModelTextPart(
+            `❌ ${localizeMcpText(
+              `Skill root "${rootId}" is not a writable managed root, so nothing was installed.`,
+              `スキルルート "${rootId}" は書き込み可能な管理対象ではないため、何もインストールしていません。`,
+            )}
+
+${localizeMcpText("Available roots", "指定できるルート")}:
+${managedRoots.map((entry) => `- ${entry.label}`).join("\n")}`,
+          ),
+        ]);
+      }
+      targetRoot = matched.root;
+      installWorkspaceUri ??= matched.root.rootUri;
+
+      // 既存のフォルダへ重ね書きしない。独自編集の確認と出所の記録は reinstallSkills が行う。
+      const existingFolder = findExistingSkillFolder(targetRoot, skill);
+      if (existingFolder) {
+        return new vscode.LanguageModelToolResult([
+          new vscode.LanguageModelTextPart(
+            `❌ ${localizeMcpText(
+              `A skill folder already exists at ${existingFolder}, so nothing was installed. To replace an installed skill from its source use #reinstallSkills (preview first).`,
+              `${existingFolder} に既にスキルフォルダがあるため、何もインストールしていません。インストール済みのスキルを取得元で置き換えるには #reinstallSkills（先にプレビュー）を使ってください。`,
+            )}`,
+          ),
+        ]);
+      }
+    } else {
+      if (!workspaceFolder) {
+        return new vscode.LanguageModelToolResult([
+          new vscode.LanguageModelTextPart(
+            messages.chatNoWorkspaceFolderOpen(),
+          ),
+        ]);
+      }
+      targetRoot = await getDefaultManagedRoot(workspaceFolder.uri);
     }
 
-    const context = requireExtContext();
-    const targetRoot = await getDefaultManagedRoot(workspaceFolder.uri);
-    if (!targetRoot) {
+    if (!targetRoot || !installWorkspaceUri) {
       return new vscode.LanguageModelToolResult([
         new vscode.LanguageModelTextPart(messages.chatNoManagedSkillRoot()),
       ]);
@@ -531,7 +640,7 @@ class SkillInstallTool implements vscode.LanguageModelTool<{
     try {
       const installResult = await installSkill(
         skill,
-        workspaceFolder.uri,
+        installWorkspaceUri,
         context,
         targetRoot,
       );
@@ -548,12 +657,20 @@ class SkillInstallTool implements vscode.LanguageModelTool<{
       const trust = getTrustBadge(skill.source || "");
       const isJa = isJapanese();
       const desc = getLocalizedDescription(skill, isJa);
+      const installedRootLabel = (
+        await listManagedRoots(workspaceFolder?.uri, isJa)
+      ).find((entry) => entry.root.rootPath === targetRoot.rootPath)?.label;
       const summaryTable = renderMarkdownTable(
         ["項目", "内容"],
         [
           ["スキル名", skill.name],
           ["説明", desc || (isJa ? "説明なし" : "No description")],
           ["信頼度", trust],
+          [
+            "Candidate ID",
+            skill.path ? buildCandidateId(skill.source, skill.path) : "",
+          ],
+          ["配置先ルート", installedRootLabel ?? targetRoot.displayPath],
           [
             "インストール先",
             `${targetRoot.displayPath}/${installResult.installedPath}/`,
@@ -615,21 +732,52 @@ ${summaryTable}
 /**
  * インストール済みスキル一覧ツール
  */
-class SkillListTool implements vscode.LanguageModelTool<Record<string, never>> {
+interface SkillListInput {
+  /** 指定したルートだけを表示する（例: home-codex） */
+  rootId?: string;
+  /** 指定した source だけを表示する */
+  source?: string;
+  name?: string;
+}
+
+class SkillListTool implements vscode.LanguageModelTool<SkillListInput> {
   async invoke(
-    _options: vscode.LanguageModelToolInvocationOptions<Record<string, never>>,
+    options: vscode.LanguageModelToolInvocationOptions<SkillListInput>,
     _token: vscode.CancellationToken,
   ): Promise<vscode.LanguageModelToolResult> {
     const workspaceFolder = vscode.workspace.workspaceFolders?.[0];
-    if (!workspaceFolder) {
+    const isJa = isJapanese();
+    const filter = options.input ?? {};
+
+    // ワークスペースが無くても、Home などの user root は一覧できる
+    const { entries: collected } = await collectInstalledEntries(
+      workspaceFolder?.uri,
+      isJa,
+    );
+    const installedEntries = collected.filter(
+      ({ plan }) =>
+        (!filter.rootId || plan.rootId === filter.rootId) &&
+        (!filter.source ||
+          plan.source.toLowerCase() === filter.source.toLowerCase()) &&
+        (!filter.name || plan.name.toLowerCase() === filter.name.toLowerCase()),
+    );
+
+    if (!workspaceFolder && collected.length === 0) {
       return new vscode.LanguageModelToolResult([
         new vscode.LanguageModelTextPart(messages.chatNoWorkspaceFolderOpen()),
       ]);
     }
 
-    const installedEntries = await getManagedInstalledSkillsWithMeta(
-      workspaceFolder.uri,
-    );
+    if (installedEntries.length === 0 && collected.length > 0) {
+      return new vscode.LanguageModelToolResult([
+        new vscode.LanguageModelTextPart(
+          `📭 ${localizeMcpText(
+            "No installed skill matches the filter.",
+            "フィルタに一致するインストール済みスキルはありません。",
+          )}`,
+        ),
+      ]);
+    }
 
     if (installedEntries.length === 0) {
       return new vscode.LanguageModelToolResult([
@@ -650,29 +798,55 @@ class SkillListTool implements vscode.LanguageModelTool<Record<string, never>> {
       ]);
     }
 
-    const list = installedEntries
-      .map(
-        ({ root, meta }, index) =>
-          `| ${index + 1} | ${meta.name} | ${root.displayPath}/${meta.relativePath || meta.name}/ |`,
-      )
-      .join("\n");
+    const indexSkills = getIndexSkills(await getSkillIndex());
+    const provenanceText = (entry: (typeof installedEntries)[number]) =>
+      describeProvenance(
+        entry.plan,
+        findNameCandidates(indexSkills, entry.plan).length,
+      );
+    const list = renderMarkdownTable(
+      [
+        "#",
+        "Skill Name",
+        "Location",
+        "Entry ID",
+        "Root",
+        "Source",
+        "Remote path",
+        "Revision",
+        "Provenance",
+      ],
+      installedEntries.map((entry, position) => [
+        String(position + 1),
+        entry.meta.name,
+        `${entry.root.displayPath}/${entry.meta.relativePath || entry.meta.name}/`,
+        entry.plan.entryId,
+        entry.plan.rootLabel,
+        entry.plan.source === "local" || entry.plan.source === "unknown"
+          ? "-"
+          : entry.plan.source,
+        entry.plan.remotePath ?? "-",
+        entry.plan.sourceRevision?.commitSha.slice(0, 7) ?? "-",
+        provenanceText(entry),
+      ]),
+    );
 
     return new vscode.LanguageModelToolResult([
       new vscode.LanguageModelTextPart(
         `📦 インストール済みスキル: ${installedEntries.length} 件
 
-| # | Skill Name | Location |
-|---|------------|----------|
 ${list}
 
 ---
 **Agent Instructions:**
 - Show the table in clean format
-- Offer to show details of any skill
+- Use Entry ID / Root IDs from this table when calling #uninstallSkill, #installSkill, or #reinstallSkills — never guess a target from the skill name alone
+- Provenance "no metadata (...)" means the source is unknown; never assume it from the name. "local only" means no skill with that name exists in the index, so there is nothing to reinstall it from; leave it alone
 
 **📋 Next Actions (show to user):**
 1. 📄 View details? → Ask which skill
 2. 🗑️ Uninstall? → Confirm before deleting
+3. 🔄 Reinstall from its source? → Preview with #reinstallSkills first
 
 ---
 **💡 もっとスキルを探すには？**
@@ -880,55 +1054,67 @@ ${discoveryTable}`,
  * 候補が複数のときは解決しない。同名スキルは別のスキルルートにも存在しうるので、
  * 先に見つかった 1 件を消すと確認した対象と別の実体を削除しうる。
  */
-async function resolveInstalledSkillToUninstall(skillName: string) {
+async function resolveInstalledSkillToUninstall(input: SkillUninstallInput) {
   const workspaceFolder = vscode.workspace.workspaceFolders?.[0];
-  if (!workspaceFolder) {
+  const { entries } = await collectInstalledEntries(
+    workspaceFolder?.uri,
+    isJapanese(),
+  );
+  if (!workspaceFolder && entries.length === 0) {
     return undefined;
   }
 
-  const installedEntries = await getManagedInstalledSkillsWithMeta(
-    workspaceFolder.uri,
-  );
-  const lowerName = skillName.toLowerCase();
-  const exactMatches = installedEntries.filter(
-    ({ meta }) => meta.name.toLowerCase() === lowerName,
-  );
-  const candidates =
-    exactMatches.length > 0
-      ? exactMatches
-      : installedEntries.filter(({ meta }) =>
-          meta.name.toLowerCase().includes(lowerName),
-        );
+  const installedEntries = entries;
+  let candidates: InstalledEntry[];
+  if (input.entryId) {
+    // entryId は 1 件に確定する。名前や rootId では絞り込まない
+    candidates = installedEntries.filter(
+      ({ plan }) => plan.entryId === input.entryId,
+    );
+  } else {
+    const lowerName = (input.skillName ?? "").toLowerCase();
+    const inScope = installedEntries.filter(
+      ({ plan }) => !input.rootId || plan.rootId === input.rootId,
+    );
+    const exactMatches = inScope.filter(
+      ({ meta }) => meta.name.toLowerCase() === lowerName,
+    );
+    candidates = !lowerName
+      ? []
+      : exactMatches.length > 0
+        ? exactMatches
+        : inScope.filter(({ meta }) =>
+            meta.name.toLowerCase().includes(lowerName),
+          );
+  }
 
   return {
-    workspaceFolder,
     installedEntries,
     matched: candidates.length === 1 ? candidates[0] : undefined,
     ambiguousMatches: candidates.length > 1 ? candidates : [],
   };
 }
 
-/** 同名スキルが別ルートにもありうるので、対象はルート付きで示す。 */
-function describeInstalledSkill(entry: {
-  meta: { name: string };
-  root: { displayPath: string };
-}): string {
-  return `${entry.meta.name} (${entry.root.displayPath})`;
+/** 同名スキルが別ルートにもありうるので、対象はルートと entryId 付きで示す。 */
+function describeInstalledSkill(entry: InstalledEntry): string {
+  return `${entry.meta.name} (${entry.plan.rootLabel}) entryId=${entry.plan.entryId}`;
+}
+
+interface SkillUninstallInput {
+  skillName?: string;
+  /** listSkills が返す Entry ID。指定すると対象を 1 件に確定する */
+  entryId?: string;
+  rootId?: string;
 }
 
 /**
  * スキルアンインストールツール
  */
-class SkillUninstallTool implements vscode.LanguageModelTool<{
-  skillName: string;
-}> {
+class SkillUninstallTool implements vscode.LanguageModelTool<SkillUninstallInput> {
   async prepareInvocation(
-    options: vscode.LanguageModelToolInvocationPrepareOptions<{
-      skillName: string;
-    }>,
+    options: vscode.LanguageModelToolInvocationPrepareOptions<SkillUninstallInput>,
   ): Promise<vscode.PreparedToolInvocation> {
-    const skillName = options.input.skillName;
-    const resolved = await resolveInstalledSkillToUninstall(skillName);
+    const resolved = await resolveInstalledSkillToUninstall(options.input);
     return {
       invocationMessage: localizeMcpText(
         "Uninstalling skill",
@@ -942,18 +1128,29 @@ class SkillUninstallTool implements vscode.LanguageModelTool<{
         ),
         resolved?.matched
           ? describeInstalledSkill(resolved.matched)
-          : skillName,
+          : (options.input.entryId ?? options.input.skillName ?? ""),
       ),
     };
   }
 
   async invoke(
-    options: vscode.LanguageModelToolInvocationOptions<{ skillName: string }>,
+    options: vscode.LanguageModelToolInvocationOptions<SkillUninstallInput>,
     _token: vscode.CancellationToken,
   ): Promise<vscode.LanguageModelToolResult> {
-    const skillName = options.input.skillName;
+    const skillName = options.input.skillName ?? options.input.entryId ?? "";
 
-    const resolved = await resolveInstalledSkillToUninstall(skillName);
+    if (!options.input.skillName && !options.input.entryId) {
+      return new vscode.LanguageModelToolResult([
+        new vscode.LanguageModelTextPart(
+          `❌ ${localizeMcpText(
+            "Specify skillName or entryId (see #listSkills). Nothing was uninstalled.",
+            "skillName または entryId（#listSkills 参照）を指定してください。何もアンインストールしていません。",
+          )}`,
+        ),
+      ]);
+    }
+
+    const resolved = await resolveInstalledSkillToUninstall(options.input);
     if (!resolved) {
       return new vscode.LanguageModelToolResult([
         new vscode.LanguageModelTextPart(messages.chatNoWorkspaceFolderOpen()),
@@ -961,7 +1158,6 @@ class SkillUninstallTool implements vscode.LanguageModelTool<{
     }
 
     const {
-      workspaceFolder,
       installedEntries,
       matched: matchedSkill,
       ambiguousMatches,
@@ -975,13 +1171,12 @@ class SkillUninstallTool implements vscode.LanguageModelTool<{
             `"${skillName}" は複数のインストール済みスキルに一致するため、何もアンインストールしていません。`,
           )}
 
-${localizeMcpText("Candidates", "候補")}: ${ambiguousMatches
-            .map(describeInstalledSkill)
-            .join(", ")}
+${localizeMcpText("Candidates", "候補")}:
+${ambiguousMatches.map((entry) => `- ${describeInstalledSkill(entry)}`).join("\n")}
 
 ---
 **Agent Instructions:**
-- Ask the user which exact skill name to uninstall, then call this tool again with that exact name`,
+- Ask the user which skill to uninstall, then call this tool again with that exact \`entryId\` (a name alone cannot tell the same skill in different roots apart)`,
         ),
       ]);
     }
@@ -1016,7 +1211,7 @@ ${localizeMcpText("Candidates", "候補")}: ${ambiguousMatches
     try {
       await uninstallSkillByPath(
         matchedSkill.meta.relativePath || matchedSkill.meta.name,
-        workspaceFolder.uri,
+        matchedSkill.workspaceUri,
         matchedSkill.root.rootUri,
       );
 
@@ -1036,8 +1231,13 @@ ${localizeMcpText("Candidates", "候補")}: ${ambiguousMatches
         ["項目", "内容"],
         [
           ["スキル名", matchedSkill.meta.name],
+          ["削除元ルート", matchedSkill.plan.rootLabel],
+          ["Entry ID", matchedSkill.plan.entryId],
           ["ステータス", "ごみ箱へ移動"],
-          ["Instruction", "更新済み"],
+          [
+            "Instruction",
+            matchedSkill.root.instructionPath ? "更新済み" : "対象外（このルートは instruction を更新しません）",
+          ],
         ],
       );
 
@@ -1075,6 +1275,435 @@ ${uninstallTable}
           ),
         ),
       ]);
+    }
+  }
+}
+
+function reasonText(reason: ReinstallReason | undefined): string {
+  switch (reason) {
+    case "read-only-root":
+      return localizeMcpText("read-only root", "読み取り専用ルート");
+    case "reinstall-disabled":
+      return localizeMcpText(
+        "reinstall disabled in its metadata",
+        "メタデータで再インストールが無効",
+      );
+    case "no-provenance":
+      return localizeMcpText(
+        "source unknown (no metadata): choose a candidate",
+        "出所不明（メタデータなし）: 候補を選択してください",
+      );
+    case "no-candidate":
+      return localizeMcpText("no matching candidate", "一致する候補なし");
+    case "candidate-not-found":
+      return localizeMcpText(
+        "requested candidate is not eligible",
+        "指定した候補は対象外です",
+      );
+    case "source-missing":
+      return localizeMcpText(
+        "recorded source/path is not in the source index",
+        "記録済みの source / パスがインデックスにありません",
+      );
+    case "source-removed":
+      return localizeMcpText(
+        "the source path no longer exists (removed or renamed)",
+        "配布元のパスが存在しません（削除または名前変更）",
+      );
+    case "source-switch":
+      return localizeMcpText(
+        "would switch to a different source: needs approval",
+        "別の source への切り替え: 承認が必要",
+      );
+    case "local-edits":
+      return localizeMcpText(
+        "local content differs from the source: needs approval",
+        "ローカルの内容が取得元と異なります: 承認が必要",
+      );
+    case "fetch-failed":
+      return localizeMcpText("could not verify", "確認に失敗");
+    case "not-found":
+      return localizeMcpText("target not found", "対象が見つかりません");
+    case "app-managed":
+      return localizeMcpText(
+        "synced by an app (Claude / ChatGPT); it would be regenerated, so it is not reinstalled",
+        "アプリ（Claude / ChatGPT）の同期フォルダのため、再生成されるので再インストールしません",
+      );
+    default:
+      return "";
+  }
+}
+
+function diffText(diff: ContentDiff | undefined): string {
+  if (!diff) {
+    return "-";
+  }
+  if (diff.identical) {
+    return localizeMcpText("identical to the source", "取得元と一致");
+  }
+  const names = [...diff.changed, ...diff.added, ...diff.removed].slice(0, 5);
+  return `${diff.changed.length} changed / ${diff.added.length} local-only / ${diff.removed.length} missing (${names.join(", ")}${
+    diff.changed.length + diff.added.length + diff.removed.length > 5
+      ? ", ..."
+      : ""
+  })`;
+}
+
+function shortSha(value: string | undefined): string {
+  return value ? value.slice(0, 7) : "-";
+}
+
+/** 保留の解消に必要な引数をそのまま示す。 */
+function nextStepText(item: PlanItem): string {
+  switch (item.reason) {
+    case "local-edits":
+      return `allowLocalEdits: ["${item.entryId}"]`;
+    case "source-switch":
+      return `adopt: {entryId: "${item.entryId}", candidateId: "${item.candidate?.candidateId}"} + allowSourceSwitch: ["${item.entryId}"]`;
+    case "no-provenance":
+      return `adopt: {entryId: "${item.entryId}", candidateId: <one of the candidates below>}`;
+    default:
+      return "";
+  }
+}
+
+function renderReinstallPlan(
+  context: PlanContext,
+  input: ReinstallInput,
+): string {
+  const items = context.plan.items;
+  const quiet = (item: PlanItem) =>
+    item.reason === "no-candidate" ||
+    item.reason === "reinstall-disabled" ||
+    item.reason === "app-managed";
+  const shown = items.filter((item) => !quiet(item));
+  const quietNames = items.filter(quiet).map((item) => item.name);
+
+  const count = (status: PlanItem["status"]) =>
+    items.filter((item) => item.status === status).length;
+
+  const table = renderMarkdownTable(
+    [
+      "#",
+      "Skill",
+      "Root",
+      "Provenance",
+      "Status",
+      "Action",
+      "Source (recorded → target)",
+      "Revision (recorded → target)",
+      "Detail",
+    ],
+    shown.map((item, position) => [
+      String(position + 1),
+      item.name,
+      item.rootLabel,
+      item.provenance,
+      item.status,
+      item.action ?? "-",
+      `${item.recordedSource ?? "-"} → ${item.candidate?.source ?? "-"}`,
+      `${shortSha(item.recordedCommitSha)} → ${shortSha(item.target?.commitSha)}`,
+      [reasonText(item.reason), item.detail, item.diff && !item.diff.identical ? diffText(item.diff) : ""]
+        .filter(Boolean)
+        .join(" / "),
+    ]),
+  );
+
+  const holdSteps = shown
+    .map((item) => ({ item, step: nextStepText(item) }))
+    .filter(({ step }) => step);
+  const candidateSections = shown
+    .filter((item) => item.candidates && item.candidates.length > 0)
+    .map(
+      (item) =>
+        `**${item.name}** (${item.entryId})\n\n${renderMarkdownTable(
+          ["Candidate ID", "Source", "Evidence"],
+          (item.candidates ?? []).map((evidence) => [
+            evidence.candidate.candidateId,
+            evidence.candidate.source,
+            evidence.error
+              ? `${localizeMcpText("could not compare", "比較できません")}: ${evidence.error}`
+              : `${shortSha(evidence.commitSha)}: ${diffText(evidence.diff)}`,
+          ]),
+        )}`,
+    );
+
+  const instructionRoots = new Map<string, string>();
+  for (const item of items) {
+    if (item.status !== "ready") {
+      continue;
+    }
+    const installed = context.entries.get(item.entryId);
+    instructionRoots.set(
+      item.rootLabel,
+      installed?.root.instructionPath ?? "none",
+    );
+  }
+  const instructionAuto = vscode.workspace
+    .getConfiguration("skillNinja")
+    .get<boolean>("autoUpdateInstruction");
+  const instructionText =
+    instructionRoots.size === 0
+      ? "-"
+      : [...instructionRoots]
+          .map(
+            ([root, file]) =>
+              `${root}: ${
+                file === "none"
+                  ? localizeMcpText("no instruction update", "instruction 更新なし")
+                  : instructionAuto
+                    ? `${localizeMcpText("updates", "更新")} ${file}`
+                    : `${localizeMcpText("not updated (autoUpdateInstruction is off)", "更新しない（autoUpdateInstruction が無効）")}`
+              }`,
+          )
+          .join("; ");
+
+  const applyCall = JSON.stringify(
+    {
+      mode: "apply",
+      planId: context.plan.planId,
+      targets: input.targets,
+      ...(input.adopt?.length ? { adopt: input.adopt } : {}),
+      ...(input.allowLocalEdits?.length
+        ? { allowLocalEdits: input.allowLocalEdits }
+        : {}),
+      ...(input.allowSourceSwitch?.length
+        ? { allowSourceSwitch: input.allowSourceSwitch }
+        : {}),
+    },
+    null,
+    2,
+  );
+
+  return `🔄 Reinstall plan \`${context.plan.planId}\`: ${count("ready")} ready / ${count("hold")} on hold / ${count("skipped")} skipped
+
+${table}
+${quietNames.length > 0 ? `\n${localizeMcpText("Not eligible / no candidate", "対象外 / 候補なし")} (${quietNames.length}): ${quietNames.join(", ")}\n` : ""}${
+    holdSteps.length > 0
+      ? `\n**${localizeMcpText("To release a hold, pass", "保留を解除するには次を指定")}:**\n${holdSteps
+          .map(({ item, step }) => `- ${item.name} (${item.entryId}): ${step}`)
+          .join("\n")}\n`
+      : ""
+  }${candidateSections.length > 0 ? `\n${candidateSections.join("\n\n")}\n` : ""}
+**Instruction / catalog updates:** ${instructionText}
+
+---
+**Agent Instructions:**
+- This was a preview. Nothing was changed.
+- Show the table, the holds and their evidence to the user. Never choose a candidate, \`allowLocalEdits\`, or \`allowSourceSwitch\` on the user's behalf.
+- To run only the ready items, call this tool again with the same targets/flags and this exact planId:
+
+\`\`\`json
+${applyCall}
+\`\`\``;
+}
+
+function renderApplyResults(
+  results: ApplyResult[],
+  planId: string,
+  instructionNotes: string[],
+): string {
+  const count = (status: ApplyResult["status"]) =>
+    results.filter((result) => result.status === status).length;
+  const table = renderMarkdownTable(
+    [
+      "#",
+      "Skill",
+      "Result",
+      "Installed at",
+      "Source",
+      "Recorded revision",
+      "Verification",
+      "Detail",
+    ],
+    results.map((result, position) => [
+      String(position + 1),
+      result.name,
+      result.status,
+      result.installedPath ?? result.rootLabel,
+      result.source ?? "-",
+      result.recorded
+        ? `${shortSha(result.recorded.commitSha)} (${result.recorded.ref}) tree ${shortSha(result.recorded.contentSha)}`
+        : "-",
+      result.verification
+        ? Object.entries(result.verification)
+            .map(([key, ok]) => `${key}=${ok ? "ok" : "FAILED"}`)
+            .join(", ")
+        : "-",
+      [reasonText(result.reason), result.message].filter(Boolean).join(" / "),
+    ]),
+  );
+
+  return `🔄 Reinstall result for plan \`${planId}\`: ${count("updated")} updated / ${count("failed")} failed / ${count("held")} on hold / ${count("skipped")} skipped
+
+${table}
+
+**Instruction / catalog updates:** ${instructionNotes.length > 0 ? instructionNotes.join("; ") : "-"}
+
+---
+**Agent Instructions:**
+- Report each row's result, installed path and recorded revision from the table. Do not summarize "all succeeded" unless every row says updated.
+- A "failed" row with a verification FAILED check must not be described as up to date.
+- Held rows were not changed; explain what the user must approve for them.`;
+}
+
+/**
+ * 既存スキルの再インストールツール。
+ * プレビュー（読み取りのみ）と実行を分け、実行は planId で固定した計画だけを行う。
+ */
+class SkillReinstallTool implements vscode.LanguageModelTool<ReinstallInput> {
+  prepareInvocation(
+    options: vscode.LanguageModelToolInvocationPrepareOptions<ReinstallInput>,
+  ): vscode.PreparedToolInvocation {
+    if (options.input.mode !== "apply") {
+      return {
+        invocationMessage: localizeMcpText(
+          "Previewing skill reinstall",
+          "スキルの再インストールをプレビュー中",
+        ),
+      };
+    }
+
+    return {
+      invocationMessage: localizeMcpText(
+        "Reinstalling skills",
+        "スキルを再インストール中",
+      ),
+      confirmationMessages: buildConfirmation(
+        localizeMcpText("Reinstall skills", "スキルを再インストール"),
+        localizeMcpText(
+          "This replaces the listed installed skill folders with the source content and rewrites their .skill-meta.json. Only the items that were ready in the previewed plan are changed.",
+          "プレビューした計画の ready 項目だけについて、インストール済みスキルフォルダを取得元の内容で置き換え、.skill-meta.json を更新します。",
+        ),
+        JSON.stringify({
+          planId: options.input.planId,
+          targets: options.input.targets,
+          adopt: options.input.adopt,
+          allowLocalEdits: options.input.allowLocalEdits,
+          allowSourceSwitch: options.input.allowSourceSwitch,
+        }),
+      ),
+    };
+  }
+
+  async invoke(
+    options: vscode.LanguageModelToolInvocationOptions<ReinstallInput>,
+    token: vscode.CancellationToken,
+  ): Promise<vscode.LanguageModelToolResult> {
+    const input = options.input;
+    const text = (value: string) =>
+      new vscode.LanguageModelToolResult([
+        new vscode.LanguageModelTextPart(value),
+      ]);
+
+    if (input.mode !== "preview" && input.mode !== "apply") {
+      return text(
+        `❌ ${localizeMcpText(
+          'mode must be "preview" or "apply". Nothing was changed.',
+          'mode は "preview" か "apply" を指定してください。何も変更していません。',
+        )}`,
+      );
+    }
+
+    const abort = new AbortController();
+    const subscription = token.onCancellationRequested(() => abort.abort());
+
+    try {
+      const created = await createReinstallPlan(input, {
+        workspaceUri: vscode.workspace.workspaceFolders?.[0]?.uri,
+        index: await getSkillIndex(),
+        japanese: isJapanese(),
+        signal: abort.signal,
+      });
+
+      if ("error" in created) {
+        return text(
+          `❌ ${created.error}\n\n${localizeMcpText(
+            "Nothing was changed. Use #listSkills to get entryId / rootId values.",
+            "何も変更していません。#listSkills で entryId / rootId を確認してください。",
+          )}`,
+        );
+      }
+
+      if (input.mode === "preview") {
+        return text(renderReinstallPlan(created, input));
+      }
+
+      if (!input.planId) {
+        return text(
+          `❌ ${localizeMcpText(
+            'apply requires the planId returned by a preview ("mode": "preview"). Nothing was changed.',
+            "apply にはプレビューが返した planId が必要です。何も変更していません。",
+          )}`,
+        );
+      }
+
+      if (input.planId !== created.plan.planId) {
+        return text(
+          `❌ ${localizeMcpText(
+            `The state changed since the preview (planId ${input.planId} ≠ ${created.plan.planId}). Nothing was changed. Review the new plan and run apply again with its planId.`,
+            `プレビュー後に状態が変わりました（planId ${input.planId} ≠ ${created.plan.planId}）。何も変更していません。新しい計画を確認し、その planId で再実行してください。`,
+          )}\n\n${renderReinstallPlan(created, { ...input, mode: "preview" })}`,
+        );
+      }
+
+      if (!created.plan.items.some((item) => item.status === "ready")) {
+        return text(
+          `ℹ️ ${localizeMcpText(
+            "No item is ready, so nothing was changed.",
+            "実行できる項目がないため、何も変更していません。",
+          )}\n\n${renderReinstallPlan(created, { ...input, mode: "preview" })}`,
+        );
+      }
+
+      const results = await applyReinstallPlan(
+        created,
+        requireExtContext(),
+        abort.signal,
+      );
+
+      const instructionNotes: string[] = [];
+      const touched = new Map<string, InstalledEntry>();
+      for (const result of results) {
+        const installed = created.entries.get(result.entryId);
+        if (result.status === "updated" && installed) {
+          touched.set(installed.root.rootPath, installed);
+        }
+      }
+      const autoUpdate = vscode.workspace
+        .getConfiguration("skillNinja")
+        .get<boolean>("autoUpdateInstruction");
+      for (const { root, plan } of touched.values()) {
+        if (!root.instructionPath) {
+          instructionNotes.push(
+            `${plan.rootLabel}: ${localizeMcpText("no instruction update", "instruction 更新なし")}`,
+          );
+        } else if (autoUpdate) {
+          await updateInstructionFileForRoot(root, requireExtContext());
+          instructionNotes.push(
+            `${plan.rootLabel}: ${localizeMcpText("updated", "更新済み")} ${root.instructionPath}`,
+          );
+        } else {
+          instructionNotes.push(
+            `${plan.rootLabel}: ${localizeMcpText("not updated (autoUpdateInstruction is off)", "更新しない（autoUpdateInstruction が無効）")}`,
+          );
+        }
+      }
+      await vscode.commands.executeCommand("skillNinja.refresh");
+
+      return text(
+        renderApplyResults(results, created.plan.planId, instructionNotes),
+      );
+    } catch (error) {
+      return text(
+        formatMcpError(
+          "Failed to reinstall skills",
+          "スキルの再インストールに失敗しました",
+          error,
+        ),
+      );
+    } finally {
+      subscription.dispose();
     }
   }
 }
