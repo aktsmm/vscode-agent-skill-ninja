@@ -25,7 +25,8 @@ export type ReinstallReason =
   | "local-edits"
   | "fetch-failed"
   | "not-found"
-  | "app-managed";
+  | "app-managed"
+  | "up-to-date";
 
 /** メタデータから見た出所の状態 */
 export type ProvenanceState =
@@ -67,6 +68,20 @@ export interface LocalFileHash {
   blobSha: string;
   /** CRLF を LF に正規化した内容の blob SHA。改行コード差を編集と誤認しないため */
   blobShaLf: string;
+  /** バイト数。バイナリではテキスト差分が意味を持たないので、サイズとハッシュが手がかりになる */
+  size?: number;
+  /** NUL を含むならバイナリ扱い */
+  binary?: boolean;
+}
+
+/** 編集の根拠を示すファイル単位の差分。SHA は先頭 7 文字 */
+export interface ContentDiffDetail {
+  path: string;
+  kind: "changed" | "local-only" | "missing";
+  localSha?: string;
+  localSize?: number;
+  binary?: boolean;
+  remoteSha?: string;
 }
 
 export interface ContentDiff {
@@ -74,6 +89,7 @@ export interface ContentDiff {
   added: string[];
   removed: string[];
   identical: boolean;
+  details?: ContentDiffDetail[];
 }
 
 export interface CandidateEvidence {
@@ -184,6 +200,8 @@ export interface ReinstallRequest {
   allowSourceSwitch: ReadonlySet<string>;
   /** 指定したとき、候補検索をこの source に限る（他社 source へ関連付けない） */
   allowedSources?: ReadonlySet<string>;
+  /** true のとき、記録済み revision と一致している項目も入れ直す */
+  force?: boolean;
 }
 
 export interface ReinstallPlanDeps {
@@ -202,6 +220,55 @@ export interface ReinstallPlanDeps {
 const META_FILE_NAME = ".skill-meta.json";
 const MAX_CANDIDATES = 5;
 
+function describeInputValue(value: unknown): string {
+  return typeof value === "string" ? JSON.stringify(value) : String(value);
+}
+
+/**
+ * ツール入力は JSON スキーマで強制されないので、実行前に形を確かめる。
+ * 名前がフラグに見える allowLocalEdits に true を渡す誤りが最も多く、
+ * 文字列を展開すると 1 文字ずつの entryId に分解されてしまう。
+ */
+export function validateReinstallInput(input: {
+  allowLocalEdits?: unknown;
+  allowSourceSwitch?: unknown;
+  adopt?: unknown;
+  force?: unknown;
+}): string | undefined {
+  if (input.force !== undefined && typeof input.force !== "boolean") {
+    return `force must be true or false (got ${describeInputValue(input.force)}).`;
+  }
+
+  for (const field of ["allowLocalEdits", "allowSourceSwitch"] as const) {
+    const value = input[field];
+    if (value === undefined) {
+      continue;
+    }
+    if (
+      !Array.isArray(value) ||
+      value.some((item) => typeof item !== "string" || item.trim() === "")
+    ) {
+      return `${field} must be an array of entry IDs such as ["home-copilot::skill-name"], not a flag (got ${describeInputValue(value)}). Copy the entry IDs from listSkills / the preview.`;
+    }
+  }
+
+  const adopt = input.adopt;
+  if (
+    adopt !== undefined &&
+    (!Array.isArray(adopt) ||
+      adopt.some(
+        (item) =>
+          !item ||
+          typeof item.entryId !== "string" ||
+          typeof item.candidateId !== "string",
+      ))
+  ) {
+    return `adopt must be an array of {entryId, candidateId} objects (got ${describeInputValue(adopt)}).`;
+  }
+
+  return undefined;
+}
+
 export function computeGitBlobSha(bytes: Uint8Array): string {
   return createHash("sha1")
     .update(`blob ${bytes.length}\0`)
@@ -212,8 +279,10 @@ export function computeGitBlobSha(bytes: Uint8Array): string {
 /** バイナリ（NUL を含む）は改行を正規化しない。 */
 export function hashLocalFile(bytes: Uint8Array): LocalFileHash {
   const blobSha = computeGitBlobSha(bytes);
-  if (bytes.includes(0) || !bytes.includes(13)) {
-    return { blobSha, blobShaLf: blobSha };
+  const binary = bytes.includes(0);
+  const size = bytes.length;
+  if (binary || !bytes.includes(13)) {
+    return { blobSha, blobShaLf: blobSha, size, binary };
   }
   const normalized: number[] = [];
   for (let index = 0; index < bytes.length; index += 1) {
@@ -222,46 +291,114 @@ export function hashLocalFile(bytes: Uint8Array): LocalFileHash {
     }
     normalized.push(bytes[index]);
   }
-  return { blobSha, blobShaLf: computeGitBlobSha(Uint8Array.from(normalized)) };
+  return {
+    blobSha,
+    blobShaLf: computeGitBlobSha(Uint8Array.from(normalized)),
+    size,
+    binary,
+  };
 }
 
+/** 拡張が管理するメタデータ。ダウンロード側と同じく、階層と大文字小文字を問わず比較から外す */
+function isMetaFilePath(filePath: string): boolean {
+  return (
+    (filePath.split("/").pop() ?? "").trim().toLowerCase() === META_FILE_NAME
+  );
+}
+
+/**
+ * exact は拠点が取得したバイト列を検証する用。改行コードを無視すると、
+ * NUL を含まない壊れたバイナリ（CR LF が混入したもの等）を見逃す。
+ */
 export function diffLocalAgainstRemote(
   local: Map<string, LocalFileHash>,
   remote: Map<string, string>,
+  options: { exact?: boolean } = {},
 ): ContentDiff {
   const remoteFiles = new Map(
-    [...remote].filter(([filePath]) => filePath !== META_FILE_NAME),
+    [...remote].filter(([filePath]) => !isMetaFilePath(filePath)),
   );
   const changed: string[] = [];
   const added: string[] = [];
   const removed: string[] = [];
+  const details: ContentDiffDetail[] = [];
+  const short = (value: string) => value.slice(0, 7);
 
   for (const [filePath, hash] of local) {
-    if (filePath === META_FILE_NAME) {
+    if (isMetaFilePath(filePath)) {
       continue;
     }
     const remoteSha = remoteFiles.get(filePath);
+    const localInfo = {
+      localSha: short(hash.blobSha),
+      localSize: hash.size,
+      binary: hash.binary,
+    };
     if (remoteSha === undefined) {
       added.push(filePath);
-    } else if (hash.blobSha !== remoteSha && hash.blobShaLf !== remoteSha) {
+      details.push({ path: filePath, kind: "local-only", ...localInfo });
+    } else if (
+      hash.blobSha !== remoteSha &&
+      (options.exact || hash.blobShaLf !== remoteSha)
+    ) {
       changed.push(filePath);
+      details.push({
+        path: filePath,
+        kind: "changed",
+        ...localInfo,
+        remoteSha: short(remoteSha),
+      });
     }
   }
-  for (const filePath of remoteFiles.keys()) {
+  for (const [filePath, remoteSha] of remoteFiles) {
     if (!local.has(filePath)) {
       removed.push(filePath);
+      details.push({
+        path: filePath,
+        kind: "missing",
+        remoteSha: short(remoteSha),
+      });
     }
   }
 
   changed.sort();
   added.sort();
   removed.sort();
+  details.sort((left, right) => left.path.localeCompare(right.path));
   return {
     changed,
     added,
     removed,
     identical: changed.length + added.length + removed.length === 0,
+    details,
   };
+}
+
+/** ファイル名だけでなく、サイズ・ハッシュ・バイナリかを示す。最大 limit 件。 */
+export function describeContentDiffDetails(
+  diff: ContentDiff,
+  limit: number = 5,
+): string {
+  const details = diff.details ?? [];
+  const lines = details.slice(0, limit).map((item) => {
+    const local =
+      item.localSha !== undefined
+        ? `local ${item.localSha}${item.localSize !== undefined ? `, ${item.localSize} B` : ""}${item.binary ? ", binary" : ""}`
+        : "";
+    const remote =
+      item.remoteSha !== undefined ? `source ${item.remoteSha}` : "";
+    const kind =
+      item.kind === "changed"
+        ? "differs"
+        : item.kind === "local-only"
+          ? "local only"
+          : "missing locally";
+    return `${item.path} (${[kind, local, remote].filter(Boolean).join("; ")})`;
+  });
+  if (details.length > limit) {
+    lines.push(`... +${details.length - limit} more`);
+  }
+  return lines.join(", ");
 }
 
 export function computeLocalFingerprint(
@@ -629,6 +766,19 @@ export async function planEntry(
     : !item.diff.identical;
   if (hasEdits && !request.allowLocalEdits.has(entry.entryId)) {
     return { ...item, reason: "local-edits" };
+  }
+
+  // 記録済みと同じ revision ・同じ内容なら何も変えない。入れ直すと使用中フォルダーの rename で誤った失敗になりうる
+  if (
+    !request.force &&
+    !repairing &&
+    action === "reinstall" &&
+    recorded &&
+    !hasEdits &&
+    recorded.commitSha === target.commitSha &&
+    recorded.contentSha === target.contentSha
+  ) {
+    return { ...item, status: "skipped", reason: "up-to-date" };
   }
 
   return { ...item, status: "ready" };

@@ -99,7 +99,14 @@ function createResponse({
       return json;
     },
     async text() {
-      return text || "";
+      return Buffer.isBuffer(text) ? text.toString("utf-8") : text || "";
+    },
+    async arrayBuffer() {
+      const data = Buffer.isBuffer(text) ? text : Buffer.from(text || "", "utf-8");
+      return data.buffer.slice(
+        data.byteOffset,
+        data.byteOffset + data.byteLength,
+      );
     },
   };
 }

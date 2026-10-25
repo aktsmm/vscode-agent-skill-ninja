@@ -36,9 +36,11 @@ import {
   buildReinstallPlan,
   findNameCandidates,
   computeLocalFingerprint,
+  describeContentDiffDetails,
   diffLocalAgainstRemote,
   hashLocalFile,
   selectEntries,
+  validateReinstallInput,
   type EntrySelector,
   type LocalFileHash,
   type PlanCandidate,
@@ -254,6 +256,8 @@ export interface ReinstallInput {
   adopt?: Array<{ entryId: string; candidateId: string }>;
   allowLocalEdits?: string[];
   allowSourceSwitch?: string[];
+  /** true のとき、記録済み revision と一致している項目も入れ直す */
+  force?: boolean;
   planId?: string;
 }
 
@@ -374,6 +378,11 @@ export async function createReinstallPlan(
     signal?: AbortSignal;
   },
 ): Promise<PlanContext | { error: string }> {
+  const invalidInput = validateReinstallInput(input);
+  if (invalidInput) {
+    return { error: invalidInput };
+  }
+
   const { entries } = await collectInstalledEntries(
     options.workspaceUri,
     options.japanese,
@@ -407,6 +416,7 @@ export async function createReinstallPlan(
     adopt,
     allowLocalEdits: new Set(input.allowLocalEdits ?? []),
     allowSourceSwitch: new Set(input.allowSourceSwitch ?? []),
+    force: input.force === true,
     allowedSources: input.targets?.sources?.length
       ? new Set(input.targets.sources.map((source) => source.toLowerCase()))
       : undefined,
@@ -537,7 +547,25 @@ export async function applyReinstallPlan(
             signal,
             rebind: switched,
             // プレビュー後（取得中を含む）に内容が変わっていたら、入れ替えずに中止する
-            beforeSwap: async () => {
+            beforeSwap: async (staged) => {
+              // 取得した内容を先に取得元と照合し、壊れたファイルを入れ替えてから気づかないようにする
+              const remote = await deps.readRemoteFiles(revision);
+              if (remote.truncated) {
+                throw new Error(
+                  "the source file list was truncated, so the downloaded content could not be verified; nothing was replaced",
+                );
+              }
+              const diff = diffLocalAgainstRemote(
+                await readLocalSkillFiles(staged.fsPath),
+                remote.files,
+                { exact: true },
+              );
+              if (!diff.identical) {
+                throw new Error(
+                  `the downloaded content does not match the source revision (${describeContentDiffDetails(diff)}); nothing was replaced`,
+                );
+              }
+              // 時間のかかる照合の後で、入れ替える直前に編集されていないことを確認する
               const current = computeLocalFingerprint(
                 await readLocalSkillFiles(
                   resolveManagedSkillDirUri(
@@ -563,7 +591,7 @@ export async function applyReinstallPlan(
           continue;
         }
 
-        const verification = await verifyInstalledSkill(
+        const { verification, mismatch } = await verifyInstalledSkill(
           installed,
           candidate,
           revision,
@@ -583,7 +611,7 @@ export async function applyReinstallPlan(
           verification,
           message: verified
             ? undefined
-            : "post-install verification failed; the result is not recorded as up to date",
+            : `post-install verification failed; the result is not recorded as up to date${mismatch ? `. Files that do not match the source: ${mismatch}` : ""}`,
         });
       } catch (error) {
         results.push({
@@ -606,7 +634,10 @@ async function verifyInstalledSkill(
   candidate: PlanCandidate,
   revision: SkillSourceRevision,
   deps: ReinstallPlanDeps,
-): Promise<NonNullable<ApplyResult["verification"]>> {
+): Promise<{
+  verification: NonNullable<ApplyResult["verification"]>;
+  mismatch?: string;
+}> {
   const skillDir = resolveManagedSkillDirUri(
     installed.root.rootUri,
     installed.plan.relativePath,
@@ -617,6 +648,7 @@ async function verifyInstalledSkill(
     skillMdPresent: fs.existsSync(path.join(skillDir, "SKILL.md")),
     contentMatchesRemote: false,
   };
+  let mismatch: string | undefined;
 
   try {
     const stored = JSON.parse(
@@ -635,15 +667,25 @@ async function verifyInstalledSkill(
 
   try {
     const remote = await deps.readRemoteFiles(revision);
-    verification.contentMatchesRemote =
-      !remote.truncated &&
-      diffLocalAgainstRemote(await readLocalSkillFiles(skillDir), remote.files)
-        .identical;
-  } catch {
+    if (remote.truncated) {
+      mismatch = "the source file list was truncated, so the content could not be compared";
+    } else {
+      const diff = diffLocalAgainstRemote(
+        await readLocalSkillFiles(skillDir),
+        remote.files,
+        { exact: true },
+      );
+      verification.contentMatchesRemote = diff.identical;
+      if (!diff.identical) {
+        mismatch = describeContentDiffDetails(diff);
+      }
+    }
+  } catch (error) {
     verification.contentMatchesRemote = false;
+    mismatch = `the source content could not be read: ${error instanceof Error ? error.message : String(error)}`;
   }
 
-  return verification;
+  return { verification, mismatch };
 }
 
 function normalizeRemote(value: string | undefined): string {

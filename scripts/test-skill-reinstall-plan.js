@@ -184,6 +184,58 @@ function missingPathError() {
     assert.strictEqual(item.provenance, "verified");
   });
 
+  await test("an item already at the recorded revision with identical content is skipped, not reinstalled", async () => {
+    const setup = () =>
+      makeDeps({
+        index: [
+          {
+            source: "mine",
+            path: "skills/demo",
+            name: "demo",
+            remote: { "SKILL.md": "same" },
+          },
+        ],
+        local: { "SKILL.md": "same" },
+      });
+    // 記録済み revision == 目標 revision（どちらも "e"）
+    const upToDate = entry({
+      sourceRevision: revision("mine", "skills/demo", "e"),
+    });
+
+    const skipped = await planEntry(upToDate, NO_FLAGS, setup().deps);
+    assert.strictEqual(skipped.status, "skipped");
+    assert.strictEqual(skipped.reason, "up-to-date");
+
+    const forced = await planEntry(
+      upToDate,
+      { ...NO_FLAGS, force: true },
+      setup().deps,
+    );
+    assert.strictEqual(forced.status, "ready");
+  });
+
+  await test("same revision but locally edited content is still held, not skipped", async () => {
+    const { deps } = makeDeps({
+      index: [
+        {
+          source: "mine",
+          path: "skills/demo",
+          name: "demo",
+          remote: { "SKILL.md": "same" },
+        },
+      ],
+      local: { "SKILL.md": "my edit" },
+      baseline: { commitSha: sha("e"), files: { "SKILL.md": "same" } },
+    });
+    const item = await planEntry(
+      entry({ sourceRevision: revision("mine", "skills/demo", "e") }),
+      NO_FLAGS,
+      deps,
+    );
+    assert.strictEqual(item.status, "hold");
+    assert.strictEqual(item.reason, "local-edits");
+  });
+
   await test("local edits against the recorded revision are held, then released by approval", async () => {
     const setup = () =>
       makeDeps({
@@ -527,6 +579,26 @@ function missingPathError() {
     assert.deepStrictEqual(diff.changed, ["SKILL.md"]);
     assert.deepStrictEqual(diff.removed, ["extra.md"]);
     assert.strictEqual(diff.identical, false);
+  });
+
+  await test("exact mode catches NUL-free byte corruption that line-ending tolerance would hide", () => {
+    // ソース [255,10,1] に対し、取得側が [255,13,10,1] を書いた場合
+    const remote = new Map([["a.bin", computeGitBlobSha(Buffer.from([255, 10, 1]))]]);
+    const local = new Map([["a.bin", hashLocalFile(Buffer.from([255, 13, 10, 1]))]]);
+    assert.strictEqual(diffLocalAgainstRemote(local, remote).identical, true);
+    const exact = diffLocalAgainstRemote(local, remote, { exact: true });
+    assert.strictEqual(exact.identical, false);
+    assert.deepStrictEqual(exact.changed, ["a.bin"]);
+  });
+
+  await test("extension-owned metadata is ignored at any depth and in any case on both sides", () => {
+    const local = new Map([["SKILL.md", hashLocalFile(Buffer.from("x"))]]);
+    const remote = new Map([
+      ["SKILL.md", computeGitBlobSha(Buffer.from("x"))],
+      ["sub/.skill-meta.json", computeGitBlobSha(Buffer.from("{}"))],
+      [".SKILL-META.JSON", computeGitBlobSha(Buffer.from("{}"))],
+    ]);
+    assert.strictEqual(diffLocalAgainstRemote(local, remote, { exact: true }).identical, true);
   });
 
   await test("the metadata file never counts as a content difference", () => {

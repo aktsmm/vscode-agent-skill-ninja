@@ -520,11 +520,8 @@ async function downloadDirectory(
     const downloadUrl = pinned
       ? `https://raw.githubusercontent.com/${owner}/${repo}/${encodeGitRef(branch)}/${remotePath}/${encodeURIComponent(entry.name)}`
       : entry.download_url!;
-    const content = await fetchFileContent(downloadUrl, token, signal);
-    await vscode.workspace.fs.writeFile(
-      localFilePath,
-      Buffer.from(content, "utf-8"),
-    );
+    const content = await fetchFileBytes(downloadUrl, token, signal);
+    await vscode.workspace.fs.writeFile(localFilePath, content);
   };
 
   console.log(
@@ -645,12 +642,9 @@ async function downloadPrimarySkillMd(
   const rawUrl = `https://raw.githubusercontent.com/${owner}/${repo}/${encodeGitRef(branch)}/${normalizedRemotePath}/SKILL.md`;
   try {
     console.log(`[Skill Ninja] Trying primary SKILL.md fallback: ${rawUrl}`);
-    const content = await fetchFileContent(rawUrl, token, signal);
+    const content = await fetchFileBytes(rawUrl, token, signal);
     const skillMdPath = vscode.Uri.joinPath(localPath, "SKILL.md");
-    await vscode.workspace.fs.writeFile(
-      skillMdPath,
-      Buffer.from(content, "utf-8"),
-    );
+    await vscode.workspace.fs.writeFile(skillMdPath, content);
     console.log(`[Skill Ninja] Saved primary SKILL.md fallback`);
     return true;
   } catch (error) {
@@ -1064,7 +1058,7 @@ export async function installSkillUpdate(
      */
     rebind?: boolean;
     /** 入れ替える直前に呼ばれる。例外を投げると、元のフォルダに触れずに中止する */
-    beforeSwap?: () => Promise<void>;
+    beforeSwap?: (staged: vscode.Uri) => Promise<void>;
   },
 ): Promise<SkillInstallResult> {
   const rebind = options?.rebind === true;
@@ -1299,9 +1293,18 @@ export async function installSkillUpdate(
     assertContained(backup);
     await readCurrent();
     // 取得に時間がかかる間の編集を、入れ替える直前に呼び出し側が確認できるようにする
-    await options?.beforeSwap?.();
+    await options?.beforeSwap?.(staged);
     checkCancelled();
-    await vscode.workspace.fs.rename(destination, backup, { overwrite: false });
+    try {
+      await vscode.workspace.fs.rename(destination, backup, {
+        overwrite: false,
+      });
+    } catch (error) {
+      // rename は途中で止まらないので、ここで失敗しても元のフォルダはそのまま残る
+      throw new Error(
+        `Skill update could not start: the installed folder could not be moved aside (it may be open in another application or locked). The installed version was not changed. (${error instanceof Error ? error.message : String(error)})`,
+      );
+    }
     try {
       checkCancelled();
       assertContained(destination);
@@ -1499,19 +1502,16 @@ export async function installSkill(
       } else {
         console.log(`[Skill Ninja] Downloading single file: ${rawUrl}`);
         try {
-          const content = await fetchFileContent(
+          const content = await fetchFileBytes(
             rawUrl,
             token,
             options?.signal,
           );
-          console.log(`[Skill Ninja] Downloaded ${content.length} bytes`);
+          console.log(`[Skill Ninja] Downloaded ${content.byteLength} bytes`);
 
           // SKILL.md として保存（メインファイル）
           const skillMdPath = vscode.Uri.joinPath(skillPath, "SKILL.md");
-          await vscode.workspace.fs.writeFile(
-            skillMdPath,
-            Buffer.from(content, "utf-8"),
-          );
+          await vscode.workspace.fs.writeFile(skillMdPath, content);
           console.log(`[Skill Ninja] Saved as SKILL.md`);
         } catch (error) {
           console.error(`[Skill Ninja] Failed to download ${rawUrl}:`, error);
@@ -3324,13 +3324,14 @@ async function openBugReport(
 }
 
 /**
- * URL からファイル内容を取得
+ * URL からファイル内容をバイト列のまま取得する。
+ * text() 経由だと、不正な UTF-8 は U+FFFD に置換されてバイナリが壊れ、先頭の BOM も落ちる。
  */
-async function fetchFileContent(
+async function fetchFileBytes(
   url: string,
   token?: string,
   signal?: AbortSignal,
-): Promise<string> {
+): Promise<Uint8Array> {
   const response = await fetchGitHubWithOptionalAuthRetry(url, {
     accept: "text/plain",
     token,
@@ -3347,6 +3348,5 @@ async function fetchFileContent(
   }
   // 空ファイル（例: Python の __init__.py）も正常なので、
   // HTTP 200 が返れば内容が空でもエラーにしない
-  const text = await response.text();
-  return text;
+  return new Uint8Array(await response.arrayBuffer());
 }

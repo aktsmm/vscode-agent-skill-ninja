@@ -35,6 +35,7 @@ import {
 } from "./skillReinstall";
 import {
   buildCandidateId,
+  describeContentDiffDetails,
   describeProvenance,
   findNameCandidates,
   selectSkillForInstall,
@@ -1329,6 +1330,11 @@ function reasonText(reason: ReinstallReason | undefined): string {
         "synced by an app (Claude / ChatGPT); it would be regenerated, so it is not reinstalled",
         "アプリ（Claude / ChatGPT）の同期フォルダのため、再生成されるので再インストールしません",
       );
+    case "up-to-date":
+      return localizeMcpText(
+        "already at the recorded revision with identical content: nothing to do (pass force: true to rewrite anyway)",
+        "記録済みの revision と同じ内容です: 変更不要（書き換える場合は force: true）",
+      );
     default:
       return "";
   }
@@ -1342,7 +1348,12 @@ function diffText(diff: ContentDiff | undefined): string {
     return localizeMcpText("identical to the source", "取得元と一致");
   }
   const names = [...diff.changed, ...diff.added, ...diff.removed].slice(0, 5);
-  return `${diff.changed.length} changed / ${diff.added.length} local-only / ${diff.removed.length} missing (${names.join(", ")}${
+  const summary = `${diff.changed.length} changed / ${diff.added.length} local-only / ${diff.removed.length} missing`;
+  // ファイル単位の根拠（サイズ・ハッシュ・バイナリ）があれば、ファイル名だけではなくそれを示す
+  if (diff.details && diff.details.length > 0) {
+    return `${summary} [${describeContentDiffDetails(diff)}]`;
+  }
+  return `${summary} (${names.join(", ")}${
     diff.changed.length + diff.added.length + diff.removed.length > 5
       ? ", ..."
       : ""
@@ -1470,6 +1481,7 @@ function renderReinstallPlan(
       ...(input.allowSourceSwitch?.length
         ? { allowSourceSwitch: input.allowSourceSwitch }
         : {}),
+      ...(input.force ? { force: true } : {}),
     },
     null,
     2,
@@ -1581,6 +1593,7 @@ class SkillReinstallTool implements vscode.LanguageModelTool<ReinstallInput> {
           adopt: options.input.adopt,
           allowLocalEdits: options.input.allowLocalEdits,
           allowSourceSwitch: options.input.allowSourceSwitch,
+          force: options.input.force,
         }),
       ),
     };

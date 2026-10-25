@@ -120,6 +120,16 @@ function harness({ existingMeta } = {}) {
     headers: { get: () => null },
     json: async () => body,
     text: async () => (typeof body === "string" ? body : JSON.stringify(body)),
+    arrayBuffer: async () => {
+      const data = Buffer.from(
+        typeof body === "string" ? body : JSON.stringify(body),
+        "utf-8",
+      );
+      return data.buffer.slice(
+        data.byteOffset,
+        data.byteOffset + data.byteLength,
+      );
+    },
   });
   const fetch = async (url) => {
     const override = await state.fetchHook?.(String(url));

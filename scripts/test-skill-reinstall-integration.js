@@ -179,16 +179,31 @@ function setup(installBehavior = "ok") {
         if (installBehavior === "throw" && root.rootPath === roots.codex) {
           throw new Error("simulated install failure");
         }
-        // 実装と同じく、取得（ステージング）が終わった後、入れ替える直前に確認する
+        // 実装と同じく、取得をステージングへ書いてから、入れ替える直前に確認する
         if (installBehavior === "edit-during-download") {
           fs.appendFileSync(
             path.join(root.rootPath, meta.relativePath, "SKILL.md"),
             "edited while downloading\n",
           );
         }
-        await options?.beforeSwap?.();
         const dir = path.join(root.rootPath, meta.relativePath);
         const files = REMOTE[`${skill.source}::${skill.path}`];
+        const staged = path.join(root.rootPath, ".skill-update-stage", meta.relativePath);
+        fs.rmSync(staged, { recursive: true, force: true });
+        for (const [name, text] of Object.entries(files)) {
+          write(
+            path.join(staged, name),
+            installBehavior === "corrupt-download" ? `${text}\u0000corrupted` : text,
+          );
+        }
+        try {
+          await options?.beforeSwap?.(uri(staged));
+        } finally {
+          fs.rmSync(path.join(root.rootPath, ".skill-update-stage"), {
+            recursive: true,
+            force: true,
+          });
+        }
         fs.rmSync(dir, { recursive: true, force: true });
         for (const [name, text] of Object.entries(files)) write(path.join(dir, name), text);
         write(
@@ -227,6 +242,14 @@ function setup(installBehavior = "ok") {
         };
       },
       readSkillRemoteFiles: async (revision) => {
+        // ステージング内容の照合中（取得元の読み出し中）にユーザーが編集した状況を再現する
+        if (log.armEditDuringVerify) {
+          log.armEditDuringVerify = false;
+          fs.appendFileSync(
+            path.join(roots.workspace, "demo", "SKILL.md"),
+            "edited during verification\n",
+          );
+        }
         const files =
           baselineBySha[revision.commitSha] ??
           REMOTE[`${revision.repo}::${revision.remotePath}`];
@@ -488,6 +511,39 @@ async function main() {
     assert.equal(
       fs.readFileSync(path.join(roots.workspace, "demo", "SKILL.md"), "utf8"),
       "installed public\nedited while downloading\n",
+    );
+  });
+
+  await test("an edit made while the staged content is being verified still aborts the swap", "ok", async ({ reinstall, roots, log }) => {
+    const created = await reinstall.createReinstallPlan(
+      { mode: "apply", targets: { entryIds: ["workspace:.github/skills::demo"] } },
+      options,
+    );
+    assert.equal(statusOf(created.plan)["workspace:.github/skills::demo"], "ready");
+    log.armEditDuringVerify = true;
+    const [result] = await reinstall.applyReinstallPlan(created, {}, undefined);
+    assert.equal(result.status, "failed");
+    assert.match(result.message, /changed after the preview/);
+    assert.equal(
+      fs.readFileSync(path.join(roots.workspace, "demo", "SKILL.md"), "utf8"),
+      "installed public\nedited during verification\n",
+    );
+  });
+
+  await test("a corrupted download is caught before the swap and the installed copy is untouched", "corrupt-download", async ({ reinstall, roots }) => {
+    const created = await reinstall.createReinstallPlan(
+      { mode: "apply", targets: { entryIds: ["workspace:.github/skills::demo"] } },
+      options,
+    );
+    assert.equal(statusOf(created.plan)["workspace:.github/skills::demo"], "ready");
+    const [result] = await reinstall.applyReinstallPlan(created, {}, undefined);
+    assert.equal(result.status, "failed");
+    assert.match(result.message, /does not match the source revision/);
+    assert.match(result.message, /SKILL\.md \(differs; local [0-9a-f]{7}, \d+ B, binary; source [0-9a-f]{7}\)/);
+    assert.match(result.message, /nothing was replaced/);
+    assert.equal(
+      fs.readFileSync(path.join(roots.workspace, "demo", "SKILL.md"), "utf8"),
+      "installed public\n",
     );
   });
 

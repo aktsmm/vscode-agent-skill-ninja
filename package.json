@@ -2,7 +2,7 @@
   "name": "agent-skill-ninja",
   "displayName": "%displayName%",
   "description": "%description%",
-  "version": "0.9.59",
+  "version": "0.9.60",
   "publisher": "yamapan",
   "license": "CC-BY-NC-SA-4.0",
   "icon": "resources/icon.png",
@@ -315,14 +315,18 @@
               "items": {
                 "type": "string"
               },
-              "description": "Entry IDs whose local edits the user agreed to overwrite"
+              "description": "Array of entry ID strings (NOT a boolean flag, e.g. [\"home-copilot::skill-name\"]) whose local edits the user agreed to overwrite"
             },
             "allowSourceSwitch": {
               "type": "array",
               "items": {
                 "type": "string"
               },
-              "description": "Entry IDs the user agreed to switch to a different source (e.g. public to private)"
+              "description": "Array of entry ID strings (NOT a boolean flag, e.g. [\"home-copilot::skill-name\"]) the user agreed to switch to a different source (e.g. public to private)"
+            },
+            "force": {
+              "type": "boolean",
+              "description": "Also rewrite items already at the recorded revision with identical content (normally skipped as up-to-date). Default false"
             },
             "planId": {
               "type": "string",

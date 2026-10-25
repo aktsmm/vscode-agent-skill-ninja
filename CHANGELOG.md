@@ -7,6 +7,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.9.60] - 2026-10-25
+
+### Fixed
+
+- 🐛 **Binary Skill Files No Longer Corrupted On Install** - Skill files were downloaded as text and re-encoded as UTF-8, so binaries (`.pptx`, `.tar.gz`, images, fonts) grew and broke, and a UTF-8 BOM was dropped. Every install, update and reinstall path now writes the downloaded bytes unchanged (#21) / スキルのファイルを文字列として取得して UTF-8 で書き直していたため、バイナリ（`.pptx`・`.tar.gz`・画像・フォント）が壊れ、UTF-8 BOM も欠落していました。インストール・更新・再インストールのすべての経路で、取得したバイト列をそのまま書き込むようにしました（#21）。
+- 🐛 **Corrupted Downloads Never Replace A Good Copy** - `#reinstallSkills` now compares the downloaded (staged) files with the source byte-for-byte before it swaps anything, and checks again that the installed copy was not edited meanwhile. A mismatch aborts with the files that differ (size, hash, binary) and leaves the installed copy untouched. Skills with files over the 10 MiB / 5,000-file comparison limits or truncated source listings now stop before the swap instead of after it / `#reinstallSkills` は入れ替える前に、取得した（ステージングの）ファイルを取得元とバイト単位で照合し、その間にインストール済みのコピーが編集されていないことも再確認します。不一致なら、違うファイル（サイズ・ハッシュ・バイナリ）を示して中止し、インストール済みのコピーには触れません。比較上限（10 MiB / 5,000 ファイル）を超えるスキルや切り詰められた取得元一覧は、入れ替えの後ではなく前に停止します（#21、#24）。
+- 🐛 **Already Up-to-date Skills Are Skipped** - `#reinstallSkills` now plans an item whose installed revision and content already match the source as `skipped` (`up-to-date`) instead of rewriting it, so re-running a plan no longer produces false failures when the folder is open in an editor. A new `force: true` option rewrites such items anyway, and a failure at the backup step now says that the installed version was not changed (#24) / 記録済みの revision と内容が取得元とすでに一致している項目を、`#reinstallSkills` は書き換えずに `skipped`（`up-to-date`）として計画します。フォルダーがエディターで開かれていても、計画の再実行で誤った失敗が出ません。`force: true` でこうした項目も書き換えられ、バックアップ段階で失敗したときは「インストール済みの版は変更していない」と明示します（#24）。
+- 🐛 **Clear Error For `allowLocalEdits: true`** - `allowLocalEdits`, `allowSourceSwitch` and `adopt` are validated before anything runs. A boolean or a string is rejected with the expected shape (an array of entry IDs such as `["home-copilot::skill-name"]`) instead of being split into characters, and the tool schema now says these options are not flags (#22) / `allowLocalEdits`・`allowSourceSwitch`・`adopt` を実行前に検証します。真偽値や文字列は文字に分解せず、期待する形（`["home-copilot::skill-name"]` のような entryId の配列）を示して拒否します。ツールのスキーマ説明も、フラグではないことを明記しました（#22）。
+
+### Changed
+
+- 🔎 **Evidence For Differences** - The reinstall preview shows, per differing file, the local size, short hash, whether it is binary and the source hash, and a failed read-back verification names the files that do not match the source (#23) / 再インストールのプレビューに、差のあるファイルごとのローカルのサイズ・短縮ハッシュ・バイナリかどうか、取得元のハッシュを表示します。読み戻し検証に失敗したときも、取得元と一致しないファイルを示します（#23）。
+
 ## [0.9.59] - 2026-10-23
 
 ### Added
