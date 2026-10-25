@@ -120,9 +120,12 @@ function createResponse({ ok = true, status = 200, json, text }) {
     status,
     statusText: ok ? "OK" : "Error",
     json: async () => json,
-    text: async () => (Buffer.isBuffer(text) ? text.toString("utf-8") : text ?? ""),
+    text: async () =>
+      Buffer.isBuffer(text) ? text.toString("utf-8") : (text ?? ""),
     arrayBuffer: async () => {
-      const data = Buffer.isBuffer(text) ? text : Buffer.from(text ?? "", "utf-8");
+      const data = Buffer.isBuffer(text)
+        ? text
+        : Buffer.from(text ?? "", "utf-8");
       return data.buffer.slice(
         data.byteOffset,
         data.byteOffset + data.byteLength,
@@ -408,7 +411,9 @@ async function main() {
 
   await test("downloaded files keep their exact bytes (binary and UTF-8 BOM)", async () => {
     // 0x89 0xFF 0x80 は UTF-8 として不正。text() 経由だと U+FFFD に置換される
-    const binary = Buffer.from([0x50, 0x4b, 0x03, 0x04, 0x89, 0xff, 0x80, 0x00]);
+    const binary = Buffer.from([
+      0x50, 0x4b, 0x03, 0x04, 0x89, 0xff, 0x80, 0x00,
+    ]);
     const withBom = Buffer.concat([
       Buffer.from([0xef, 0xbb, 0xbf]),
       Buffer.from("hello\n", "utf-8"),
@@ -434,7 +439,10 @@ async function main() {
 
     const written = (name) =>
       [...harness.bytes].find(([target]) => target.endsWith(name))?.[1];
-    assert.ok(binary.equals(written("template.pptx")), "binary bytes must be unchanged");
+    assert.ok(
+      binary.equals(written("template.pptx")),
+      "binary bytes must be unchanged",
+    );
     assert.ok(withBom.equals(written("bom.txt")), "a UTF-8 BOM must be kept");
   });
 

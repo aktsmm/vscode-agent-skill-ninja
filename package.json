@@ -1416,7 +1416,12 @@
           "scope": "resource",
           "default": "custom",
           "order": 4,
-          "enum": ["custom", "github", "claude", "agents"],
+          "enum": [
+            "custom",
+            "github",
+            "claude",
+            "agents"
+          ],
           "enumItemLabels": [
             "%config.skillsDirectoryPreset.label.custom%",
             "%config.skillsDirectoryPreset.label.github%",

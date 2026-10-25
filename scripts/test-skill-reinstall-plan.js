@@ -94,7 +94,12 @@ function entry(overrides = {}) {
  * index: [{ source, path, name, remote: {file: text}, revision?, error? }]
  * local: { file: text } for every entry unless overridden by localByEntry
  */
-function makeDeps({ index, local = { "SKILL.md": "same" }, localByEntry = {}, baseline }) {
+function makeDeps({
+  index,
+  local = { "SKILL.md": "same" },
+  localByEntry = {},
+  baseline,
+}) {
   const candidates = index.map((item) => ({
     candidateId: buildCandidateId(item.source, item.path),
     source: item.source,
@@ -123,7 +128,8 @@ function makeDeps({ index, local = { "SKILL.md": "same" }, localByEntry = {}, ba
         calls.resolve.push(candidate.candidateId);
         const item = index.find(
           (value) =>
-            buildCandidateId(value.source, value.path) === candidate.candidateId,
+            buildCandidateId(value.source, value.path) ===
+            candidate.candidateId,
         );
         if (item.error) {
           throw item.error;
@@ -136,8 +142,7 @@ function makeDeps({ index, local = { "SKILL.md": "same" }, localByEntry = {}, ba
           return { files: remoteOf(baseline.files), truncated: false };
         }
         const item = index.find(
-          (value) =>
-            value.source === rev.repo && value.path === rev.remotePath,
+          (value) => value.source === rev.repo && value.path === rev.remotePath,
         );
         if (item?.truncated) {
           return { files: new Map(), truncated: true };
@@ -239,7 +244,9 @@ function missingPathError() {
   await test("local edits against the recorded revision are held, then released by approval", async () => {
     const setup = () =>
       makeDeps({
-        index: [{ source: "mine", path: "skills/demo", name: "demo", remote: {} }],
+        index: [
+          { source: "mine", path: "skills/demo", name: "demo", remote: {} },
+        ],
         local: { "SKILL.md": "my edit" },
         baseline: { commitSha: sha("d"), files: { "SKILL.md": "original" } },
       });
@@ -319,7 +326,10 @@ function missingPathError() {
 
     const identical = await planEntry(
       orphan,
-      { ...NO_FLAGS, adopt: { [orphan.entryId]: "mine-private::.github/skills/demo" } },
+      {
+        ...NO_FLAGS,
+        adopt: { [orphan.entryId]: "mine-private::.github/skills/demo" },
+      },
       makeDeps({ index }).deps,
     );
     assert.strictEqual(identical.status, "ready");
@@ -349,8 +359,18 @@ function missingPathError() {
 
   await test("adopt with an ineligible candidate is rejected and other sources are not offered", async () => {
     const index = [
-      { source: "mine", path: "demo", name: "demo", remote: { "SKILL.md": "same" } },
-      { source: "vendor", path: "skills/demo", name: "demo", remote: { "SKILL.md": "same" } },
+      {
+        source: "mine",
+        path: "demo",
+        name: "demo",
+        remote: { "SKILL.md": "same" },
+      },
+      {
+        source: "vendor",
+        path: "skills/demo",
+        name: "demo",
+        remote: { "SKILL.md": "same" },
+      },
     ];
     const orphan = entry({
       source: "local",
@@ -397,7 +417,12 @@ function missingPathError() {
       NO_FLAGS,
       makeDeps({
         index: [
-          { source: "mine", path: "skills/demo", name: "demo", error: missingPathError() },
+          {
+            source: "mine",
+            path: "skills/demo",
+            name: "demo",
+            error: missingPathError(),
+          },
         ],
       }).deps,
     );
@@ -412,7 +437,12 @@ function missingPathError() {
       NO_FLAGS,
       makeDeps({
         index: [
-          { source: "mine", path: "skills/demo", name: "demo", error: new Error("HTTP 502") },
+          {
+            source: "mine",
+            path: "skills/demo",
+            name: "demo",
+            error: new Error("HTTP 502"),
+          },
         ],
       }).deps,
     );
@@ -425,7 +455,13 @@ function missingPathError() {
       NO_FLAGS,
       makeDeps({
         index: [
-          { source: "mine", path: "skills/demo", name: "demo", remote: {}, truncated: true },
+          {
+            source: "mine",
+            path: "skills/demo",
+            name: "demo",
+            remote: {},
+            truncated: true,
+          },
         ],
         baseline: undefined,
       }).deps,
@@ -436,7 +472,12 @@ function missingPathError() {
 
   await test("switching to a different source needs its own approval", async () => {
     const index = [
-      { source: "mine", path: "skills/demo", name: "demo", remote: { "SKILL.md": "same" } },
+      {
+        source: "mine",
+        path: "skills/demo",
+        name: "demo",
+        remote: { "SKILL.md": "same" },
+      },
       {
         source: "mine-private",
         path: ".github/skills/demo",
@@ -496,7 +537,12 @@ function missingPathError() {
 
   await test("a placeholder install is repaired; only edits beyond SKILL.md hold it back", async () => {
     const index = [
-      { source: "mine", path: "skills/demo", name: "demo", remote: { "SKILL.md": "real" } },
+      {
+        source: "mine",
+        path: "skills/demo",
+        name: "demo",
+        remote: { "SKILL.md": "real" },
+      },
     ];
     const plain = await planEntry(
       entry({ needsRepair: true }),
@@ -537,7 +583,12 @@ function missingPathError() {
       NO_FLAGS,
       makeDeps({
         index: [
-          { source: "mine", path: "skills/demo", name: "demo", remote: { "SKILL.md": "same" } },
+          {
+            source: "mine",
+            path: "skills/demo",
+            name: "demo",
+            remote: { "SKILL.md": "same" },
+          },
         ],
       }).deps,
     );
@@ -549,7 +600,12 @@ function missingPathError() {
       NO_FLAGS,
       makeDeps({
         index: [
-          { source: "mine", path: "skills/demo", name: "demo", remote: { "SKILL.md": "other" } },
+          {
+            source: "mine",
+            path: "skills/demo",
+            name: "demo",
+            remote: { "SKILL.md": "other" },
+          },
         ],
       }).deps,
     );
@@ -568,7 +624,9 @@ function missingPathError() {
     ]);
     assert.strictEqual(diffLocalAgainstRemote(local, remote).identical, true);
 
-    const edited = new Map([["SKILL.md", hashLocalFile(Buffer.from("a\nc\n"))]]);
+    const edited = new Map([
+      ["SKILL.md", hashLocalFile(Buffer.from("a\nc\n"))],
+    ]);
     const diff = diffLocalAgainstRemote(
       edited,
       new Map([
@@ -583,8 +641,12 @@ function missingPathError() {
 
   await test("exact mode catches NUL-free byte corruption that line-ending tolerance would hide", () => {
     // ソース [255,10,1] に対し、取得側が [255,13,10,1] を書いた場合
-    const remote = new Map([["a.bin", computeGitBlobSha(Buffer.from([255, 10, 1]))]]);
-    const local = new Map([["a.bin", hashLocalFile(Buffer.from([255, 13, 10, 1]))]]);
+    const remote = new Map([
+      ["a.bin", computeGitBlobSha(Buffer.from([255, 10, 1]))],
+    ]);
+    const local = new Map([
+      ["a.bin", hashLocalFile(Buffer.from([255, 13, 10, 1]))],
+    ]);
     assert.strictEqual(diffLocalAgainstRemote(local, remote).identical, true);
     const exact = diffLocalAgainstRemote(local, remote, { exact: true });
     assert.strictEqual(exact.identical, false);
@@ -598,7 +660,10 @@ function missingPathError() {
       ["sub/.skill-meta.json", computeGitBlobSha(Buffer.from("{}"))],
       [".SKILL-META.JSON", computeGitBlobSha(Buffer.from("{}"))],
     ]);
-    assert.strictEqual(diffLocalAgainstRemote(local, remote, { exact: true }).identical, true);
+    assert.strictEqual(
+      diffLocalAgainstRemote(local, remote, { exact: true }).identical,
+      true,
+    );
   });
 
   await test("the metadata file never counts as a content difference", () => {
@@ -608,26 +673,43 @@ function missingPathError() {
     ]);
     const remote = new Map([
       ["SKILL.md", computeGitBlobSha(Buffer.from("x"))],
-      [".skill-meta.json", computeGitBlobSha(Buffer.from("{\"a\":1}"))],
+      [".skill-meta.json", computeGitBlobSha(Buffer.from('{"a":1}'))],
     ]);
     assert.strictEqual(diffLocalAgainstRemote(local, remote).identical, true);
   });
 
   await test("planId changes when local content or the target changes", async () => {
     const index = [
-      { source: "mine", path: "skills/demo", name: "demo", remote: { "SKILL.md": "same" } },
+      {
+        source: "mine",
+        path: "skills/demo",
+        name: "demo",
+        remote: { "SKILL.md": "same" },
+      },
     ];
     const planWith = async (local, targetChar) => {
       const { deps } = makeDeps({
-        index: [{ ...index[0], revision: revision("mine", "skills/demo", targetChar) }],
+        index: [
+          {
+            ...index[0],
+            revision: revision("mine", "skills/demo", targetChar),
+          },
+        ],
         local,
       });
-      return buildReinstallPlan([entry({ sourceRevision: undefined })], NO_FLAGS, deps);
+      return buildReinstallPlan(
+        [entry({ sourceRevision: undefined })],
+        NO_FLAGS,
+        deps,
+      );
     };
     const first = await planWith({ "SKILL.md": "same" }, "e");
     const again = await planWith({ "SKILL.md": "same" }, "e");
     assert.strictEqual(first.planId, again.planId);
-    const editedLocal = await planWith({ "SKILL.md": "same", "x.md": "new" }, "e");
+    const editedLocal = await planWith(
+      { "SKILL.md": "same", "x.md": "new" },
+      "e",
+    );
     assert.notStrictEqual(first.planId, editedLocal.planId);
     const newTarget = await planWith({ "SKILL.md": "same" }, "f");
     assert.notStrictEqual(first.planId, newTarget.planId);
@@ -640,7 +722,12 @@ function missingPathError() {
 
   await test("an independent skill is planned even when another is on hold", async () => {
     const index = [
-      { source: "mine", path: "skills/demo", name: "demo", remote: { "SKILL.md": "same" } },
+      {
+        source: "mine",
+        path: "skills/demo",
+        name: "demo",
+        remote: { "SKILL.md": "same" },
+      },
     ];
     const ok = entry({ sourceRevision: undefined });
     const orphan = entry({
@@ -691,7 +778,10 @@ function missingPathError() {
     assert.ok("error" in selectEntries(all, {}));
     assert.ok("error" in selectEntries(all, { sources: ["mine"] }));
 
-    const codex = selectEntries(all, { rootIds: ["home-codex"], sources: ["MINE"] });
+    const codex = selectEntries(all, {
+      rootIds: ["home-codex"],
+      sources: ["MINE"],
+    });
     assert.deepStrictEqual(
       codex.entries.map((value) => value.entryId),
       ["home-codex::demo", "home-codex::orphan"],
@@ -706,7 +796,10 @@ function missingPathError() {
       ["home-codex::demo"],
     );
 
-    const byName = selectEntries(all, { rootIds: ["home-codex"], names: ["other"] });
+    const byName = selectEntries(all, {
+      rootIds: ["home-codex"],
+      names: ["other"],
+    });
     assert.deepStrictEqual(
       byName.entries.map((value) => value.entryId),
       ["home-codex::other"],
@@ -739,7 +832,9 @@ function missingPathError() {
     });
     assert.strictEqual(findNameCandidates(skills, orphan).length, 2);
     assert.deepStrictEqual(
-      findNameCandidates(skills, orphan, new Set(["mine"])).map((s) => s.source),
+      findNameCandidates(skills, orphan, new Set(["mine"])).map(
+        (s) => s.source,
+      ),
       ["mine"],
     );
     // フォルダ名が違っても SKILL.md の name で、name が違ってもフォルダ名で一致する
@@ -748,7 +843,8 @@ function missingPathError() {
       1,
     );
     assert.strictEqual(
-      findNameCandidates(skills, { name: "nopath", relativePath: "nopath" }).length,
+      findNameCandidates(skills, { name: "nopath", relativePath: "nopath" })
+        .length,
       0,
     );
 
@@ -766,14 +862,28 @@ function missingPathError() {
       describeProvenance(entry({ sourceRevision: undefined }), 0),
       "no revision",
     );
-    assert.strictEqual(describeProvenance(entry({ needsRepair: true }), 0), "needs repair");
-    assert.strictEqual(describeProvenance(entry({ appManaged: true }), 0), "app-synced");
+    assert.strictEqual(
+      describeProvenance(entry({ needsRepair: true }), 0),
+      "needs repair",
+    );
+    assert.strictEqual(
+      describeProvenance(entry({ appManaged: true }), 0),
+      "app-synced",
+    );
   });
 
   await test("install selection never picks one of several same-named skills", () => {
     const skills = [
-      { name: "vscode-extension-guide", source: "mine-private", path: ".github/skills/vscode-extension-guide" },
-      { name: "vscode-extension-guide", source: "mine", path: "vscode-extension-guide" },
+      {
+        name: "vscode-extension-guide",
+        source: "mine-private",
+        path: ".github/skills/vscode-extension-guide",
+      },
+      {
+        name: "vscode-extension-guide",
+        source: "mine",
+        path: "vscode-extension-guide",
+      },
       { name: "vscode-extension-guide-extra", source: "mine", path: "extra" },
     ];
     const ambiguous = selectSkillForInstall(skills, {

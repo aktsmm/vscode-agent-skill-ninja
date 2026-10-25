@@ -46,7 +46,13 @@ const INDEX = {
     { id: "vendor", url: "https://github.com/owner/vendor" },
   ],
   skills: [
-    { name: "demo", source: "mine", path: "skills/demo", categories: [], description: "" },
+    {
+      name: "demo",
+      source: "mine",
+      path: "skills/demo",
+      categories: [],
+      description: "",
+    },
     {
       name: "demo",
       source: "mine-private",
@@ -54,7 +60,13 @@ const INDEX = {
       categories: [],
       description: "",
     },
-    { name: "other", source: "vendor", path: "skills/other", categories: [], description: "" },
+    {
+      name: "other",
+      source: "vendor",
+      path: "skills/other",
+      categories: [],
+      description: "",
+    },
   ],
 };
 
@@ -126,13 +138,21 @@ function setup(installBehavior = "ok") {
   });
   const managedRoots = [
     skillRoot(roots.workspace, "workspace", ".github/skills"),
-    skillRoot(roots.copilot, "userGlobal", "~/.copilot/skills", path.join(fakeHome, ".copilot", "copilot-instructions.md")),
+    skillRoot(
+      roots.copilot,
+      "userGlobal",
+      "~/.copilot/skills",
+      path.join(fakeHome, ".copilot", "copilot-instructions.md"),
+    ),
     skillRoot(roots.codex, "userGlobal", "~/.codex/skills"),
   ];
 
   const stubs = {
     vscode: {
-      Uri: { file: uri, joinPath: (base, ...p) => uri(path.join(base.fsPath, ...p)) },
+      Uri: {
+        file: uri,
+        joinPath: (base, ...p) => uri(path.join(base.fsPath, ...p)),
+      },
       workspace: { getWorkspaceFolder: () => undefined },
     },
     os: { ...os, homedir: () => fakeHome },
@@ -152,7 +172,9 @@ function setup(installBehavior = "ok") {
         const metas = [];
         const walk = (dirPath, prefix, depth) => {
           if (depth > 3) return;
-          for (const entry of fs.readdirSync(dirPath, { withFileTypes: true })) {
+          for (const entry of fs.readdirSync(dirPath, {
+            withFileTypes: true,
+          })) {
             if (!entry.isDirectory() || entry.name.startsWith(".")) continue;
             const dir = path.join(dirPath, entry.name);
             const relative = prefix ? `${prefix}/${entry.name}` : entry.name;
@@ -161,7 +183,12 @@ function setup(installBehavior = "ok") {
               const base = fs.existsSync(metaFile)
                 ? JSON.parse(fs.readFileSync(metaFile, "utf8"))
                 : { name: entry.name, source: "local", installedAt: "" };
-              metas.push({ description: "", categories: [], ...base, relativePath: relative });
+              metas.push({
+                description: "",
+                categories: [],
+                ...base,
+                relativePath: relative,
+              });
             }
             walk(dir, relative, depth + 1);
           }
@@ -169,7 +196,15 @@ function setup(installBehavior = "ok") {
         walk(rootUri.fsPath, "", 0);
         return metas;
       },
-      installSkillUpdate: async (skill, _ws, _ctx, root, meta, revision, options) => {
+      installSkillUpdate: async (
+        skill,
+        _ws,
+        _ctx,
+        root,
+        meta,
+        revision,
+        options,
+      ) => {
         log.install.push({
           skill: skill.name,
           source: skill.source,
@@ -188,12 +223,18 @@ function setup(installBehavior = "ok") {
         }
         const dir = path.join(root.rootPath, meta.relativePath);
         const files = REMOTE[`${skill.source}::${skill.path}`];
-        const staged = path.join(root.rootPath, ".skill-update-stage", meta.relativePath);
+        const staged = path.join(
+          root.rootPath,
+          ".skill-update-stage",
+          meta.relativePath,
+        );
         fs.rmSync(staged, { recursive: true, force: true });
         for (const [name, text] of Object.entries(files)) {
           write(
             path.join(staged, name),
-            installBehavior === "corrupt-download" ? `${text}\u0000corrupted` : text,
+            installBehavior === "corrupt-download"
+              ? `${text}\u0000corrupted`
+              : text,
           );
         }
         try {
@@ -205,7 +246,8 @@ function setup(installBehavior = "ok") {
           });
         }
         fs.rmSync(dir, { recursive: true, force: true });
-        for (const [name, text] of Object.entries(files)) write(path.join(dir, name), text);
+        for (const [name, text] of Object.entries(files))
+          write(path.join(dir, name), text);
         write(
           path.join(dir, ".skill-meta.json"),
           JSON.stringify({
@@ -220,7 +262,12 @@ function setup(installBehavior = "ok") {
                 : revision,
           }),
         );
-        return { status: "ok", installedPath: meta.relativePath, errors: [], failures: [] };
+        return {
+          status: "ok",
+          installedPath: meta.relativePath,
+          errors: [],
+          failures: [],
+        };
       },
     },
     "./skillUpdates": {
@@ -254,7 +301,9 @@ function setup(installBehavior = "ok") {
           baselineBySha[revision.commitSha] ??
           REMOTE[`${revision.repo}::${revision.remotePath}`];
         return {
-          files: new Map(Object.entries(files).map(([n, t]) => [n, blobSha(t)])),
+          files: new Map(
+            Object.entries(files).map(([n, t]) => [n, blobSha(t)]),
+          ),
           truncated: false,
         };
       },
@@ -266,7 +315,10 @@ function setup(installBehavior = "ok") {
     if (cache.has(name)) return cache.get(name).exports;
     const file = path.join(srcDir, `${name}.ts`);
     const output = ts.transpileModule(fs.readFileSync(file, "utf8"), {
-      compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022 },
+      compilerOptions: {
+        module: ts.ModuleKind.CommonJS,
+        target: ts.ScriptTarget.ES2022,
+      },
       fileName: file,
     }).outputText;
     const module = { exports: {} };
@@ -278,7 +330,15 @@ function setup(installBehavior = "ok") {
     };
     vm.runInNewContext(
       output,
-      { module, exports: module.exports, require: requireStub, Buffer, process, URL, console },
+      {
+        module,
+        exports: module.exports,
+        require: requireStub,
+        Buffer,
+        process,
+        URL,
+        console,
+      },
       { filename: file },
     );
     return module.exports;
@@ -306,306 +366,524 @@ async function test(name, behavior, callback) {
 
 const options = { workspaceUri: undefined, index: INDEX, japanese: false };
 const statusOf = (plan) =>
-  Object.fromEntries(plan.items.map((item) => [item.entryId, item.status + (item.reason ? `:${item.reason}` : "")]));
+  Object.fromEntries(
+    plan.items.map((item) => [
+      item.entryId,
+      item.status + (item.reason ? `:${item.reason}` : ""),
+    ]),
+  );
 
 async function main() {
-  await test("rootIds separate Copilot Home, Codex Home and the workspace, even for the same skill name", "ok", async ({ reinstall }) => {
-    const roots = await reinstall.listManagedRoots(undefined, false);
-    same(
-      roots.map((entry) => entry.rootId),
-      ["workspace:.github/skills", "home-copilot", "home-codex"],
-    );
-    assert.match(
-      roots.find((entry) => entry.rootId === "home-codex").label,
-      /^Codex Home \(~\/\.codex\/skills\) \[home-codex\]$/,
-    );
-    const { entries } = await reinstall.collectInstalledEntries(undefined, false);
-    const demos = entries.filter((entry) => entry.plan.name === "demo");
-    same(
-      demos.map((entry) => entry.plan.entryId).sort(),
-      ["home-codex::demo", "home-copilot::demo", "workspace:.github/skills::demo"],
-    );
-  });
+  await test(
+    "rootIds separate Copilot Home, Codex Home and the workspace, even for the same skill name",
+    "ok",
+    async ({ reinstall }) => {
+      const roots = await reinstall.listManagedRoots(undefined, false);
+      same(
+        roots.map((entry) => entry.rootId),
+        ["workspace:.github/skills", "home-copilot", "home-codex"],
+      );
+      assert.match(
+        roots.find((entry) => entry.rootId === "home-codex").label,
+        /^Codex Home \(~\/\.codex\/skills\) \[home-codex\]$/,
+      );
+      const { entries } = await reinstall.collectInstalledEntries(
+        undefined,
+        false,
+      );
+      const demos = entries.filter((entry) => entry.plan.name === "demo");
+      same(demos.map((entry) => entry.plan.entryId).sort(), [
+        "home-codex::demo",
+        "home-copilot::demo",
+        "workspace:.github/skills::demo",
+      ]);
+    },
+  );
 
-  await test("a root-and-source selection only touches those roots and never offers another source", "ok", async ({ reinstall }) => {
-    const created = await reinstall.createReinstallPlan(
-      {
-        mode: "preview",
-        targets: { rootIds: ["home-copilot", "home-codex"], sources: ["mine-private", "mine"] },
-      },
-      options,
-    );
-    assert.ok(!("error" in created), created.error);
-    // vendor 由来の other は source で除外され、ワークスペースの demo は root で除外される
-    same(statusOf(created.plan), {
-      "home-copilot::demo": "hold:no-provenance",
-      "home-codex::demo": "hold:no-provenance",
-    });
-    const copilot = created.plan.items.find((i) => i.entryId === "home-copilot::demo");
-    same(
-      copilot.candidates.map((c) => [c.candidate.candidateId, c.diff.identical]),
-      [
-        ["mine::skills/demo", false],
-        ["mine-private::.github/skills/demo", true],
-      ],
-    );
-    const codex = created.plan.items.find((i) => i.entryId === "home-codex::demo");
-    assert.ok(codex.candidates.every((c) => c.diff.identical === false));
-  });
-
-  await test("an entryId pins exactly one copy and unknown ids are reported, not guessed", "ok", async ({ reinstall }) => {
-    const created = await reinstall.createReinstallPlan(
-      {
-        mode: "preview",
-        targets: { entryIds: ["workspace:.github/skills::demo", "home-codex::missing"], rootIds: ["ghost"] },
-      },
-      options,
-    );
-    same(statusOf(created.plan), {
-      "workspace:.github/skills::demo": "ready",
-      "home-codex::missing": "skipped:not-found",
-      "root:ghost": "skipped:not-found",
-    });
-    const ready = created.plan.items[0];
-    assert.equal(ready.action, "reinstall");
-    assert.equal(ready.baseline, "recorded");
-    assert.equal(ready.candidate.candidateId, "mine::skills/demo");
-  });
-
-  await test("targets must be explicit; flags must refer to selected entries", "ok", async ({ reinstall }) => {
-    assert.match(
-      (await reinstall.createReinstallPlan({ mode: "preview", targets: {} }, options)).error,
-      /entryIds or rootIds/,
-    );
-    const outside = await reinstall.createReinstallPlan(
-      {
-        mode: "preview",
-        targets: { rootIds: ["home-copilot"] },
-        adopt: [{ entryId: "home-codex::demo", candidateId: "mine::skills/demo" }],
-      },
-      options,
-    );
-    assert.match(outside.error, /not part of the selected targets: home-codex::demo/);
-  });
-
-  await test("apply adopts the approved candidate through the regular update path and verifies the result", "ok", async ({ reinstall, roots, log }) => {
-    const input = {
-      mode: "apply",
-      targets: { rootIds: ["home-copilot", "home-codex"], sources: ["mine-private"] },
-      adopt: [
-        { entryId: "home-copilot::demo", candidateId: "mine-private::.github/skills/demo" },
-      ],
-    };
-    const created = await reinstall.createReinstallPlan(input, options);
-    same(statusOf(created.plan), {
-      "home-copilot::demo": "ready",
-      "home-codex::demo": "hold:no-provenance",
-    });
-
-    const codexBefore = fs.readFileSync(path.join(roots.codex, "demo", "SKILL.md"), "utf8");
-    const results = await reinstall.applyReinstallPlan(created, {}, undefined);
-    same(
-      results.map((r) => [r.entryId, r.status]),
-      [
-        ["home-copilot::demo", "updated"],
-        ["home-codex::demo", "held"],
-      ],
-    );
-    const updated = results[0];
-    assert.equal(updated.installedPath, path.join(roots.copilot, "demo"));
-    assert.equal(updated.source, "mine-private");
-    same(updated.recorded, {
-      commitSha: COMMIT["mine-private"],
-      contentSha: hex("f"),
-      ref: "main",
-    });
-    same(updated.verification, {
-      metaRecorded: true,
-      revisionMatches: true,
-      skillMdPresent: true,
-      contentMatchesRemote: true,
-    });
-
-    // 正規の更新処理を 1 回だけ、初回関連付け（rebind）として呼ぶ
-    same(log.install, [
-      { skill: "demo", source: "mine-private", root: roots.copilot, rebind: true },
-    ]);
-    // 保留の項目と対象外のルートには触れない
-    assert.equal(fs.readFileSync(path.join(roots.codex, "demo", "SKILL.md"), "utf8"), codexBefore);
-    assert.equal(fs.existsSync(path.join(roots.codex, "demo", ".skill-meta.json")), false);
-    assert.equal(fs.readFileSync(path.join(roots.workspace, "demo", "SKILL.md"), "utf8"), "installed public\n");
-  });
-
-  await test("a recorded skill is reinstalled without rebind and kept on its own source", "ok", async ({ reinstall, log }) => {
-    const created = await reinstall.createReinstallPlan(
-      { mode: "apply", targets: { entryIds: ["workspace:.github/skills::demo"] } },
-      options,
-    );
-    const [result] = await reinstall.applyReinstallPlan(created, {}, undefined);
-    assert.equal(result.status, "updated");
-    assert.equal(result.source, "mine");
-    assert.equal(log.install[0].rebind, false);
-  });
-
-  await test("a result whose recorded revision does not match is reported as failed, not as up to date", "wrong-revision", async ({ reinstall }) => {
-    const created = await reinstall.createReinstallPlan(
-      { mode: "apply", targets: { entryIds: ["workspace:.github/skills::demo"] } },
-      options,
-    );
-    const [result] = await reinstall.applyReinstallPlan(created, {}, undefined);
-    assert.equal(result.status, "failed");
-    assert.equal(result.verification.revisionMatches, false);
-    assert.match(result.message, /verification failed/);
-  });
-
-  await test("one failure does not stop an independent item, and the failure is reported per item", "throw", async ({ reinstall, roots }) => {
-    const input = {
-      mode: "apply",
-      targets: { rootIds: ["home-copilot", "home-codex"], sources: ["mine-private"] },
-      adopt: [
-        { entryId: "home-codex::demo", candidateId: "mine-private::.github/skills/demo" },
-        { entryId: "home-copilot::demo", candidateId: "mine-private::.github/skills/demo" },
-      ],
-      allowLocalEdits: ["home-codex::demo"],
-    };
-    const created = await reinstall.createReinstallPlan(input, options);
-    same(statusOf(created.plan), {
-      "home-copilot::demo": "ready",
-      "home-codex::demo": "ready",
-    });
-    const results = await reinstall.applyReinstallPlan(created, {}, undefined);
-    same(
-      Object.fromEntries(results.map((r) => [r.entryId, r.status])),
-      { "home-copilot::demo": "updated", "home-codex::demo": "failed" },
-    );
-    assert.match(results.find((r) => r.status === "failed").message, /simulated install failure/);
-    assert.equal(
-      fs.readFileSync(path.join(roots.codex, "demo", "SKILL.md"), "utf8"),
-      "codex flavoured demo\n",
-    );
-  });
-
-  await test("the plan id changes when the installed content changes after the preview", "ok", async ({ reinstall, roots }) => {
-    const input = {
-      mode: "preview",
-      targets: { entryIds: ["workspace:.github/skills::demo"] },
-    };
-    const before = await reinstall.createReinstallPlan(input, options);
-    const again = await reinstall.createReinstallPlan(input, options);
-    assert.equal(before.plan.planId, again.plan.planId);
-    fs.appendFileSync(path.join(roots.workspace, "demo", "SKILL.md"), "edited after preview\n");
-    const after = await reinstall.createReinstallPlan(input, options);
-    assert.notEqual(before.plan.planId, after.plan.planId);
-    assert.equal(statusOf(after.plan)["workspace:.github/skills::demo"], "hold:local-edits");
-  });
-
-  await test("content edited while the source is downloading aborts the swap and keeps the edit", "edit-during-download", async ({ reinstall, roots }) => {
-    const created = await reinstall.createReinstallPlan(
-      { mode: "apply", targets: { entryIds: ["workspace:.github/skills::demo"] } },
-      options,
-    );
-    assert.equal(statusOf(created.plan)["workspace:.github/skills::demo"], "ready");
-    const [result] = await reinstall.applyReinstallPlan(created, {}, undefined);
-    assert.equal(result.status, "failed");
-    assert.match(result.message, /changed after the preview/);
-    assert.equal(
-      fs.readFileSync(path.join(roots.workspace, "demo", "SKILL.md"), "utf8"),
-      "installed public\nedited while downloading\n",
-    );
-  });
-
-  await test("an edit made while the staged content is being verified still aborts the swap", "ok", async ({ reinstall, roots, log }) => {
-    const created = await reinstall.createReinstallPlan(
-      { mode: "apply", targets: { entryIds: ["workspace:.github/skills::demo"] } },
-      options,
-    );
-    assert.equal(statusOf(created.plan)["workspace:.github/skills::demo"], "ready");
-    log.armEditDuringVerify = true;
-    const [result] = await reinstall.applyReinstallPlan(created, {}, undefined);
-    assert.equal(result.status, "failed");
-    assert.match(result.message, /changed after the preview/);
-    assert.equal(
-      fs.readFileSync(path.join(roots.workspace, "demo", "SKILL.md"), "utf8"),
-      "installed public\nedited during verification\n",
-    );
-  });
-
-  await test("a corrupted download is caught before the swap and the installed copy is untouched", "corrupt-download", async ({ reinstall, roots }) => {
-    const created = await reinstall.createReinstallPlan(
-      { mode: "apply", targets: { entryIds: ["workspace:.github/skills::demo"] } },
-      options,
-    );
-    assert.equal(statusOf(created.plan)["workspace:.github/skills::demo"], "ready");
-    const [result] = await reinstall.applyReinstallPlan(created, {}, undefined);
-    assert.equal(result.status, "failed");
-    assert.match(result.message, /does not match the source revision/);
-    assert.match(result.message, /SKILL\.md \(differs; local [0-9a-f]{7}, \d+ B, binary; source [0-9a-f]{7}\)/);
-    assert.match(result.message, /nothing was replaced/);
-    assert.equal(
-      fs.readFileSync(path.join(roots.workspace, "demo", "SKILL.md"), "utf8"),
-      "installed public\n",
-    );
-  });
-
-  await test("an existing skill folder is detected so a new install never overlays it", "ok", async ({ reinstall, roots }) => {
-    const all = await reinstall.listManagedRoots(undefined, false);
-    const copilot = all.find((entry) => entry.rootId === "home-copilot").root;
-    assert.equal(
-      reinstall.findExistingSkillFolder(copilot, { name: "demo", source: "mine", path: "skills/demo" }),
-      path.join(roots.copilot, "demo"),
-    );
-    assert.equal(
-      reinstall.findExistingSkillFolder(copilot, { name: "fresh", source: "mine", path: "skills/fresh" }),
-      undefined,
-    );
-  });
-
-  await test("skills synced by an app are never reinstalled, even when selected by entryId or adopt", "ok", async ({ reinstall, roots, log }) => {
-    const syncedDir = path.join(roots.codex, "synced", "bucket-1");
-    write(path.join(syncedDir, "manifest.json"), JSON.stringify({ skills: [] }));
-    write(path.join(syncedDir, "docs", "SKILL.md"), "synced docs\n");
-    // 近い名前でも manifest の無い synced フォルダは、通常のスキルとして扱う
-    write(path.join(roots.codex, "synced", "plain", "demo", "SKILL.md"), "not app managed\n");
-
-    const { entries } = await reinstall.collectInstalledEntries(undefined, false);
-    const flags = Object.fromEntries(
-      entries
-        .filter((entry) => entry.plan.relativePath.startsWith("synced/"))
-        .map((entry) => [entry.plan.relativePath, entry.plan.appManaged]),
-    );
-    same(flags, { "synced/bucket-1/docs": true, "synced/plain/demo": false });
-
-    const created = await reinstall.createReinstallPlan(
-      {
-        mode: "apply",
-        targets: { entryIds: ["home-codex::synced/bucket-1/docs"] },
-        adopt: [
-          { entryId: "home-codex::synced/bucket-1/docs", candidateId: "mine::skills/demo" },
+  await test(
+    "a root-and-source selection only touches those roots and never offers another source",
+    "ok",
+    async ({ reinstall }) => {
+      const created = await reinstall.createReinstallPlan(
+        {
+          mode: "preview",
+          targets: {
+            rootIds: ["home-copilot", "home-codex"],
+            sources: ["mine-private", "mine"],
+          },
+        },
+        options,
+      );
+      assert.ok(!("error" in created), created.error);
+      // vendor 由来の other は source で除外され、ワークスペースの demo は root で除外される
+      same(statusOf(created.plan), {
+        "home-copilot::demo": "hold:no-provenance",
+        "home-codex::demo": "hold:no-provenance",
+      });
+      const copilot = created.plan.items.find(
+        (i) => i.entryId === "home-copilot::demo",
+      );
+      same(
+        copilot.candidates.map((c) => [
+          c.candidate.candidateId,
+          c.diff.identical,
+        ]),
+        [
+          ["mine::skills/demo", false],
+          ["mine-private::.github/skills/demo", true],
         ],
-      },
-      options,
-    );
-    same(statusOf(created.plan), {
-      "home-codex::synced/bucket-1/docs": "skipped:app-managed",
-    });
-    const [result] = await reinstall.applyReinstallPlan(created, {}, undefined);
-    assert.equal(result.status, "skipped");
-    same(log.install, []);
-    assert.equal(fs.readFileSync(path.join(syncedDir, "docs", "SKILL.md"), "utf8"), "synced docs\n");
-  });
+      );
+      const codex = created.plan.items.find(
+        (i) => i.entryId === "home-codex::demo",
+      );
+      assert.ok(codex.candidates.every((c) => c.diff.identical === false));
+    },
+  );
 
-  await test("a second apply cannot overlap a running one", "ok", async ({ reinstall }) => {
-    const created = await reinstall.createReinstallPlan(
-      { mode: "apply", targets: { entryIds: ["workspace:.github/skills::demo"] } },
-      options,
-    );
-    const first = reinstall.applyReinstallPlan(created, {}, undefined);
-    await assert.rejects(
-      reinstall.applyReinstallPlan(created, {}, undefined),
-      /already running/,
-    );
-    await first;
-  });
+  await test(
+    "an entryId pins exactly one copy and unknown ids are reported, not guessed",
+    "ok",
+    async ({ reinstall }) => {
+      const created = await reinstall.createReinstallPlan(
+        {
+          mode: "preview",
+          targets: {
+            entryIds: ["workspace:.github/skills::demo", "home-codex::missing"],
+            rootIds: ["ghost"],
+          },
+        },
+        options,
+      );
+      same(statusOf(created.plan), {
+        "workspace:.github/skills::demo": "ready",
+        "home-codex::missing": "skipped:not-found",
+        "root:ghost": "skipped:not-found",
+      });
+      const ready = created.plan.items[0];
+      assert.equal(ready.action, "reinstall");
+      assert.equal(ready.baseline, "recorded");
+      assert.equal(ready.candidate.candidateId, "mine::skills/demo");
+    },
+  );
+
+  await test(
+    "targets must be explicit; flags must refer to selected entries",
+    "ok",
+    async ({ reinstall }) => {
+      assert.match(
+        (
+          await reinstall.createReinstallPlan(
+            { mode: "preview", targets: {} },
+            options,
+          )
+        ).error,
+        /entryIds or rootIds/,
+      );
+      const outside = await reinstall.createReinstallPlan(
+        {
+          mode: "preview",
+          targets: { rootIds: ["home-copilot"] },
+          adopt: [
+            { entryId: "home-codex::demo", candidateId: "mine::skills/demo" },
+          ],
+        },
+        options,
+      );
+      assert.match(
+        outside.error,
+        /not part of the selected targets: home-codex::demo/,
+      );
+    },
+  );
+
+  await test(
+    "apply adopts the approved candidate through the regular update path and verifies the result",
+    "ok",
+    async ({ reinstall, roots, log }) => {
+      const input = {
+        mode: "apply",
+        targets: {
+          rootIds: ["home-copilot", "home-codex"],
+          sources: ["mine-private"],
+        },
+        adopt: [
+          {
+            entryId: "home-copilot::demo",
+            candidateId: "mine-private::.github/skills/demo",
+          },
+        ],
+      };
+      const created = await reinstall.createReinstallPlan(input, options);
+      same(statusOf(created.plan), {
+        "home-copilot::demo": "ready",
+        "home-codex::demo": "hold:no-provenance",
+      });
+
+      const codexBefore = fs.readFileSync(
+        path.join(roots.codex, "demo", "SKILL.md"),
+        "utf8",
+      );
+      const results = await reinstall.applyReinstallPlan(
+        created,
+        {},
+        undefined,
+      );
+      same(
+        results.map((r) => [r.entryId, r.status]),
+        [
+          ["home-copilot::demo", "updated"],
+          ["home-codex::demo", "held"],
+        ],
+      );
+      const updated = results[0];
+      assert.equal(updated.installedPath, path.join(roots.copilot, "demo"));
+      assert.equal(updated.source, "mine-private");
+      same(updated.recorded, {
+        commitSha: COMMIT["mine-private"],
+        contentSha: hex("f"),
+        ref: "main",
+      });
+      same(updated.verification, {
+        metaRecorded: true,
+        revisionMatches: true,
+        skillMdPresent: true,
+        contentMatchesRemote: true,
+      });
+
+      // 正規の更新処理を 1 回だけ、初回関連付け（rebind）として呼ぶ
+      same(log.install, [
+        {
+          skill: "demo",
+          source: "mine-private",
+          root: roots.copilot,
+          rebind: true,
+        },
+      ]);
+      // 保留の項目と対象外のルートには触れない
+      assert.equal(
+        fs.readFileSync(path.join(roots.codex, "demo", "SKILL.md"), "utf8"),
+        codexBefore,
+      );
+      assert.equal(
+        fs.existsSync(path.join(roots.codex, "demo", ".skill-meta.json")),
+        false,
+      );
+      assert.equal(
+        fs.readFileSync(path.join(roots.workspace, "demo", "SKILL.md"), "utf8"),
+        "installed public\n",
+      );
+    },
+  );
+
+  await test(
+    "a recorded skill is reinstalled without rebind and kept on its own source",
+    "ok",
+    async ({ reinstall, log }) => {
+      const created = await reinstall.createReinstallPlan(
+        {
+          mode: "apply",
+          targets: { entryIds: ["workspace:.github/skills::demo"] },
+        },
+        options,
+      );
+      const [result] = await reinstall.applyReinstallPlan(
+        created,
+        {},
+        undefined,
+      );
+      assert.equal(result.status, "updated");
+      assert.equal(result.source, "mine");
+      assert.equal(log.install[0].rebind, false);
+    },
+  );
+
+  await test(
+    "a result whose recorded revision does not match is reported as failed, not as up to date",
+    "wrong-revision",
+    async ({ reinstall }) => {
+      const created = await reinstall.createReinstallPlan(
+        {
+          mode: "apply",
+          targets: { entryIds: ["workspace:.github/skills::demo"] },
+        },
+        options,
+      );
+      const [result] = await reinstall.applyReinstallPlan(
+        created,
+        {},
+        undefined,
+      );
+      assert.equal(result.status, "failed");
+      assert.equal(result.verification.revisionMatches, false);
+      assert.match(result.message, /verification failed/);
+    },
+  );
+
+  await test(
+    "one failure does not stop an independent item, and the failure is reported per item",
+    "throw",
+    async ({ reinstall, roots }) => {
+      const input = {
+        mode: "apply",
+        targets: {
+          rootIds: ["home-copilot", "home-codex"],
+          sources: ["mine-private"],
+        },
+        adopt: [
+          {
+            entryId: "home-codex::demo",
+            candidateId: "mine-private::.github/skills/demo",
+          },
+          {
+            entryId: "home-copilot::demo",
+            candidateId: "mine-private::.github/skills/demo",
+          },
+        ],
+        allowLocalEdits: ["home-codex::demo"],
+      };
+      const created = await reinstall.createReinstallPlan(input, options);
+      same(statusOf(created.plan), {
+        "home-copilot::demo": "ready",
+        "home-codex::demo": "ready",
+      });
+      const results = await reinstall.applyReinstallPlan(
+        created,
+        {},
+        undefined,
+      );
+      same(Object.fromEntries(results.map((r) => [r.entryId, r.status])), {
+        "home-copilot::demo": "updated",
+        "home-codex::demo": "failed",
+      });
+      assert.match(
+        results.find((r) => r.status === "failed").message,
+        /simulated install failure/,
+      );
+      assert.equal(
+        fs.readFileSync(path.join(roots.codex, "demo", "SKILL.md"), "utf8"),
+        "codex flavoured demo\n",
+      );
+    },
+  );
+
+  await test(
+    "the plan id changes when the installed content changes after the preview",
+    "ok",
+    async ({ reinstall, roots }) => {
+      const input = {
+        mode: "preview",
+        targets: { entryIds: ["workspace:.github/skills::demo"] },
+      };
+      const before = await reinstall.createReinstallPlan(input, options);
+      const again = await reinstall.createReinstallPlan(input, options);
+      assert.equal(before.plan.planId, again.plan.planId);
+      fs.appendFileSync(
+        path.join(roots.workspace, "demo", "SKILL.md"),
+        "edited after preview\n",
+      );
+      const after = await reinstall.createReinstallPlan(input, options);
+      assert.notEqual(before.plan.planId, after.plan.planId);
+      assert.equal(
+        statusOf(after.plan)["workspace:.github/skills::demo"],
+        "hold:local-edits",
+      );
+    },
+  );
+
+  await test(
+    "content edited while the source is downloading aborts the swap and keeps the edit",
+    "edit-during-download",
+    async ({ reinstall, roots }) => {
+      const created = await reinstall.createReinstallPlan(
+        {
+          mode: "apply",
+          targets: { entryIds: ["workspace:.github/skills::demo"] },
+        },
+        options,
+      );
+      assert.equal(
+        statusOf(created.plan)["workspace:.github/skills::demo"],
+        "ready",
+      );
+      const [result] = await reinstall.applyReinstallPlan(
+        created,
+        {},
+        undefined,
+      );
+      assert.equal(result.status, "failed");
+      assert.match(result.message, /changed after the preview/);
+      assert.equal(
+        fs.readFileSync(path.join(roots.workspace, "demo", "SKILL.md"), "utf8"),
+        "installed public\nedited while downloading\n",
+      );
+    },
+  );
+
+  await test(
+    "an edit made while the staged content is being verified still aborts the swap",
+    "ok",
+    async ({ reinstall, roots, log }) => {
+      const created = await reinstall.createReinstallPlan(
+        {
+          mode: "apply",
+          targets: { entryIds: ["workspace:.github/skills::demo"] },
+        },
+        options,
+      );
+      assert.equal(
+        statusOf(created.plan)["workspace:.github/skills::demo"],
+        "ready",
+      );
+      log.armEditDuringVerify = true;
+      const [result] = await reinstall.applyReinstallPlan(
+        created,
+        {},
+        undefined,
+      );
+      assert.equal(result.status, "failed");
+      assert.match(result.message, /changed after the preview/);
+      assert.equal(
+        fs.readFileSync(path.join(roots.workspace, "demo", "SKILL.md"), "utf8"),
+        "installed public\nedited during verification\n",
+      );
+    },
+  );
+
+  await test(
+    "a corrupted download is caught before the swap and the installed copy is untouched",
+    "corrupt-download",
+    async ({ reinstall, roots }) => {
+      const created = await reinstall.createReinstallPlan(
+        {
+          mode: "apply",
+          targets: { entryIds: ["workspace:.github/skills::demo"] },
+        },
+        options,
+      );
+      assert.equal(
+        statusOf(created.plan)["workspace:.github/skills::demo"],
+        "ready",
+      );
+      const [result] = await reinstall.applyReinstallPlan(
+        created,
+        {},
+        undefined,
+      );
+      assert.equal(result.status, "failed");
+      assert.match(result.message, /does not match the source revision/);
+      assert.match(
+        result.message,
+        /SKILL\.md \(differs; local [0-9a-f]{7}, \d+ B, binary; source [0-9a-f]{7}\)/,
+      );
+      assert.match(result.message, /nothing was replaced/);
+      assert.equal(
+        fs.readFileSync(path.join(roots.workspace, "demo", "SKILL.md"), "utf8"),
+        "installed public\n",
+      );
+    },
+  );
+
+  await test(
+    "an existing skill folder is detected so a new install never overlays it",
+    "ok",
+    async ({ reinstall, roots }) => {
+      const all = await reinstall.listManagedRoots(undefined, false);
+      const copilot = all.find((entry) => entry.rootId === "home-copilot").root;
+      assert.equal(
+        reinstall.findExistingSkillFolder(copilot, {
+          name: "demo",
+          source: "mine",
+          path: "skills/demo",
+        }),
+        path.join(roots.copilot, "demo"),
+      );
+      assert.equal(
+        reinstall.findExistingSkillFolder(copilot, {
+          name: "fresh",
+          source: "mine",
+          path: "skills/fresh",
+        }),
+        undefined,
+      );
+    },
+  );
+
+  await test(
+    "skills synced by an app are never reinstalled, even when selected by entryId or adopt",
+    "ok",
+    async ({ reinstall, roots, log }) => {
+      const syncedDir = path.join(roots.codex, "synced", "bucket-1");
+      write(
+        path.join(syncedDir, "manifest.json"),
+        JSON.stringify({ skills: [] }),
+      );
+      write(path.join(syncedDir, "docs", "SKILL.md"), "synced docs\n");
+      // 近い名前でも manifest の無い synced フォルダは、通常のスキルとして扱う
+      write(
+        path.join(roots.codex, "synced", "plain", "demo", "SKILL.md"),
+        "not app managed\n",
+      );
+
+      const { entries } = await reinstall.collectInstalledEntries(
+        undefined,
+        false,
+      );
+      const flags = Object.fromEntries(
+        entries
+          .filter((entry) => entry.plan.relativePath.startsWith("synced/"))
+          .map((entry) => [entry.plan.relativePath, entry.plan.appManaged]),
+      );
+      same(flags, { "synced/bucket-1/docs": true, "synced/plain/demo": false });
+
+      const created = await reinstall.createReinstallPlan(
+        {
+          mode: "apply",
+          targets: { entryIds: ["home-codex::synced/bucket-1/docs"] },
+          adopt: [
+            {
+              entryId: "home-codex::synced/bucket-1/docs",
+              candidateId: "mine::skills/demo",
+            },
+          ],
+        },
+        options,
+      );
+      same(statusOf(created.plan), {
+        "home-codex::synced/bucket-1/docs": "skipped:app-managed",
+      });
+      const [result] = await reinstall.applyReinstallPlan(
+        created,
+        {},
+        undefined,
+      );
+      assert.equal(result.status, "skipped");
+      same(log.install, []);
+      assert.equal(
+        fs.readFileSync(path.join(syncedDir, "docs", "SKILL.md"), "utf8"),
+        "synced docs\n",
+      );
+    },
+  );
+
+  await test(
+    "a second apply cannot overlap a running one",
+    "ok",
+    async ({ reinstall }) => {
+      const created = await reinstall.createReinstallPlan(
+        {
+          mode: "apply",
+          targets: { entryIds: ["workspace:.github/skills::demo"] },
+        },
+        options,
+      );
+      const first = reinstall.applyReinstallPlan(created, {}, undefined);
+      await assert.rejects(
+        reinstall.applyReinstallPlan(created, {}, undefined),
+        /already running/,
+      );
+      await first;
+    },
+  );
 
   console.log(`\nSkill reinstall integration tests passed (${passed}).`);
 }

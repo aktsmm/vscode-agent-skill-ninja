@@ -441,7 +441,9 @@ export function findNameCandidates(
 ): Skill[] {
   const names = new Set([
     entry.name.toLowerCase(),
-    (entry.relativePath.replace(/\\/g, "/").split("/").pop() ?? "").toLowerCase(),
+    (
+      entry.relativePath.replace(/\\/g, "/").split("/").pop() ?? ""
+    ).toLowerCase(),
   ]);
   const found = new Map<string, Skill>();
   for (const skill of skills) {
@@ -659,9 +661,7 @@ export async function planEntry(
     const allowed = deps.findCandidates(entry, request.allowedSources);
     candidate =
       allowed.find((value) => value.candidateId === adoptId) ??
-      (hasRecordedOrigin
-        ? deps.getCandidate(adoptId)
-        : undefined);
+      (hasRecordedOrigin ? deps.getCandidate(adoptId) : undefined);
     if (!candidate) {
       return {
         ...item,

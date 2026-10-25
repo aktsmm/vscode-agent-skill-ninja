@@ -88,9 +88,12 @@ function createResponse({ ok = true, status = 200, json, text, headers = {} }) {
       get: (name) => headerMap.get(String(name).toLowerCase()) ?? null,
     },
     json: async () => json,
-    text: async () => (Buffer.isBuffer(text) ? text.toString("utf-8") : text ?? ""),
+    text: async () =>
+      Buffer.isBuffer(text) ? text.toString("utf-8") : (text ?? ""),
     arrayBuffer: async () => {
-      const data = Buffer.isBuffer(text) ? text : Buffer.from(text ?? "", "utf-8");
+      const data = Buffer.isBuffer(text)
+        ? text
+        : Buffer.from(text ?? "", "utf-8");
       return data.buffer.slice(
         data.byteOffset,
         data.byteOffset + data.byteLength,

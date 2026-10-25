@@ -58,7 +58,11 @@ function normalizeNewlines(text: string): string {
 }
 
 export type SkillInstallFailureKind =
-  GitHubFailureKind | "policy-limit" | "filesystem" | "cancelled" | "unknown";
+  | GitHubFailureKind
+  | "policy-limit"
+  | "filesystem"
+  | "cancelled"
+  | "unknown";
 
 export interface SkillInstallFailure {
   message: string;
@@ -365,7 +369,8 @@ async function listGitHubDirectoryInternal(
     throw failure;
   }
   const data = (await response.json()) as
-    GitHubDirectoryEntry[] | GitHubDirectoryEntry;
+    | GitHubDirectoryEntry[]
+    | GitHubDirectoryEntry;
 
   if (Array.isArray(data)) {
     return data;
@@ -1502,11 +1507,7 @@ export async function installSkill(
       } else {
         console.log(`[Skill Ninja] Downloading single file: ${rawUrl}`);
         try {
-          const content = await fetchFileBytes(
-            rawUrl,
-            token,
-            options?.signal,
-          );
+          const content = await fetchFileBytes(rawUrl, token, options?.signal);
           console.log(`[Skill Ninja] Downloaded ${content.byteLength} bytes`);
 
           // SKILL.md として保存（メインファイル）

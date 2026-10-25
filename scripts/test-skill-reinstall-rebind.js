@@ -30,7 +30,8 @@ const skill = {
   description: "demo",
   categories: [],
 };
-const content = "---\nname: demo\ndescription: From source\n---\n# From source\n";
+const content =
+  "---\nname: demo\ndescription: From source\n---\n# From source\n";
 const uri = (fsPath) => ({
   scheme: "file",
   fsPath: path.resolve(fsPath),
@@ -141,12 +142,14 @@ function harness({ existingMeta } = {}) {
         {
           name: "SKILL.md",
           type: "file",
-          download_url: "https://raw.githubusercontent.com/owner/repo/main/stale",
+          download_url:
+            "https://raw.githubusercontent.com/owner/repo/main/stale",
         },
         {
           name: "new.txt",
           type: "file",
-          download_url: "https://raw.githubusercontent.com/owner/repo/main/stale",
+          download_url:
+            "https://raw.githubusercontent.com/owner/repo/main/stale",
         },
       ]);
     }
@@ -311,88 +314,122 @@ async function test(name, options, callback) {
 }
 
 async function main() {
-  await test("rebind associates a folder without metadata through the regular install path", {}, async (env) => {
-    const result = await env.run({ rebind: true });
-    assert.equal(result.status, "ok");
-    assert.equal(
-      fs.readFileSync(path.join(env.destination, "SKILL.md"), "utf8"),
-      content,
-    );
-    assert.equal(fs.existsSync(path.join(env.destination, "old-only.txt")), false);
-    const meta = env.readMeta();
-    assert.equal(meta.source, "test-source");
-    assert.equal(meta.remotePath, "skills/demo");
-    assert.deepEqual(meta.sourceRevision, revision);
-    assert.equal(meta.relativePath, "demo");
-    env.cleanTransaction();
-  });
+  await test(
+    "rebind associates a folder without metadata through the regular install path",
+    {},
+    async (env) => {
+      const result = await env.run({ rebind: true });
+      assert.equal(result.status, "ok");
+      assert.equal(
+        fs.readFileSync(path.join(env.destination, "SKILL.md"), "utf8"),
+        content,
+      );
+      assert.equal(
+        fs.existsSync(path.join(env.destination, "old-only.txt")),
+        false,
+      );
+      const meta = env.readMeta();
+      assert.equal(meta.source, "test-source");
+      assert.equal(meta.remotePath, "skills/demo");
+      assert.deepEqual(meta.sourceRevision, revision);
+      assert.equal(meta.relativePath, "demo");
+      env.cleanTransaction();
+    },
+  );
 
-  await test("without rebind, a folder without metadata is still refused", {}, async (env) => {
-    await assert.rejects(env.run({}), /ownership changed|ENOENT/);
-    env.unchanged();
-  });
+  await test(
+    "without rebind, a folder without metadata is still refused",
+    {},
+    async (env) => {
+      await assert.rejects(env.run({}), /ownership changed|ENOENT/);
+      env.unchanged();
+    },
+  );
 
-  await test("rebind refuses a revision that does not match the candidate path", {}, async (env) => {
-    await assert.rejects(
-      env.run({ rebind: true }, { revision: { ...revision, remotePath: "skills/other" } }),
-      /ownership changed/,
-    );
-    env.unchanged();
-    env.cleanTransaction();
-  });
+  await test(
+    "rebind refuses a revision that does not match the candidate path",
+    {},
+    async (env) => {
+      await assert.rejects(
+        env.run(
+          { rebind: true },
+          { revision: { ...revision, remotePath: "skills/other" } },
+        ),
+        /ownership changed/,
+      );
+      env.unchanged();
+      env.cleanTransaction();
+    },
+  );
 
-  await test("rebind refuses when the revision belongs to another repository", {}, async (env) => {
-    await assert.rejects(
-      env.run({ rebind: true }, { revision: { ...revision, repo: "other" } }),
-      /ownership changed/,
-    );
-    env.unchanged();
-  });
+  await test(
+    "rebind refuses when the revision belongs to another repository",
+    {},
+    async (env) => {
+      await assert.rejects(
+        env.run({ rebind: true }, { revision: { ...revision, repo: "other" } }),
+        /ownership changed/,
+      );
+      env.unchanged();
+    },
+  );
 
-  await test("a failed download leaves the original folder untouched", {}, async (env) => {
-    env.state.fetchHook = (url) => {
-      if (url.endsWith("SKILL.md")) {
-        return env.response("failed", 404);
-      }
-    };
-    await assert.rejects(env.run({ rebind: true }));
-    env.unchanged();
-    env.cleanTransaction();
-  });
+  await test(
+    "a failed download leaves the original folder untouched",
+    {},
+    async (env) => {
+      env.state.fetchHook = (url) => {
+        if (url.endsWith("SKILL.md")) {
+          return env.response("failed", 404);
+        }
+      };
+      await assert.rejects(env.run({ rebind: true }));
+      env.unchanged();
+      env.cleanTransaction();
+    },
+  );
 
-  await test("beforeSwap can veto the swap after the download without touching the original", {}, async (env) => {
-    let called = 0;
-    await assert.rejects(
-      env.run({
-        rebind: true,
-        beforeSwap: async () => {
-          called += 1;
-          throw new Error("changed after the preview");
-        },
-      }),
-      /changed after the preview/,
-    );
-    assert.equal(called, 1);
-    env.unchanged();
-    env.cleanTransaction();
-  });
+  await test(
+    "beforeSwap can veto the swap after the download without touching the original",
+    {},
+    async (env) => {
+      let called = 0;
+      await assert.rejects(
+        env.run({
+          rebind: true,
+          beforeSwap: async () => {
+            called += 1;
+            throw new Error("changed after the preview");
+          },
+        }),
+        /changed after the preview/,
+      );
+      assert.equal(called, 1);
+      env.unchanged();
+      env.cleanTransaction();
+    },
+  );
 
-  await test("rebind stops when the recorded source changed after the plan", {}, async (env) => {
-    fs.writeFileSync(
-      path.join(env.destination, ".skill-meta.json"),
-      JSON.stringify({
-        name: "demo",
-        source: "other-source",
-        remotePath: "somewhere/else",
-        installedAt: "2026-01-01T00:00:00.000Z",
-      }),
-    );
-    await assert.rejects(env.run({ rebind: true }), /ownership changed/);
-    assert.equal(
-      fs.readFileSync(path.join(env.destination, "SKILL.md"), "utf8"),
-      "locally written skill",
-    );
-  });
+  await test(
+    "rebind stops when the recorded source changed after the plan",
+    {},
+    async (env) => {
+      fs.writeFileSync(
+        path.join(env.destination, ".skill-meta.json"),
+        JSON.stringify({
+          name: "demo",
+          source: "other-source",
+          remotePath: "somewhere/else",
+          installedAt: "2026-01-01T00:00:00.000Z",
+        }),
+      );
+      await assert.rejects(env.run({ rebind: true }), /ownership changed/);
+      assert.equal(
+        fs.readFileSync(path.join(env.destination, "SKILL.md"), "utf8"),
+        "locally written skill",
+      );
+    },
+  );
 
   const verifiedOther = {
     name: "demo",
@@ -413,17 +450,21 @@ async function main() {
     },
   };
 
-  await test("switching source needs rebind and then re-records the new source", { existingMeta: verifiedOther }, async (env) => {
-    await assert.rejects(env.run({}), /ownership changed/);
-    env.unchanged();
+  await test(
+    "switching source needs rebind and then re-records the new source",
+    { existingMeta: verifiedOther },
+    async (env) => {
+      await assert.rejects(env.run({}), /ownership changed/);
+      env.unchanged();
 
-    const result = await env.run({ rebind: true });
-    assert.equal(result.status, "ok");
-    const meta = env.readMeta();
-    assert.equal(meta.source, "test-source");
-    assert.equal(meta.remotePath, "skills/demo");
-    assert.deepEqual(meta.sourceRevision, revision);
-  });
+      const result = await env.run({ rebind: true });
+      assert.equal(result.status, "ok");
+      const meta = env.readMeta();
+      assert.equal(meta.source, "test-source");
+      assert.equal(meta.remotePath, "skills/demo");
+      assert.deepEqual(meta.sourceRevision, revision);
+    },
+  );
 
   console.log(`\nSkill reinstall rebind tests passed (${passed}).`);
 }

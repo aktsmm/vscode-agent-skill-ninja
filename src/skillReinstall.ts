@@ -22,10 +22,7 @@ import {
   normalizeInstalledSkillSource,
   needsRepair,
 } from "./installedSkillIndex";
-import {
-  formatRootWithPath,
-  resolveSkillRootIdentity,
-} from "./skillRootIds";
+import { formatRootWithPath, resolveSkillRootIdentity } from "./skillRootIds";
 import {
   createSkillRevisionResolver,
   readSkillRemoteFiles,
@@ -66,7 +63,9 @@ const MAX_LOCAL_FILE_BYTES = 10 * 1024 * 1024;
 const META_FILE_NAME = ".skill-meta.json";
 
 /** 同じ表示パスの root が複数あっても rootId が衝突しないようにする。 */
-export function assignRootIds(roots: readonly SkillRoot[]): Map<string, string> {
+export function assignRootIds(
+  roots: readonly SkillRoot[],
+): Map<string, string> {
   const identities = roots.map((root) => ({
     root,
     id: resolveSkillRootIdentity(root).id,
@@ -130,7 +129,8 @@ export async function listManagedRoots(
   japanese: boolean,
 ): Promise<ManagedRootInfo[]> {
   const roots = (await getManagedSkillRoots(workspaceUri)).filter(
-    (root) => root.isManaged && !root.isReadOnly && root.rootUri.scheme === "file",
+    (root) =>
+      root.isManaged && !root.isReadOnly && root.rootUri.scheme === "file",
   );
   const ids = assignRootIds(roots);
   return roots.map((root) => {
@@ -202,7 +202,9 @@ export async function collectInstalledEntries(
           source: normalizeInstalledSkillSource(meta.source, meta.remotePath),
           remotePath: meta.remotePath,
           sourceRevision: meta.sourceRevision,
-          metaFilePresent: fs.existsSync(path.join(skillDir.fsPath, META_FILE_NAME)),
+          metaFilePresent: fs.existsSync(
+            path.join(skillDir.fsPath, META_FILE_NAME),
+          ),
           reinstallDisabled: meta.reinstallDisabled === true,
           needsRepair: needsRepair(meta),
           appManaged: isAppSyncedSkill(root.rootPath, relativePath),
@@ -325,7 +327,9 @@ export function createReinstallDeps(
           if (!skill) {
             throw new Error("candidate is not in the source index");
           }
-          const source = index.sources?.find((entry) => entry.id === skill.source);
+          const source = index.sources?.find(
+            (entry) => entry.id === skill.source,
+          );
           const target = await resolveSkillDownloadTarget(
             skill,
             source,
@@ -601,7 +605,10 @@ export async function applyReinstallPlan(
         results.push({
           ...base,
           status: verified ? "updated" : "failed",
-          installedPath: path.join(installed.root.rootPath, result.installedPath),
+          installedPath: path.join(
+            installed.root.rootPath,
+            result.installedPath,
+          ),
           source: candidate.source,
           recorded: {
             commitSha: revision.commitSha,
@@ -668,7 +675,8 @@ async function verifyInstalledSkill(
   try {
     const remote = await deps.readRemoteFiles(revision);
     if (remote.truncated) {
-      mismatch = "the source file list was truncated, so the content could not be compared";
+      mismatch =
+        "the source file list was truncated, so the content could not be compared";
     } else {
       const diff = diffLocalAgainstRemote(
         await readLocalSkillFiles(skillDir),

@@ -12,10 +12,7 @@ import {
   getLocalizedDescription,
   saveSkillIndex,
 } from "./skillIndex";
-import {
-  installSkill,
-  uninstallSkillByPath,
-} from "./skillInstaller";
+import { installSkill, uninstallSkillByPath } from "./skillInstaller";
 import { updateInstructionFileForRoot } from "./instructionManager";
 import { getSourceLastIndexedAt } from "./sourceIndexFreshness";
 import { searchGitHub, addSource, removeSource } from "./indexUpdater";
@@ -1237,7 +1234,9 @@ ${ambiguousMatches.map((entry) => `- ${describeInstalledSkill(entry)}`).join("\n
           ["ステータス", "ごみ箱へ移動"],
           [
             "Instruction",
-            matchedSkill.root.instructionPath ? "更新済み" : "対象外（このルートは instruction を更新しません）",
+            matchedSkill.root.instructionPath
+              ? "更新済み"
+              : "対象外（このルートは instruction を更新しません）",
           ],
         ],
       );
@@ -1414,7 +1413,11 @@ function renderReinstallPlan(
       item.action ?? "-",
       `${item.recordedSource ?? "-"} → ${item.candidate?.source ?? "-"}`,
       `${shortSha(item.recordedCommitSha)} → ${shortSha(item.target?.commitSha)}`,
-      [reasonText(item.reason), item.detail, item.diff && !item.diff.identical ? diffText(item.diff) : ""]
+      [
+        reasonText(item.reason),
+        item.detail,
+        item.diff && !item.diff.identical ? diffText(item.diff) : "",
+      ]
         .filter(Boolean)
         .join(" / "),
     ]),
@@ -1461,7 +1464,10 @@ function renderReinstallPlan(
             ([root, file]) =>
               `${root}: ${
                 file === "none"
-                  ? localizeMcpText("no instruction update", "instruction 更新なし")
+                  ? localizeMcpText(
+                      "no instruction update",
+                      "instruction 更新なし",
+                    )
                   : instructionAuto
                     ? `${localizeMcpText("updates", "更新")} ${file}`
                     : `${localizeMcpText("not updated (autoUpdateInstruction is off)", "更新しない（autoUpdateInstruction が無効）")}`
