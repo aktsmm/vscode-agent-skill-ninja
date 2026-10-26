@@ -44,6 +44,10 @@ import {
   formatRootReaders,
   resolveSkillRootIdentity,
 } from "./skillRootIds";
+import {
+  buildEmbeddedHierarchy,
+  getPathRelativeToParent,
+} from "./embeddedSkills";
 
 /** local = Installed / User-Global、browse = Browse。ビューごとに独立した絞り込み・並べ替えを持つ。 */
 export type SkillViewScope = "local" | "browse";
@@ -161,6 +165,8 @@ export interface WorkspaceSkill {
   packageParentName?: string;
   packageParentRemotePath?: string;
   packageParentRelativePath?: string;
+  /** 別のスキルのフォルダ内にあるとき、親スキルの relativePath */
+  embeddedParentPath?: string;
   // 公式仕様に基づくメタデータ
   license?: string; // ライセンス（例: MIT, Apache-2.0）
   author?: string; // 作成者
@@ -509,36 +515,43 @@ export function getManagedSkillTreeItemLabel(
 
 export function getManagedSkillTreeItemDescription(
   skill: WorkspaceSkill,
+  visibleParentPath?: string,
 ): string {
-  const base = getManagedSkillBaseDescription(skill);
+  const base = getManagedSkillBaseDescription(skill, visibleParentPath);
   const invocation = normalizeSkillInvocation(skill.invocation);
   return invocation === "auto"
     ? base
     : `${base} • ${getInvocationLabel(invocation)}`;
 }
 
-function getManagedSkillBaseDescription(skill: WorkspaceSkill): string {
+function getManagedSkillBaseDescription(
+  skill: WorkspaceSkill,
+  visibleParentPath?: string,
+): string {
+  // 親の下に並べるときは、親からの相対パスだけにして行を短くする
+  const shownPath = visibleParentPath
+    ? getPathRelativeToParent(skill.relativePath, visibleParentPath)
+    : skill.relativePath;
+
   // Incomplete content matters more than registration state, so it wins the slot
   if (skill.incomplete) {
-    return isJapanese()
-      ? `${skill.relativePath} • 不完全`
-      : `${skill.relativePath} • Incomplete`;
+    return isJapanese() ? `${shownPath} • 不完全` : `${shownPath} • Incomplete`;
   }
 
   const registrationState = getEffectiveRegistrationState(skill);
   if (skill.isReadOnly || registrationState === "registered") {
-    return skill.relativePath;
+    return shownPath;
   }
 
   if (registrationState === "pending") {
     return isJapanese()
-      ? `${skill.relativePath} • 判定待ち`
-      : `${skill.relativePath} • Resolving`;
+      ? `${shownPath} • 判定待ち`
+      : `${shownPath} • Resolving`;
   }
 
   return isJapanese()
-    ? `${skill.relativePath} • 未登録`
-    : `${skill.relativePath} • Not registered`;
+    ? `${shownPath} • 未登録`
+    : `${shownPath} • Not registered`;
 }
 
 function compareWorkspaceSkills(
@@ -599,10 +612,65 @@ function toWorkspaceSkill(skill: LocalSkill): WorkspaceSkill {
     packageParentName: skill.packageParentName,
     packageParentRemotePath: skill.packageParentRemotePath,
     packageParentRelativePath: skill.packageParentRelativePath,
+    embeddedParentPath: skill.embeddedParentPath,
     license: skill.license,
     author: skill.author,
     version: skill.version,
   };
+}
+
+/**
+ * 同じスキルルートのスキルを、親子の階層に沿って 1 階層分だけ行にする。
+ * parentRelativePath を省略するとルート直下（最上位）の行を返す。
+ */
+export function createSkillItemsForLevel(
+  skillsOfRoot: readonly WorkspaceSkill[],
+  parentRelativePath: string | undefined,
+  recentlyInstalled?: Set<string>,
+): SkillTreeItem[] {
+  const hierarchy = buildEmbeddedHierarchy(skillsOfRoot);
+  const level =
+    parentRelativePath === undefined
+      ? hierarchy.topLevel
+      : hierarchy.childrenOf(parentRelativePath);
+
+  return level.map((skill) =>
+    createManagedSkillTreeItem(skill, recentlyInstalled, {
+      embeddedChildCount: hierarchy.childrenOf(skill.relativePath).length,
+      visibleParentPath: hierarchy.parentOf(skill.relativePath),
+    }),
+  );
+}
+
+/** スキル行の親（内包元のスキル行）。最上位のスキルは undefined を返す。 */
+function findParentSkillItem(
+  skillsOfRoot: readonly WorkspaceSkill[],
+  element: SkillTreeItem,
+  recentlyInstalled?: Set<string>,
+): SkillTreeItem | undefined {
+  const relativePath = (element.skill as { relativePath?: string } | undefined)
+    ?.relativePath;
+  if (relativePath === undefined) {
+    return undefined;
+  }
+
+  const hierarchy = buildEmbeddedHierarchy(skillsOfRoot);
+  const parentPath = hierarchy.parentOf(relativePath);
+  if (parentPath === undefined) {
+    return undefined;
+  }
+
+  const parentSkill = skillsOfRoot.find(
+    (skill) => skill.relativePath === parentPath,
+  );
+  if (!parentSkill) {
+    return undefined;
+  }
+
+  return createManagedSkillTreeItem(parentSkill, recentlyInstalled, {
+    embeddedChildCount: hierarchy.childrenOf(parentPath).length,
+    visibleParentPath: hierarchy.parentOf(parentPath),
+  });
 }
 
 export function buildSkillRootGroups(
@@ -722,29 +790,55 @@ function createSkillRootGroupItem(
   return item;
 }
 
+export const EMBEDDED_SKILL_CONTEXT_VALUE = "embeddedSkill";
+
+interface ManagedSkillItemOptions {
+  /** この行の下に並べる内包スキルの数 */
+  embeddedChildCount?: number;
+  /** この行が属している（表示中の）親スキルの relativePath */
+  visibleParentPath?: string;
+}
+
 function createManagedSkillTreeItem(
   skill: WorkspaceSkill,
   recentlyInstalled?: Set<string>,
+  options?: ManagedSkillItemOptions,
 ): SkillTreeItem {
   const registrationState = getEffectiveRegistrationState(skill);
+  const isEmbedded = Boolean(skill.embeddedParentPath);
   const contextValue = skill.isReadOnly
     ? skill.scope === "extension"
       ? "extensionSkill"
       : "builtInSkill"
-    : registrationState === "pending"
-      ? "managedPendingSkill"
-      : registrationState === "registered"
-        ? "managedSkill"
-        : "managedUnregisteredSkill";
+    : isEmbedded
+      ? EMBEDDED_SKILL_CONTEXT_VALUE
+      : registrationState === "pending"
+        ? "managedPendingSkill"
+        : registrationState === "registered"
+          ? "managedSkill"
+          : "managedUnregisteredSkill";
 
   const localizedDescription = isJapanese()
     ? skill.description_ja || skill.description
     : skill.description;
 
+  const embeddedChildCount = options?.embeddedChildCount ?? 0;
+  const baseDescription = getManagedSkillTreeItemDescription(
+    skill,
+    options?.visibleParentPath,
+  );
   const item = new SkillTreeItem(
     getManagedSkillTreeItemLabel(skill, recentlyInstalled),
-    getManagedSkillTreeItemDescription(skill),
-    vscode.TreeItemCollapsibleState.None,
+    embeddedChildCount > 0
+      ? `${baseDescription} • ${
+          isJapanese()
+            ? `内包 ${embeddedChildCount} 件`
+            : `${embeddedChildCount} embedded`
+        }`
+      : baseDescription,
+    embeddedChildCount > 0
+      ? vscode.TreeItemCollapsibleState.Collapsed
+      : vscode.TreeItemCollapsibleState.None,
     contextValue,
     {
       name: skill.name,
@@ -783,6 +877,7 @@ function createManagedSkillTreeItem(
       packageParentName: skill.packageParentName,
       packageParentRemotePath: skill.packageParentRemotePath,
       packageParentRelativePath: skill.packageParentRelativePath,
+      embeddedParentPath: skill.embeddedParentPath,
     } as Skill & Partial<LocalSkill>,
     undefined,
     undefined,
@@ -802,11 +897,13 @@ function createManagedSkillTreeItem(
         iconId,
         skill.isReadOnly
           ? new vscode.ThemeColor("disabledForeground")
-          : registrationState === "pending"
-            ? new vscode.ThemeColor("charts.blue")
-            : registrationState === "registered"
-              ? new vscode.ThemeColor("charts.green")
-              : new vscode.ThemeColor("charts.yellow"),
+          : isEmbedded
+            ? new vscode.ThemeColor("descriptionForeground")
+            : registrationState === "pending"
+              ? new vscode.ThemeColor("charts.blue")
+              : registrationState === "registered"
+                ? new vscode.ThemeColor("charts.green")
+                : new vscode.ThemeColor("charts.yellow"),
       );
   item.resourceUri = vscode.Uri.file(skill.fullPath);
 
@@ -823,17 +920,21 @@ function createManagedSkillTreeItem(
         : isJapanese()
           ? "Built-in Skills（読み取り専用）"
           : "Built-in Skills (read-only)"
-      : registrationState === "pending"
+      : isEmbedded
         ? isJapanese()
-          ? "Managed（同期中）"
-          : "Managed (syncing)"
-        : registrationState === "registered"
+          ? `親スキル「${skill.embeddedParentPath}」に内包（単独では登録しない）`
+          : `Embedded in parent skill "${skill.embeddedParentPath}" (not registered on its own)`
+        : registrationState === "pending"
           ? isJapanese()
-            ? "Managed（登録済み）"
-            : "Managed (registered)"
-          : isJapanese()
-            ? "Managed（未登録）"
-            : "Managed (not registered)";
+            ? "Managed（同期中）"
+            : "Managed (syncing)"
+          : registrationState === "registered"
+            ? isJapanese()
+              ? "Managed（登録済み）"
+              : "Managed (registered)"
+            : isJapanese()
+              ? "Managed（未登録）"
+              : "Managed (not registered)";
   const metaLines = [
     `${isJapanese() ? "パス" : "Path"}: ${skill.displayPath}`,
     `${isJapanese() ? "状態" : "Status"}: ${statusText}`,
@@ -950,6 +1051,15 @@ export class WorkspaceSkillsProvider implements vscode.TreeDataProvider<SkillTre
       !isManagedRootGroupContextValue(element.contextValue) &&
       element.contextValue !== "placeholder"
     ) {
+      const parentSkillItem = findParentSkillItem(
+        this.getSkillsForRoot(element.skillRoot.rootPath),
+        element,
+        this.recentlyInstalled,
+      );
+      if (parentSkillItem) {
+        return parentSkillItem;
+      }
+
       return this.buildRootGroupItems().find(
         (item) =>
           item.skillRoot &&
@@ -1002,17 +1112,36 @@ export class WorkspaceSkillsProvider implements vscode.TreeDataProvider<SkillTre
       isManagedRootGroupContextValue(element.contextValue) &&
       element.skillRoot
     ) {
-      return this.workspaceSkills
-        .filter(
-          (skill) =>
-            normalizeFileSystemPath(skill.root.rootPath) ===
-            normalizeFileSystemPath(element.skillRoot!.rootPath),
-        )
-        .sort(compareWorkspaceSkills)
-        .map((skill) => this.toSkillItem(skill));
+      return createSkillItemsForLevel(
+        this.getSkillsForRoot(element.skillRoot.rootPath),
+        undefined,
+        this.recentlyInstalled,
+      );
+    }
+
+    // 内包スキルを持つスキル行の子
+    const parentRelativePath = (
+      element.skill as Partial<LocalSkill> | undefined
+    )?.relativePath;
+    if (parentRelativePath !== undefined && element.skillRoot) {
+      return createSkillItemsForLevel(
+        this.getSkillsForRoot(element.skillRoot.rootPath),
+        parentRelativePath,
+        this.recentlyInstalled,
+      );
     }
 
     return [];
+  }
+
+  private getSkillsForRoot(rootPath: string): WorkspaceSkill[] {
+    const normalizedRootPath = normalizeFileSystemPath(rootPath);
+    return this.workspaceSkills
+      .filter(
+        (skill) =>
+          normalizeFileSystemPath(skill.root.rootPath) === normalizedRootPath,
+      )
+      .sort(compareWorkspaceSkills);
   }
 
   private buildRootGroupItems(): SkillTreeItem[] {
@@ -1023,10 +1152,6 @@ export class WorkspaceSkillsProvider implements vscode.TreeDataProvider<SkillTre
         getSkillRootGroupContextValue(group.root, group.skills),
       ),
     );
-  }
-
-  private toSkillItem(skill: WorkspaceSkill): SkillTreeItem {
-    return createManagedSkillTreeItem(skill, this.recentlyInstalled);
   }
 
   /**
@@ -1121,6 +1246,15 @@ export class UserGlobalSkillsProvider implements vscode.TreeDataProvider<SkillTr
       element.contextValue !== "placeholder"
     ) {
       const rootPath = normalizeFileSystemPath(element.skillRoot.rootPath);
+      const parentSkillItem = findParentSkillItem(
+        this.getSkillsForRoot(element.skillRoot.rootPath),
+        element,
+        this.recentlyInstalled,
+      );
+      if (parentSkillItem) {
+        return parentSkillItem;
+      }
+
       const extensionParent = this.buildExtensionRootItems(
         getExtensionProviderKey(element.skillRoot),
       ).find(
@@ -1199,9 +1333,7 @@ export class UserGlobalSkillsProvider implements vscode.TreeDataProvider<SkillTr
       isManagedRootGroupContextValue(element.contextValue) &&
       element.skillRoot
     ) {
-      return this.getSkillsForRoot(element.skillRoot.rootPath).map((skill) =>
-        this.toSkillItem(skill),
-      );
+      return this.getRootSkillItems(element.skillRoot.rootPath);
     }
 
     if (element.contextValue === "extensionScopeGroup") {
@@ -1216,9 +1348,7 @@ export class UserGlobalSkillsProvider implements vscode.TreeDataProvider<SkillTr
       element.contextValue === "extensionSkillRootGroup" &&
       element.skillRoot
     ) {
-      return this.getSkillsForRoot(element.skillRoot.rootPath).map((skill) =>
-        this.toSkillItem(skill),
-      );
+      return this.getRootSkillItems(element.skillRoot.rootPath);
     }
 
     if (element.contextValue === "builtInScopeGroup") {
@@ -1230,12 +1360,30 @@ export class UserGlobalSkillsProvider implements vscode.TreeDataProvider<SkillTr
     }
 
     if (element.contextValue === "builtInSkillRootGroup" && element.skillRoot) {
-      return this.getSkillsForRoot(element.skillRoot.rootPath).map((skill) =>
-        this.toSkillItem(skill),
+      return this.getRootSkillItems(element.skillRoot.rootPath);
+    }
+
+    // 内包スキルを持つスキル行の子
+    const parentRelativePath = (
+      element.skill as Partial<LocalSkill> | undefined
+    )?.relativePath;
+    if (parentRelativePath !== undefined && element.skillRoot) {
+      return createSkillItemsForLevel(
+        this.getSkillsForRoot(element.skillRoot.rootPath),
+        parentRelativePath,
+        this.recentlyInstalled,
       );
     }
 
     return [];
+  }
+
+  private getRootSkillItems(rootPath: string): SkillTreeItem[] {
+    return createSkillItemsForLevel(
+      this.getSkillsForRoot(rootPath),
+      undefined,
+      this.recentlyInstalled,
+    );
   }
 
   private buildUserRootItems(): SkillTreeItem[] {
@@ -1404,10 +1552,6 @@ export class UserGlobalSkillsProvider implements vscode.TreeDataProvider<SkillTr
           normalizeFileSystemPath(skill.root.rootPath) === normalizedRootPath,
       )
       .sort(compareWorkspaceSkills);
-  }
-
-  private toSkillItem(skill: WorkspaceSkill): SkillTreeItem {
-    return createManagedSkillTreeItem(skill, this.recentlyInstalled);
   }
 
   private async loadUserGlobalSkills(): Promise<void> {

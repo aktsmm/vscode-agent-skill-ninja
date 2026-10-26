@@ -237,7 +237,8 @@ function loadModule() {
       if (
         request === "./skillInvocation" ||
         request === "./skillListOptions" ||
-        request === "./skillRootIds"
+        request === "./skillRootIds" ||
+        request === "./embeddedSkills"
       ) {
         return loadSrcModule(request);
       }

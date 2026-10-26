@@ -95,7 +95,7 @@ const sandbox = {
           }),
       };
     }
-    if (request === "./skillInvocation") {
+    if (request === "./skillInvocation" || request === "./embeddedSkills") {
       return loadSrcModule(request);
     }
     return require(request);

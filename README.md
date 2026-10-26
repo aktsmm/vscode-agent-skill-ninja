@@ -238,6 +238,7 @@ Preset index includes skills from official, curated, and community sources out o
 - In `ref` mode, **Skill Output** opens the linked catalog; in `full` / `compact` / `legacy`, it opens the instruction file itself
 - Empty state: Search / Create / Open Skill Output quick links
 - Open skill folder or file from the workspace root
+- A skill whose folder sits inside another skill's folder (a `SKILL.md` under another `SKILL.md`) is shown as a child of that skill in the Installed and User / Global views, with its path relative to the parent. It is read through its parent, so it is never marked "Not registered", is not offered Register / Unregister, and is left out of the generated skill list
 
 3. **User / Global Skills** - Personal skills grouped by skill root, plus read-only installed extension skills and read-only built-in skills
 

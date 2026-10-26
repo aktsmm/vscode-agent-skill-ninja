@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.9.61] - 2026-10-26
+
+### Changed
+
+- 🌲 **Skills Inside A Skill Are Grouped Under Their Parent** - In the Installed and User / Global views, a skill whose folder is inside another skill's folder is now shown as a child of that skill, with its path relative to the parent and an "N embedded" count on the parent. These embedded skills are read through their parent, so they are no longer shown as "Not registered", get no Register / Unregister actions, and are left out of the generated skill list (AGENTS.md / catalog) / 別のスキルのフォルダの中にあるスキルを、Installed / User / Global ビューで親スキルの子として表示するようにしました。親からの相対パスと、親の行の「内包 N 件」を示します。内包スキルは親経由で読まれるため、「未登録」とは表示せず、登録 / 登録解除も出さず、生成するスキル一覧（AGENTS.md / カタログ）にも載せません。
+
+### Fixed
+
+- 🐛 **Gitignore Sync No Longer Fails While Skills Are Being Written** - A bulk apply or install that writes into a skill root while the `.gitignore` sync scans it (an empty or half-written `.skill-meta.json`, or a folder being swapped) was reported as `invalid-metadata`. The scan is now retried a few times with a short wait, and only a genuinely invalid `.skill-meta.json` is reported as `invalid-metadata`; file-access failures are reported as `io-failure` / 一括適用やインストールがスキルルートへ書き込んでいる最中に `.gitignore` の同期が走査すると（空・書きかけの `.skill-meta.json` やフォルダーの入れ替え）、`invalid-metadata` と誤って報告していました。短い待機を挟んで数回走査し直すようにし、`invalid-metadata` は `.skill-meta.json` の中身が本当に不正なときだけにしました。ファイル操作の失敗は `io-failure` として報告します。
+
 ## [0.9.60] - 2026-10-25
 
 ### Fixed

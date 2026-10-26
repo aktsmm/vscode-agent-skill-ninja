@@ -16,6 +16,7 @@ import {
   type SkillMeta,
 } from "./skillInstaller";
 import { needsRepair } from "./installedSkillIndex";
+import { findEmbeddedParentPath } from "./embeddedSkills";
 import {
   normalizeExplicitOnlyHandling,
   parseSkillExecutionContext,
@@ -65,6 +66,8 @@ export interface LocalSkill extends Skill {
   packageParentName?: string;
   packageParentRemotePath?: string;
   packageParentRelativePath?: string;
+  /** 別のスキルのフォルダ内にあるとき、最も近い親スキルの relativePath。登録対象にしない。 */
+  embeddedParentPath?: string;
 }
 
 const visibleSkillsCache = new Map<string, Promise<LocalSkill[]>>();
@@ -630,8 +633,28 @@ async function scanSkillsForRoot(root: SkillRoot): Promise<LocalSkill[]> {
     await checkRegistrationStatusForRoot(skills, root);
     markExcludedManualOnlySkillsRegistered(skills);
   }
+  markEmbeddedSkills(skills);
 
   return skills;
+}
+
+/**
+ * 別のスキルのフォルダ内にあるスキルは、親スキルの一部として読まれるので登録の対象にしない。
+ * 「未登録」と表示されないよう登録済み扱いにして、理由を残す。
+ */
+function markEmbeddedSkills(skills: LocalSkill[]): void {
+  const allPaths = new Set(skills.map((skill) => skill.relativePath));
+  for (const skill of skills) {
+    const parent = findEmbeddedParentPath(skill.relativePath, allPaths);
+    if (!parent) {
+      continue;
+    }
+    skill.embeddedParentPath = parent;
+    skill.isRegistered = true;
+    skill.registrationState = "registered";
+    skill.registrationSource = "none";
+    skill.registrationReason = `Embedded in the parent skill "${parent}"; it is not registered on its own.`;
+  }
 }
 
 /**

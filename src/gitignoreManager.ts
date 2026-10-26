@@ -65,9 +65,79 @@ function describeFailure(
     return "unsafe-path";
   }
   if (phase === "scan") {
-    return "invalid-metadata";
+    return classifyScanFailure(error);
   }
   return "io-failure";
+}
+
+const TRANSIENT_FS_CODES = new Set([
+  "ENOENT",
+  "EBUSY",
+  "EPERM",
+  "EACCES",
+  "ENOTEMPTY",
+]);
+
+// 別 realm（vm など）で作られた Error でも判定できるよう、instanceof を使わない
+function readErrorMessage(error: unknown): string {
+  const message = (error as { message?: unknown } | null)?.message;
+  return typeof message === "string" ? message : "";
+}
+
+function isInvalidMetadataError(error: unknown): boolean {
+  const message = readErrorMessage(error);
+  return (
+    (error as { name?: unknown } | null)?.name === "SyntaxError" ||
+    message === "Invalid skill metadata" ||
+    message === "Invalid skill identity"
+  );
+}
+
+/**
+ * 走査中の失敗の分類。メタデータの中身が不正なときだけ invalid-metadata にし、
+ * 走査中にフォルダーが消えた・ロックされたなどのファイル操作の失敗は io-failure にする。
+ */
+export function classifyScanFailure(
+  error: unknown,
+): GitignoreSyncResult["reason"] {
+  const code = (error as NodeJS.ErrnoException)?.code;
+  if (code && TRANSIENT_FS_CODES.has(code)) {
+    return "io-failure";
+  }
+  return isInvalidMetadataError(error) ? "invalid-metadata" : "io-failure";
+}
+
+/**
+ * インストールや一括適用が同じフォルダーへ書き込んでいる最中は、メタデータが
+ * 空・書きかけだったり、フォルダーが入れ替わったりする。書き込みが終われば解消するので、
+ * 内容の不正やファイル操作の失敗は短く待って数回だけ走査し直す。
+ */
+const SCAN_ATTEMPTS = 5;
+
+function isTransientScanError(error: unknown): boolean {
+  const code = (error as NodeJS.ErrnoException)?.code;
+  if (code && TRANSIENT_FS_CODES.has(code)) {
+    return true;
+  }
+  return (
+    isInvalidMetadataError(error) ||
+    readErrorMessage(error).includes("changed during")
+  );
+}
+
+async function collectSkillIgnoreEntriesWithRetry(
+  rootPath: string,
+): Promise<IgnoreEntry[]> {
+  for (let attempt = 1; ; attempt++) {
+    try {
+      return await collectSkillIgnoreEntries(rootPath);
+    } catch (error) {
+      if (attempt >= SCAN_ATTEMPTS || !isTransientScanError(error)) {
+        throw error;
+      }
+      await new Promise((resolve) => setTimeout(resolve, 100 * attempt));
+    }
+  }
 }
 
 export interface IgnoreEntry {
@@ -506,7 +576,9 @@ export async function synchronizeSkillGitignore(
         .get<boolean>(GITIGNORE_SETTING, true);
     phase = "scan";
     const patterns = enabled
-      ? buildSkillIgnorePatterns(await collectSkillIgnoreEntries(realRoot))
+      ? buildSkillIgnorePatterns(
+          await collectSkillIgnoreEntriesWithRetry(realRoot),
+        )
       : [];
     phase = "read";
     const updated = updateIgnoreBlock(content, patterns);

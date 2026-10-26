@@ -286,7 +286,7 @@ function loadInstructionManager(settings) {
           resolveConfiguredPathToUri: () => undefined,
         };
       }
-      if (request === "./skillInvocation") {
+      if (request === "./skillInvocation" || request === "./embeddedSkills") {
         return loadSrcModule(request);
       }
       if (request === "./coexistence") {
@@ -593,7 +593,7 @@ async function scannerTests() {
                 String(value).replace(/\\/g, "/").toLowerCase(),
             };
           }
-          if (request === "./skillInvocation") {
+          if (request === "./skillInvocation" || request === "./embeddedSkills") {
             return loadSrcModule(request);
           }
           return require(request);

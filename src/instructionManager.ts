@@ -4,6 +4,7 @@
 import * as vscode from "vscode";
 import { getInstalledSkillsWithMeta, SkillMeta } from "./skillInstaller";
 import type { LocalSkill } from "./localSkillScanner";
+import { isEmbeddedSkillPath } from "./embeddedSkills";
 import { OutputFormat } from "./toolDetector";
 import * as path from "path";
 import { SKILL_DESCRIPTION_LIMITS, SELF_EXTENSION_ID } from "./constants";
@@ -288,8 +289,19 @@ async function getInstalledSkillsWithLinkPaths(
         candidateRoot.rootUri,
         candidateRoot.rootUri,
       );
+      // 別スキルのフォルダ内にあるスキルは親経由で読まれるので、一覧に載せない
+      const installedPaths = new Set(
+        installedSkills.map((skill) => skill.relativePath || skill.name),
+      );
       return installedSkills
         .filter((skill) => !skill.registrationDisabled)
+        .filter(
+          (skill) =>
+            !isEmbeddedSkillPath(
+              skill.relativePath || skill.name,
+              installedPaths,
+            ),
+        )
         .map((skill) => ({
           ...skill,
           qualifierPath: skill.relativePath || skill.name,

@@ -106,7 +106,8 @@ function loadTreeProviderExports(japanese = false) {
       if (
         request === "./skillInvocation" ||
         request === "./skillListOptions" ||
-        request === "./skillRootIds"
+        request === "./skillRootIds" ||
+        request === "./embeddedSkills"
       ) {
         return loadSrcModule(request);
       }
@@ -141,6 +142,7 @@ const {
   getManagedSkillTreeItemDescription,
   setViewRegistrationContext,
   formatSourceDescription,
+  createSkillItemsForLevel,
 } = englishExports;
 
 const {
@@ -791,4 +793,88 @@ test("a source that this extension has never scanned reads as not indexed", () =
     japaneseExports.formatSourceDescription(0, {}),
     "未インデックス",
   );
+});
+
+function createEmbeddedFixture() {
+  const rootPath = "C:/repo/.github/skills";
+  const parent = createSkill(
+    "customer-workspace",
+    "userGlobal",
+    rootPath,
+    "customer-workspace",
+  );
+  const child = {
+    ...createSkill(
+      "inbox",
+      "userGlobal",
+      rootPath,
+      "customer-workspace/assets/workspace-skills/inbox",
+    ),
+    embeddedParentPath: "customer-workspace",
+  };
+  const sibling = createSkill("docx", "userGlobal", rootPath, "docx");
+  return { parent, child, sibling };
+}
+
+test("nests embedded skills under their parent and hides them from the root level", () => {
+  setViewRegistrationContext({ initialSyncPending: false });
+  const { parent, child, sibling } = createEmbeddedFixture();
+  const skills = [parent, child, sibling];
+
+  const topLevel = createSkillItemsForLevel(skills, undefined);
+  assert.deepStrictEqual(
+    topLevel.map((item) => item.label),
+    ["customer-workspace", "docx"],
+  );
+  assert.strictEqual(topLevel[0].collapsibleState, 1);
+  assert.strictEqual(topLevel[0].description, "customer-workspace • 1 embedded");
+  assert.strictEqual(topLevel[1].collapsibleState, 0);
+
+  const children = createSkillItemsForLevel(skills, "customer-workspace");
+  assert.deepStrictEqual(
+    children.map((item) => item.label),
+    ["inbox"],
+  );
+  assert.strictEqual(children[0].collapsibleState, 0);
+  assert.strictEqual(children[0].description, "assets/workspace-skills/inbox");
+});
+
+test("embedded skills are never offered registration actions or shown as unregistered", () => {
+  setViewRegistrationContext({ initialSyncPending: true });
+  const { parent, child } = createEmbeddedFixture();
+  const [childItem] = createSkillItemsForLevel(
+    [parent, child],
+    "customer-workspace",
+  );
+
+  assert.strictEqual(childItem.contextValue, "embeddedSkill");
+  assert.ok(!/Not registered|Resolving/.test(childItem.description));
+  assert.strictEqual(
+    createSkillItemsForLevel([parent, child], undefined)[0].contextValue,
+    "managedSkill",
+  );
+  setViewRegistrationContext({ initialSyncPending: false });
+});
+
+test("an embedded skill whose parent is filtered out stays visible with its full path", () => {
+  setViewRegistrationContext({ initialSyncPending: false });
+  const { child } = createEmbeddedFixture();
+  const [item] = createSkillItemsForLevel([child], undefined);
+
+  assert.strictEqual(item.label, "inbox");
+  assert.strictEqual(
+    item.description,
+    "customer-workspace/assets/workspace-skills/inbox",
+  );
+  assert.strictEqual(item.contextValue, "embeddedSkill");
+});
+
+test("shows the embedded count in Japanese", () => {
+  setViewRegistrationContext({ initialSyncPending: false });
+  const { parent, child } = createEmbeddedFixture();
+  const [item] = japaneseExports.createSkillItemsForLevel(
+    [parent, child],
+    undefined,
+  );
+  assert.strictEqual(item.description, "customer-workspace • 内包 1 件");
 });

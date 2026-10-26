@@ -120,7 +120,7 @@ function loadTranspiledModule(sourcePath, extraModules = {}) {
       if (request in extraModules) {
         return extraModules[request];
       }
-      if (request === "./skillInvocation") {
+      if (request === "./skillInvocation" || request === "./embeddedSkills") {
         return loadSrcModule(request);
       }
       return require(request);

@@ -303,6 +303,8 @@ const jaMessages = {
   localSkillRegistered: "✅ {0} を instruction file に登録しました",
   localSkillUnregistered: "✅ {0} を instruction file から削除しました",
   localSkillAlreadyRegistered: "{0} は既に登録されています",
+  embeddedSkillNotRegistrable:
+    "{0} は別のスキルのフォルダ内にあるため、単独では登録できません（親スキル経由で読まれます）。",
   localSkillActionUnavailable:
     "この項目はローカルスキルではないため、instruction file への登録状態を変更できません。",
   localSkillRegistrationFailed:
@@ -664,6 +666,8 @@ const enMessages: MessageDictionary = {
   localSkillRegistered: "✅ {0} registered in the instruction file",
   localSkillUnregistered: "✅ {0} removed from the instruction file",
   localSkillAlreadyRegistered: "{0} is already registered",
+  embeddedSkillNotRegistrable:
+    "{0} is inside another skill's folder, so it cannot be registered on its own (it is read through its parent skill).",
   localSkillActionUnavailable:
     "This item is not a local skill, so its instruction-file registration cannot be changed.",
   localSkillRegistrationFailed:
@@ -1147,6 +1151,8 @@ export const messages = {
     localize("localSkillUnregistered", name),
   localSkillAlreadyRegistered: (name: string) =>
     localize("localSkillAlreadyRegistered", name),
+  embeddedSkillNotRegistrable: (name: string) =>
+    localize("embeddedSkillNotRegistrable", name),
   localSkillActionUnavailable: () => localize("localSkillActionUnavailable"),
   localSkillRegistrationFailed: (name: string) =>
     localize("localSkillRegistrationFailed", name),

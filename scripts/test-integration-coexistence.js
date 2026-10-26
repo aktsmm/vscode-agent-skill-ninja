@@ -442,7 +442,9 @@ function loadInstructionManager(vscodeStub, injectedSkills, options = {}) {
         return skillLocationsStub;
       }
       if (req === "path") return path;
-      if (req === "./skillInvocation") return loadSrcModule(req);
+      if (req === "./skillInvocation" || req === "./embeddedSkills") {
+        return loadSrcModule(req);
+      }
       return require(req);
     },
   };
@@ -1048,6 +1050,38 @@ test("Scenario A: duplicate skill names are disambiguated in generated labels", 
         "[Docx (Documents)](.github/skills/documents/Docx/SKILL.md)",
       ),
       `duplicate names should be disambiguated; got:\n${got}`,
+    );
+  } finally {
+    cleanupTmp(tmp);
+  }
+});
+
+test("Scenario A: skills inside another skill's folder are left out of the generated block", async () => {
+  const tmp = setupTmpFixture("A-skill-solo");
+  try {
+    const wsUri = makeUri(tmp);
+    const stub = makeVscodeStub({
+      workspaceUri: wsUri,
+      settings: { "skillNinja.outputFormat": "full" },
+      siblingExports: undefined,
+    });
+    const skills = [
+      makeSampleSkill("Pack", "Parent skill", "pack"),
+      makeSampleSkill("Inbox", "Embedded in pack", "pack/assets/inbox"),
+      makeSampleSkill("Pack Extra", "Sibling with a shared prefix", "pack-extra"),
+    ];
+    const { instructionManager } = loadInstructionManager(stub, skills);
+    const ctx = makeContext();
+    const root = makeRoot(wsUri);
+
+    await instructionManager.updateInstructionFileForRoot(root, ctx);
+
+    const got = fs.readFileSync(path.join(tmp, "AGENTS.md"), "utf8");
+    assert.ok(got.includes("[Pack](.github/skills/pack/SKILL.md)"));
+    assert.ok(got.includes("[Pack Extra](.github/skills/pack-extra/SKILL.md)"));
+    assert.ok(
+      !got.includes("pack/assets/inbox/SKILL.md"),
+      `an embedded skill must not be listed; got:\n${got}`,
     );
   } finally {
     cleanupTmp(tmp);

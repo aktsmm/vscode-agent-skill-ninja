@@ -234,6 +234,7 @@ ext install yamapan.agent-skill-ninja
 - `ref` モードでは **スキル出力** がリンク先 catalog を開き、`full` / `compact` / `legacy` では instruction file 自体を開きます
 - 空状態: 検索 / 新規作成 / スキル出力を開く
 - workspace root のスキルフォルダ / ファイルを開けます
+- 別のスキルのフォルダの中にあるスキル（`SKILL.md` の下にさらに `SKILL.md`）は、Installed / User / Global ビューで親スキルの子として表示し、親からの相対パスを示します。親経由で読まれるため「未登録」とは表示せず、登録 / 登録解除も出さず、生成するスキル一覧にも載せません
 
 3. **ユーザー / グローバル スキル** - personal skills は skill root ごと、インストール済み拡張機能の読み取り専用スキルと Built-in Skills は別セクションで表示
 

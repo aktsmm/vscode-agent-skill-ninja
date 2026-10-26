@@ -61,6 +61,30 @@ const {
 
 async function main() {
   try {
+    const { classifyScanFailure } = moduleExports;
+    // 走査中のファイル操作の失敗は、メタデータ不正と区別する
+    for (const code of ["ENOENT", "EBUSY", "EPERM", "EACCES", "ENOTEMPTY"]) {
+      assert.strictEqual(
+        classifyScanFailure(Object.assign(new Error("fs"), { code })),
+        "io-failure",
+        code,
+      );
+    }
+    assert.strictEqual(
+      classifyScanFailure(new SyntaxError("Unexpected end of JSON input")),
+      "invalid-metadata",
+    );
+    assert.strictEqual(
+      classifyScanFailure(new Error("Invalid skill metadata")),
+      "invalid-metadata",
+    );
+    assert.strictEqual(
+      classifyScanFailure(new Error("Invalid skill identity")),
+      "invalid-metadata",
+    );
+    assert.strictEqual(classifyScanFailure(new Error("other")), "io-failure");
+    assert.strictEqual(classifyScanFailure("not an error"), "io-failure");
+
     const { createGitignoreInventory } = moduleExports;
     const inventoryRootA = { fsPath: path.join(workspacePath, "inventory-a") };
     const inventoryRootB = { fsPath: path.join(workspacePath, "inventory-b") };
@@ -325,6 +349,23 @@ async function main() {
       path.join(rootPath, "local", ".skill-meta.json"),
       JSON.stringify({ name: "local", source: "local" }),
     );
+
+    // 一括適用などの書き込み途中（空のメタデータ）は、書き終わるまで待って成功する
+    const racingMetaPath = path.join(rootPath, "local", ".skill-meta.json");
+    fs.writeFileSync(racingMetaPath, "");
+    const racingWriter = setTimeout(() => {
+      fs.writeFileSync(
+        racingMetaPath,
+        JSON.stringify({ name: "local", source: "local" }),
+      );
+    }, 150);
+    enabled = true;
+    const racedResult = await synchronizeSkillGitignore(
+      rootUri,
+      vscode.workspace,
+    );
+    clearTimeout(racingWriter);
+    assert.notStrictEqual(racedResult.status, "failed");
 
     const rootB = path.join(workspacePath, "repo-b", "skills");
     fs.mkdirSync(path.join(rootB, "remote"), { recursive: true });

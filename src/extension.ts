@@ -5644,6 +5644,13 @@ export function activate(
 
       const localSkill = item.skill as LocalSkill;
 
+      if (localSkill.embeddedParentPath) {
+        vscode.window.showInformationMessage(
+          messages.embeddedSkillNotRegistrable(localSkill.name),
+        );
+        return;
+      }
+
       if (localSkill.isRegistered) {
         vscode.window.showInformationMessage(
           messages.localSkillAlreadyRegistered(localSkill.name),
@@ -5686,6 +5693,13 @@ export function activate(
       }
 
       const localSkill = item.skill as LocalSkill;
+
+      if (localSkill.embeddedParentPath) {
+        vscode.window.showInformationMessage(
+          messages.embeddedSkillNotRegistrable(localSkill.name),
+        );
+        return;
+      }
 
       const success = await unregisterLocalSkill(
         localSkill,
