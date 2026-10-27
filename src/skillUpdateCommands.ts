@@ -1,6 +1,7 @@
 import * as path from "path";
 import * as vscode from "vscode";
 import { isJapanese, messages } from "./i18n";
+import { isLocalInstalledSkillMeta } from "./installedSkillIndex";
 import type { Skill, SkillIndex } from "./skillIndex";
 import type { SkillRoot } from "./skillLocations";
 import {
@@ -46,6 +47,7 @@ export interface SkillUpdateSummary {
   checkFailed: number;
   updateFailed: number;
   deferred: number;
+  localOnly: number;
   cancelled: boolean;
 }
 
@@ -112,11 +114,13 @@ export function registerSkillUpdateCommands(
       checkFailed: 0,
       updateFailed: 0,
       deferred: 0,
+      localOnly: 0,
       cancelled: false,
     };
     const modified = new Map<string, SkillRoot>();
     const failures = new Map<string, number>();
     const details: string[] = [];
+    const localNotes: string[] = [];
     const renameOffers: RenameOffer[] = [];
     let missingUpstream = false;
     let token: string | undefined;
@@ -359,6 +363,16 @@ export function registerSkillUpdateCommands(
                     defer(
                       [entry],
                       text("reinstall disabled", "再インストールが無効"),
+                    );
+                    continue;
+                  }
+                  if (isLocalInstalledSkillMeta(entry.meta)) {
+                    summary.localOnly++;
+                    localNotes.push(
+                      `${label(entry)}: ${text(
+                        "local skill without an upstream; not updated",
+                        "配布元のないローカルスキルのため更新対象外",
+                      )}`,
                     );
                     continue;
                   }
@@ -796,10 +810,11 @@ export function registerSkillUpdateCommands(
       running = false;
     }
     const summaryMessage = text(
-      `Skill update: updated ${summary.updated}, first sync ${summary.synchronized}, unchanged ${summary.unchanged}, no baseline ${summary.untracked}, needs repair ${summary.repairNeeded}, check failed ${summary.checkFailed}, update failed ${summary.updateFailed}, deferred ${summary.deferred}, cancelled ${summary.cancelled ? "yes" : "no"}.`,
-      `スキル更新: 更新 ${summary.updated}、初回同期 ${summary.synchronized}、変更なし ${summary.unchanged}、比較情報なし ${summary.untracked}、要修復 ${summary.repairNeeded}、確認失敗 ${summary.checkFailed}、更新失敗 ${summary.updateFailed}、保留 ${summary.deferred}、中断 ${summary.cancelled ? "あり" : "なし"}。`,
+      `Skill update: updated ${summary.updated}, first sync ${summary.synchronized}, unchanged ${summary.unchanged}, no baseline ${summary.untracked}, needs repair ${summary.repairNeeded}, check failed ${summary.checkFailed}, update failed ${summary.updateFailed}, deferred ${summary.deferred}, local-only (not updated) ${summary.localOnly}, cancelled ${summary.cancelled ? "yes" : "no"}.`,
+      `スキル更新: 更新 ${summary.updated}、初回同期 ${summary.synchronized}、変更なし ${summary.unchanged}、比較情報なし ${summary.untracked}、要修復 ${summary.repairNeeded}、確認失敗 ${summary.checkFailed}、更新失敗 ${summary.updateFailed}、保留 ${summary.deferred}、ローカルのみ（対象外） ${summary.localOnly}、中断 ${summary.cancelled ? "あり" : "なし"}。`,
     );
     const message = summaryMessage + (details.length ? ` ${details[0]}` : "");
+    const hasDetails = details.length > 0 || localNotes.length > 0;
     const showDetails = text("Show details", "詳細を表示");
     const openDetails = () => {
       if (!detailsChannel) {
@@ -810,7 +825,7 @@ export function registerSkillUpdateCommands(
       }
       detailsChannel.clear();
       detailsChannel.appendLine(summaryMessage);
-      for (const detail of details) {
+      for (const detail of [...details, ...localNotes]) {
         detailsChannel.appendLine(detail);
       }
       detailsChannel.show(true);
@@ -981,7 +996,7 @@ export function registerSkillUpdateCommands(
         .showWarningMessage(
           message,
           ...(failures.size ? [report] : []),
-          ...(details.length ? [showDetails] : []),
+          ...(hasDetails ? [showDetails] : []),
           ...(renameOffers.length ? [installAction] : []),
         )
         .then(
@@ -1006,7 +1021,7 @@ export function registerSkillUpdateCommands(
       void vscode.window
         .showInformationMessage(
           message,
-          ...(details.length ? [showDetails] : []),
+          ...(hasDetails ? [showDetails] : []),
           ...(renameOffers.length ? [installAction] : []),
         )
         .then(

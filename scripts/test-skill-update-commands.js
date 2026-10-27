@@ -218,6 +218,7 @@ async function scenario({
     vscode,
     "./i18n": load("i18n", { vscode }),
     "./githubResponse": githubResponse,
+    "./installedSkillIndex": load("installedSkillIndex", {}),
     "./treeProvider": {
       resolveCurrentSkillRoot: (item, current) => {
         const previous = item?.skillRoot || item?.skill?.root;
@@ -261,7 +262,7 @@ async function scenario({
               sha: "c".repeat(40),
               truncated: false,
               tree: entries
-                .filter(() => !missingPath)
+                .filter((entry) => !missingPath && entry.meta.remotePath)
                 .map((entry) => ({
                   path: indexedNewPath
                     ? entry.skill?.path || entry.meta.remotePath
@@ -639,13 +640,40 @@ async function main() {
     showDetails: true,
   });
   await new Promise((resolve) => setImmediate(resolve));
+  assert.strictEqual(skippedLocal.summary.localOnly, 1);
+  assert.strictEqual(skippedLocal.summary.deferred, 0);
+  assert.strictEqual(skippedLocal.summary.checkFailed, 0);
+  assert.strictEqual(skippedLocal.tokenReads, 0);
+  assert.strictEqual(skippedLocal.requests, 0);
   assert.ok(
-    skippedLocal.messages
-      .at(-1)
-      .includes("local-only: no upstream or install path"),
+    skippedLocal.messages.at(-1).includes("local-only (not updated) 1"),
   );
+  assert.ok(!skippedLocal.messages.at(-1).includes("local-only:"));
   assert.ok(!skippedLocal.messages.at(-1).includes("removed or renamed"));
   assert.strictEqual(skippedLocal.output.shown, true);
+  assert.ok(
+    skippedLocal.output.lines.some((line) =>
+      line.includes("local-only: local skill without an upstream"),
+    ),
+  );
+  const mixedLocal = await scenario({
+    entries: [localSkill, entry("demo")],
+  });
+  assert.strictEqual(mixedLocal.summary.localOnly, 1);
+  assert.strictEqual(mixedLocal.summary.unchanged, 1);
+  assert.strictEqual(mixedLocal.summary.deferred, 0);
+  const unknownLegacy = entry("legacy-unknown");
+  unknownLegacy.meta.remotePath = undefined;
+  unknownLegacy.meta.source = "unknown";
+  unknownLegacy.skill = undefined;
+  const legacyResult = await scenario({ entries: [unknownLegacy] });
+  assert.strictEqual(legacyResult.summary.localOnly, 0);
+  assert.strictEqual(legacyResult.summary.deferred, 1);
+  const japaneseLocal = await scenario({
+    entries: [localSkill],
+    language: "ja",
+  });
+  assert.ok(japaneseLocal.messages.at(-1).includes("ローカルのみ（対象外） 1"));
   const japaneseMissing = await scenario({
     entries: [{ ...entry("renamed"), skill: undefined }],
     language: "ja",
