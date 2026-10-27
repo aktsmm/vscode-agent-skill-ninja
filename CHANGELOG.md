@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.9.62] - 2026-10-27
+
 ### Changed
 
 - 🧭 **Local Skills Are No Longer Reported As "Deferred" In Update Changed Skills** - A skill that has no upstream (for example one you created in the workspace) cannot be updated from a source, so it is now counted as "local-only (not updated)" instead of "deferred", and is listed only under "Show details". Skills whose upstream is recorded but incomplete, repair-needed or failing still show as deferred / needs repair / check failed. The notification now lists only non-zero counts instead of ten counters mostly at 0 / 配布元のないローカルスキル（ワークスペースで自作したものなど）は配布元から更新できないため、「変更されたスキルを更新」で「保留」ではなく「ローカルのみ（対象外）」として数え、「詳細を表示」にだけ載せるようにしました。配布元の記録があるのに不完全・要修復・確認失敗のものは、従来どおり保留 / 要修復 / 確認失敗として表示します。通知は 0 件の項目を省き、件数のある項目だけを表示します。
