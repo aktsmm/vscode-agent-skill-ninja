@@ -809,9 +809,31 @@ export function registerSkillUpdateCommands(
       }
       running = false;
     }
+    const counters: Array<[number, string, string]> = [
+      [summary.updated, "updated", "更新"],
+      [summary.synchronized, "first sync", "初回同期"],
+      [summary.unchanged, "unchanged", "変更なし"],
+      [summary.untracked, "no baseline", "比較情報なし"],
+      [summary.repairNeeded, "needs repair", "要修復"],
+      [summary.checkFailed, "check failed", "確認失敗"],
+      [summary.updateFailed, "update failed", "更新失敗"],
+      [summary.deferred, "deferred", "保留"],
+      [summary.localOnly, "local-only (not updated)", "ローカルのみ（対象外）"],
+    ];
+    const shown = counters.filter(([count]) => count > 0);
     const summaryMessage = text(
-      `Skill update: updated ${summary.updated}, first sync ${summary.synchronized}, unchanged ${summary.unchanged}, no baseline ${summary.untracked}, needs repair ${summary.repairNeeded}, check failed ${summary.checkFailed}, update failed ${summary.updateFailed}, deferred ${summary.deferred}, local-only (not updated) ${summary.localOnly}, cancelled ${summary.cancelled ? "yes" : "no"}.`,
-      `スキル更新: 更新 ${summary.updated}、初回同期 ${summary.synchronized}、変更なし ${summary.unchanged}、比較情報なし ${summary.untracked}、要修復 ${summary.repairNeeded}、確認失敗 ${summary.checkFailed}、更新失敗 ${summary.updateFailed}、保留 ${summary.deferred}、ローカルのみ（対象外） ${summary.localOnly}、中断 ${summary.cancelled ? "あり" : "なし"}。`,
+      `Skill update: ${
+        [
+          ...shown.map(([count, en]) => `${en} ${count}`),
+          ...(summary.cancelled ? ["cancelled"] : []),
+        ].join(", ") || "nothing to update"
+      }.`,
+      `スキル更新: ${
+        [
+          ...shown.map(([count, , ja]) => `${ja} ${count}`),
+          ...(summary.cancelled ? ["中断"] : []),
+        ].join("、") || "更新対象なし"
+      }。`,
     );
     const message = summaryMessage + (details.length ? ` ${details[0]}` : "");
     const hasDetails = details.length > 0 || localNotes.length > 0;

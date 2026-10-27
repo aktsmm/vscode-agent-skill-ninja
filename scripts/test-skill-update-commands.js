@@ -669,6 +669,10 @@ async function main() {
   const legacyResult = await scenario({ entries: [unknownLegacy] });
   assert.strictEqual(legacyResult.summary.localOnly, 0);
   assert.strictEqual(legacyResult.summary.deferred, 1);
+  assert.ok(!mixedLocal.messages.at(-1).includes("updated 0"));
+  assert.ok(!mixedLocal.messages.at(-1).includes("cancelled"));
+  const noneResult = await scenario({ entries: [] });
+  assert.ok(noneResult.messages.at(-1).includes("nothing to update"));
   const japaneseLocal = await scenario({
     entries: [localSkill],
     language: "ja",
