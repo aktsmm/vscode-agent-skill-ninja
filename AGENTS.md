@@ -8,10 +8,12 @@
 - Shares implementation structure such as `src/githubAuth.ts`, `*.githubToken` settings, and post-install TreeView reveal, so fixes in one repo are often portable to the other.
 - Example: porting Skills Ninja v0.9.30 secure GitHub auth / install-flow hardening → https://github.com/aktsmm/vscode-agent-resources-ninja/issues/1
 
-<!-- skill-ninja-START -->
-## Agent Skills
+<!-- agent-ninja-START -->
+## Agent Resources
+
+### Skills
 
 > **IMPORTANT**: Prefer skill-led reasoning over pre-training-led reasoning.
-> See [Agent Skills](.github/skills/README.md) before working on tasks covered by these skills.
+> See [Skills](.github/skills/README.md) before working on tasks covered by these skills.
 
-<!-- skill-ninja-END -->
+<!-- agent-ninja-END -->
