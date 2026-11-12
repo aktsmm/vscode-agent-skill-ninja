@@ -12,7 +12,7 @@ applyTo: "**/package.json,**/CHANGELOG.md,**/*.vsix"
 ### Release Sequence Guardrail
 
 - `release` 明示時は、品質 gate → VSIX 作成/検査 → Marketplace publish → GitHub Release → tag/公開状態確認まで進める。commit/push だけで release 完了扱いにしない。
-- **最初の外部ゲートとして、版上げ・index再生成・audit fix・VSIX作成より前に** `pwsh -NoProfile -File scripts/Test-ReleaseCredentials.ps1` を実行する。候補版が決まっている場合は `-ExpectedVersion X.Y.Z` も渡す。期限切れ・権限不足・同版公開済みなら、この時点で停止し、tracked release metadataを変更しない。
+- **最初の外部ゲートとして、版上げ・index再生成・audit fix・VSIX作成より前に** `pwsh -NoProfile -File scripts/Test-ReleaseCredentials.ps1` を実行する。候補版が決まっている場合は `-ExpectedVersion X.Y.Z` も渡す。版一覧の `vsce show --json` だけでは公開直後の stale metadata を見逃すため、preflight は版指定 Marketplace VSIX も GET する。200 と非空 artifact は公開済み、404 だけを未公開とみなし、それ以外の応答や空 artifact は確認不能として停止する。期限切れ・権限不足・同版公開済みなら、この時点で停止し、tracked release metadataを変更しない。
 - preflight は User スコープの `VSCE_PAT` を Process へ読み直し、PAT をCLI引数やログへ出さない。PAT はチャットやrepoへ保存せず、Azure DevOpsで `Marketplace > Manage` と将来の有効期限を設定する。
 - `vsce package` 後、publish前に `pwsh -NoProfile -File scripts/Test-ReleaseArtifact.ps1 -VsixPath <path> -ExpectedVersion X.Y.Z` を通す。収録物の有無だけでなく、パッケージ内Changelogの版とコードフェンス外の端末・秘密入力 transcript 汚染を検査する。
 - version bump 後に publish へ進めない blocker が出たら、`Version / VSIX / Publish / GitHub Release / Tag` の状態を分けて報告し、同じ version を再利用してよい状態か確認する。

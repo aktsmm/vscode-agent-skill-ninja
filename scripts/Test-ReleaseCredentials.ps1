@@ -53,6 +53,38 @@ if ($ExpectedVersion) {
     if ($published -contains $ExpectedVersion) {
         throw "Marketplace version $ExpectedVersion already exists. Select a newer version before changing release metadata."
     }
+
+    $packagePath = Join-Path ([IO.Path]::GetTempPath()) "release-preflight-$([guid]::NewGuid().ToString('N')).vsix"
+    $packageExists = $false
+    try {
+        $packageResponse = Invoke-WebRequest `
+            -Uri "https://marketplace.visualstudio.com/_apis/public/gallery/publishers/$Publisher/vsextensions/$($ExtensionId.Split('.')[1])/$ExpectedVersion/vspackage" `
+            -Method Get `
+            -OutFile $packagePath `
+            -PassThru
+        if ($packageResponse.StatusCode -ne 200 -or -not (Test-Path -LiteralPath $packagePath -PathType Leaf) -or (Get-Item -LiteralPath $packagePath).Length -eq 0) {
+            throw "Could not verify Marketplace package availability for $ExtensionId $ExpectedVersion."
+        }
+        $packageExists = $true
+    } catch {
+        $statusCode = $null
+        if ($_.Exception.Response -and $_.Exception.Response.StatusCode) {
+            $statusCode = [int]$_.Exception.Response.StatusCode
+        } elseif ($_.Exception.StatusCode) {
+            $statusCode = [int]$_.Exception.StatusCode
+        }
+        if ($statusCode -ne 404) {
+            throw "Could not verify Marketplace package availability for $ExtensionId $ExpectedVersion."
+        }
+    } finally {
+        if (Test-Path -LiteralPath $packagePath -PathType Leaf) {
+            Remove-Item -LiteralPath $packagePath -Force
+        }
+    }
+
+    if ($packageExists) {
+        throw "Marketplace version $ExpectedVersion already exists. Select a newer version before changing release metadata."
+    }
 }
 
 [pscustomobject]@{

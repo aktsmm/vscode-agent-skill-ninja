@@ -10,11 +10,13 @@ const scratch = fs.mkdtempSync(
   path.join(os.tmpdir(), "release-credential-test-"),
 );
 const mock = path.join(scratch, "mock-vsce.ps1");
+const runner = path.join(scratch, "run-preflight.ps1");
 
 function run({
   pat = "fixture-secret",
   expected = "0.9.50",
   verifyFails = false,
+  packageStatus = 404,
 } = {}) {
   fs.writeFileSync(
     mock,
@@ -26,17 +28,36 @@ function run({
       "exit 9",
     ].join("\r\n"),
   );
+  fs.writeFileSync(
+    runner,
+    [
+      "param([string]$Script, [string]$Vsce, [string]$Version, [int]$PackageStatus)",
+      "function Invoke-WebRequest {",
+      "  param([string]$Uri, [string]$Method, [string]$OutFile, [switch]$PassThru)",
+      "  if ($PackageStatus -eq 404 -or $PackageStatus -eq 503) {",
+      "    $exception = [System.Exception]::new('Mock Marketplace response')",
+      "    $exception | Add-Member -NotePropertyName Response -NotePropertyValue ([pscustomobject]@{ StatusCode = $PackageStatus })",
+      "    throw $exception",
+      "  }",
+      "  if ($PackageStatus -eq 200) {",
+      "    [System.IO.File]::WriteAllBytes($OutFile, [byte[]](1, 2, 3))",
+      "    return [pscustomobject]@{ StatusCode = 200 }",
+      "  }",
+      "}",
+      "& $Script -UseProcessCredential -VsceExecutable $Vsce -ExpectedVersion $Version",
+      "exit $LASTEXITCODE",
+    ].join("\r\n"),
+  );
   return spawnSync(
     "pwsh",
     [
       "-NoProfile",
       "-File",
+      runner,
       script,
-      "-UseProcessCredential",
-      "-VsceExecutable",
       mock,
-      "-ExpectedVersion",
       expected,
+      String(packageStatus),
     ],
     {
       cwd: root,
@@ -77,6 +98,18 @@ try {
   assert.notEqual(duplicate.status, 0);
   assert.match(normalizedOutput(duplicate), /already exists/);
 
+  const staleLatestMetadata = run({ packageStatus: 200 });
+  assert.notEqual(staleLatestMetadata.status, 0);
+  assert.match(normalizedOutput(staleLatestMetadata), /already exists/);
+  assert.doesNotMatch(normalizedOutput(staleLatestMetadata), /fixture-secret/);
+
+  const unavailable = run({ packageStatus: 503 });
+  assert.notEqual(unavailable.status, 0);
+  assert.match(
+    normalizedOutput(unavailable),
+    /Could not verify Marketplace package availability/,
+  );
+
   const expired = run({ verifyFails: true });
   assert.notEqual(expired.status, 0);
   assert.match(
@@ -86,7 +119,7 @@ try {
   assert.doesNotMatch(normalizedOutput(expired), /fixture-secret/);
 
   console.log(
-    "PASS release credential preflight reloads safely, blocks expired/missing/duplicate releases and never prints the PAT",
+    "PASS release credential preflight rejects stale latest metadata and uncertain version-specific package results without printing the PAT",
   );
 } finally {
   fs.rmSync(scratch, { recursive: true, force: true });
