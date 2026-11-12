@@ -7,6 +7,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.9.63] - 2026-11-12
+
+### Added
+
+- **Reinstall Diff Inspection** - Preview a bounded excerpt for one changed text file after confirming disclosure to the chat model. File evidence is paged, and source sizes are shown when available / 変更されたテキストファイルを1件選び、チャットモデルへの開示を確認してから差分の一部を表示できます。ファイルの比較結果はページ分けされ、取得元サイズは取得できる場合に表示します。
+
+### Fixed
+
+- **GitHub Failure Handling** - Preserve authentication and server failure classifications, and retry rate-limited 403 responses when a bounded wait is available. Bulk installs stop further work and retries when a rate limit persists / 認証・サーバーエラーの分類を保持し、待機時間を取得できるレート制限の403を上限付きで再試行します。一括インストールでは制限が続くと後続処理と再試行を停止します。
+- **Safe Reinstall Comparison** - Compare binary, invalid UTF-8, and unknown file types byte-for-byte so line-ending normalization cannot hide local changes / バイナリ、不正なUTF-8、不明な形式はバイト単位で比較し、改行の正規化によってローカル変更を見逃さないようにしました。
+- **Development Dependency Security** - Temporarily apply the upstream minimatch fix to the ESLint parser until a patched parser release is available. The dependency is not included in the extension bundle / 修正版のパーサーが公開されるまで、ESLint パーサーに上流の minimatch 修正を一時適用します。この依存関係は拡張機能のバンドルには含まれません。
+
+### Changed
+
+- **Preset Index Cleanup** - Removed 16 LifeOS entries whose source files no longer exist. Installed skills are not removed / 配布元のファイルが存在しなくなったLifeOSの16件をプリセットから除外しました。インストール済みスキルは削除しません。
+
 ## [0.9.62] - 2026-10-27
 
 ### Changed

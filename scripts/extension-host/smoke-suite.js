@@ -58,7 +58,10 @@ exports.run = async () => {
     stage = "extension-path";
     assert.equal(
       path.relative(
-        fs.realpathSync(path.resolve(__dirname, "../..")),
+        fs.realpathSync(
+          process.env.SKILL_NINJA_SMOKE_EXTENSION_ROOT ??
+            path.resolve(__dirname, "../.."),
+        ),
         fs.realpathSync(extension.extensionPath),
       ),
       "",
@@ -92,7 +95,7 @@ exports.run = async () => {
         rootPath: skillsPath,
         rootUri: vscode.Uri.file(skillsPath),
         isManaged: true,
-        isReadOnly: true,
+        isReadOnly: false,
       },
     };
     for (let attempt = 0; attempt < 2; attempt++) {
@@ -104,11 +107,32 @@ exports.run = async () => {
       assert.equal(result.updated, 0);
       assert.equal(result.synchronized, 0);
       assert.equal(result.checkFailed, 0);
-      assert.equal(result.deferred, 1);
+      assert.equal(result.localOnly, 1);
     }
     assert.deepEqual(fs.readFileSync(skillPath), original);
     assert.equal(fs.statSync(skillPath).mtimeMs, before);
     checks.push("stale-root-first-and-second-command-noop");
+
+    stage = "lm-tool-reinstall-preview";
+    const entryId = "workspace:.github/skills::smoke-local";
+    const toolText = (result) =>
+      result.content
+        .filter((part) => typeof part.value === "string")
+        .map((part) => part.value)
+        .join("\n");
+    const listed = await vscode.lm.invokeTool("skillNinja_list", {
+      input: { name: "smoke-local" },
+      toolInvocationToken: undefined,
+    });
+    assert.ok(toolText(listed).includes(entryId));
+    const preview = await vscode.lm.invokeTool("skillNinja_reinstall", {
+      input: { mode: "preview", targets: { entryIds: [entryId] } },
+      toolInvocationToken: undefined,
+    });
+    assert.match(toolText(preview), /Reinstall plan `[^`]+`/);
+    assert.ok(toolText(preview).includes("smoke-local"));
+    assert.deepEqual(fs.readFileSync(skillPath), original);
+    checks.push("lm-tool-reinstall-preview-host");
 
     stage = "missing-root";
     const missing = await vscode.commands.executeCommand(
@@ -119,7 +143,7 @@ exports.run = async () => {
     assert.deepEqual(fs.readFileSync(skillPath), original);
     const all = await vscode.commands.executeCommand("skillNinja.updateAll");
     assert.equal(all.updated, 0);
-    assert.equal(all.deferred, 1);
+    assert.equal(all.localOnly, 1);
     checks.push("missing-root-and-update-all-noop");
     stage = "blocked-output";
     const outputPath = path.join(workspace.fsPath, "SMOKE-OUTPUT.md");

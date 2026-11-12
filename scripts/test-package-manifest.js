@@ -903,7 +903,7 @@ test("README files document the install reliability contract", () => {
     assert.strictEqual(
       retryableBody.includes(status),
       false,
-      `${status} must never be retried, or the README contract is wrong`,
+      `${status} must not be retried by status alone`,
     );
   }
 
@@ -1952,6 +1952,7 @@ test("reinstallSkills is previewed first, explicit about targets, and documented
   assert.deepStrictEqual(tool.inputSchema.properties.mode.enum, [
     "preview",
     "apply",
+    "diff",
   ]);
   assert.deepStrictEqual(tool.inputSchema.required, ["mode", "targets"]);
   for (const key of [
@@ -1962,9 +1963,14 @@ test("reinstallSkills is previewed first, explicit about targets, and documented
   ]) {
     assert.ok(tool.inputSchema.properties.targets.properties[key], key);
   }
-  for (const key of ["adopt", "allowLocalEdits", "allowSourceSwitch", "planId"]) {
+  for (const key of ["adopt", "allowLocalEdits", "allowSourceSwitch", "planId", "detailsOffset"]) {
     assert.ok(tool.inputSchema.properties[key], key);
   }
+  assert.deepStrictEqual(
+    tool.inputSchema.properties.diff.required,
+    ["entryId", "filePath"],
+  );
+  assert.match(tool.modelDescription, /diff.*confirm/i);
   assert.ok(
     mcpToolsSource.includes('["skillNinja_reinstall", "reinstallSkills"]'),
   );

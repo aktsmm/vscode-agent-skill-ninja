@@ -89,6 +89,24 @@ async function main() {
       formatBulkFailureDetails([failure(kind)], 0).includes(`kinds=${kind};`),
     );
   }
+  const deferredRateLimit = {
+    ...failure("rate-limit"),
+    attempts: 0,
+  };
+  assert.match(
+    formatBulkFailureDetails([deferredRateLimit], 0),
+    /not attempted; kinds=rate-limit; attempts in last batch=0/,
+  );
+  choice = "Retry 1";
+  showBulkFailureActions(
+    "rate limited",
+    [failure("transport"), failure("rate-limit")],
+    0,
+    deps,
+  );
+  await new Promise((resolve) => setImmediate(resolve));
+  assert.deepStrictEqual(notices.at(-1).actions, ["Report"]);
+  assert.deepStrictEqual(Array.from(retried), ["transport"]);
   const privateFailure = {
     ...failure("C:/private/token"),
     previousFailureKinds: ["C:/private/token"],

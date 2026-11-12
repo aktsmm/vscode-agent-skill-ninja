@@ -43,7 +43,7 @@ export function describeGitHubRequest(url: string): string {
   }
 }
 
-/** 401/403/404 are excluded so retries never fight the auth fallback below. */
+/** A 403 needs rate-limit evidence before it can enter the retry path. */
 export function isRetryableGitHubStatus(status: number): boolean {
   return status === 429 || status === 502 || status === 503 || status === 504;
 }
@@ -106,15 +106,21 @@ function computeBackoffDelayMs(attempt: number, random: number): number {
 export function computeGitHubRetryDelayMs(
   response: Pick<Response, "status" | "headers">,
   attempt: number,
-  context: { now: number; random: number },
+  context: { now: number; random: number; rateLimited?: boolean },
 ): number | undefined {
-  if (!isRetryableGitHubStatus(response.status)) {
+  if (
+    response.status === 403
+      ? !context.rateLimited
+      : !isRetryableGitHubStatus(response.status)
+  ) {
     return undefined;
   }
-
   const explicit =
     parseRetryAfterMs(response.headers.get("retry-after"), context.now) ??
     parseRateLimitResetMs(response, context.now);
+  if (response.status === 403 && explicit === undefined) {
+    return undefined;
+  }
   const delay = explicit ?? computeBackoffDelayMs(attempt, context.random);
 
   return delay > GITHUB_RETRY_MAX_DELAY_MS ? undefined : delay;
@@ -175,6 +181,9 @@ async function runWithGitHubRetry(
       delayMs = computeGitHubRetryDelayMs(response, attemptNumber, {
         now: now(),
         random: random(),
+        rateLimited:
+          response.status === 403 &&
+          (await readFailureKind(response)) === "rate-limit",
       });
     } else if (isTransientNetworkError(failure)) {
       delayMs = computeBackoffDelayMs(attemptNumber, random());
@@ -463,6 +472,20 @@ async function requestWithAuthFallback(
       rootAuthFailure = candidate;
     }
   };
+  const stopAtRateLimit = async (
+    candidate: Response,
+  ): Promise<Response | undefined> => {
+    if (
+      candidate.status !== 403 ||
+      (await readFailureKind(candidate)) !== "rate-limit"
+    ) {
+      return undefined;
+    }
+    return rootAuthFailure &&
+      rootAuthFailureRank < getAuthFailureRank("rate-limit")
+      ? rootAuthFailure
+      : candidate;
+  };
 
   assertNotCancelled();
   let response = await request(url, {
@@ -474,6 +497,11 @@ async function requestWithAuthFallback(
     response,
     headers.Authorization ? options.token : undefined,
   );
+
+  let limited = await stopAtRateLimit(response);
+  if (limited) {
+    return limited;
+  }
 
   if (
     response.status === 404 &&
@@ -493,6 +521,10 @@ async function requestWithAuthFallback(
       signal,
     });
     await observeAuthFailure(response, options.token);
+    limited = await stopAtRateLimit(response);
+    if (limited) {
+      return limited;
+    }
   }
 
   if (isAuthFailureStatus(response.status) && Boolean(headers.Authorization)) {
@@ -507,6 +539,10 @@ async function requestWithAuthFallback(
       signal,
     });
     await observeAuthFailure(response);
+    limited = await stopAtRateLimit(response);
+    if (limited) {
+      return limited;
+    }
   }
 
   if ([401, 403, 404].includes(response.status) && Boolean(options.token)) {
@@ -554,6 +590,10 @@ async function requestWithAuthFallback(
         ...(isRawGitHubUrl(url) ? { redirect: "error" as const } : {}),
       });
       await observeAuthFailure(response, fallback.token);
+      limited = await stopAtRateLimit(response);
+      if (limited) {
+        return limited;
+      }
     }
   }
 

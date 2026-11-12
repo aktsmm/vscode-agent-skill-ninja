@@ -78,7 +78,11 @@ function prepareSmokeRun(language = "en", parentDirectory = os.tmpdir()) {
   };
 }
 
-function buildSmokeEnvironment(run, parent = process.env) {
+function buildSmokeEnvironment(
+  run,
+  parent = process.env,
+  extensionRoot = path.resolve(__dirname, ".."),
+) {
   const environment = {};
   const allowed = new Set([
     "SYSTEMROOT",
@@ -107,6 +111,7 @@ function buildSmokeEnvironment(run, parent = process.env) {
     SKILL_NINJA_SMOKE_ROOT: run.root,
     SKILL_NINJA_SMOKE_RESULT: run.result,
     SKILL_NINJA_SMOKE_LANGUAGE: run.language,
+    SKILL_NINJA_SMOKE_EXTENSION_ROOT: extensionRoot,
   });
 }
 
@@ -139,12 +144,15 @@ async function stopOwnedProcess(child, startProcess = spawn) {
   }
 }
 
-async function runSmoke(executable, language = "en") {
+async function runSmoke(
+  executable,
+  language = "en",
+  extensionRoot = path.resolve(__dirname, ".."),
+) {
   assert.ok(fs.existsSync(executable), "VS Code executable must exist");
-  const repository = path.resolve(__dirname, "..");
   assert.ok(
-    fs.existsSync(path.join(repository, "dist", "extension.js")),
-    "Run npm run compile first",
+    fs.existsSync(path.join(extensionRoot, "dist", "extension.js")),
+    "Extension bundle must exist",
   );
   const run = prepareSmokeRun(language);
   let child;
@@ -153,7 +161,7 @@ async function runSmoke(executable, language = "en") {
       run.paths.workspace,
       `--user-data-dir=${run.paths["user-data"]}`,
       `--extensions-dir=${run.paths.extensions}`,
-      `--extensionDevelopmentPath=${repository}`,
+      `--extensionDevelopmentPath=${extensionRoot}`,
       `--extensionTestsPath=${path.join(__dirname, "extension-host", "smoke-suite.js")}`,
       "--disable-extensions",
       "--disable-updates",
@@ -168,7 +176,7 @@ async function runSmoke(executable, language = "en") {
     let code;
     try {
       child = spawn(executable, args, {
-        env: buildSmokeEnvironment(run),
+        env: buildSmokeEnvironment(run, process.env, extensionRoot),
         cwd: run.paths.workspace,
         stdio: ["ignore", log, log],
         windowsHide: false,
@@ -198,6 +206,7 @@ async function runSmoke(executable, language = "en") {
     assert.equal(result.status, "passed");
     assert.equal(result.language, language);
     assert.ok(result.checks.length >= 5);
+    assert.ok(result.checks.includes("lm-tool-reinstall-preview-host"));
     assert.ok(result.checks.includes("blocked-output-preserved-and-recovered"));
     assert.ok(result.checks.includes("invocation-mode-host"));
     assert.ok(
@@ -243,13 +252,25 @@ if (require.main === module) {
   const language = args.includes("--locale")
     ? args[args.indexOf("--locale") + 1]
     : "en";
-  if (!args.includes("--code") || !executable) {
+  const extensionPathIndex = args.indexOf("--extension-path");
+  const extensionPath =
+    extensionPathIndex >= 0 ? args[extensionPathIndex + 1] : undefined;
+  if (
+    !args.includes("--code") ||
+    !executable ||
+    (extensionPathIndex >= 0 &&
+      (!extensionPath || extensionPath.startsWith("--")))
+  ) {
     console.error(
-      "Usage: node scripts/run-extension-host-smoke.js --code <VS Code executable> [--locale en|ja]",
+      "Usage: node scripts/run-extension-host-smoke.js --code <VS Code executable> [--locale en|ja] [--extension-path <extension directory>]",
     );
     process.exitCode = 1;
   } else {
-    runSmoke(path.resolve(executable), language).catch(() => {
+    runSmoke(
+      path.resolve(executable),
+      language,
+      extensionPath ? path.resolve(extensionPath) : undefined,
+    ).catch(() => {
       process.exitCode = 1;
     });
   }

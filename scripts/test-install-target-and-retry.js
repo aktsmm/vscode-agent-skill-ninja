@@ -706,6 +706,52 @@ async function main() {
     );
   });
 
+  await test("a failed primary skill download retains its transient cause", async () => {
+    const harness = loadInstaller({
+      ...demoSources(),
+      rawFailures: {
+        [`${RAW}/owner/repo/main/skills/demo/SKILL.md`]: 503,
+      },
+    });
+
+    await assert.rejects(
+      () => installDemo(harness),
+      (error) => {
+        assert.strictEqual(error.name, "SkillInstallIncompleteError");
+        const kinds = Array.from(error.failures, (failure) => failure.kind);
+        assert.ok(kinds.length > 0);
+        assert.ok(kinds.every((kind) => kind === "server-error"));
+        assert.strictEqual(
+          harness.installer.isRetryableInstallFailure(Array.from(error.failures)),
+          true,
+        );
+        return true;
+      },
+    );
+  });
+
+  await test("a primary authentication failure is not reported as a missing skill", async () => {
+    const harness = loadInstaller({
+      directories: {},
+      rawFailures: {
+        [`${RAW}/owner/repo/main/skills/demo/SKILL.md`]: 403,
+      },
+    });
+
+    await assert.rejects(
+      () => installDemo(harness),
+      (error) => {
+        assert.strictEqual(error.name, "SkillInstallIncompleteError");
+        assert.ok(
+          Array.from(error.failures, (failure) => failure.kind).includes(
+            "auth-required",
+          ),
+        );
+        return true;
+      },
+    );
+  });
+
   await test("failed-install cleanup only trashes a folder that already existed", async () => {
     // ディレクトリ一覧も SKILL.md フォールバックも 404 にして not-found へ落とす
     const missingRemote = { directories: {}, rawFiles: {} };

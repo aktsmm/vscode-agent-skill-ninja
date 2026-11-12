@@ -1,6 +1,6 @@
 {
-  "version": "1.33.0",
-  "lastUpdated": "2026-10-21",
+  "version": "1.34.0",
+  "lastUpdated": "2026-11-12",
   "retiredSources": [
     {
       "id": "openai-codex"
@@ -1102,16 +1102,6 @@
       "categories": [],
       "description": "Automate Apiflash tasks via Rube MCP (Composio). Always search tools first for current schemas.",
       "description_ja": ""
-    },
-    {
-      "name": "Apify",
-      "source": "pai-packs",
-      "path": "LifeOS/install/skills/Apify",
-      "invocation": "auto",
-      "categories": [],
-      "description": "Scrapes social platforms, business data, and e-commerce via Apify actors — Instagram, LinkedIn, TikTok, YouTube, Facebook, Google Maps, Amazon, and web crawls — filtering in code. USE WHEN scrape Instagram, scrape LinkedIn, scrape TikTok, scrape YouTube, scrape Facebook, Google Maps leads, Amazon reviews, business intelligence, multi-platform social listening, competitive analysis, lead generation, social monitoring, Apify actors, web crawl, extract contacts. NOT FOR X/Twitter account operations like posting, threads, or bookmarks (those need a dedicated X API client), 4-tier progressive scraping with proxy escalation (use BrightData), or real-Chrome bot bypass and computer use (use Interceptor).",
-      "description_ja": "Apify",
-      "version": "1.1.22"
     },
     {
       "name": "Apify Automation",
@@ -3903,16 +3893,6 @@
       "description_ja": ""
     },
     {
-      "name": "BitterPillEngineering",
-      "source": "pai-packs",
-      "path": "LifeOS/install/skills/BitterPillEngineering",
-      "invocation": "auto",
-      "categories": [],
-      "description": "Audits any AI instruction set for over-prompting using the core test — would a smarter model make this rule unnecessary? Applies Five Questions to every rule (Claude already does this? Contradiction? Redundant? One-off fix? Vague?) then classifies as CUT/RESOLVE/MERGE/EVALUATE/SHARPEN/MOVE/KEEP. Workflows: Audit (full system, token savings), QuickCheck (single file). Principle: less scaffolding = better output. USE WHEN BPE, bitter pill, audit setup, over-prompting, trim instructions, dead weight, simplify setup, clean up CLAUDE.md. NOT FOR attacking logical flaws in ideas (use RedTeam).",
-      "description_ja": "",
-      "version": "1.0.10"
-    },
-    {
       "name": "bitwarden-automation",
       "source": "composio-awesome",
       "path": "composio-skills/bitwarden-automation",
@@ -5347,16 +5327,6 @@
       "description_ja": ""
     },
     {
-      "name": "CMUX",
-      "source": "pai-packs",
-      "path": "LifeOS/install/skills/CMUX",
-      "invocation": "auto",
-      "categories": [],
-      "description": "Drives cmux as an agent cockpit to boot, race, and monitor visible agent teams. Mac-only. USE WHEN cmux, agent cockpit, boot an agent team, orchestrate agents, three-tier orchestration, agent race, needle-in-haystack hotfix, agent fleet, 2x2 fleet, watch/monitor my agents, scale compute to scale impact, send a prompt to a running agent, multiplexer, terminal cockpit, orchestrator lead worker. NOT FOR one-shot in-harness subagents with no terminal to watch (use Agent/Workflow), the Pulse dashboard itself (cmux feeds it, use Pulse), browser deploy-verification (use Interceptor), or Linux/Windows (cmux is Mac-only — use tmux).",
-      "description_ja": "",
-      "version": "1.0.5"
-    },
-    {
       "name": "coassemble-automation",
       "source": "composio-awesome",
       "path": "composio-skills/coassemble-automation",
@@ -6263,16 +6233,6 @@
       "categories": [],
       "description": "Automate Dadata Ru tasks via Rube MCP (Composio). Always search tools first for current schemas.",
       "description_ja": ""
-    },
-    {
-      "name": "Daemon",
-      "source": "pai-packs",
-      "path": "LifeOS/install/skills/Daemon",
-      "invocation": "auto",
-      "categories": [],
-      "description": "Manage the public daemon profile — a digital representation of what you're working on. DaemonAggregator reads LifeOS sources (TELOS, KNOWLEDGE, PROJECTS, MEMORY/WORK, identity) → daemon-data.json. SecurityFilter strips names/paths/credentials via deterministic patterns (NOT LLM). Workflows: UpdateDaemon, ReadDaemon, PreviewDaemon, DeployDaemon. USE WHEN daemon, update daemon, daemon profile, deploy daemon, preview daemon, read daemon, public profile, digital presence. NOT FOR LifeOS system management.",
-      "description_ja": "",
-      "version": "1.0.25"
     },
     {
       "name": "daffy-automation",
@@ -7381,17 +7341,6 @@
       "description": "Improve AI application with evaluation-driven development. Define eval criteria, instrument the application, build golden datasets, observe and evaluate application runs, analyze results, and produce a concrete action plan for improvements. ALWAYS USE THIS SKILL when the user asks to set up QA, add tests, add evals, evaluate, benchmark, fix wrong behaviors, improve quality, or do quality assurance for any Python project that calls an LLM model.",
       "description_ja": "",
       "license": "MIT"
-    },
-    {
-      "name": "Evals",
-      "source": "pai-packs",
-      "path": "LifeOS/install/skills/Evals",
-      "invocation": "auto",
-      "context": "fork",
-      "categories": [],
-      "description": "Assertion-first AI eval framework aligned to Anthropic's 'Demystifying evals for AI agents' — typed deterministic asserts + a forced-structured LLM judge over an input→assert case schema, pass^k/pass@k, capability vs regression suites, subscription-billed. USE WHEN eval, evaluate, benchmark, regression test, assertion, assert, llm-rubric, judge, pass@k, pass^k, grade output, compare prompts/models, test agent. NOT FOR scientific-method framing (use Science), property/mutation testing of code (use Hardening), or live UI verification (use Interceptor).",
-      "description_ja": "Evals",
-      "version": "1.2.29"
     },
     {
       "name": "evaluation",
@@ -10229,17 +10178,6 @@
       "description_ja": ""
     },
     {
-      "name": "Ideate",
-      "source": "pai-packs",
-      "path": "LifeOS/install/skills/Ideate",
-      "invocation": "auto",
-      "context": "fork",
-      "categories": [],
-      "description": "Evolutionary ideation engine — loop-controlled multi-cycle idea generation through phases of dreaming, cross-domain stealing, recombination, fitness testing, selection, and Lamarckian meta-learning, producing ranked novel solution candidates with provenance. USE WHEN ideate, id8, novel ideas, evolve ideas, dream up solutions, innovate, breakthrough ideas, idea evolution, multi-cycle creativity, need genuinely new approaches. NOT FOR quick single-pass brainstorming (use BeCreative).",
-      "description_ja": "",
-      "version": "1.0.19"
-    },
-    {
       "name": "identitycheck-automation",
       "source": "composio-awesome",
       "path": "composio-skills/identitycheck-automation",
@@ -11173,16 +11111,6 @@
       "description_ja": ""
     },
     {
-      "name": "LocalIntelligence",
-      "source": "pai-packs",
-      "path": "LifeOS/install/skills/LocalIntelligence",
-      "invocation": "auto",
-      "categories": [],
-      "description": "Generic civic intelligence aggregator for any US city — daily local digest of construction permits, crime, new businesses, public officials, legislation, elections, arrests, and local news, keyed off principal's Hometown. Writes JSON consumed by Pulse LOCAL tab. Crime delegates to a dedicated crime-stats skill. Workflows: DailyBrief, Construction, Crime, Business, Officials, Legislation, Elections, Arrests, News. USE WHEN local news, hometown news, council meeting, building permits, mayor, ballot measures, ordinance, recent arrests, civic intel, local digest. NOT FOR national news or arbitrary-city crime.",
-      "description_ja": "",
-      "version": "1.0.9"
-    },
-    {
       "name": "lodgify-automation",
       "source": "composio-awesome",
       "path": "composio-skills/lodgify-automation",
@@ -11217,16 +11145,6 @@
       "categories": [],
       "description": "Automate Loomio tasks via Rube MCP (Composio). Always search tools first for current schemas.",
       "description_ja": ""
-    },
-    {
-      "name": "Loop",
-      "source": "pai-packs",
-      "path": "LifeOS/install/skills/Loop",
-      "invocation": "explicitOnly",
-      "categories": [],
-      "description": "Iterative improvement loop — refine a target across multiple Algorithm cycles toward ideal state. USE WHEN loop, iterate, refine, multiple passes, keep improving, revisit, rework.",
-      "description_ja": "",
-      "version": "1.0.9"
     },
     {
       "name": "loyverse-automation",
@@ -12525,16 +12443,6 @@
       "description_ja": ""
     },
     {
-      "name": "Optimize",
-      "source": "pai-packs",
-      "path": "LifeOS/install/skills/Optimize",
-      "invocation": "explicitOnly",
-      "categories": [],
-      "description": "Autonomous optimization loop — hill-climb any target. Code with metrics, or skills/prompts/agents with LLM-as-judge. USE WHEN optimize, hill climb, improve metric, reduce latency, optimize skill, optimize prompt, eval mode.",
-      "description_ja": "",
-      "version": "1.0.12"
-    },
-    {
       "name": "optimize-simplicite-logs",
       "source": "github-awesome-copilot",
       "path": "skills/optimize-simplicite-logs",
@@ -13305,16 +13213,6 @@
       "categories": [],
       "description": "Automate headless CMS operations in Prismic -- query documents, search content, retrieve custom types, and manage repository refs through the Composio Prismic integration.",
       "description_ja": ""
-    },
-    {
-      "name": "PrivateInvestigator",
-      "source": "pai-packs",
-      "path": "LifeOS/install/skills/PrivateInvestigator",
-      "invocation": "auto",
-      "categories": [],
-      "description": "Ethical people-finding and identity verification via parallel research agents across people-search sites, social media, public records, and reverse phone/email/image/username lookups, with confidence-scored results requiring 3+ matching identifiers. USE WHEN find person, locate person, reconnect, lost contact, old friend, reverse phone lookup, who owns this email, reverse image search, find by username, verify identity, people search, public-data background check, who is this caller. NOT FOR structured due-diligence or company/entity intelligence investigations, or general web research synthesis (use Research).",
-      "description_ja": "PrivateInvestigator",
-      "version": "1.1.18"
     },
     {
       "name": "process-street-automation",
@@ -14253,16 +14151,6 @@
       "description_ja": ""
     },
     {
-      "name": "Remotion",
-      "source": "pai-packs",
-      "path": "LifeOS/install/skills/Remotion",
-      "invocation": "auto",
-      "categories": [],
-      "description": "Creates programmatic video with React via Remotion — compositions, sequences, and motion graphics animated with useCurrentFrame() and rendered to MP4. USE WHEN video, animation, motion graphics, video rendering, React video, render video, animate content, make a short, create animations, video overlay, explainer video, animated explainer, content to video, programmatic video. NOT FOR static images, diagrams, or illustrations (use Art), tight-cut filler removal from raw talking-head recordings (that is video editing, not motion graphics), or audio-only podcast cleaning (use AudioEditor).",
-      "description_ja": "",
-      "version": "1.2.15"
-    },
-    {
       "name": "remove-bg-automation",
       "source": "composio-awesome",
       "path": "composio-skills/remove-bg-automation",
@@ -14653,16 +14541,6 @@
       "categories": [],
       "description": "Automate Sage tasks via Rube MCP (Composio). Always search tools first for current schemas.",
       "description_ja": ""
-    },
-    {
-      "name": "Sales",
-      "source": "pai-packs",
-      "path": "LifeOS/install/skills/Sales",
-      "invocation": "auto",
-      "categories": [],
-      "description": "Transforms product documentation into sales-ready packages — a story explanation, charcoal gestural sketch art, and talking points — via a narrative-arc pipeline. USE WHEN sales, proposal, pitch deck, value proposition, sales narrative, sales deck, sales package, turn this into a pitch, create a sales story, sales materials, product pitch, transform docs to sales, sales script. NOT FOR Hormozi $100M frameworks, value equation, irresistible offer, or VOC mining, standalone diagrams or illustrations (use Art), or platform social posts.",
-      "description_ja": "",
-      "version": "1.0.28"
     },
     {
       "name": "salesforce-apex-quality",
@@ -16062,16 +15940,6 @@
       "description_ja": ""
     },
     {
-      "name": "Teach",
-      "source": "pai-packs",
-      "path": "LifeOS/install/skills/Teach",
-      "invocation": "auto",
-      "categories": [],
-      "description": "Interactive voice-narrated tutorial on whatever the current conversation is about — teaches the topic beat by beat with ASCII diagrams in the terminal while speaking the actual lesson content aloud, asking one question per beat and quizzing until the ideas land. USE WHEN teach me, /teach-me, tutorial, teach me this, walk me through this interactively, explain this like a lesson, learn mode, quiz me, help me actually understand what we just did. NOT FOR plain written explanations with no dialogue (just answer directly), authored/published content, or discovery interviews that shape a half-formed idea (use grill-me).",
-      "description_ja": "",
-      "version": "1.1.0"
-    },
-    {
       "name": "team",
       "source": "oh-my-codex",
       "path": "skills/team",
@@ -16364,16 +16232,6 @@
       "categories": [],
       "description": "Create tldr summaries for GitHub Copilot files (prompts, agents, instructions, collections), MCP servers, or documentation from URLs and queries.",
       "description_ja": ""
-    },
-    {
-      "name": "Tldraw",
-      "source": "pai-packs",
-      "path": "LifeOS/install/skills/Tldraw",
-      "invocation": "auto",
-      "categories": [],
-      "description": "Read, create, and edit tldraw .tldr canvas files deterministically — sketch hand-drawn-register diagrams (boxes, arrows, sticky notes, frames, text) directly into a canvas file the user opens in any tldraw surface, and read a rough canvas back as structured data to organize it. USE WHEN tldraw, .tldr file, whiteboard, canvas, sketch a diagram, hand-drawn diagram, draw this on a canvas, put this on the whiteboard, structure my canvas, organize my whiteboard, read my canvas, cluster my sticky notes. NOT FOR polished static images, infographics, or mermaid diagrams (use Art), web UI design (use Webdesign), programmatic video (use Remotion).",
-      "description_ja": "",
-      "version": "1.0.1"
     },
     {
       "name": "tm7-threat-model",
@@ -16797,16 +16655,6 @@
       "categories": [],
       "description": "Use when starting any conversation - establishes how to find and use skills, requiring skill invocation before ANY response including clarifying questions",
       "description_ja": ""
-    },
-    {
-      "name": "USMetrics",
-      "source": "pai-packs",
-      "path": "LifeOS/install/skills/USMetrics",
-      "invocation": "auto",
-      "categories": [],
-      "description": "Analyze and update 68 US economic and social indicators from five government APIs (FRED, EIA, Treasury, BLS, Census) across 10 categories: GDP, Inflation, Employment, Housing, Consumer Finance, Markets, Trade, Government/Fiscal, Demographics, Health. Two workflows: UpdateData, GetCurrentState (10y/5y/2y/1y trend analysis). USE WHEN GDP, inflation, unemployment, economic metrics, gas prices, how is the economy, refresh data, FRED, US metrics, economic trends. NOT FOR pathogen surveillance.",
-      "description_ja": "",
-      "version": "1.0.20"
     },
     {
       "name": "v0-automation",
@@ -17302,16 +17150,6 @@
       "categories": [],
       "description": "Automate Worksnaps tasks via Rube MCP (Composio). Always search tools first for current schemas.",
       "description_ja": ""
-    },
-    {
-      "name": "WorldThreatModel",
-      "source": "pai-packs",
-      "path": "LifeOS/install/skills/WorldThreatModel",
-      "invocation": "auto",
-      "categories": [],
-      "description": "Persistent world-model harness that stress-tests ideas, strategies, and investments against 11 time horizons from 6 months to 50 years, each a deep analysis of geopolitics, tech, economics, society, and security, in Fast/Standard/Deep tiers. USE WHEN threat model, world model, test idea, future analysis, time horizon, stress test against future, long-term risk. NOT FOR single-shot idea attack (use RedTeam).",
-      "description_ja": "",
-      "version": "1.0.18"
     },
     {
       "name": "write-coding-standards-from-file",

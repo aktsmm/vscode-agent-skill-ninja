@@ -6,7 +6,9 @@
 // プレビューと実行の間に状態が変わったら実行を拒否する。
 
 import { createHash } from "crypto";
-import type { SkillSourceRevision } from "./skillUpdates";
+import { isUtf8 } from "buffer";
+import { isGitHubResponseError } from "./githubResponse";
+import type { SkillRemoteFiles, SkillSourceRevision } from "./skillUpdates";
 import type { Skill } from "./skillIndex";
 
 export type ReinstallAction = "reinstall" | "adopt";
@@ -68,20 +70,24 @@ export interface LocalFileHash {
   blobSha: string;
   /** CRLF を LF に正規化した内容の blob SHA。改行コード差を編集と誤認しないため */
   blobShaLf: string;
+  blobShaOtherBom?: string;
+  blobShaOtherBomLf?: string;
   /** バイト数。バイナリではテキスト差分が意味を持たないので、サイズとハッシュが手がかりになる */
   size?: number;
-  /** NUL を含むならバイナリ扱い */
+  /** UTF-8 テキストと確認できないファイルはバイナリ扱い */
   binary?: boolean;
 }
 
 /** 編集の根拠を示すファイル単位の差分。SHA は先頭 7 文字 */
 export interface ContentDiffDetail {
   path: string;
-  kind: "changed" | "local-only" | "missing";
+  kind: "changed" | "local-only" | "missing" | "line-endings-only";
   localSha?: string;
   localSize?: number;
   binary?: boolean;
   remoteSha?: string;
+  remoteSize?: number;
+  difference?: "line-endings-only" | "bom-only" | "bom-and-line-endings-only";
 }
 
 export interface ContentDiff {
@@ -120,6 +126,7 @@ export interface PlanItem {
   target?: { commitSha: string; contentSha: string; ref: string };
   /** 比較の基準。recorded = インストール時の revision、target = 取得先の最新 */
   baseline?: "recorded" | "target";
+  baselineRevision?: SkillSourceRevision;
   diff?: ContentDiff;
   /** no-provenance のとき、選択肢と根拠 */
   candidates?: CandidateEvidence[];
@@ -211,9 +218,7 @@ export interface ReinstallPlanDeps {
   ): PlanCandidate[];
   getCandidate(candidateId: string): PlanCandidate | undefined;
   resolveRevision(candidate: PlanCandidate): Promise<SkillSourceRevision>;
-  readRemoteFiles(
-    revision: SkillSourceRevision,
-  ): Promise<{ files: Map<string, string>; truncated: boolean }>;
+  readRemoteFiles(revision: SkillSourceRevision): Promise<SkillRemoteFiles>;
   readLocalFiles(entry: PlanEntry): Promise<Map<string, LocalFileHash>>;
 }
 
@@ -234,9 +239,18 @@ export function validateReinstallInput(input: {
   allowSourceSwitch?: unknown;
   adopt?: unknown;
   force?: unknown;
+  detailsOffset?: unknown;
 }): string | undefined {
   if (input.force !== undefined && typeof input.force !== "boolean") {
     return `force must be true or false (got ${describeInputValue(input.force)}).`;
+  }
+  if (
+    input.detailsOffset !== undefined &&
+    (typeof input.detailsOffset !== "number" ||
+      !Number.isSafeInteger(input.detailsOffset) ||
+      input.detailsOffset < 0)
+  ) {
+    return "detailsOffset must be a non-negative safe integer.";
   }
 
   for (const field of ["allowLocalEdits", "allowSourceSwitch"] as const) {
@@ -276,24 +290,74 @@ export function computeGitBlobSha(bytes: Uint8Array): string {
     .digest("hex");
 }
 
-/** バイナリ（NUL を含む）は改行を正規化しない。 */
-export function hashLocalFile(bytes: Uint8Array): LocalFileHash {
+const TEXT_EXTENSIONS = new Set(
+  "md markdown mdx txt rst adoc csv tsv json jsonc jsonl yaml yml toml xml html htm css scss less js jsx ts tsx mjs cjs py pyi ps1 psm1 psd1 sh bash zsh fish bat cmd go rs java kt kts cs c h cpp hpp cc sql ini cfg conf properties svg tex r rb php swift".split(
+    " ",
+  ),
+);
+const TEXT_FILE_NAMES = new Set([
+  "dockerfile",
+  "makefile",
+  "license",
+  "notice",
+  ".gitignore",
+  ".gitattributes",
+  ".editorconfig",
+  ".dockerignore",
+]);
+
+/** 不明な形式や不正な UTF-8 は改行を正規化しない。 */
+export function hashLocalFile(
+  bytes: Uint8Array,
+  filePath?: string,
+): LocalFileHash {
   const blobSha = computeGitBlobSha(bytes);
-  const binary = bytes.includes(0);
+  const name = filePath?.split("/").pop()?.toLowerCase();
+  const extension = name?.includes(".") ? name.split(".").pop() : undefined;
+  const binary =
+    (name !== undefined &&
+      !TEXT_FILE_NAMES.has(name) &&
+      (!extension || !TEXT_EXTENSIONS.has(extension))) ||
+    !isUtf8(bytes) ||
+    bytes.some(
+      (byte) =>
+        (byte < 32 && byte !== 9 && byte !== 10 && byte !== 13) || byte === 127,
+    );
   const size = bytes.length;
-  if (binary || !bytes.includes(13)) {
+  if (binary) {
     return { blobSha, blobShaLf: blobSha, size, binary };
   }
-  const normalized: number[] = [];
-  for (let index = 0; index < bytes.length; index += 1) {
-    if (bytes[index] === 13 && bytes[index + 1] === 10) {
-      continue;
+  let lfBytes = bytes;
+  if (bytes.includes(13)) {
+    const normalized: number[] = [];
+    for (let index = 0; index < bytes.length; index += 1) {
+      if (bytes[index] === 13 && bytes[index + 1] === 10) {
+        continue;
+      }
+      normalized.push(bytes[index]);
     }
-    normalized.push(bytes[index]);
+    lfBytes = Uint8Array.from(normalized);
   }
+  const hashOtherBom = (value: Uint8Array): string => {
+    const hasBom =
+      value[0] === 0xef && value[1] === 0xbb && value[2] === 0xbf;
+    const hash = createHash("sha1").update(
+      `blob ${value.length + (hasBom ? -3 : 3)}\0`,
+    );
+    if (!hasBom) {
+      hash.update(Buffer.from([0xef, 0xbb, 0xbf]));
+    }
+    return hash.update(hasBom ? value.subarray(3) : value).digest("hex");
+  };
+  const blobShaLf =
+    lfBytes.length === bytes.length ? blobSha : computeGitBlobSha(lfBytes);
+  const blobShaOtherBom = hashOtherBom(bytes);
   return {
     blobSha,
-    blobShaLf: computeGitBlobSha(Uint8Array.from(normalized)),
+    blobShaLf,
+    blobShaOtherBom,
+    blobShaOtherBomLf:
+      blobShaLf === blobSha ? blobShaOtherBom : hashOtherBom(lfBytes),
     size,
     binary,
   };
@@ -313,7 +377,7 @@ function isMetaFilePath(filePath: string): boolean {
 export function diffLocalAgainstRemote(
   local: Map<string, LocalFileHash>,
   remote: Map<string, string>,
-  options: { exact?: boolean } = {},
+  options: { exact?: boolean; remoteSizes?: ReadonlyMap<string, number> } = {},
 ): ContentDiff {
   const remoteFiles = new Map(
     [...remote].filter(([filePath]) => !isMetaFilePath(filePath)),
@@ -337,16 +401,33 @@ export function diffLocalAgainstRemote(
     if (remoteSha === undefined) {
       added.push(filePath);
       details.push({ path: filePath, kind: "local-only", ...localInfo });
-    } else if (
-      hash.blobSha !== remoteSha &&
-      (options.exact || hash.blobShaLf !== remoteSha)
-    ) {
+    } else if (hash.blobSha !== remoteSha) {
+      const lineEndingsOnly = hash.blobShaLf === remoteSha;
+      const difference = lineEndingsOnly
+        ? "line-endings-only"
+        : hash.blobShaOtherBom === remoteSha
+          ? "bom-only"
+          : hash.blobShaOtherBomLf === remoteSha
+            ? "bom-and-line-endings-only"
+            : undefined;
+      if (lineEndingsOnly && !options.exact) {
+        details.push({
+          path: filePath,
+          kind: "line-endings-only",
+          ...localInfo,
+          remoteSha: short(remoteSha),
+          remoteSize: options.remoteSizes?.get(filePath),
+        });
+        continue;
+      }
       changed.push(filePath);
       details.push({
         path: filePath,
         kind: "changed",
         ...localInfo,
         remoteSha: short(remoteSha),
+        remoteSize: options.remoteSizes?.get(filePath),
+        difference,
       });
     }
   }
@@ -357,6 +438,7 @@ export function diffLocalAgainstRemote(
         path: filePath,
         kind: "missing",
         remoteSha: short(remoteSha),
+        remoteSize: options.remoteSizes?.get(filePath),
       });
     }
   }
@@ -378,27 +460,128 @@ export function diffLocalAgainstRemote(
 export function describeContentDiffDetails(
   diff: ContentDiff,
   limit: number = 5,
+  offset: number = 0,
 ): string {
   const details = diff.details ?? [];
-  const lines = details.slice(0, limit).map((item) => {
+  if (offset >= details.length) {
+    return `no file details at offset ${offset} (total ${details.length})`;
+  }
+  const end = Math.min(offset + limit, details.length);
+  const lines = details.slice(offset, end).map((item) => {
     const local =
       item.localSha !== undefined
-        ? `local ${item.localSha}${item.localSize !== undefined ? `, ${item.localSize} B` : ""}${item.binary ? ", binary" : ""}`
+        ? `local ${item.localSha}${item.localSize !== undefined ? `, ${item.localSize} B` : ""}${item.binary === true ? ", binary/unknown" : item.binary === false ? ", text" : ""}`
         : "";
     const remote =
-      item.remoteSha !== undefined ? `source ${item.remoteSha}` : "";
+      item.remoteSha !== undefined
+        ? `source ${item.remoteSha}${item.remoteSize !== undefined ? `, ${item.remoteSize} B` : ""}`
+        : "";
     const kind =
       item.kind === "changed"
-        ? "differs"
+        ? item.difference === "line-endings-only"
+          ? "line endings only"
+          : item.difference === "bom-only"
+            ? "BOM only"
+            : item.difference === "bom-and-line-endings-only"
+              ? "BOM and line endings only"
+              : "differs"
         : item.kind === "local-only"
           ? "local only"
-          : "missing locally";
+          : item.kind === "line-endings-only"
+            ? "line endings only"
+            : "missing locally";
     return `${item.path} (${[kind, local, remote].filter(Boolean).join("; ")})`;
   });
-  if (details.length > limit) {
-    lines.push(`... +${details.length - limit} more`);
+  if (end < details.length) {
+    lines.push(`... +${details.length - end} more`);
   }
-  return lines.join(", ");
+  const page =
+    offset > 0 || details.length > limit
+      ? `files ${offset + 1}-${end} of ${details.length}: `
+      : "";
+  return page + lines.join(", ");
+}
+
+export function formatTextDiffExcerpt(
+  source: string,
+  local: string,
+): { lines: string[]; truncated: boolean } {
+  const normalize = (text: string) =>
+    text.replace(/^\uFEFF/, "").replace(/\r\n/g, "\n");
+  const oldText = normalize(source);
+  const newText = normalize(local);
+  const split = (text: string): string[] => {
+    if (!text) {
+      return [];
+    }
+    const lines = text.split("\n");
+    if (text.endsWith("\n")) {
+      lines.pop();
+    }
+    return lines;
+  };
+  const oldLines = split(oldText);
+  const newLines = split(newText);
+  let prefix = 0;
+  while (
+    prefix < oldLines.length &&
+    prefix < newLines.length &&
+    oldLines[prefix] === newLines[prefix]
+  ) {
+    prefix++;
+  }
+  let suffix = 0;
+  while (
+    suffix < oldLines.length - prefix &&
+    suffix < newLines.length - prefix &&
+    oldLines[oldLines.length - 1 - suffix] ===
+      newLines[newLines.length - 1 - suffix]
+  ) {
+    suffix++;
+  }
+  if (prefix === oldLines.length && prefix === newLines.length) {
+    return {
+      lines: [
+        oldText.endsWith("\n") !== newText.endsWith("\n")
+          ? "The final newline differs."
+          : "No text changes after line-ending and BOM normalization.",
+      ],
+      truncated: false,
+    };
+  }
+
+  const before = oldLines.slice(Math.max(0, prefix - 2), prefix);
+  const removed = oldLines.slice(prefix, oldLines.length - suffix);
+  const added = newLines.slice(prefix, newLines.length - suffix);
+  let truncated = removed.length > 18 || added.length > 18;
+  const oldShown = removed.slice(0, 18);
+  const newShown = added.slice(0, 18);
+  const after = truncated
+    ? []
+    : oldLines.slice(oldLines.length - suffix, oldLines.length - suffix + 2);
+  const oldCount = before.length + oldShown.length + after.length;
+  const newCount = before.length + newShown.length + after.length;
+  const firstLine = prefix - before.length;
+  const clip = (line: string): string => {
+    if (line.length <= 200) {
+      return line;
+    }
+    truncated = true;
+    return `${line.slice(0, 200)}...`;
+  };
+  const lines = [
+    "--- source",
+    "+++ local",
+    `@@ -${oldCount ? firstLine + 1 : firstLine},${oldCount} +${newCount ? firstLine + 1 : firstLine},${newCount} @@`,
+    ...before.map((line) => ` ${clip(line)}`),
+    ...oldShown.map((line) => `-${clip(line)}`),
+    ...newShown.map((line) => `+${clip(line)}`),
+    ...after.map((line) => ` ${clip(line)}`),
+  ];
+  if (oldText.endsWith("\n") !== newText.endsWith("\n")) {
+    lines.push("The final newline also differs.");
+  }
+  return { lines, truncated };
 }
 
 export function computeLocalFingerprint(
@@ -555,6 +738,19 @@ export function selectEntries(
 }
 
 function describeError(error: unknown): string {
+  if (isGitHubResponseError(error)) {
+    const description = {
+      "rate-limit": "GitHub rate limit reached",
+      "sso-required": "GitHub organization SSO authorization required",
+      "classic-pat-forbidden": "GitHub organization rejected the classic PAT",
+      "auth-required": "GitHub authentication or repository permission required",
+      "not-found": "GitHub resource not found or inaccessible",
+      "server-error": "GitHub server error",
+      transport: "GitHub network error",
+      other: "GitHub request failed",
+    }[error.kind];
+    return `${description} (HTTP ${error.status})`;
+  }
   if (error instanceof Error) {
     return error.name === "Error" ? error.message : error.name;
   }
@@ -574,7 +770,9 @@ async function diffAgainst(
   if (remote.truncated) {
     throw new Error("remote file list was truncated");
   }
-  return diffLocalAgainstRemote(local, remote.files);
+  return diffLocalAgainstRemote(local, remote.files, {
+    remoteSizes: remote.sizes,
+  });
 }
 
 async function buildEvidence(
@@ -751,7 +949,8 @@ export async function planEntry(
       : undefined;
   try {
     item.baseline = recorded ? "recorded" : "target";
-    item.diff = await diffAgainst(recorded ?? target, local, deps);
+    item.baselineRevision = { ...(recorded ?? target) };
+    item.diff = await diffAgainst(item.baselineRevision, local, deps);
   } catch (error) {
     return {
       ...item,
@@ -799,6 +998,14 @@ export function computePlanId(items: readonly PlanItem[]): string {
       item.candidate?.candidateId ?? "",
       item.target?.commitSha ?? "",
       item.target?.contentSha ?? "",
+      item.baseline ?? "",
+      item.baselineRevision?.owner ?? "",
+      item.baselineRevision?.repo ?? "",
+      item.baselineRevision?.ref ?? "",
+      item.baselineRevision?.remotePath ?? "",
+      item.baselineRevision?.commitSha ?? "",
+      item.baselineRevision?.contentSha ?? "",
+      item.baselineRevision?.kind ?? "",
       item.localFingerprint ?? "",
     ])
     .sort((left, right) => String(left[0]).localeCompare(String(right[0])));

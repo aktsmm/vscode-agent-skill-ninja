@@ -60,6 +60,19 @@ export async function runBulkInstallPlan<TItem>(
       isCancelled,
     });
     outcomes.push({ ...result, item, attempts: 1 });
+    if (result.failureKinds?.includes("rate-limit")) {
+      outcomes.push(
+        ...items.slice(index + 1).map((pendingItem) => ({
+          item: pendingItem,
+          status: "failed" as const,
+          retryable: false,
+          failureKinds: ["rate-limit"],
+          unsafeSkips: 0,
+          attempts: 0,
+        })),
+      );
+      return outcomes;
+    }
   }
 
   if (!options.autoRetry) {
@@ -87,6 +100,9 @@ export async function runBulkInstallPlan<TItem>(
       retryable: false,
       unsafeSkips: Math.max(outcome.unsafeSkips, retried.unsafeSkips),
     };
+    if (retried.failureKinds?.includes("rate-limit")) {
+      return outcomes;
+    }
   }
 
   return outcomes;

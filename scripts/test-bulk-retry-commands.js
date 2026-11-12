@@ -20,6 +20,7 @@ const names = [
   "showBulkInstallSummary",
   "retryFailedBulkInstalls",
   "formatPartialInstallSuffix",
+  "formatRateLimitStoppedSuffix",
   "formatCancelledSuffix",
 ];
 const definitions = names.map((name) => {
@@ -336,6 +337,62 @@ async function main() {
       assert.deepEqual(state.warnings[0].actions, ["Report bug"], kind);
       assert.equal(state.deletes.length, 0);
     }
+  });
+
+  await test("actual extension: rate limit stops later bulk installs and reports deferred count", async () => {
+    const state = harness();
+    state.install = () => state.fail(["rate-limit"]);
+    const outcomes = await state.run([
+      makeItem("first"),
+      makeItem("second"),
+      makeItem("third"),
+    ]);
+
+    assert.equal(state.installs.length, 1);
+    assert.deepEqual(
+      Array.from(outcomes, (outcome) => outcome.attempts),
+      [1, 0, 0],
+    );
+    const summary = state.api.summarizeBulkInstall(outcomes);
+    assert.equal(summary.failedCount, 3);
+    assert.equal(summary.rateLimitedNotAttemptedCount, 2);
+    assert.equal(summary.rateLimitReached, true);
+    assert.equal(summary.failedItems.length, 3);
+    assert.match(
+      state.api.formatRateLimitStoppedSuffix(2, true),
+      /not attempted/i,
+    );
+  });
+
+  await test("actual extension: rate limit during auto retry stops further retry actions", async () => {
+    const state = harness();
+    const attempts = new Map();
+    state.install = (skill) => {
+      const count = (attempts.get(skill.name) || 0) + 1;
+      attempts.set(skill.name, count);
+      return state.fail([
+        skill.name === "first" && count === 2 ? "rate-limit" : "transport",
+      ]);
+    };
+    const outcomes = await state.run([
+      makeItem("first"),
+      makeItem("second"),
+      makeItem("third"),
+    ]);
+
+    assert.deepEqual(
+      state.installs.map((args) => args[0].name),
+      ["first", "second", "third", "first"],
+    );
+    const summary = state.api.summarizeBulkInstall(outcomes);
+    assert.equal(summary.rateLimitedNotAttemptedCount, 0);
+    assert.equal(summary.rateLimitReached, true);
+    assert.match(
+      state.api.formatRateLimitStoppedSuffix(0, true),
+      /rate limit.*reset/i,
+    );
+    await state.summary(outcomes);
+    assert.deepEqual(state.warnings[0].actions, ["Report bug"]);
   });
 
   await test("actual extension: successful retry retains permanent failures and issue action", async () => {

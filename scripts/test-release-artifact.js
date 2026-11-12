@@ -22,8 +22,19 @@ function createFixture(name, changelog, changelogName = "changelog.md") {
   );
   fs.writeFileSync(
     path.join(extension, "package.json"),
-    JSON.stringify({ version: "1.2.3" }),
+    JSON.stringify({
+      name: "test-extension",
+      publisher: "test-publisher",
+      version: "1.2.3",
+      engines: { vscode: "^1.100.0" },
+      main: "./dist/extension.js",
+      contributes: {
+        languageModelTools: [{ name: "reinstall", inputSchema: { type: "object" } }],
+      },
+    }),
   );
+  fs.writeFileSync(path.join(extension, "package.nls.json"), "{}");
+  fs.writeFileSync(path.join(extension, "package.nls.ja.json"), "{}");
   fs.writeFileSync(path.join(extension, changelogName), changelog);
   fs.writeFileSync(
     path.join(extension, "dist", "extension.js"),
@@ -44,10 +55,10 @@ function createFixture(name, changelog, changelogName = "changelog.md") {
     { cwd: root, encoding: "utf8" },
   );
   assert.equal(archive.status, 0, archive.stderr);
-  return vsix;
+  return { vsix, projectRoot: extension };
 }
 
-function verify(vsix) {
+function verify(fixture) {
   return spawnSync(
     "pwsh",
     [
@@ -55,9 +66,11 @@ function verify(vsix) {
       "-File",
       verifier,
       "-VsixPath",
-      vsix,
+      fixture.vsix,
       "-ExpectedVersion",
       "1.2.3",
+      "-ProjectRoot",
+      fixture.projectRoot,
     ],
     { cwd: root, encoding: "utf8" },
   );
@@ -106,8 +119,53 @@ try {
     /terminal or secret-input transcript text/,
   );
 
+  const reordered = createFixture(
+    "reordered",
+    "## [1.2.3] - 2026-09-07\n",
+  );
+  const manifestPath = path.join(reordered.projectRoot, "package.json");
+  const manifest = JSON.parse(fs.readFileSync(manifestPath, "utf8"));
+  fs.writeFileSync(
+    manifestPath,
+    JSON.stringify(Object.fromEntries(Object.entries(manifest).reverse())),
+  );
+  const reorderedResult = verify(reordered);
+  assert.equal(reorderedResult.status, 0, reorderedResult.stderr);
+
+  for (const [name, file, content] of [
+    ["stale-bundle", "dist/extension.js", "different bundle"],
+    ["stale-locale", "package.nls.ja.json", '{"changed":"value"}'],
+  ]) {
+    const fixture = createFixture(name, "## [1.2.3] - 2026-09-07\n");
+    fs.writeFileSync(path.join(fixture.projectRoot, file), content);
+    const result = verify(fixture);
+    assert.notEqual(result.status, 0, `${file} must match the release build`);
+    assert.match(
+      `${result.stdout}${result.stderr}`,
+      /does not match.*source/i,
+    );
+  }
+
+  for (const name of ["wrong-engine", "missing-tool"]) {
+    const fixture = createFixture(name, "## [1.2.3] - 2026-09-07\n");
+    const file = path.join(fixture.projectRoot, "package.json");
+    const sourceManifest = JSON.parse(fs.readFileSync(file, "utf8"));
+    if (name === "wrong-engine") {
+      sourceManifest.engines.vscode = "^1.101.0";
+    } else {
+      sourceManifest.contributes.languageModelTools = [];
+    }
+    fs.writeFileSync(file, JSON.stringify(sourceManifest));
+    const result = verify(fixture);
+    assert.notEqual(result.status, 0, `${name} must not pass the release gate`);
+    assert.match(
+      `${result.stdout}${result.stderr}`,
+      /manifest does not match.*source/i,
+    );
+  }
+
   console.log(
-    "PASS release artifact verifier checks version, contents and packaged changelog contamination",
+    "PASS release artifact verifier checks source parity, contents and packaged changelog contamination",
   );
 } finally {
   fs.rmSync(scratch, { recursive: true, force: true });

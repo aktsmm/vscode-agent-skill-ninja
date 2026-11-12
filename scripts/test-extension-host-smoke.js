@@ -24,8 +24,10 @@ for (const language of ["en", "ja"]) {
       VSCODE_IPC_HOOK_CLI: "existing-window",
       APPDATA: "real-user",
       HOME: "real-user",
-    });
+      SKILL_NINJA_SMOKE_EXTENSION_ROOT: "untrusted-parent",
+    }, run.paths.extensions);
     assert.equal(env.PATH, "test-cli");
+    assert.equal(env.SKILL_NINJA_SMOKE_EXTENSION_ROOT, run.paths.extensions);
     for (const key of [
       "GH_TOKEN",
       "GITHUB_TOKEN",
@@ -87,6 +89,10 @@ assert.ok(
     'checks.push("gitignore-real-config-dirty-recovery-and-old-root-cleanup")',
   ),
 );
+assert.ok(suite.includes('checks.push("lm-tool-reinstall-preview-host")'));
+assert.match(suite, /isReadOnly:\s*false/);
+assert.ok(suite.includes("assert.equal(result.localOnly, 1)"));
+assert.ok(suite.includes("assert.equal(all.localOnly, 1)"));
 assert.ok(
   suite.includes('vscode.commands.executeCommand("skillNinja.refreshLocal")'),
 );
@@ -95,7 +101,7 @@ assert.match(
   /rootConfig\.update\(\s*"autoManageGitignore",\s*false,\s*vscode\.ConfigurationTarget\.Workspace,?\s*\)/,
 );
 console.log(
-  "PASS Gitignore host smoke checks are required by the isolated runner",
+  "PASS host smoke fixtures match writable-root and local-only update semantics",
 );
 
 async function checkTermination() {

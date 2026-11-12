@@ -474,6 +474,15 @@ In GitHub Copilot's **Agent Mode**, tools are automatically available.
      candidates for skills without metadata. Apply runs only after you approve the plan
 ```
 
+For an edited file, ask `#reinstallSkills` to inspect its diff. The tool uses the
+preview's `planId`, the same selection and one `entryId` / relative file path.
+After confirmation, a bounded excerpt from that file and its pinned source is
+shared with the chat model; do not approve if it contains information you do not
+want to disclose. Binary and unknown file types are compared byte-for-byte, not
+shown as text. Source sizes are shown when GitHub provides them. File evidence
+is paged per skill; repeat the preview with the displayed `detailsOffset` to
+see later files.
+
 ### Features
 
 - **Trust Badges**: Shows Official / Curated / Community
@@ -554,7 +563,7 @@ Installing, cleaning up, and removing skills all report what actually happened:
 
 - **A placeholder-only install fails.** When just the generated template could be written, the install is rejected and `.skill-meta.json` records it as incomplete. A single install offers Retry Install / Remove / Report Bug, and Retry Install appears only on the first attempt.
 - **Bulk operations stay quiet per skill.** Reinstall All, per-root reinstall, multi-select reinstall, and bundle install skip the per-skill dialog and report failures in the final summary.
-- **Rate limits and transient network errors are retried.** The shared backoff layer retries only `429`, `502`, `503`, and `504`, for up to 3 attempts in total, honoring `Retry-After` and — when `x-ratelimit-remaining` is `0` — `x-ratelimit-reset`. It gives up rather than waiting longer than 20 seconds. `401`, `403`, and `404` are excluded from the backoff so they keep flowing into the existing authentication fallback, which walks the remaining credential sources until one succeeds.
+- **Rate limits and transient network errors are retried.** The shared backoff layer retries `429`, `502`, `503`, `504`, and rate-limited `403` responses with a usable `Retry-After` or `x-ratelimit-reset` when `x-ratelimit-remaining` is `0`, for up to 3 attempts in total. It gives up rather than waiting longer than 20 seconds. Other `401`, `403`, and `404` responses continue through the existing authentication fallback; a rate-limit response stops credential rotation. If the limit persists during a bulk operation, remaining installs and automatic retries stop; retry the operation after the limit resets.
 - **A credential an organization rejects with SAML SSO is dropped for that owner.** The owner and credential pair is remembered for the session, so the following requests go out anonymously and a public source keeps updating instead of failing. Other stored credentials are still tried, a credential already known to be blocked does not repeat the same anonymous request, and the reported reason is the most root-causal `401` / `403` rather than whichever attempt happened to be last. The failure notice for a source index update offers `Open SSO Session`, using only the organization or enterprise SSO page from the `X-GitHub-SSO` header — the short-lived `authorization_request` value is never stored or logged. Every index update entry point re-verifies a blocked credential once, so authorizing SSO elsewhere recovers without a reload.
 - **Bulk operations can be stopped.** Reinstall All, per-root reinstall, multi-select reinstall, bundle install, Repair Incomplete Skills, and the retry action all show a cancel control. The current skill stops at the next file boundary and is recorded as incomplete so Repair Incomplete Skills can finish it later, nothing new is started, and the summary reports how many of the requested skills were actually processed.
 - **A partial install is never reported as success.** When SKILL.md is real but other files could not be downloaded, the success notification is suppressed, the status bar shows the missing-file state, `.skill-meta.json` records `repairState`, and bulk summaries append how many skills installed with missing files.

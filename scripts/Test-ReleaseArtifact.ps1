@@ -4,7 +4,9 @@ param(
     [string]$VsixPath,
 
     [Parameter(Mandatory)]
-    [string]$ExpectedVersion
+    [string]$ExpectedVersion,
+
+    [string]$ProjectRoot = (Join-Path $PSScriptRoot "..")
 )
 
 $ErrorActionPreference = "Stop"
@@ -31,10 +33,43 @@ function Get-ArchiveText {
     }
 }
 
+function Test-JsonEqual {
+    param($Left, $Right)
+
+    if ($null -eq $Left -or $null -eq $Right) {
+        return $null -eq $Left -and $null -eq $Right
+    }
+    if ($Left -is [System.Collections.IDictionary]) {
+        if ($Right -isnot [System.Collections.IDictionary] -or $Left.Count -ne $Right.Count) {
+            return $false
+        }
+        foreach ($key in $Left.Keys) {
+            if (-not $Right.Contains($key) -or -not (Test-JsonEqual $Left[$key] $Right[$key])) {
+                return $false
+            }
+        }
+        return $true
+    }
+    if ($Left -is [array]) {
+        if ($Right -isnot [array] -or $Left.Count -ne $Right.Count) {
+            return $false
+        }
+        for ($index = 0; $index -lt $Left.Count; $index++) {
+            if (-not (Test-JsonEqual $Left[$index] $Right[$index])) {
+                return $false
+            }
+        }
+        return $true
+    }
+    return $Left.GetType() -eq $Right.GetType() -and $Left -ceq $Right
+}
+
 try {
     $entries = @($archive.Entries.FullName)
     $required = @(
         "extension/package.json",
+        "extension/package.nls.json",
+        "extension/package.nls.ja.json",
         "extension/changelog.md",
         "extension/dist/extension.js",
         "extension/resources/icon.png",
@@ -55,9 +90,39 @@ try {
         throw "Unexpected development entries in VSIX: $($unexpected -join ', ')"
     }
 
-    $manifest = Get-ArchiveText "extension/package.json" | ConvertFrom-Json
+    $manifestText = Get-ArchiveText "extension/package.json"
+    $manifest = $manifestText | ConvertFrom-Json
     if ($manifest.version -ne $ExpectedVersion) {
         throw "VSIX version $($manifest.version) does not match expected version $ExpectedVersion."
+    }
+    $packagedManifest = $manifestText | ConvertFrom-Json -AsHashtable
+    $sourceManifest = Get-Content -LiteralPath (Join-Path $ProjectRoot "package.json") -Raw -Encoding UTF8 |
+        ConvertFrom-Json -AsHashtable
+    if (-not (Test-JsonEqual $packagedManifest $sourceManifest)) {
+        throw "VSIX manifest does not match the release source manifest."
+    }
+
+    $sourceFiles = @(
+        "dist/extension.js",
+        "package.nls.json",
+        "package.nls.ja.json",
+        "resources/icon.png",
+        "resources/icon.svg",
+        "resources/skill-index.json"
+    )
+    foreach ($relativePath in $sourceFiles) {
+        $sourcePath = Join-Path $ProjectRoot ($relativePath.Replace("/", [string][System.IO.Path]::DirectorySeparatorChar))
+        $entry = $archive.GetEntry("extension/$relativePath")
+        $stream = $entry.Open()
+        try {
+            $packagedHash = (Get-FileHash -InputStream $stream -Algorithm SHA256).Hash
+        } finally {
+            $stream.Dispose()
+        }
+        $sourceHash = (Get-FileHash -LiteralPath $sourcePath -Algorithm SHA256).Hash
+        if ($packagedHash -ne $sourceHash) {
+            throw "VSIX entry $relativePath does not match the release source."
+        }
     }
 
     $changelog = Get-ArchiveText "extension/changelog.md"

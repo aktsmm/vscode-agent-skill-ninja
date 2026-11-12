@@ -228,6 +228,101 @@ async function main() {
     assert.deepStrictEqual(harness.sleeps, [1000]);
   });
 
+  await test("honors Retry-After on a secondary 403 without switching credentials", async () => {
+    const harness = createHarness([
+      response(403, { "retry-after": "2" }),
+      response(200),
+    ]);
+    fallbackToken = () => {
+      throw new Error("a rate-limited request must not switch credentials");
+    };
+
+    const result = await githubFetch.fetchGitHubWithOptionalAuthRetry(
+      "https://api.github.com/repos/o/r/contents/x",
+      {
+        accept: "application/vnd.github.v3+json",
+        token: "test-token",
+        request: harness.request,
+        retry: harness.retry,
+      },
+    );
+
+    assert.strictEqual(result.status, 200);
+    assert.strictEqual(harness.attempts, 2);
+    assert.deepStrictEqual(harness.sleeps, [2000]);
+    assert.ok(harness.inits.every((init) => init.headers.Authorization));
+  });
+
+  await test("does not back off an anonymous 403 SSO denial with Retry-After", async () => {
+    const denied = response(403, { "retry-after": "2" });
+    denied.clone = () => ({ text: async () => "SAML enforcement" });
+    const harness = createHarness([denied]);
+
+    const result = await githubFetch.fetchGitHubWithOptionalAuthRetry(
+      "https://api.github.com/repos/o/r/contents/x",
+      {
+        accept: "application/vnd.github.v3+json",
+        request: harness.request,
+        retry: harness.retry,
+      },
+    );
+
+    assert.strictEqual(result.status, 403);
+    assert.strictEqual(harness.attempts, 1);
+    assert.deepStrictEqual(harness.sleeps, []);
+  });
+
+  await test("does not wait beyond the retry cap for a primary 403 rate limit", async () => {
+    const harness = createHarness([
+      response(403, {
+        "x-ratelimit-remaining": "0",
+        "x-ratelimit-reset": "4600",
+      }),
+    ]);
+    fallbackToken = () => {
+      throw new Error("a rate-limited request must not switch credentials");
+    };
+
+    const result = await githubFetch.fetchGitHubWithOptionalAuthRetry(
+      "https://api.github.com/repos/o/r/contents/x",
+      {
+        accept: "application/vnd.github.v3+json",
+        token: "test-token",
+        request: harness.request,
+        retry: harness.retry,
+      },
+    );
+
+    assert.strictEqual(result.status, 403);
+    assert.strictEqual(harness.attempts, 1);
+    assert.deepStrictEqual(harness.sleeps, []);
+  });
+
+  await test("a rate limit during authentication recovery stops credential rotation", async () => {
+    const harness = createHarness([
+      response(403),
+      response(403, { "retry-after": "2" }),
+    ]);
+    fallbackToken = () => {
+      throw new Error("credential rotation must stop at a rate limit");
+    };
+
+    const result = await githubFetch.fetchGitHubWithOptionalAuthRetry(
+      "https://api.github.com/repos/o/r/contents/x",
+      {
+        accept: "application/vnd.github.v3+json",
+        token: "test-token",
+        request: harness.request,
+        retry: harness.retry,
+      },
+    );
+
+    assert.strictEqual(result.status, 403);
+    assert.strictEqual(harness.attempts, 2);
+    assert.deepStrictEqual(harness.sleeps, []);
+    assert.strictEqual(result.headers.get("retry-after"), null);
+  });
+
   await test("never retries a 404", async () => {
     const harness = createHarness([response(404)]);
 

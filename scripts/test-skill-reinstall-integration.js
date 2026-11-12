@@ -271,6 +271,7 @@ function setup(installBehavior = "ok") {
       },
     },
     "./skillUpdates": {
+      MAX_REINSTALL_DIFF_BYTES: 64 * 1024,
       createSkillRevisionResolver: () => async (target) => {
         const files = REMOTE[`${target.repo}::${target.remotePath}`];
         if (!files) {
@@ -306,6 +307,12 @@ function setup(installBehavior = "ok") {
           ),
           truncated: false,
         };
+      },
+      readSkillRemoteFile: async (revision, filePath) => {
+        const files =
+          baselineBySha[revision.commitSha] ??
+          REMOTE[`${revision.repo}::${revision.remotePath}`];
+        return Buffer.from(log.corruptSource ? "unexpected content" : files[filePath]);
       },
     },
   };
@@ -463,6 +470,143 @@ async function main() {
       assert.equal(ready.action, "reinstall");
       assert.equal(ready.baseline, "recorded");
       assert.equal(ready.candidate.candidateId, "mine::skills/demo");
+    },
+  );
+
+  await test(
+    "a confirmed diff is limited to one planned file and its recorded revision",
+    "ok",
+    async ({ reinstall, roots, log }) => {
+      const file = path.join(roots.workspace, "demo", "SKILL.md");
+      write(file, "local edit\n");
+      const created = await reinstall.createReinstallPlan(
+        {
+          mode: "preview",
+          targets: { entryIds: ["workspace:.github/skills::demo"] },
+        },
+        options,
+      );
+      const request = {
+        planId: created.plan.planId,
+        entryId: "workspace:.github/skills::demo",
+        filePath: "SKILL.md",
+      };
+      const diff = await reinstall.readReinstallTextDiff(created, request);
+      assert.equal(diff.commitSha, hex("d"));
+      assert.match(diff.lines.join("\n"), /-installed public/);
+      assert.match(diff.lines.join("\n"), /\+local edit/);
+      assert.equal(log.install.length, 0);
+      await assert.rejects(() =>
+        reinstall.readReinstallTextDiff(created, { ...request, planId: "stale" }),
+      );
+      await assert.rejects(() =>
+        reinstall.readReinstallTextDiff(created, { ...request, filePath: "../secret" }),
+      );
+      log.corruptSource = true;
+      await assert.rejects(
+        () => reinstall.readReinstallTextDiff(created, request),
+        /source.*changed|source.*hash/i,
+      );
+      log.corruptSource = false;
+      write(file, "changed after preview\n");
+      await assert.rejects(
+        () => reinstall.readReinstallTextDiff(created, request),
+        /changed/i,
+      );
+    },
+  );
+
+  await test(
+    "changing only the recorded source revision invalidates the preview",
+    "ok",
+    async ({ reinstall, roots }) => {
+      const skillDir = path.join(roots.workspace, "demo");
+      write(path.join(skillDir, "SKILL.md"), "local edit\n");
+      const input = {
+        mode: "preview",
+        targets: { entryIds: ["workspace:.github/skills::demo"] },
+      };
+      const before = await reinstall.createReinstallPlan(input, options);
+      const metaFile = path.join(skillDir, ".skill-meta.json");
+      const meta = JSON.parse(fs.readFileSync(metaFile, "utf8"));
+      meta.sourceRevision.commitSha = hex("7");
+      meta.sourceRevision.contentSha = hex("6");
+      write(metaFile, JSON.stringify(meta));
+      const after = await reinstall.createReinstallPlan(input, options);
+      assert.equal(before.plan.items[0].reason, "local-edits");
+      assert.equal(after.plan.items[0].reason, "local-edits");
+      assert.notEqual(before.plan.planId, after.plan.planId);
+      await assert.rejects(() =>
+        reinstall.readReinstallTextDiff(after, {
+          planId: before.plan.planId,
+          entryId: "workspace:.github/skills::demo",
+          filePath: "SKILL.md",
+        }),
+      );
+    },
+  );
+
+  await test(
+    "binary content is never disclosed as a text diff",
+    "ok",
+    async ({ reinstall, roots }) => {
+      const skillDir = path.join(roots.workspace, "demo");
+      write(path.join(skillDir, "asset.bin"), "header\r\npayload");
+      const localFiles = await reinstall.readLocalSkillFiles(skillDir);
+      assert.equal(localFiles.get("asset.bin").binary, true);
+      fs.writeFileSync(
+        path.join(skillDir, "SKILL.md"),
+        Buffer.from([255, 13, 10]),
+      );
+      const created = await reinstall.createReinstallPlan(
+        {
+          mode: "preview",
+          targets: { entryIds: ["workspace:.github/skills::demo"] },
+        },
+        options,
+      );
+      await assert.rejects(
+        () =>
+          reinstall.readReinstallTextDiff(created, {
+            planId: created.plan.planId,
+            entryId: "workspace:.github/skills::demo",
+            filePath: "SKILL.md",
+          }),
+        /binary/i,
+      );
+    },
+  );
+
+  await test(
+    "a text diff accepts 64 KiB but rejects a larger local file",
+    "ok",
+    async ({ reinstall, roots }) => {
+      const file = path.join(roots.workspace, "demo", "SKILL.md");
+      const input = {
+        mode: "preview",
+        targets: { entryIds: ["workspace:.github/skills::demo"] },
+      };
+      write(file, "x".repeat(64 * 1024));
+      const atLimit = await reinstall.createReinstallPlan(input, options);
+      const selection = {
+        planId: atLimit.plan.planId,
+        entryId: "workspace:.github/skills::demo",
+        filePath: "SKILL.md",
+      };
+      assert.equal(
+        (await reinstall.readReinstallTextDiff(atLimit, selection)).truncated,
+        true,
+      );
+      write(file, "x".repeat(64 * 1024 + 1));
+      const overLimit = await reinstall.createReinstallPlan(input, options);
+      await assert.rejects(
+        () =>
+          reinstall.readReinstallTextDiff(overLimit, {
+            ...selection,
+            planId: overLimit.plan.planId,
+          }),
+        /too large/i,
+      );
     },
   );
 
@@ -773,7 +917,7 @@ async function main() {
       assert.match(result.message, /does not match the source revision/);
       assert.match(
         result.message,
-        /SKILL\.md \(differs; local [0-9a-f]{7}, \d+ B, binary; source [0-9a-f]{7}\)/,
+        /SKILL\.md \(differs; local [0-9a-f]{7}, \d+ B, binary\/unknown; source [0-9a-f]{7}\)/,
       );
       assert.match(result.message, /nothing was replaced/);
       assert.equal(

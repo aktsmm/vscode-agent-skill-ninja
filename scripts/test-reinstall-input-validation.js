@@ -51,3 +51,10 @@ test("adopt must be an array of entryId/candidateId objects", () => {
   assert.ok(validateReinstallInput({ adopt: [{ entryId: "a" }] }));
   assert.ok(validateReinstallInput({ adopt: [null] }));
 });
+
+test("details offset must be a non-negative safe integer", () => {
+  for (const bad of [-1, 0.5, "2", Number.MAX_SAFE_INTEGER + 1]) {
+    assert.match(validateReinstallInput({ detailsOffset: bad }), /detailsOffset/);
+  }
+  assert.strictEqual(validateReinstallInput({ detailsOffset: 0 }), undefined);
+});

@@ -25,7 +25,10 @@ import {
 import { formatRootWithPath, resolveSkillRootIdentity } from "./skillRootIds";
 import {
   createSkillRevisionResolver,
+  MAX_REINSTALL_DIFF_BYTES,
+  readSkillRemoteFile,
   readSkillRemoteFiles,
+  type SkillRemoteFiles,
   type SkillSourceRevision,
 } from "./skillUpdates";
 import {
@@ -33,8 +36,10 @@ import {
   buildReinstallPlan,
   findNameCandidates,
   computeLocalFingerprint,
+  computeGitBlobSha,
   describeContentDiffDetails,
   diffLocalAgainstRemote,
+  formatTextDiffExcerpt,
   hashLocalFile,
   selectEntries,
   validateReinstallInput,
@@ -244,7 +249,10 @@ export async function readLocalSkillFiles(
       if ((await fs.promises.stat(full)).size > MAX_LOCAL_FILE_BYTES) {
         throw new Error(`file is too large to compare: ${relative}`);
       }
-      files.set(relative, hashLocalFile(await fs.promises.readFile(full)));
+      files.set(
+        relative,
+        hashLocalFile(await fs.promises.readFile(full), relative),
+      );
     }
   };
 
@@ -253,7 +261,7 @@ export async function readLocalSkillFiles(
 }
 
 export interface ReinstallInput {
-  mode: "preview" | "apply";
+  mode: "preview" | "apply" | "diff";
   targets: EntrySelector;
   adopt?: Array<{ entryId: string; candidateId: string }>;
   allowLocalEdits?: string[];
@@ -261,6 +269,8 @@ export interface ReinstallInput {
   /** true のとき、記録済み revision と一致している項目も入れ直す */
   force?: boolean;
   planId?: string;
+  detailsOffset?: number;
+  diff?: { entryId: string; filePath: string };
 }
 
 export interface PlanContext {
@@ -305,7 +315,7 @@ export function createReinstallDeps(
   const pending = new Map<string, Promise<SkillSourceRevision>>();
   const remoteFiles = new Map<
     string,
-    Promise<{ files: Map<string, string>; truncated: boolean }>
+    Promise<SkillRemoteFiles>
   >();
 
   const deps: ReinstallPlanDeps = {
@@ -461,6 +471,146 @@ export async function createReinstallPlan(
   };
 }
 
+export async function readReinstallTextDiff(
+  context: PlanContext,
+  selection: { planId: string; entryId: string; filePath: string },
+  signal?: AbortSignal,
+): Promise<{
+  lines: string[];
+  truncated: boolean;
+  commitSha: string;
+  baseline: "recorded" | "target";
+}> {
+  const { planId, entryId, filePath } = selection;
+  if (
+    typeof planId !== "string" ||
+    planId !== context.plan.planId ||
+    typeof entryId !== "string" ||
+    typeof filePath !== "string" ||
+    filePath.length > 1024 ||
+    !filePath ||
+    filePath.includes("\\") ||
+    Array.from(filePath).some((character) => {
+      const code = character.charCodeAt(0);
+      return code < 32 || code === 127;
+    }) ||
+    filePath.split("/").some((part) => !part || part === "." || part === "..")
+  ) {
+    throw new Error("Invalid or stale diff selection. Preview again.");
+  }
+  const item = context.plan.items.find((value) => value.entryId === entryId);
+  const installed = context.entries.get(entryId);
+  const detail = item?.diff?.details?.find((value) => value.path === filePath);
+  const revision = item?.baselineRevision;
+  if (!item || !installed || !detail || !revision || !item.baseline) {
+    throw new Error("The selected file is not in this preview's diff.");
+  }
+  const checkCancelled = () => {
+    if (signal?.aborted) {
+      throw new Error("Diff request was canceled.");
+    }
+  };
+  checkCancelled();
+  const localFiles = await context.deps.readLocalFiles(installed.plan);
+  if (computeLocalFingerprint(localFiles) !== item.localFingerprint) {
+    throw new Error("Local content changed after the preview.");
+  }
+  const localHash = localFiles.get(filePath);
+  const remote = await context.deps.readRemoteFiles(revision);
+  checkCancelled();
+  const remoteHash = remote.files.get(filePath);
+  if (
+    remote.truncated ||
+    (detail.kind === "missing" ? Boolean(localHash) : !localHash) ||
+    (detail.kind === "local-only" ? Boolean(remoteHash) : !remoteHash)
+  ) {
+    throw new Error("File state changed after the preview.");
+  }
+  if (localHash?.binary) {
+    throw new Error(
+      "Binary or unknown file types cannot be shown as text diffs.",
+    );
+  }
+  if ((localHash?.size ?? 0) > MAX_REINSTALL_DIFF_BYTES) {
+    throw new Error("Local file is too large for a text diff.");
+  }
+  let local = Buffer.alloc(0);
+  if (localHash) {
+    let full = resolveManagedSkillDirUri(
+      installed.root.rootUri,
+      installed.plan.relativePath,
+    ).fsPath;
+    const parts = filePath.split("/");
+    for (const [index, part] of parts.entries()) {
+      full = path.join(full, part);
+      const stat = await fs.promises.lstat(full);
+      if (
+        stat.isSymbolicLink() ||
+        (index === parts.length - 1
+          ? !stat.isFile()
+          : !stat.isDirectory())
+      ) {
+        throw new Error("The selected local file is not a regular file.");
+      }
+    }
+    const handle = await fs.promises.open(full, "r");
+    try {
+      if ((await handle.stat()).size > MAX_REINSTALL_DIFF_BYTES) {
+        throw new Error("Local file is too large for a text diff.");
+      }
+      const bytes = Buffer.alloc(MAX_REINSTALL_DIFF_BYTES + 1);
+      let length = 0;
+      while (length < bytes.length) {
+        const { bytesRead } = await handle.read(
+          bytes,
+          length,
+          bytes.length - length,
+          length,
+        );
+        if (bytesRead === 0) {
+          break;
+        }
+        length += bytesRead;
+      }
+      if (length > MAX_REINSTALL_DIFF_BYTES) {
+        throw new Error("Local file is too large for a text diff.");
+      }
+      local = bytes.subarray(0, length);
+    } finally {
+      await handle.close();
+    }
+    if (computeGitBlobSha(local) !== localHash.blobSha) {
+      throw new Error("Local content changed after the preview.");
+    }
+  }
+  checkCancelled();
+  let source = Buffer.alloc(0);
+  if (remoteHash) {
+    source = Buffer.from(
+      await readSkillRemoteFile(
+        revision,
+        filePath,
+        await getGitHubToken(),
+        signal,
+      ),
+    );
+    if (computeGitBlobSha(source) !== remoteHash) {
+      throw new Error("Source content changed or its hash does not match.");
+    }
+    if (hashLocalFile(source, filePath).binary) {
+      throw new Error(
+        "Binary or unknown file types cannot be shown as text diffs.",
+      );
+    }
+  }
+  checkCancelled();
+  return {
+    ...formatTextDiffExcerpt(source.toString("utf8"), local.toString("utf8")),
+    commitSha: revision.commitSha,
+    baseline: item.baseline,
+  };
+}
+
 export type ApplyStatus = "updated" | "failed" | "held" | "skipped";
 
 export interface ApplyResult {
@@ -562,7 +712,7 @@ export async function applyReinstallPlan(
               const diff = diffLocalAgainstRemote(
                 await readLocalSkillFiles(staged.fsPath),
                 remote.files,
-                { exact: true },
+                { exact: true, remoteSizes: remote.sizes },
               );
               if (!diff.identical) {
                 throw new Error(
@@ -681,7 +831,7 @@ async function verifyInstalledSkill(
       const diff = diffLocalAgainstRemote(
         await readLocalSkillFiles(skillDir),
         remote.files,
-        { exact: true },
+        { exact: true, remoteSizes: remote.sizes },
       );
       verification.contentMatchesRemote = diff.identical;
       if (!diff.identical) {

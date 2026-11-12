@@ -140,26 +140,29 @@ async function fetchJson(url) {
 }
 
 async function fetchOk(url) {
-  const response = await fetchWithTimeout(url, {
+  let response = await fetchWithTimeout(url, {
     method: "HEAD",
     headers: buildHeaders(url),
   });
+
+  if (response.status === 405) {
+    response = await fetchWithTimeout(url, {
+      headers: buildHeaders(url),
+    });
+  }
 
   if (response.ok) {
     return true;
   }
 
-  if (response.status === 405) {
-    const fallback = await fetchWithTimeout(url, {
-      headers: buildHeaders(url),
-    });
-    return fallback.ok;
+  if (response.status === 404 || response.status === 410) {
+    return false;
   }
 
-  return false;
+  throw new Error(`HTTP ${response.status} for ${url}`);
 }
 
-async function resolveSourceBranches(sources) {
+async function resolveSourceBranches(sources, requireVerified = false) {
   const branchBySource = new Map();
 
   await mapWithConcurrency(sources, MAX_CONCURRENCY, async (source) => {
@@ -177,8 +180,19 @@ async function resolveSourceBranches(sources) {
       const repoInfo = await fetchJson(
         `https://api.github.com/repos/${parts.owner}/${parts.repo}`,
       );
-      branchBySource.set(source.id, repoInfo.default_branch || "main");
+      if (
+        typeof repoInfo.default_branch !== "string" ||
+        !repoInfo.default_branch
+      ) {
+        throw new Error("Missing default branch");
+      }
+      branchBySource.set(source.id, repoInfo.default_branch);
     } catch (error) {
+      if (requireVerified) {
+        throw new Error(
+          `Cannot verify branch for ${source.id}; refusing --apply: ${error instanceof Error ? error.message : String(error)}`,
+        );
+      }
       console.warn(
         `[audit] Falling back to main for ${source.id}: ${error instanceof Error ? error.message : String(error)}`,
       );
@@ -203,8 +217,15 @@ async function fetchSourceTrees(sources, branchBySource) {
       `https://api.github.com/repos/${parts.owner}/${parts.repo}/git/trees/${encodeGitRef(branch)}?recursive=1`,
     );
 
+    if (tree.truncated) {
+      throw new Error(`Truncated Git tree for ${source.id}`);
+    }
+    if (!Array.isArray(tree.tree)) {
+      throw new Error(`Missing Git tree for ${source.id}`);
+    }
+
     const blobs = new Set(
-      (tree.tree || [])
+      tree.tree
         .filter((entry) => entry.type === "blob")
         .map((entry) => String(entry.path || "")),
     );
@@ -382,7 +403,7 @@ async function main() {
   const skills = index.skills.filter(
     (skill) => SOURCE_FILTER.size === 0 || SOURCE_FILTER.has(skill.source),
   );
-  const branchBySource = await resolveSourceBranches(sources);
+  const branchBySource = await resolveSourceBranches(sources, APPLY);
   let forceRawOnly = RAW_ONLY;
   let treeBySource = new Map();
   if (!RAW_ONLY) {
@@ -489,6 +510,9 @@ module.exports = {
   isSkillPathAllowed,
   shouldAttachGitHubToken,
   shouldRetryWithoutToken,
+  fetchOk,
+  resolveSourceBranches,
+  fetchSourceTrees,
   auditSkill,
   buildPrunedIndex,
 };

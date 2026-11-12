@@ -2,7 +2,7 @@
   "name": "agent-skill-ninja",
   "displayName": "%displayName%",
   "description": "%description%",
-  "version": "0.9.62",
+  "version": "0.9.63",
   "publisher": "yamapan",
   "license": "CC-BY-NC-SA-4.0",
   "icon": "resources/icon.png",
@@ -239,7 +239,7 @@
         "toolReferenceName": "reinstallSkills",
         "displayName": "Reinstall Existing Skills",
         "icon": "$(refresh)",
-        "modelDescription": "Reinstall already-installed Agent Skills from their source through Skill Ninja's regular install path, so .skill-meta.json and sourceRevision are generated and updated (never hand-copy files or write metadata yourself). Always call with mode 'preview' first (read-only): it shows per skill the root, source, what would be overwritten and why something is on hold, and returns a planId. Then call mode 'apply' with the same targets/flags and that planId. Targets must be explicit: entryIds (from listSkills) or rootIds (+ optional sources/names). Skills without metadata are never matched by name alone: the preview lists candidates with evidence and you pass adopt [{entryId, candidateId}] only after the user chooses. Locally edited skills stay on hold unless the user approves allowLocalEdits; switching to a different source needs allowSourceSwitch.",
+        "modelDescription": "Reinstall already-installed Agent Skills from their source through Skill Ninja's regular install path, so .skill-meta.json and sourceRevision are generated and updated (never hand-copy files or write metadata yourself). Always call with mode 'preview' first (read-only): it shows per skill the root, source, what would be overwritten and why something is on hold, and returns a planId. File evidence is paged; repeat preview with the indicated detailsOffset to see remaining files. To inspect one file, use mode 'diff' with the same targets/flags, planId, and diff {entryId, filePath}; confirmation is required because the file excerpt is shared with the model. Then call mode 'apply' with the same targets/flags and that planId. Targets must be explicit: entryIds (from listSkills) or rootIds (+ optional sources/names). Skills without metadata are never matched by name alone: the preview lists candidates with evidence and you pass adopt [{entryId, candidateId}] only after the user chooses. Locally edited skills stay on hold unless the user approves allowLocalEdits; switching to a different source needs allowSourceSwitch.",
         "canBeReferencedInPrompt": true,
         "inputSchema": {
           "type": "object",
@@ -248,9 +248,10 @@
               "type": "string",
               "enum": [
                 "preview",
-                "apply"
+                "apply",
+                "diff"
               ],
-              "description": "preview = read-only plan (no changes). apply = execute the ready items of the previewed plan"
+              "description": "%tool.reinstall.mode.description%"
             },
             "targets": {
               "type": "object",
@@ -330,7 +331,30 @@
             },
             "planId": {
               "type": "string",
-              "description": "Required for apply: the planId returned by the preview with the same targets/flags"
+              "description": "%tool.reinstall.planId.description%"
+            },
+            "detailsOffset": {
+              "type": "integer",
+              "minimum": 0,
+              "description": "%tool.reinstall.detailsOffset.description%"
+            },
+            "diff": {
+              "type": "object",
+              "description": "%tool.reinstall.diff.description%",
+              "properties": {
+                "entryId": {
+                  "type": "string",
+                  "description": "%tool.reinstall.diff.entryId.description%"
+                },
+                "filePath": {
+                  "type": "string",
+                  "description": "%tool.reinstall.diff.filePath.description%"
+                }
+              },
+              "required": [
+                "entryId",
+                "filePath"
+              ]
             }
           },
           "required": [
@@ -1684,5 +1708,10 @@
   },
   "dependencies": {
     "vscode-nls": "^5.2.0"
+  },
+  "overrides": {
+    "@typescript-eslint/typescript-estree": {
+      "minimatch": "^11.0.1"
+    }
   }
 }

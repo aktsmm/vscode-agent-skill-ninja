@@ -31,10 +31,14 @@ vm.runInNewContext(
   ).outputText,
   {
     exports: moduleExports,
+    Buffer,
+    setTimeout,
+    clearTimeout,
     require(name) {
       if (name === "./githubResponse") return githubResponse.exports;
       assert.equal(name, "./githubFetch");
       return {
+        GITHUB_REQUEST_TIMEOUT_MS: 15000,
         fetchGitHubWithOptionalAuthRetry: (...args) => defaultRequest(...args),
       };
     },
@@ -44,6 +48,9 @@ const {
   createSkillRevisionResolver,
   classifySkillUpdate,
   findRenamedSkillRevision,
+  readSkillRemoteFiles,
+  readSkillRemoteFile,
+  MAX_REINSTALL_DIFF_BYTES,
 } = moduleExports;
 const hash = (digit) => digit.repeat(40);
 const commitSha = hash("a");
@@ -523,6 +530,92 @@ async function main() {
     otherRef.calls.filter((url) => url.includes("/commits/")).length,
     2,
   );
+  const contents = mock({
+    [`git/trees/${folderSha}?recursive=1`]: tree(folderSha, [
+      { ...entry("SKILL.md", "blob", blobSha), size: 12 },
+      entry("unknown-size.bin", "blob", hash("e")),
+    ]),
+  });
+  const remoteFiles = await readSkillRemoteFiles(
+    folder,
+    "test-token",
+    undefined,
+    contents.request,
+  );
+  assert.equal(remoteFiles.sizes.get("SKILL.md"), 12);
+  assert.equal(remoteFiles.sizes.has("unknown-size.bin"), false);
+  const fileRequests = [];
+  const fileRequest = async (url, requestOptions) => {
+    fileRequests.push({ url, token: requestOptions.token });
+    return new Response("source text\n");
+  };
+  const fileBytes = await readSkillRemoteFile(
+    folder,
+    "references/example.md",
+    "test-token",
+    undefined,
+    fileRequest,
+  );
+  assert.equal(Buffer.from(fileBytes).toString("utf8"), "source text\n");
+  assert.equal(
+    fileRequests[0].url,
+    `https://raw.githubusercontent.com/owner/repo/${folder.commitSha}/skills/example/references/example.md`,
+  );
+  assert.equal(fileRequests[0].token, "test-token");
+  await assert.rejects(() =>
+    readSkillRemoteFile(folder, "../secret", "test-token", undefined, fileRequest),
+  );
+  const maximumFile = await readSkillRemoteFile(
+    folder,
+    "SKILL.md",
+    "test-token",
+    undefined,
+    async () => new Response(new Uint8Array(MAX_REINSTALL_DIFF_BYTES)),
+  );
+  assert.equal(maximumFile.byteLength, MAX_REINSTALL_DIFF_BYTES);
+  await assert.rejects(
+    () =>
+      readSkillRemoteFile(folder, "SKILL.md", "test-token", undefined, async () =>
+        new Response(new Uint8Array(MAX_REINSTALL_DIFF_BYTES + 1)),
+      ),
+    /too large/i,
+  );
+  const canceledBefore = new AbortController();
+  canceledBefore.abort();
+  let started = false;
+  await assert.rejects(
+    () =>
+      readSkillRemoteFile(
+        folder,
+        "SKILL.md",
+        "test-token",
+        canceledBefore.signal,
+        async () => {
+          started = true;
+          return new Response();
+        },
+      ),
+    /cancel/i,
+  );
+  assert.equal(started, false);
+  const canceledDuring = new AbortController();
+  let streamCanceled = false;
+  const stalledStream = new ReadableStream({
+    cancel() {
+      streamCanceled = true;
+    },
+  });
+  const stalled = readSkillRemoteFile(
+    folder,
+    "SKILL.md",
+    "test-token",
+    canceledDuring.signal,
+    async () => new Response(stalledStream),
+  );
+  await new Promise((resolve) => setImmediate(resolve));
+  canceledDuring.abort();
+  await assert.rejects(stalled, /cancel/i);
+  assert.equal(streamCanceled, true);
   console.log(
     "PASS skill updates: resolution, classification, validation, fallback, errors, cancellation, cache freshness",
   );

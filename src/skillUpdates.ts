@@ -1,4 +1,7 @@
-import { fetchGitHubWithOptionalAuthRetry } from "./githubFetch";
+import {
+  fetchGitHubWithOptionalAuthRetry,
+  GITHUB_REQUEST_TIMEOUT_MS,
+} from "./githubFetch";
 import {
   createGitHubResponseError,
   GitHubResponseError,
@@ -111,6 +114,7 @@ interface TreeEntry {
   path: string;
   sha: string;
   type: "tree" | "blob" | "commit";
+  size?: number;
 }
 
 interface Tree {
@@ -140,6 +144,10 @@ function parseTree(
       !entry.path ||
       (!recursive && entry.path.includes("/")) ||
       !sha(entry.sha) ||
+      (entry.size !== undefined &&
+        (typeof entry.size !== "number" ||
+          !Number.isSafeInteger(entry.size) ||
+          entry.size < 0)) ||
       (entry.type !== "tree" &&
         entry.type !== "blob" &&
         entry.type !== "commit") ||
@@ -158,6 +166,7 @@ function parseTree(
       path: entry.path,
       sha: entry.sha.toLowerCase(),
       type: entry.type as TreeEntry["type"],
+      ...(typeof entry.size === "number" ? { size: entry.size } : {}),
     };
   });
   return { entries, truncated: value.truncated };
@@ -417,7 +426,97 @@ export function classifySkillUpdate(
 export interface SkillRemoteFiles {
   /** スキルフォルダからの相対パス → git blob SHA */
   files: Map<string, string>;
+  /** Git tree がサイズを返したファイルだけを含む */
+  sizes?: Map<string, number>;
   truncated: boolean;
+}
+
+export const MAX_REINSTALL_DIFF_BYTES = 64 * 1024;
+
+/** 明示された 1 ファイルだけを、計画で固定したコミットからサイズ制限付きで読む。 */
+export async function readSkillRemoteFile(
+  target: SkillSourceRevision,
+  filePath: string,
+  token?: string,
+  signal?: AbortSignal,
+  request: typeof fetchGitHubWithOptionalAuthRetry = fetchGitHubWithOptionalAuthRetry,
+): Promise<Uint8Array> {
+  if (
+    !revision(target) ||
+    !remotePath(filePath) ||
+    !filePath ||
+    (target.kind === "blob" && filePath !== "SKILL.md")
+  ) {
+    throw failure();
+  }
+  assertActive(signal);
+  const parts =
+    target.kind === "blob"
+      ? target.remotePath.split("/")
+      : [
+          ...target.remotePath.split("/").filter(Boolean),
+          ...filePath.split("/"),
+        ];
+  const url = `https://raw.githubusercontent.com/${target.owner.toLowerCase()}/${target.repo.toLowerCase()}/${target.commitSha.toLowerCase()}/${parts
+    .map(encodeURIComponent)
+    .join("/")}`;
+  const response = await request(url, {
+    accept: "application/octet-stream",
+    token,
+    retry: { signal },
+  });
+  assertActive(signal);
+  if (!response.ok) {
+    const body = await response.text().catch(() => "");
+    throw createGitHubResponseError(response, body, "Skill diff content check");
+  }
+  const length = response.headers.get("content-length");
+  if (
+    length &&
+    /^\d+$/.test(length) &&
+    Number(length) > MAX_REINSTALL_DIFF_BYTES
+  ) {
+    throw new Error("Source file is too large for a text diff.");
+  }
+  if (!response.body) {
+    return new Uint8Array();
+  }
+  const reader = response.body.getReader();
+  let timedOut = false;
+  const cancel = () => {
+    void reader.cancel().catch(() => undefined);
+  };
+  const timer = setTimeout(() => {
+    timedOut = true;
+    cancel();
+  }, GITHUB_REQUEST_TIMEOUT_MS);
+  signal?.addEventListener("abort", cancel, { once: true });
+  const chunks: Uint8Array[] = [];
+  let total = 0;
+  try {
+    assertActive(signal);
+    for (;;) {
+      const { done, value } = await reader.read();
+      assertActive(signal);
+      if (timedOut) {
+        throw new Error("Source diff download timed out.");
+      }
+      if (done) {
+        break;
+      }
+      total += value.byteLength;
+      if (total > MAX_REINSTALL_DIFF_BYTES) {
+        cancel();
+        throw new Error("Source file is too large for a text diff.");
+      }
+      chunks.push(value);
+    }
+  } finally {
+    clearTimeout(timer);
+    signal?.removeEventListener("abort", cancel);
+    reader.releaseLock();
+  }
+  return new Uint8Array(Buffer.concat(chunks, total));
 }
 
 /**
@@ -459,6 +558,14 @@ export async function readSkillRemoteFiles(
       parsed.entries
         .filter((entry) => entry.type === "blob")
         .map((entry) => [entry.path, entry.sha]),
+    ),
+    sizes: new Map(
+      parsed.entries
+        .filter(
+          (entry): entry is TreeEntry & { size: number } =>
+            entry.type === "blob" && entry.size !== undefined,
+        )
+        .map((entry) => [entry.path, entry.size]),
     ),
     truncated: parsed.truncated,
   };

@@ -17,14 +17,17 @@ const {
   computeGitBlobSha,
   computeLocalFingerprint,
   computePlanId,
+  describeContentDiffDetails,
   describeProvenance,
   diffLocalAgainstRemote,
+  formatTextDiffExcerpt,
   findNameCandidates,
   hashLocalFile,
   planEntry,
   selectEntries,
   selectSkillForInstall,
 } = loadSrcModule("./skillReinstallPlan");
+const { GitHubResponseError } = loadSrcModule("./githubResponse");
 
 let failures = 0;
 
@@ -639,18 +642,156 @@ function missingPathError() {
     assert.strictEqual(diff.identical, false);
   });
 
-  await test("exact mode catches NUL-free byte corruption that line-ending tolerance would hide", () => {
-    // ソース [255,10,1] に対し、取得側が [255,13,10,1] を書いた場合
+  await test("NUL-free invalid UTF-8 is binary and never loses local edits to newline normalization", () => {
     const remote = new Map([
       ["a.bin", computeGitBlobSha(Buffer.from([255, 10, 1]))],
     ]);
     const local = new Map([
       ["a.bin", hashLocalFile(Buffer.from([255, 13, 10, 1]))],
     ]);
-    assert.strictEqual(diffLocalAgainstRemote(local, remote).identical, true);
+    assert.strictEqual(local.get("a.bin").binary, true);
+    assert.strictEqual(diffLocalAgainstRemote(local, remote).identical, false);
     const exact = diffLocalAgainstRemote(local, remote, { exact: true });
     assert.strictEqual(exact.identical, false);
     assert.deepStrictEqual(exact.changed, ["a.bin"]);
+  });
+
+  await test("printable binary and unknown file types are compared byte-for-byte", () => {
+    for (const filePath of ["asset.bin", "asset.custom"]) {
+      const local = new Map([
+        [filePath, hashLocalFile(Buffer.from("header\r\npayload"), filePath)],
+      ]);
+      const remote = new Map([
+        [filePath, computeGitBlobSha(Buffer.from("header\npayload"))],
+      ]);
+      assert.strictEqual(local.get(filePath).binary, true);
+      assert.strictEqual(diffLocalAgainstRemote(local, remote).identical, false);
+    }
+    assert.strictEqual(
+      hashLocalFile(Buffer.from("text\r\n"), "docs/note.md").binary,
+      false,
+    );
+  });
+
+  await test("a NUL-free binary edit keeps the reinstall on hold", async () => {
+    const { deps } = makeDeps({
+      index: [{ source: "mine", path: "skills/demo", name: "demo", remote: {} }],
+    });
+    deps.readLocalFiles = async () =>
+      new Map([["asset.bin", hashLocalFile(Buffer.from([255, 13, 10, 1]))]]);
+    deps.readRemoteFiles = async () => ({
+      files: new Map([["asset.bin", computeGitBlobSha(Buffer.from([255, 10, 1]))]]),
+      truncated: false,
+    });
+    const item = await planEntry(entry(), NO_FLAGS, deps);
+    assert.strictEqual(item.status, "hold");
+    assert.strictEqual(item.reason, "local-edits");
+  });
+
+  await test("preview describes line-ending and BOM-only differences without exposing content", () => {
+    const source = Buffer.from("first\nsecond\n");
+    const remote = new Map([["SKILL.md", computeGitBlobSha(source)]]);
+    const lineEndingDiff = diffLocalAgainstRemote(
+      new Map([["SKILL.md", hashLocalFile(Buffer.from("first\r\nsecond\r\n"))]]),
+      remote,
+    );
+    assert.strictEqual(lineEndingDiff.identical, true);
+    assert.match(describeContentDiffDetails(lineEndingDiff), /line endings only/i);
+
+    const bomDiff = diffLocalAgainstRemote(
+      new Map([
+        ["SKILL.md", hashLocalFile(Buffer.concat([Buffer.from([0xef, 0xbb, 0xbf]), source]))],
+      ]),
+      remote,
+    );
+    assert.strictEqual(bomDiff.identical, false);
+    assert.match(describeContentDiffDetails(bomDiff), /BOM only/i);
+    assert.ok(!describeContentDiffDetails(bomDiff).includes("first"));
+  });
+
+  await test("comparison details include remote size when the source provides it", () => {
+    const remote = new Map([["SKILL.md", computeGitBlobSha(Buffer.from("remote"))]]);
+    const diff = diffLocalAgainstRemote(
+      new Map([["SKILL.md", hashLocalFile(Buffer.from("local"))]]),
+      remote,
+      { remoteSizes: new Map([["SKILL.md", 6]]) },
+    );
+    assert.strictEqual(diff.details[0].remoteSize, 6);
+    assert.match(describeContentDiffDetails(diff), /source [a-f0-9]{7}, 6 B/);
+  });
+
+  await test("file comparison evidence can be paged without hiding later changes", () => {
+    const local = files(
+      Object.fromEntries(
+        Array.from({ length: 6 }, (_, index) => [`file${index}.md`, `local ${index}`]),
+      ),
+    );
+    const remote = remoteOf(
+      Object.fromEntries(
+        Array.from({ length: 6 }, (_, index) => [`file${index}.md`, `source ${index}`]),
+      ),
+    );
+    const diff = diffLocalAgainstRemote(local, remote);
+    const page = describeContentDiffDetails(diff, 2, 2);
+    assert.match(page, /3-4.*6/);
+    assert.match(page, /file2\.md/);
+    assert.match(page, /file3\.md/);
+    assert.doesNotMatch(page, /file0\.md/);
+    assert.match(page, /\+2 more/);
+  });
+
+  await test("text diff shows bounded source and local changes", () => {
+    const diff = formatTextDiffExcerpt(
+      "first\nold value\nlast\n",
+      "first\nnew value\nlast\n",
+    );
+    assert.strictEqual(diff.truncated, false);
+    assert.deepStrictEqual(diff.lines, [
+      "--- source",
+      "+++ local",
+      "@@ -1,3 +1,3 @@",
+      " first",
+      "-old value",
+      "+new value",
+      " last",
+    ]);
+
+    const many = formatTextDiffExcerpt(
+      Array.from({ length: 100 }, (_, index) => `old-${index}`).join("\n"),
+      Array.from({ length: 100 }, (_, index) => `new-${index}`).join("\n"),
+    );
+    assert.strictEqual(many.truncated, true);
+    assert.ok(many.lines.length <= 43);
+    assert.ok(many.lines.some((line) => line.startsWith("-old-")));
+    assert.ok(many.lines.some((line) => line.startsWith("+new-")));
+  });
+
+  await test("text diff notes final-newline-only changes", () => {
+    const diff = formatTextDiffExcerpt("same\n", "same");
+    assert.match(diff.lines.join("\n"), /final newline/i);
+  });
+
+  await test("reinstall previews expose classified GitHub failures without raw error details", async () => {
+    for (const [kind, status, expected] of [
+      ["rate-limit", 403, /rate limit/i],
+      ["sso-required", 403, /SSO/i],
+      ["auth-required", 403, /authentication|permission/i],
+      ["not-found", 404, /not found|inaccessible/i],
+    ]) {
+      const { deps } = makeDeps({
+        index: [{
+          source: "mine",
+          path: "skills/demo",
+          name: "demo",
+          error: new GitHubResponseError(kind, status, "private-secret"),
+        }],
+      });
+      const item = await planEntry(entry(), NO_FLAGS, deps);
+      assert.strictEqual(item.reason, "fetch-failed");
+      assert.match(item.detail, expected);
+      assert.match(item.detail, new RegExp(String(status)));
+      assert.ok(!item.detail.includes("private-secret"));
+    }
   });
 
   await test("extension-owned metadata is ignored at any depth and in any case on both sides", () => {

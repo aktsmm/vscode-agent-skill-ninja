@@ -358,7 +358,7 @@ async function listGitHubDirectoryInternal(
       bodyText,
       `Failed to list directory ${normalizedPath}`,
     );
-    if (response.status === 403) {
+    if (response.status === 403 && failure.kind === "auth-required") {
       throw new GitHubResponseError(
         failure.kind,
         failure.status,
@@ -638,10 +638,19 @@ async function downloadPrimarySkillMd(
   localPath: vscode.Uri,
   token?: string,
   signal?: AbortSignal,
-): Promise<boolean> {
+): Promise<
+  { ok: true } | { ok: false; failure: SkillInstallFailure }
+> {
   const normalizedRemotePath = remotePath.replace(/^\/+|\/+$/g, "");
   if (!normalizedRemotePath || normalizedRemotePath.endsWith(".md")) {
-    return false;
+    return {
+      ok: false,
+      failure: {
+        kind: "unknown",
+        message: "Unable to resolve the primary SKILL.md download target",
+        path: remotePath,
+      },
+    };
   }
 
   const rawUrl = `https://raw.githubusercontent.com/${owner}/${repo}/${encodeGitRef(branch)}/${normalizedRemotePath}/SKILL.md`;
@@ -651,7 +660,7 @@ async function downloadPrimarySkillMd(
     const skillMdPath = vscode.Uri.joinPath(localPath, "SKILL.md");
     await vscode.workspace.fs.writeFile(skillMdPath, content);
     console.log(`[Skill Ninja] Saved primary SKILL.md fallback`);
-    return true;
+    return { ok: true };
   } catch (error) {
     // 中断は「見つからなかった」ではないので、呼び出し側へそのまま返す
     if (classifySkillInstallFailure(error) === "cancelled") {
@@ -660,7 +669,14 @@ async function downloadPrimarySkillMd(
     console.warn(
       `[Skill Ninja] Primary SKILL.md fallback failed: ${error instanceof Error ? error.message : String(error)}`,
     );
-    return false;
+    return {
+      ok: false,
+      failure: {
+        kind: classifySkillInstallFailure(error),
+        message: `Failed to download primary SKILL.md: ${error instanceof Error ? error.message : String(error)}`,
+        path: `${normalizedRemotePath}/SKILL.md`,
+      },
+    };
   }
 }
 
@@ -1570,22 +1586,21 @@ export async function installSkill(
           !cancelledDuringDownload &&
           !(await hasRealSkillMd(skillPath, skill))
         ) {
-          if (
-            !(await downloadPrimarySkillMd(
-              owner,
-              repo,
-              branch,
-              remotePath,
-              skillPath,
-              token,
-              options?.signal,
-            ))
-          ) {
+          const primary = await downloadPrimarySkillMd(
+            owner,
+            repo,
+            branch,
+            remotePath,
+            skillPath,
+            token,
+            options?.signal,
+          );
+          if (!primary.ok) {
             usedFallback = true;
             recordInstallFailure(
-              `SKILL.md was not found under ${remotePath}`,
-              "not-found",
-              remotePath,
+              primary.failure.message,
+              primary.failure.kind,
+              primary.failure.path,
             );
             await createFallbackSkillMd(skillPath, skill);
           }
@@ -1617,9 +1632,9 @@ export async function installSkill(
         const failureKind = classifySkillInstallFailure(error);
 
         // 中断後は回復用の取得も始めない
-        const recoveredPrimarySkillMd =
+        const primary =
           failureKind === "cancelled"
-            ? false
+            ? undefined
             : await downloadPrimarySkillMd(
                 owner,
                 repo,
@@ -1629,9 +1644,12 @@ export async function installSkill(
                 token,
                 options?.signal,
               );
-        if (recoveredPrimarySkillMd) {
+        if (primary?.ok) {
           recordInstallFailure(errorMsg, failureKind, remotePath);
-        } else if (failureKind === "not-found") {
+        } else if (
+          failureKind === "not-found" &&
+          primary?.failure.kind === "not-found"
+        ) {
           const repoTreeUrl = `https://github.com/${owner}/${repo}/tree/${branch}/${remotePath}`;
           await handleSkillNotFound(
             skillsRootUri,
@@ -1648,6 +1666,13 @@ export async function installSkill(
           // Don't overwrite SKILL.md with fallback if it was already downloaded
           const skillMdExists = await hasRealSkillMd(skillPath, skill);
           recordInstallFailure(errorMsg, failureKind, remotePath);
+          if (primary && !primary.ok) {
+            recordInstallFailure(
+              primary.failure.message,
+              primary.failure.kind,
+              primary.failure.path,
+            );
+          }
           if (!skillMdExists) {
             usedFallback = true;
             await createFallbackSkillMd(skillPath, skill);

@@ -94,6 +94,64 @@ async function main() {
     );
   });
 
+  await test("a rate limit stops the batch and leaves remaining items unattempted", async () => {
+    const attempted = [];
+    const { options } = createPlanOptions();
+    const items = [{ label: "a" }, { label: "b" }, { label: "c" }];
+    const outcomes = await runBulkInstallPlan(
+      items,
+      async (item) => {
+        attempted.push(item.label);
+        return {
+          status: "failed",
+          failureKinds: ["rate-limit"],
+          retryable: true,
+          unsafeSkips: 0,
+        };
+      },
+      options,
+    );
+
+    assert.deepStrictEqual(Array.from(attempted), ["a"]);
+    assert.deepStrictEqual(
+      Array.from(outcomes, (outcome) => outcome.attempts),
+      [1, 0, 0],
+    );
+    assert.deepStrictEqual(
+      Array.from(outcomes, (outcome) => outcome.failureKinds),
+      [["rate-limit"], ["rate-limit"], ["rate-limit"]],
+    );
+  });
+
+  await test("a rate limit during auto retry stops later retries", async () => {
+    const attempts = [];
+    const { options } = createPlanOptions();
+    const outcomes = await runBulkInstallPlan(
+      [{ label: "a" }, { label: "b" }, { label: "c" }],
+      async (item) => {
+        attempts.push(item.label);
+        const limited = attempts.length === 4;
+        return {
+          status: "failed",
+          failureKinds: [limited ? "rate-limit" : "transport"],
+          retryable: !limited,
+          unsafeSkips: 0,
+        };
+      },
+      options,
+    );
+
+    assert.deepStrictEqual(Array.from(attempts), ["a", "b", "c", "a"]);
+    assert.deepStrictEqual(
+      Array.from(outcomes, (outcome) => outcome.attempts),
+      [2, 1, 1],
+    );
+    assert.deepStrictEqual(
+      Array.from(outcomes, (outcome) => outcome.failureKinds),
+      [["rate-limit"], ["transport"], ["transport"]],
+    );
+  });
+
   await test("non-retryable failures are never retried", async () => {
     let calls = 0;
     const { options } = createPlanOptions();

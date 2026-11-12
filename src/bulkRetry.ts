@@ -27,7 +27,12 @@ export function formatBulkFailureDetails<TItem>(
       const kinds = (
         outcome.failureKinds?.length ? outcome.failureKinds : ["unknown"]
       ).map((kind) => (failureKinds.has(kind) ? kind : "unknown"));
-      const status = outcome.status === "partial" ? "partial" : "failed";
+      const status =
+        outcome.attempts === 0
+          ? "not attempted"
+          : outcome.status === "partial"
+            ? "partial"
+            : "failed";
       const attempts =
         outcome.attempts === 0 ? 0 : outcome.attempts === 2 ? 2 : 1;
       const previous = outcome.previousFailureKinds?.map((kind) =>
@@ -58,8 +63,11 @@ export function showBulkFailureActions<TItem>(
     onError(): void;
   },
 ): void {
+  const rateLimitReached = outcomes.some((outcome) =>
+    outcome.failureKinds?.includes("rate-limit"),
+  );
   const retryable =
-    manualRetries === 0
+    manualRetries === 0 && !rateLimitReached
       ? outcomes.filter(
           (outcome) =>
             outcome.status !== "ok" &&
@@ -75,7 +83,9 @@ export function showBulkFailureActions<TItem>(
     : [deps.reportLabel];
   void deps
     .showWarning(
-      retryable.length ? summary : `${summary}${deps.stoppedText}`,
+      retryable.length || rateLimitReached
+        ? summary
+        : `${summary}${deps.stoppedText}`,
       ...actions,
     )
     .then(async (choice) => {

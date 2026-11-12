@@ -88,6 +88,7 @@ export function classifyGitHubFailure(
 
   if (
     response.status === 429 ||
+    (response.status === 403 && Boolean(readHeader("retry-after").trim())) ||
     readHeader("x-ratelimit-remaining") === "0" ||
     lowerBody.includes("rate limit")
   ) {

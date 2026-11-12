@@ -339,6 +339,25 @@ function formatPartialInstallSuffix(count: number): string {
     : ` (${count} installed with missing file(s))`;
 }
 
+function formatRateLimitStoppedSuffix(
+  count: number,
+  rateLimitReached: boolean,
+): string {
+  if (!rateLimitReached) {
+    return "";
+  }
+
+  if (count <= 0) {
+    return isJapanese()
+      ? "（GitHub の rate limit に達しました。リセット後に再実行してください）"
+      : " (GitHub rate limit reached; retry after it resets)";
+  }
+
+  return isJapanese()
+    ? `（GitHub の rate limit に達したため残り ${count} 件は未試行です。リセット後に再実行してください）`
+    : ` (${count} remaining skill(s) not attempted because the GitHub rate limit was reached; retry after it resets)`;
+}
+
 interface BulkInstallItem {
   skill: Skill;
   root: SkillRoot;
@@ -484,6 +503,8 @@ async function runBulkInstall(
 function summarizeBulkInstall(outcomes: BulkInstallOutcome[]): {
   failedCount: number;
   partialCount: number;
+  rateLimitedNotAttemptedCount: number;
+  rateLimitReached: boolean;
   unsafeSkips: number;
   failedItems: BulkInstallItem[];
 } {
@@ -492,6 +513,14 @@ function summarizeBulkInstall(outcomes: BulkInstallOutcome[]): {
       .length,
     partialCount: outcomes.filter((outcome) => outcome.status === "partial")
       .length,
+    rateLimitedNotAttemptedCount: outcomes.filter(
+      (outcome) =>
+        outcome.attempts === 0 &&
+        outcome.failureKinds?.includes("rate-limit"),
+    ).length,
+    rateLimitReached: outcomes.some((outcome) =>
+      outcome.failureKinds?.includes("rate-limit"),
+    ),
     unsafeSkips: outcomes.reduce(
       (total, outcome) => total + outcome.unsafeSkips,
       0,
@@ -611,6 +640,10 @@ async function retryFailedBulkInstalls(
       failedItems.length,
     ) +
       formatPartialInstallSuffix(retriedSummary.partialCount) +
+      formatRateLimitStoppedSuffix(
+        retriedSummary.rateLimitedNotAttemptedCount,
+        retriedSummary.rateLimitReached,
+      ) +
       formatCancelledSuffix(
         retriedOutcomes.length,
         failedItems.length,
@@ -777,6 +810,10 @@ async function runSkillsBulkInstall(
       : "",
     formatUnsafeSkipSuffix(summary.unsafeSkips),
     formatPartialInstallSuffix(summary.partialCount),
+    formatRateLimitStoppedSuffix(
+      summary.rateLimitedNotAttemptedCount,
+      summary.rateLimitReached,
+    ),
     // 中断した分を成功件数へ入れないよう、処理した件数を分母にする
     formatCancelledSuffix(outcomes.length, items.length, cancelled),
   ].join("");
@@ -3698,6 +3735,10 @@ export function activate(
           repairOutcomes.length + repairMissing,
         ) +
           formatPartialInstallSuffix(repairSummary.partialCount) +
+            formatRateLimitStoppedSuffix(
+              repairSummary.rateLimitedNotAttemptedCount,
+              repairSummary.rateLimitReached,
+            ) +
           formatCancelledSuffix(
             repairOutcomes.length,
             repairItems.length,
@@ -3848,7 +3889,7 @@ export function activate(
             ? `（インデックス未検出 ${resolved.skippedMissingCount} 個はスキップ${resolved.disabledMissingCount > 0 ? `、うち ${resolved.disabledMissingCount} 個は今後確認しない設定` : ""}）`
             : ` (${resolved.skippedMissingCount} missing-from-index skill(s) skipped${resolved.disabledMissingCount > 0 ? `, ${resolved.disabledMissingCount} disabled for future checks` : ""})`
           : "";
-      const fullSummarySuffix = `${summarySuffix}${missingSuffix}${formatUnsafeSkipSuffix(unsafeSkips)}${formatPartialInstallSuffix(bulkSummary.partialCount)}${formatCancelledSuffix(outcomes.length, bulkItems.length, reinstallAllCancelled)}`;
+      const fullSummarySuffix = `${summarySuffix}${missingSuffix}${formatUnsafeSkipSuffix(unsafeSkips)}${formatPartialInstallSuffix(bulkSummary.partialCount)}${formatRateLimitStoppedSuffix(bulkSummary.rateLimitedNotAttemptedCount, bulkSummary.rateLimitReached)}${formatCancelledSuffix(outcomes.length, bulkItems.length, reinstallAllCancelled)}`;
       if (summary.isPartialFailure || summary.isTotalFailure) {
         await showBulkInstallSummary(
           isJapanese()
@@ -4019,7 +4060,7 @@ export function activate(
             ? `（インデックス未検出 ${resolved.skippedMissingCount} 個はスキップ${resolved.disabledMissingCount > 0 ? `、うち ${resolved.disabledMissingCount} 個は今後確認しない設定` : ""}）`
             : ` (${resolved.skippedMissingCount} missing-from-index skill(s) skipped${resolved.disabledMissingCount > 0 ? `, ${resolved.disabledMissingCount} disabled for future checks` : ""})`
           : "";
-      const fullRootSummarySuffix = `${rootSummarySuffix}${rootMissingSuffix}${formatUnsafeSkipSuffix(unsafeSkips)}${formatPartialInstallSuffix(rootBulkSummary.partialCount)}${formatCancelledSuffix(rootOutcomes.length, rootBulkItems.length, rootReinstallCancelled)}`;
+      const fullRootSummarySuffix = `${rootSummarySuffix}${rootMissingSuffix}${formatUnsafeSkipSuffix(unsafeSkips)}${formatPartialInstallSuffix(rootBulkSummary.partialCount)}${formatRateLimitStoppedSuffix(rootBulkSummary.rateLimitedNotAttemptedCount, rootBulkSummary.rateLimitReached)}${formatCancelledSuffix(rootOutcomes.length, rootBulkItems.length, rootReinstallCancelled)}`;
       if (rootSummary.isPartialFailure || rootSummary.isTotalFailure) {
         await showBulkInstallSummary(
           isJapanese()
@@ -4369,7 +4410,7 @@ export function activate(
       const bundleFailed = bundleSummary.failedCount + bundleMissing;
       // 中断した分を成功件数へ入れないよう、処理した件数を分母にする
       const bundleProcessed = bundleOutcomes.length + bundleMissing;
-      const bundleSuffix = `${formatUnsafeSkipSuffix(bundleSummary.unsafeSkips)}${formatPartialInstallSuffix(bundleSummary.partialCount)}${formatCancelledSuffix(bundleOutcomes.length, bundleItems.length, bundleCancelled)}`;
+      const bundleSuffix = `${formatUnsafeSkipSuffix(bundleSummary.unsafeSkips)}${formatPartialInstallSuffix(bundleSummary.partialCount)}${formatRateLimitStoppedSuffix(bundleSummary.rateLimitedNotAttemptedCount, bundleSummary.rateLimitReached)}${formatCancelledSuffix(bundleOutcomes.length, bundleItems.length, bundleCancelled)}`;
       await showBulkInstallSummary(
         bundleFailed > 0
           ? isJapanese()
@@ -4816,7 +4857,7 @@ export function activate(
             ? `（インデックス未検出 ${resolved.skippedMissingCount} 個はスキップ${resolved.disabledMissingCount > 0 ? `、うち ${resolved.disabledMissingCount} 個は今後確認しない設定` : ""}）`
             : ` (${resolved.skippedMissingCount} missing-from-index skill(s) skipped${resolved.disabledMissingCount > 0 ? `, ${resolved.disabledMissingCount} disabled for future checks` : ""})`
           : "";
-      const fullMultiSummarySuffix = `${multiSummarySuffix}${multiMissingSuffix}${formatUnsafeSkipSuffix(unsafeSkips)}${formatPartialInstallSuffix(multiBulkSummary.partialCount)}${formatCancelledSuffix(multiOutcomes.length, multiItems.length, multiReinstallCancelled)}`;
+      const fullMultiSummarySuffix = `${multiSummarySuffix}${multiMissingSuffix}${formatUnsafeSkipSuffix(unsafeSkips)}${formatPartialInstallSuffix(multiBulkSummary.partialCount)}${formatRateLimitStoppedSuffix(multiBulkSummary.rateLimitedNotAttemptedCount, multiBulkSummary.rateLimitReached)}${formatCancelledSuffix(multiOutcomes.length, multiItems.length, multiReinstallCancelled)}`;
       if (multiSummary.isPartialFailure || multiSummary.isTotalFailure) {
         await showBulkInstallSummary(
           isJapanese()

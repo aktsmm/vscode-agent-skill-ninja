@@ -211,7 +211,7 @@ async function main() {
     const recorder = createRecorder(async (_url, init) =>
       init?.headers?.Authorization === "token working-token"
         ? new Response("ok")
-        : rateLimitResponse(),
+        : new Response("not found", { status: 404 }),
     );
 
     const result = await githubFetch.fetchGitHubWithOptionalAuthRetry(apiUrl, {
