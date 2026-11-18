@@ -76,6 +76,7 @@ exports.run = async () => {
       "updateAll",
       "reinstallRoot",
       "reinstallAll",
+      "reinstall",
       "reportBug",
     ]) {
       assert.ok(commands.includes(`skillNinja.${id}`), id);
@@ -145,6 +146,22 @@ exports.run = async () => {
     assert.equal(all.updated, 0);
     assert.equal(all.localOnly, 1);
     checks.push("missing-root-and-update-all-noop");
+    stage = "single-reinstall-local";
+    // 実コマンドを実ホストで動かす。ローカル専用スキルは配布元が無いので、何も書き換えずに終わる
+    await vscode.commands.executeCommand("skillNinja.reinstall", {
+      ...item,
+      skill: { name: "smoke-local", path: "smoke-local" },
+    });
+    assert.deepEqual(fs.readFileSync(skillPath), original);
+    assert.equal(fs.statSync(skillPath).mtimeMs, before);
+    assert.ok(
+      fs.existsSync(path.join(skillsPath, "smoke-local", ".skill-meta.json")),
+    );
+    assert.deepEqual(
+      fs.readdirSync(skillsPath).filter((name) => name.startsWith(".skill-update-")),
+      [],
+    );
+    checks.push("single-reinstall-local-skill-untouched-host");
     stage = "blocked-output";
     const outputPath = path.join(workspace.fsPath, "SMOKE-OUTPUT.md");
     inside(outputPath);

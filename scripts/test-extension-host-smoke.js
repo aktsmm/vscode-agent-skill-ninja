@@ -90,6 +90,9 @@ assert.ok(
   ),
 );
 assert.ok(suite.includes('checks.push("lm-tool-reinstall-preview-host")'));
+assert.ok(
+  suite.includes('checks.push("single-reinstall-local-skill-untouched-host")'),
+);
 assert.match(suite, /isReadOnly:\s*false/);
 assert.ok(suite.includes("assert.equal(result.localOnly, 1)"));
 assert.ok(suite.includes("assert.equal(all.localOnly, 1)"));

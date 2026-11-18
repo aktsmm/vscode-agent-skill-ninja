@@ -64,12 +64,17 @@ class IncompleteInstall extends Error {
   }
 }
 
+class RecoveryRequired extends Error {
+  backupPath = "/retained/backup";
+}
+
 async function scenario({
   entries,
   choice,
   fail,
   failCheck,
   failKinds,
+  retryFlow,
   partialKinds,
   cancelInstall,
   cancelCheck,
@@ -105,6 +110,13 @@ async function scenario({
   const output = { lines: [], shown: false };
   const renameChecks = { count: 0 };
   const quickPicks = [];
+  let selectRetry;
+  let retrySelected = false;
+  let finishRetry;
+  const retryResult = new Promise((resolve) => {
+    finishRetry = resolve;
+  });
+  const retryLabels = ["Reinstall Failed Skills", "失敗分を再インストール"];
   class FileSystemError extends Error {
     constructor(code) {
       super(code);
@@ -158,6 +170,7 @@ async function scenario({
       }),
       showInformationMessage: (message, ...choices) => {
         messages.push(message);
+        if (retrySelected) finishRetry();
         return showDetails
           ? Promise.resolve(choices[0])
           : new Promise(() => {});
@@ -165,6 +178,18 @@ async function scenario({
       showWarningMessage: (message, options, ...choices) => {
         messages.push(message);
         notifications.push({ message, options, choices });
+        if (options?.modal && choices.some((label) => retryLabels.includes(label))) {
+          return Promise.resolve(retryFlow?.cancel ? undefined : choices[0]);
+        }
+        if (!options?.modal && retryFlow && !retrySelected) {
+          const label = [options, ...choices].find((item) => retryLabels.includes(item));
+          if (label) {
+            return new Promise((resolve) => {
+              selectRetry = () => resolve(label);
+            });
+          }
+        }
+        if (!options?.modal && retrySelected) finishRetry();
         return options?.modal
           ? choices.includes("Install new skill") ||
             choices.includes("新しいスキルをインストール")
@@ -179,7 +204,11 @@ async function scenario({
                     : choices[0],
               )
           : report
-            ? Promise.resolve(options)
+            ? Promise.resolve(
+                [options, ...choices].find((label) =>
+                  ["Report Bug", "バグ報告"].includes(label),
+                ),
+              )
             : renameChoice === "install" || renameChoice === "decline"
               ? Promise.resolve(
                   [options, ...choices].find(
@@ -239,10 +268,10 @@ async function scenario({
       createSkillRevisionResolver: (token, signal) =>
         updates.createSkillRevisionResolver(token, signal, async (url) => {
           requests++;
-          if (failCheck) {
+          if (failCheck || (retryFlow?.failFirstCheck && !retrySelected)) {
             return {
               ok: false,
-              status: 429,
+              status: failCheck ? 429 : 404,
               headers: new Headers(),
               text: async () => "private-name ghp_secret C:\\private",
             };
@@ -277,6 +306,8 @@ async function scenario({
     },
     "./skillInstaller": {
       SkillInstallIncompleteError: IncompleteInstall,
+      SkillUpdateConflictError: class extends Error {},
+      SkillUpdateRecoveryRequiredError: RecoveryRequired,
       installSkill: async (...args) => {
         installedRenamed.push(args);
         if (renameInstallFailure) {
@@ -304,6 +335,11 @@ async function scenario({
       },
       installSkillUpdate: async (...args) => {
         installed.push(args);
+        const [, , , installRoot, meta] = args;
+        if (!retrySelected && retryFlow?.fail?.(meta, installRoot)) {
+          if (retryFlow.needsRecovery) throw new RecoveryRequired();
+          throw new IncompleteInstall(["transport"]);
+        }
         if (failKinds) {
           throw new IncompleteInstall(failKinds);
         }
@@ -328,8 +364,9 @@ async function scenario({
     context: { subscriptions: [] },
     getRoots: async () => (disappear && rootReads++ > 0 ? [] : roots),
     getIndex: async () => ({ sources: indexSources }),
-    getEntries: async () => {
+    getEntries: async (installRoot) => {
       if (cancelEntries) cancel();
+      if (retryFlow?.getEntries) return retryFlow.getEntries(installRoot, retrySelected);
       return entries;
     },
     getToken: async () => {
@@ -359,6 +396,13 @@ async function scenario({
     executed,
     notifications,
     output,
+    hasRetry: Boolean(selectRetry),
+    retryFailures: () => {
+      assert.ok(selectRetry, "failed-only reinstall action must be offered");
+      retrySelected = true;
+      selectRetry();
+      return retryResult;
+    },
     repeat: async () => {
       await commands.get(
         all ? "skillNinja.updateAll" : "skillNinja.updateRoot",
@@ -387,6 +431,79 @@ function entry(name, baseline = true) {
 }
 
 async function main() {
+  const failedSkill = entry("failed");
+  const successfulSkill = entry("successful");
+  const retryEntries = [failedSkill, successfulSkill].map((item) => ({
+    ...item,
+    meta: {
+      ...item.meta,
+      sourceRevision: {
+        ...item.meta.sourceRevision,
+        contentSha: "d".repeat(40),
+      },
+    },
+  }));
+  for (const mode of ["success", "cancel", "stale", "recovery"]) {
+    const outcome = await scenario({
+      entries: retryEntries,
+      retryFlow: {
+        cancel: mode === "cancel",
+        needsRecovery: mode === "recovery",
+        fail: (meta) => meta.name === failedSkill.meta.name,
+        getEntries: (_, retrySelected) =>
+          mode === "stale" && retrySelected
+            ? retryEntries.map((item) =>
+                item.meta.name === failedSkill.meta.name
+                  ? { ...item, meta: { ...item.meta, installedAt: "changed" } }
+                  : item,
+              )
+            : retryEntries,
+      },
+    });
+    assert.strictEqual(outcome.summary.updateFailed, 1);
+    assert.strictEqual(outcome.summary.updated, 1);
+    assert.strictEqual(outcome.hasRetry, mode !== "recovery");
+    assert.strictEqual(outcome.installed.length, 2);
+    if (mode === "recovery") continue;
+    await outcome.retryFailures();
+    const retried = outcome.installed.slice(2).map((args) => args[4].name);
+    assert.deepStrictEqual(retried, mode === "success" ? ["failed"] : []);
+    const retryPrompt = outcome.notifications.find(({ choices }) =>
+      choices.includes("Reinstall Failed Skills"),
+    );
+    if (mode === "stale") {
+      assert.strictEqual(retryPrompt, undefined);
+      assert.ok(outcome.messages.some((message) => message.includes("reinstall skipped")));
+    } else {
+      assert.ok(retryPrompt.options.detail.includes("failed"));
+      assert.ok(!retryPrompt.options.detail.includes("successful"));
+    }
+    const missingAtFirst = await scenario({
+      entries: [failedSkill],
+      language: "ja",
+      retryFlow: { failFirstCheck: true },
+    });
+    assert.strictEqual(missingAtFirst.summary.checkFailed, 1);
+    assert.strictEqual(missingAtFirst.installed.length, 0);
+    await missingAtFirst.retryFailures();
+    assert.deepStrictEqual(missingAtFirst.installed.map((args) => args[4].name), ["failed"]);
+    assert.ok(missingAtFirst.messages.some((message) => message.includes("失敗した 1 件")));
+
+    const sameNameElsewhere = {
+      ...retryEntries[1],
+      meta: { ...retryEntries[1].meta, name: failedSkill.meta.name },
+    };
+    const sameName = await scenario({
+      entries: [retryEntries[0], sameNameElsewhere],
+      retryFlow: { fail: (meta) => meta.relativePath === "failed" },
+    });
+    await sameName.retryFailures();
+    assert.deepStrictEqual(
+      sameName.installed.slice(2).map((args) => args[4].relativePath),
+      ["failed"],
+    );
+  }
+
   const localOnly = await scenario({
     entries: [{ ...entry("local"), skill: undefined }],
   });
@@ -886,7 +1003,8 @@ async function main() {
         JSON.stringify(failed.messages) + JSON.stringify(failed.executed),
       ),
     );
-    assert.strictEqual(failed.notifications.at(-1).options, "Report Bug");
+    const warning = failed.notifications.at(-1);
+    assert.ok([warning.options, ...warning.choices].includes("Report Bug"));
     assert.strictEqual(failed.summary.updated, 0);
   }
   result = await scenario({

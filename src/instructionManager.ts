@@ -7,6 +7,7 @@ import type { LocalSkill } from "./localSkillScanner";
 import { isEmbeddedSkillPath } from "./embeddedSkills";
 import { OutputFormat } from "./toolDetector";
 import * as path from "path";
+import { setTimeout as delay } from "node:timers/promises";
 import { SKILL_DESCRIPTION_LIMITS, SELF_EXTENSION_ID } from "./constants";
 import {
   describeSharedStoreLockFailure,
@@ -378,22 +379,28 @@ let workspaceOutputQueue: Promise<unknown> = Promise.resolve();
 
 export async function withOutputWriteLock<T>(
   scope: "workspace" | "userGlobal",
-  task: () => Promise<T>,
+  task: (assertStillOwned: () => Promise<void>) => Promise<T>,
 ): Promise<T | undefined> {
+  const runWithoutLease = () => task(async () => {});
   if (scope !== "userGlobal") {
-    const run = workspaceOutputQueue.then(task, task);
+    const run = workspaceOutputQueue.then(runWithoutLease, runWithoutLease);
     workspaceOutputQueue = run.catch(() => undefined);
     return run;
   }
 
+  let started = false;
   try {
     return await withSharedStoreLock(SELF_EXTENSION_ID, async (lease) => {
       lease.assertHeld();
-      return task();
+      started = true;
+      return task(async () => {
+        lease.assertHeld();
+        await lease.assertStillOwned();
+      });
     });
   } catch (error) {
     const failure = describeSharedStoreLockFailure(error);
-    if (!failure) {
+    if (started || failure !== "lock-unavailable") {
       throw error;
     }
     console.log(
@@ -415,16 +422,18 @@ export type OutputWriteResult =
   | "deferred"
   | "unreadable"
   | "locked"
+  | "lease-lost"
   | "failed";
 
+type OutputWriteEntry = { uri: vscode.Uri; result: OutputWriteResult };
 const outputWriteReporters = new WeakMap<
   vscode.ExtensionContext,
-  (uri: vscode.Uri, result: OutputWriteResult) => void
+  (entries: readonly OutputWriteEntry[]) => void
 >();
 
 export function observeOutputWrites(
   context: vscode.ExtensionContext,
-  reporter: (uri: vscode.Uri, result: OutputWriteResult) => void,
+  reporter: (entries: readonly OutputWriteEntry[]) => void,
 ): () => void {
   outputWriteReporters.set(context, reporter);
   return () => {
@@ -438,27 +447,92 @@ export async function writeOutputGroup(
   group: ResolvedOutputGroup,
   context: vscode.ExtensionContext,
 ): Promise<OutputWriteResult> {
-  let result: OutputWriteResult;
+  const [result] = await writeOutputGroups([group], context);
+  return result;
+}
+
+async function attemptOutputWrite(
+  group: ResolvedOutputGroup,
+  context: vscode.ExtensionContext,
+  retry: boolean,
+): Promise<OutputWriteResult> {
   try {
-    result =
-      (await withOutputWriteLock(group.scope, () =>
-        writeOutputGroupUnlocked(group, context),
-      )) ?? "locked";
-  } catch {
+    return (
+      (await withOutputWriteLock(group.scope, async (assertStillOwned) => {
+        if (!retry) {
+          return writeOutputGroupUnlocked(group, context, assertStillOwned);
+        }
+        if (
+          vscode.workspace.getConfiguration("skillNinja").get<boolean>(
+            "autoUpdateInstruction",
+          ) === false
+        ) {
+          return "disabled";
+        }
+        const workspaceFolders = vscode.workspace.workspaceFolders ?? [];
+        const contexts = workspaceFolders.length
+          ? workspaceFolders.map((folder) => folder.uri)
+          : [undefined];
+        for (const workspaceUri of contexts) {
+          const current = (await resolveGroupsForWorkspace(workspaceUri)).find(
+            (candidate) => candidate.id === group.id,
+          );
+          if (current) {
+            return writeOutputGroupUnlocked(current, context, assertStillOwned);
+          }
+        }
+        return "disabled";
+      })) ?? "locked"
+    );
+  } catch (error) {
+    if (describeSharedStoreLockFailure(error) === "lease-lost") {
+      return "lease-lost";
+    }
     console.error("[Skill Ninja] Output generation failed");
-    result = "failed";
+    return "failed";
+  }
+}
+
+export async function writeOutputGroups(
+  groups: readonly ResolvedOutputGroup[],
+  context: vscode.ExtensionContext,
+): Promise<OutputWriteResult[]> {
+  const results: OutputWriteResult[] = [];
+  for (const group of groups) {
+    results.push(
+      results.includes("lease-lost")
+        ? "lease-lost"
+        : await attemptOutputWrite(group, context, false),
+    );
+  }
+  if (results.includes("locked") && !results.includes("lease-lost")) {
+    await delay(250);
+    for (const [index, group] of groups.entries()) {
+      if (results[index] === "locked") {
+        results[index] = await attemptOutputWrite(group, context, true);
+        if (results[index] === "lease-lost") {
+          break;
+        }
+      }
+    }
   }
   try {
-    outputWriteReporters.get(context)?.(group.instructionUri, result);
+    outputWriteReporters.get(context)?.(
+      groups.map((group, index) => ({
+        uri: group.instructionUri,
+        result: results[index],
+      })),
+    );
   } catch {
     console.error("[Skill Ninja] Output result reporting failed");
   }
-  return result;
+  return results;
 }
 
 async function writeOutputGroupUnlocked(
   group: ResolvedOutputGroup,
   context: vscode.ExtensionContext,
+  assertStillOwned: () => Promise<void>,
 ): Promise<OutputWriteResult> {
   const mode = getCoexistenceMode();
   const ownership = await getEffectiveOwnership(context);
@@ -474,7 +548,7 @@ async function writeOutputGroupUnlocked(
 
     // ref モードで以前書いた catalog ファイルのブロックを cleanup する。
     // Resources Ninja が独自マーカーで catalog を書くため、残存すると重複する。
-    await cleanupCatalogOnDefer(group);
+    await cleanupCatalogOnDefer(group, assertStillOwned);
 
     return "deferred";
   }
@@ -512,7 +586,12 @@ async function writeOutputGroupUnlocked(
   let catalogUpdated = false;
   if (group.format === "ref") {
     // ref モード: catalog ファイルに詳細を書き出し、instruction ファイルは軽量な routing のみにする
-    const catalog = await writeCatalogFile(group, installedSkills, localSkills);
+    const catalog = await writeCatalogFile(
+      group,
+      installedSkills,
+      localSkills,
+      assertStillOwned,
+    );
     if (catalog.status === "unreadable") {
       return "unreadable";
     }
@@ -553,7 +632,9 @@ async function writeOutputGroupUnlocked(
   }
 
   const dir = vscode.Uri.joinPath(group.instructionUri, "..");
+  await assertStillOwned();
   await vscode.workspace.fs.createDirectory(dir);
+  await assertStillOwned();
   await vscode.workspace.fs.writeFile(
     group.instructionUri,
     Buffer.from(newContent, "utf-8"),
@@ -611,11 +692,7 @@ export async function updateAllInstructionFiles(
   context: vscode.ExtensionContext,
 ): Promise<OutputWriteResult[]> {
   const groups = await resolveGroupsForWorkspace(workspaceUri);
-  const results: OutputWriteResult[] = [];
-  for (const group of groups) {
-    results.push(await writeOutputGroup(group, context));
-  }
-  return results;
+  return writeOutputGroups(groups, context);
 }
 
 /** 手動専用スキルを管理ブロックへ載せる方法。既定は載せない。 */
@@ -808,6 +885,7 @@ async function writeCatalogFile(
   group: ResolvedOutputGroup,
   installedSkills: SkillMeta[],
   localSkills: LocalSkill[],
+  assertStillOwned: () => Promise<void>,
 ): Promise<{ link: string; status: "updated" | "unchanged" | "unreadable" }> {
   const catalogUri =
     group.catalogUri ||
@@ -859,7 +937,9 @@ async function writeCatalogFile(
 
   if (newCatalogContent !== existingCatalogContent) {
     const catalogDir = vscode.Uri.joinPath(catalogUri, "..");
+    await assertStillOwned();
     await vscode.workspace.fs.createDirectory(catalogDir);
+    await assertStillOwned();
     await vscode.workspace.fs.writeFile(
       catalogUri,
       Buffer.from(newCatalogContent, "utf-8"),
@@ -1036,6 +1116,7 @@ export function updateSection(
  */
 async function cleanupCatalogOnDefer(
   group: ResolvedOutputGroup,
+  assertStillOwned: () => Promise<void>,
 ): Promise<void> {
   const catalogUri = group.catalogUri;
   if (!catalogUri) {
@@ -1058,6 +1139,7 @@ async function cleanupCatalogOnDefer(
 
     const stripped = cleanupManagedSkillBlocks(base, cleanupOptions);
     if (stripped !== base.trim()) {
+      await assertStillOwned();
       await vscode.workspace.fs.writeFile(
         catalogUri,
         Buffer.from(
@@ -1069,7 +1151,10 @@ async function cleanupCatalogOnDefer(
         `[Skill Ninja] Cleaned up catalog file on defer: ${catalogUri.fsPath}`,
       );
     }
-  } catch {
+  } catch (error) {
+    if (describeSharedStoreLockFailure(error) === "lease-lost") {
+      throw error;
+    }
     // catalog ファイルが存在しない場合は何もしない
   }
 }
@@ -1086,6 +1171,7 @@ export async function removeSkillSectionFromFile(
     keepLegacyResource?: boolean;
     /** 生成物しか無かったファイル（除去後が空）を削除する。 */
     deleteWhenEmpty?: boolean;
+    beforeMutation?: () => Promise<void>;
   } = {},
 ): Promise<void> {
   try {
@@ -1099,6 +1185,7 @@ export async function removeSkillSectionFromFile(
     // これが無いと孤児ブロック掃除が無関係なユーザーのファイルまで書き換える
     if (!containsStrippableBlock(base, options)) {
       if (options.deleteWhenEmpty && base.trim() === "") {
+        await options.beforeMutation?.();
         await vscode.workspace.fs.delete(fileUri, { useTrash: false });
         console.log(`[Skill Ninja] Removed generated file ${fileUri.fsPath}`);
       }
@@ -1108,12 +1195,14 @@ export async function removeSkillSectionFromFile(
     const stripped = cleanupManagedSkillBlocks(base, options);
 
     if (options.deleteWhenEmpty && stripped === "") {
+      await options.beforeMutation?.();
       await vscode.workspace.fs.delete(fileUri, { useTrash: false });
       console.log(`[Skill Ninja] Removed generated file ${fileUri.fsPath}`);
       return;
     }
 
     if (stripped !== base.trim()) {
+      await options.beforeMutation?.();
       await vscode.workspace.fs.writeFile(
         fileUri,
         Buffer.from(
@@ -1123,7 +1212,10 @@ export async function removeSkillSectionFromFile(
       );
       console.log(`[Skill Ninja] Removed skill section from ${fileUri.fsPath}`);
     }
-  } catch {
+  } catch (error) {
+    if (describeSharedStoreLockFailure(error) === "lease-lost") {
+      throw error;
+    }
     // ファイルが存在しない場合は何もしない
   }
 }

@@ -17,6 +17,7 @@ const {
   normalizeSortMode,
   sortSkills,
 } = loadSrcModule("./skillListOptions");
+const { createSkillViewOptionsState } = loadSrcModule("./skillViewOptionsState");
 const { parseSkillExecutionContext, resolveSkillInvocationFromValues } =
   loadSrcModule("./skillInvocation");
 
@@ -29,6 +30,76 @@ function run(name, fn) {
     throw error;
   }
 }
+  run("view settings migrate once and keep explicit defaults across workspaces", () => {
+    const profile = new Map();
+    const store = {
+      get: (key) => profile.get(key),
+      update: (key, value) => {
+        profile.set(key, value);
+        return Promise.resolve();
+      },
+    };
+    const defaultOptions = { filter: "all", sort: "default" };
+    const fresh = createSkillViewOptionsState(store, new Map());
+    fresh.migrate("local", fresh.restore("local"));
+    assert.equal(profile.size, 0);
+
+    const old = new Map([
+      ["skillNinja.invocationFilter", "explicitOnly"],
+      ["skillNinja.viewOptions.local", { sort: "invocation" }],
+      ["skillNinja.viewOptions.browse", { filter: "auto", sort: "stars" }],
+    ]);
+    const migrating = createSkillViewOptionsState(store, old);
+    for (const scope of ["local", "browse"]) {
+      migrating.migrate(scope, migrating.restore(scope));
+    }
+    assert.deepStrictEqual(fresh.restore("local"), {
+      filter: "explicitOnly",
+      sort: "invocation",
+    });
+    assert.deepStrictEqual(fresh.restore("browse"), {
+      filter: "auto",
+      sort: "stars",
+    });
+    fresh.save("local", defaultOptions);
+    assert.deepStrictEqual(migrating.restore("local"), defaultOptions);
+    assert.equal(migrating.restore("browse").sort, "stars");
+  });
+
+run("corrupt stored view options fall back to safe values per view", () => {
+  const defaults = { filter: "all", sort: "default" };
+  const stored = (value) =>
+    createSkillViewOptionsState(
+      { get: () => value, update: () => Promise.resolve() },
+      new Map(),
+    );
+  for (const bad of [
+    "explicitOnly",
+    7,
+    true,
+    [],
+    ["explicitOnly"],
+    { filter: 1, sort: {} },
+    { filter: "bogus", sort: "stars" },
+  ]) {
+    assert.deepStrictEqual(stored(bad).restore("local"), defaults);
+  }
+  // 並べ替えは画面ごとに有効な値だけ受け入れる（stars は Browse のみ、invocation はローカルのみ）
+  assert.deepStrictEqual(stored({ filter: "auto", sort: "invocation" }).restore("browse"), {
+    filter: "auto",
+    sort: "default",
+  });
+  assert.deepStrictEqual(stored({ filter: "modelOnly", sort: "stars" }).restore("local"), {
+    filter: "modelOnly",
+    sort: "default",
+  });
+  // 値が null でも、旧ワークスペースの値を再び読み込まない
+  const nullStored = createSkillViewOptionsState(
+    { get: () => null, update: () => Promise.resolve() },
+    new Map([["skillNinja.viewOptions.local", { filter: "auto", sort: "name" }]]),
+  );
+  assert.deepStrictEqual(nullStored.restore("local"), defaults);
+});
 
 const skills = [
   { name: "charlie", stars: 5, invocation: "auto" },

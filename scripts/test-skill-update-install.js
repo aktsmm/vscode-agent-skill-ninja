@@ -89,6 +89,7 @@ function harness() {
     sourceBranch: undefined,
     token: undefined,
     revisionEntries: undefined,
+    textDocuments: [],
   };
   const fileType = { File: 1, Directory: 2, SymbolicLink: 64 };
   const workspaceFs = {
@@ -134,6 +135,9 @@ function harness() {
     FileSystemError: class extends Error {},
     workspace: {
       fs: workspaceFs,
+      get textDocuments() {
+        return state.textDocuments;
+      },
       getConfiguration: () => ({ get: () => undefined }),
     },
     window: {
@@ -730,6 +734,105 @@ async function main() {
     );
     assert.equal(saved.customWhenToUse, "changed during download");
     assert.equal(saved.registrationDisabled, false);
+    assert.deepEqual(saved.sourceRevision, revision);
+    env.clean();
+  });
+  await test("custom settings changed right before the swap are carried over", async (env) => {
+    const result = await env.run({
+      beforeSwap: async () => {
+        fs.writeFileSync(
+          path.join(env.destination, ".skill-meta.json"),
+          JSON.stringify({ ...env.meta, customWhenToUse: "changed before swap" }),
+        );
+      },
+    });
+    assert.equal(result.status, "ok");
+    const saved = JSON.parse(
+      fs.readFileSync(path.join(env.destination, ".skill-meta.json"), "utf8"),
+    );
+    assert.equal(saved.customWhenToUse, "changed before swap");
+    assert.deepEqual(saved.sourceRevision, revision);
+    env.clean();
+  });
+  await test("custom settings changed during the backup rename restore the original", async (env) => {
+    env.state.renameHook = (from) => {
+      if (from.fsPath === env.destination) {
+        fs.writeFileSync(
+          path.join(env.destination, ".skill-meta.json"),
+          JSON.stringify({ ...env.meta, customWhenToUse: "changed at rename" }),
+        );
+      }
+    };
+    await assert.rejects(env.run(), /installed skill changed/);
+    assert.equal(
+      fs.readFileSync(path.join(env.destination, "SKILL.md"), "utf8"),
+      "locally edited original",
+    );
+    assert.equal(
+      JSON.parse(fs.readFileSync(path.join(env.destination, ".skill-meta.json"), "utf8"))
+        .customWhenToUse,
+      "changed at rename",
+    );
+    env.clean();
+  });
+  await test("declining confirmation does not download or change the old copy", async (env) => {
+    await assert.rejects(env.run({ confirmReplace: async () => false }), {
+      name: "AbortError",
+    });
+    assert.equal(env.requests.length, 0);
+    env.unchanged();
+    env.clean();
+  });
+  await test("a dirty document in the selected directory blocks replacement", async (env) => {
+    env.state.textDocuments.push({
+      isDirty: true,
+      uri: uri(path.join(env.destination, "SKILL.md")),
+    });
+    await assert.rejects(env.run(), /unsaved edits/);
+    assert.equal(env.requests.length, 0);
+    env.unchanged();
+    env.clean();
+  });
+  await test("files over the hashing limit do not block an update", async (env) => {
+    fs.writeFileSync(
+      path.join(env.destination, "big.bin"),
+      Buffer.alloc(11 * 1024 * 1024),
+    );
+    assert.equal((await env.run()).status, "ok");
+    assert.equal(fs.existsSync(path.join(env.destination, "big.bin")), false);
+    env.clean();
+  });
+  await test("an oversized file changed during download stops the replacement", async (env) => {
+    const big = path.join(env.destination, "big.bin");
+    fs.writeFileSync(big, Buffer.alloc(11 * 1024 * 1024));
+    env.state.fetchHook = () => {
+      fs.writeFileSync(big, Buffer.alloc(11 * 1024 * 1024, 1));
+      const later = new Date(Date.now() + 60_000);
+      fs.utimesSync(big, later, later);
+    };
+    await assert.rejects(env.run(), /installed skill changed/);
+    assert.equal(fs.readFileSync(big)[0], 1);
+    assert.equal(
+      fs.readFileSync(path.join(env.destination, "SKILL.md"), "utf8"),
+      "locally edited original",
+    );
+    env.clean();
+  });
+  await test("a save during the backup rename is restored with the old metadata", async (env) => {
+    env.state.renameHook = (from) => {
+      if (from.fsPath === env.destination) {
+        fs.writeFileSync(path.join(env.destination, "SKILL.md"), "saved during rename");
+      }
+    };
+    await assert.rejects(env.run(), /installed skill changed/);
+    assert.equal(
+      fs.readFileSync(path.join(env.destination, "SKILL.md"), "utf8"),
+      "saved during rename",
+    );
+    assert.deepEqual(
+      JSON.parse(fs.readFileSync(path.join(env.destination, ".skill-meta.json"), "utf8")),
+      env.meta,
+    );
     env.clean();
   });
   await test("changed on-disk owner during download is not overwritten", async (env) => {
@@ -757,7 +860,7 @@ async function main() {
     };
     await assert.rejects(
       env.run({ signal: controller.signal }),
-      /original was restored/,
+      { name: "AbortError" },
     );
     env.unchanged();
     env.clean();

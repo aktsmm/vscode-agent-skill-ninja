@@ -423,13 +423,28 @@ function loadInstructionManager(vscodeStub, injectedSkills, options = {}) {
       if (req === "./shared-store-lock") {
         return {
           withSharedStoreLock: async (_id, task) => {
-            if (options.lockUnavailable) {
+            if (
+              typeof options.lockUnavailable === "function"
+                ? options.lockUnavailable()
+                : options.lockUnavailable
+            ) {
               throw new Error("fixture lock unavailable");
             }
-            return task({ assertHeld() {}, assertStillOwned: async () => {} });
+            return task({
+              assertHeld() {},
+              assertStillOwned: async () => {
+                if (options.leaseLost) {
+                  throw new Error("fixture lease lost");
+                }
+              },
+            });
           },
-          describeSharedStoreLockFailure: () =>
-            options.lockUnavailable ? "lock-unavailable" : undefined,
+          describeSharedStoreLockFailure: (error) =>
+            error?.message === "fixture lock unavailable"
+              ? "lock-unavailable"
+              : error?.message === "fixture lease lost"
+                ? "lease-lost"
+                : undefined,
         };
       }
       if (req === "./constants") {
@@ -691,7 +706,7 @@ test("Scenario A-unreadable: an instruction file that cannot be read is left alo
     const reported = [];
     const stopObserving = instructionManager.observeOutputWrites(
       ctx,
-      (uri, result) => reported.push({ uri, result }),
+      (entries) => reported.push(...entries),
     );
     const result = await instructionManager.updateInstructionFileForRoot(
       root,
@@ -809,8 +824,8 @@ test("output failures and unavailable locks are reported without changing the or
       );
       const ctx = makeContext();
       const results = [];
-      instructionManager.observeOutputWrites(ctx, (_, result) =>
-        results.push(result),
+      instructionManager.observeOutputWrites(ctx, (entries) =>
+        results.push(...entries.map((entry) => entry.result)),
       );
       const group = {
         scope: locked ? "userGlobal" : "workspace",
@@ -1134,6 +1149,51 @@ test("Scenario U-ref: user/global ref catalog resolves from instruction director
       catalog.includes("../../user-skills/global-alpha/SKILL.md"),
       `user/global catalog should link to skills relative to catalog location; got:\n${catalog}`,
     );
+  } finally {
+    cleanupTmp(tmp);
+  }
+});
+
+test("user/global output retries contention once and stops on a lost lease", async () => {
+  const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "user-global-lock-"));
+  try {
+    const root = makeUserGlobalRoot(makeUri(tmp));
+    const original = "# User instructions\n";
+    fs.mkdirSync(path.dirname(root.instructionUri.fsPath), { recursive: true });
+    const skill = makeSampleSkill("global-alpha", "Global sample skill");
+    for (const [leaseLost, result, expectedAttempts] of [
+      [false, "updated", 2],
+      [true, "lease-lost", 1],
+    ]) {
+      fs.writeFileSync(root.instructionUri.fsPath, original);
+      let attempts = 0;
+      const stub = makeVscodeStub({
+        workspaceUri: undefined,
+        settings: { "skillNinja.outputFormat": "full" },
+      });
+      const { instructionManager } = loadInstructionManager(stub, [skill], {
+        managedRoots: [root],
+        lockUnavailable: () => ++attempts === 1 && !leaseLost,
+        leaseLost,
+      });
+      const ctx = makeContext();
+      const reported = [];
+      instructionManager.observeOutputWrites(ctx, (entries) =>
+        reported.push(...entries.map((entry) => entry.result)),
+      );
+      assert.equal(
+        await instructionManager.updateInstructionFileForRoot(root, ctx),
+        result,
+      );
+      assert.equal(attempts, expectedAttempts);
+      assert.deepEqual(reported, [result]);
+      const content = fs.readFileSync(root.instructionUri.fsPath, "utf8");
+      if (leaseLost) {
+        assert.equal(content, original);
+      } else {
+        assert.ok(content.includes("global-alpha/SKILL.md"));
+      }
+    }
   } finally {
     cleanupTmp(tmp);
   }

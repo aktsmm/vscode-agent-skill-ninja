@@ -78,6 +78,29 @@ async function main() {
   byDetail.record("root", "updated", "");
   byDetail.record("root", "failed", "cleanup|busy|");
   assert.equal(detailed.length, 3);
+  const batches = [];
+  const batchFeedback = createOutputWriteFeedback({
+    log() {},
+    detailsAction: () => "Details",
+    warn: (_, _key, _result, results) => {
+      batches.push(results);
+      return Promise.resolve(undefined);
+    },
+    showDetails() {},
+  });
+  const blocked = [
+    { key: "copilot", result: "locked" },
+    { key: "claude", result: "locked" },
+    { key: "agents", result: "lease-lost" },
+  ];
+  batchFeedback.recordBatch(blocked);
+  batchFeedback.recordBatch(blocked);
+  assert.deepEqual(batches, [["locked", "lease-lost"]]);
+  batchFeedback.recordBatch(
+    blocked.map(({ key }) => ({ key, result: "updated" })),
+  );
+  batchFeedback.recordBatch(blocked);
+  assert.equal(batches.length, 2);
   console.log(
     "PASS output failure feedback is bounded, recoverable, result-aware and non-blocking",
   );

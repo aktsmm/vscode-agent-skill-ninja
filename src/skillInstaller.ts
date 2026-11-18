@@ -46,7 +46,7 @@ import {
   toSafeRelativeSegments,
 } from "./pathSafety";
 import { createHash, randomUUID } from "crypto";
-import { realpathSync } from "fs";
+import { createReadStream, promises as fs, realpathSync } from "fs";
 import {
   normalizeSkillInvocation,
   readSkillInvocationFromText,
@@ -1063,6 +1063,91 @@ async function ensureInstallTargetAvailable(
 
 const activeSkillUpdates = new Set<string>();
 
+export class SkillUpdateConflictError extends Error {
+  constructor() {
+    super("The installed skill changed or has unsaved edits; update cancelled");
+  }
+}
+
+export class SkillUpdateRecoveryRequiredError extends Error {
+  constructor(readonly backupPath: string) {
+    super("Skill update recovery required; the original backup was retained in the managed root");
+  }
+}
+
+const SNAPSHOT_MAX_HASHED_FILE_BYTES = 10 * 1024 * 1024;
+const SNAPSHOT_MAX_HASHED_TOTAL_BYTES = 128 * 1024 * 1024;
+const SNAPSHOT_MAX_ENTRIES = 100_000;
+const SKILL_META_FILE_NAME = ".skill-meta.json";
+
+/**
+ * スキルフォルダの内容を 1 つのダイジェストにする。
+ * 大きいファイルは内容ではなくサイズと更新時刻で比べ、上限を超えても更新を拒否しない。
+ * ignoreMetadata は、更新中にユーザーが編集し得る .skill-meta.json を内容比較から外す。
+ */
+async function snapshotSkillDirectory(
+  root: string,
+  checkCancelled: () => void,
+  options?: { ignoreMetadata?: boolean },
+): Promise<string> {
+  const hash = createHash("sha256");
+  let hashedBytes = 0;
+  let count = 0;
+
+  async function visit(relative: string): Promise<void> {
+    checkCancelled();
+    if (options?.ignoreMetadata && relative === SKILL_META_FILE_NAME) {
+      return;
+    }
+    const absolute = path.join(root, relative);
+    const stat = await fs.lstat(absolute);
+    if (
+      ++count > SNAPSHOT_MAX_ENTRIES ||
+      (!stat.isDirectory() && !stat.isFile())
+    ) {
+      throw new Error("Cannot safely compare this skill directory");
+    }
+    const name = relative.split(path.sep).join("/");
+    if (stat.isDirectory()) {
+      hash.update(JSON.stringify([name, "directory"]));
+      for (const child of (await fs.readdir(absolute)).sort()) {
+        await visit(path.join(relative, child));
+      }
+      return;
+    }
+    if (
+      stat.size > SNAPSHOT_MAX_HASHED_FILE_BYTES ||
+      hashedBytes + stat.size > SNAPSHOT_MAX_HASHED_TOTAL_BYTES
+    ) {
+      hash.update(
+        JSON.stringify([name, "large-file", stat.size, stat.mtimeMs]),
+      );
+      return;
+    }
+    const content = createHash("sha256");
+    let bytes = 0;
+    for await (const chunk of createReadStream(absolute)) {
+      checkCancelled();
+      bytes += chunk.length;
+      content.update(chunk);
+    }
+    hashedBytes += bytes;
+    const current = await fs.lstat(absolute);
+    if (
+      !current.isFile() ||
+      bytes !== stat.size ||
+      current.size !== stat.size ||
+      current.mtimeMs !== stat.mtimeMs
+    ) {
+      throw new SkillUpdateConflictError();
+    }
+    hash.update(JSON.stringify([name, "file", content.digest("hex")]));
+  }
+
+  await visit("");
+  return hash.digest("hex");
+}
+
 export async function installSkillUpdate(
   skill: Skill,
   workspaceUri: vscode.Uri,
@@ -1078,6 +1163,7 @@ export async function installSkillUpdate(
      * 既存の所有者検証の代わりに、取得先リポジトリ・パスの整合だけを検証する。
      */
     rebind?: boolean;
+    confirmReplace?: () => Promise<boolean>;
     /** 入れ替える直前に呼ばれる。例外を投げると、元のフォルダに触れずに中止する */
     beforeSwap?: (staged: vscode.Uri) => Promise<void>;
   },
@@ -1085,11 +1171,11 @@ export async function installSkillUpdate(
   const rebind = options?.rebind === true;
   const checkCancelled = () => {
     if (options?.signal?.aborted || options?.isCancelled?.()) {
-      const error = new Error("Skill update cancelled");
-      error.name = "AbortError";
-      throw error;
+      throw cancellationError();
     }
   };
+  const cancellationError = () =>
+    Object.assign(new Error("Skill update cancelled"), { name: "AbortError" });
   checkCancelled();
   if (!root.isManaged || root.isReadOnly || root.rootUri.scheme !== "file") {
     throw new Error("Skill update requires a writable local managed root");
@@ -1108,6 +1194,16 @@ export async function installSkillUpdate(
   };
   assertContained(destination);
   const lockPath = realpathSync.native(destination.fsPath);
+  const assertNoUnsavedEdits = () => {
+    if (
+      vscode.workspace.textDocuments?.some(
+        ({ isDirty, uri }) =>
+          isDirty && uri.scheme === "file" && isContainedPath(lockPath, uri.fsPath),
+      )
+    ) {
+      throw new SkillUpdateConflictError();
+    }
+  };
   for (const active of activeSkillUpdates) {
     if (
       isContainedPath(active, lockPath) ||
@@ -1206,6 +1302,10 @@ export async function installSkillUpdate(
       }
       return current;
     };
+    assertNoUnsavedEdits();
+    const contentSnapshot = (directory: string, cancelled = checkCancelled) =>
+      snapshotSkillDirectory(directory, cancelled, { ignoreMetadata: true });
+    const baseline = await contentSnapshot(lockPath);
     await readCurrent();
     const rejectNestedSkills = async (directory: vscode.Uri): Promise<void> => {
       for (const [name, type] of await vscode.workspace.fs.readDirectory(
@@ -1235,6 +1335,10 @@ export async function installSkillUpdate(
       if (entries.some(([name]) => name.toLowerCase() === "skill.md")) {
         throw new Error("Skill update overlaps another installed skill");
       }
+    }
+    checkCancelled();
+    if (options?.confirmReplace && !(await options.confirmReplace())) {
+      throw cancellationError();
     }
     checkCancelled();
     transaction = vscode.Uri.joinPath(
@@ -1283,38 +1387,50 @@ export async function installSkillUpdate(
         "Skill update has no complete content",
       ]);
     }
-    const current = await readCurrent();
     const stagedMetaUri = vscode.Uri.joinPath(staged, ".skill-meta.json");
-    const stagedMeta = JSON.parse(
-      Buffer.from(await vscode.workspace.fs.readFile(stagedMetaUri)).toString(
-        "utf-8",
-      ),
-    ) as SkillMeta;
     const relativePath = resolveTrustedRelativePath(root.rootUri, destination)!;
-    await vscode.workspace.fs.writeFile(
-      stagedMetaUri,
-      Buffer.from(
-        JSON.stringify(
-          {
-            ...stagedMeta,
-            customWhenToUse: current.customWhenToUse,
-            registrationDisabled: current.registrationDisabled,
-            sourceRevision: { ...revision, remotePath },
-            relativePath,
-            ...derivePackageMetadata(skill.name, remotePath, relativePath),
-          },
-          null,
-          2,
+    // ダウンロード中や確認中に行われた説明の編集・登録の切り替えを、入れ替え直前にも引き継ぐ
+    const writeStagedMeta = async (): Promise<SkillMeta> => {
+      const current = await readCurrent();
+      const stagedMeta = JSON.parse(
+        Buffer.from(await vscode.workspace.fs.readFile(stagedMetaUri)).toString(
+          "utf-8",
         ),
-        "utf-8",
-      ),
-    );
+      ) as SkillMeta;
+      await vscode.workspace.fs.writeFile(
+        stagedMetaUri,
+        Buffer.from(
+          JSON.stringify(
+            {
+              ...stagedMeta,
+              customWhenToUse: current.customWhenToUse,
+              registrationDisabled: current.registrationDisabled,
+              sourceRevision: { ...revision, remotePath },
+              relativePath,
+              ...derivePackageMetadata(skill.name, remotePath, relativePath),
+            },
+            null,
+            2,
+          ),
+          "utf-8",
+        ),
+      );
+      return current;
+    };
+    await writeStagedMeta();
     checkCancelled();
     assertContained(staged);
     assertContained(backup);
-    await readCurrent();
-    // 取得に時間がかかる間の編集を、入れ替える直前に呼び出し側が確認できるようにする
     await options?.beforeSwap?.(staged);
+    const merged = await writeStagedMeta();
+    const stagedSnapshot = await snapshotSkillDirectory(
+      staged.fsPath,
+      checkCancelled,
+    );
+    if ((await contentSnapshot(destination.fsPath)) !== baseline) {
+      throw new SkillUpdateConflictError();
+    }
+    assertNoUnsavedEdits();
     checkCancelled();
     try {
       await vscode.workspace.fs.rename(destination, backup, {
@@ -1326,24 +1442,65 @@ export async function installSkillUpdate(
         `Skill update could not start: the installed folder could not be moved aside (it may be open in another application or locked). The installed version was not changed. (${error instanceof Error ? error.message : String(error)})`,
       );
     }
+    let placed = false;
     try {
       checkCancelled();
+      if ((await contentSnapshot(backup.fsPath)) !== baseline) {
+        throw new SkillUpdateConflictError();
+      }
+      // 退避の直前に説明や登録の設定が変わっていたら新版へ引き継げていないので、元へ戻す
+      let moved: Partial<SkillMeta> = {};
+      try {
+        moved = JSON.parse(
+          Buffer.from(
+            await vscode.workspace.fs.readFile(
+              vscode.Uri.joinPath(backup, SKILL_META_FILE_NAME),
+            ),
+          ).toString("utf-8"),
+        ) as Partial<SkillMeta>;
+      } catch {
+        moved = {};
+      }
+      if (
+        moved.customWhenToUse !== merged.customWhenToUse ||
+        moved.registrationDisabled !== merged.registrationDisabled
+      ) {
+        throw new SkillUpdateConflictError();
+      }
+      assertNoUnsavedEdits();
       assertContained(destination);
       await vscode.workspace.fs.rename(staged, destination, {
         overwrite: false,
       });
-    } catch {
+      placed = true;
+      if (
+        (await snapshotSkillDirectory(destination.fsPath, checkCancelled)) !== stagedSnapshot
+      ) {
+        throw new SkillUpdateConflictError();
+      }
+    } catch (error) {
       try {
         assertContained(backup);
         assertContained(destination);
+        if (placed) {
+          if (
+            (await snapshotSkillDirectory(destination.fsPath, () => {})) !== stagedSnapshot
+          ) {
+            throw new SkillUpdateConflictError();
+          }
+          await vscode.workspace.fs.rename(destination, staged, {
+            overwrite: false,
+          });
+        }
         await vscode.workspace.fs.rename(backup, destination, {
           overwrite: false,
         });
       } catch {
         retainBackup = true;
-        throw new Error(
-          "Skill update recovery required; the original backup was retained in the managed root",
-        );
+        throw new SkillUpdateRecoveryRequiredError(backup.fsPath);
+      }
+      if (error instanceof SkillUpdateConflictError || (error instanceof Error && error.name === "AbortError")) {
+        throw error;
       }
       throw new Error("Skill update switch failed; the original was restored");
     }

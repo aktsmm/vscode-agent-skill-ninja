@@ -363,6 +363,30 @@ const jaMessages = {
   outputTargetsUndecided:
     "🎯 新しい出力先を見つけました: {0}。出力ターゲットを個別に設定しているため、この出力先にはまだスキル一覧を書いていません。",
   outputTargetsConfigureAction: "出力ターゲットを設定",
+  outputWriteWarning: "一部のスキル出力を再生成できませんでした: {0}。",
+  outputCauseLockBusy: "共有ロックを取得できません",
+  outputCauseLockLost: "生成中に共有ロックを喪失",
+  outputCauseFileAccess: "読み書きまたは生成エラー",
+  actionRegenerateOutput: "スキル出力を再生成",
+  actionReinstall: "再インストール",
+  reinstallConfirmReplace:
+    "{0} を配布元から再インストールしますか？ローカル編集が上書きされる可能性があります。",
+  reinstallLocalConflict:
+    "スキルの内容が変わったか未保存の編集があるため、再インストールを中止しました。変更を確認してからやり直してください。",
+  reinstallRecoveryRequired:
+    "再インストール前の状態に戻せませんでした。バックアップは保持されています。再試行の前に詳細を確認してください。",
+  reinstallFailed:
+    "再インストールできませんでした（{0}）。以前のバージョンは置き換えていません。",
+  updateReinstallFailedAction: "失敗分を再インストール",
+  updateConfirmFailedReinstall:
+    "失敗した {0} 件を配布元から再インストールしますか？ローカル編集が上書きされる可能性があります。",
+  updateRetryTargetChanged:
+    "インストール済みスキル、配布元、またはルートが変わったため再インストールを保留",
+  updateRetryMoreTargets: "…ほか {0} 件",
+  updateLocalConflict:
+    "スキルの内容が変わったか未保存の編集があるため保留。変更を確認してからやり直してください",
+  updateRecoveryRequired:
+    "以前の状態に復元できませんでした。バックアップは保持されています",
 } as const;
 
 type MessageKey = keyof typeof jaMessages;
@@ -726,6 +750,30 @@ const enMessages: MessageDictionary = {
   outputTargetsUndecided:
     "🎯 Found a new output location: {0}. Output targets are configured individually, so no skill list is written there yet.",
   outputTargetsConfigureAction: "Configure Output Targets",
+  outputWriteWarning: "Some skill outputs could not be regenerated: {0}.",
+  outputCauseLockBusy: "shared lock busy",
+  outputCauseLockLost: "shared lock lost during generation",
+  outputCauseFileAccess: "file access or generation error",
+  actionRegenerateOutput: "Regenerate Skill Output",
+  actionReinstall: "Reinstall",
+  reinstallConfirmReplace:
+    "Reinstall {0} from its source? Local edits may be overwritten.",
+  reinstallLocalConflict:
+    "Reinstall cancelled because the installed skill changed or has unsaved edits. Review the changes, then try again.",
+  reinstallRecoveryRequired:
+    "Reinstall could not restore the previous version. The backup was retained; see Details before trying again.",
+  reinstallFailed:
+    "Reinstall did not complete ({0}). The previous version was not replaced.",
+  updateReinstallFailedAction: "Reinstall Failed Skills",
+  updateConfirmFailedReinstall:
+    "Reinstall these {0} failed skills from their sources? Local edits may be overwritten.",
+  updateRetryTargetChanged:
+    "reinstall skipped because the installed skill, source, or root changed",
+  updateRetryMoreTargets: "…and {0} more",
+  updateLocalConflict:
+    "skipped because the installed skill changed or has unsaved edits; review the changes before trying again",
+  updateRecoveryRequired:
+    "the previous version could not be restored; the backup was retained",
 };
 
 /**
@@ -1219,6 +1267,26 @@ export const messages = {
   outputTargetsUndecided: (targets: string) =>
     localize("outputTargetsUndecided", targets),
   outputTargetsConfigureAction: () => localize("outputTargetsConfigureAction"),
+  outputWriteWarning: (causes: string) =>
+    localize("outputWriteWarning", causes),
+  outputCauseLockBusy: () => localize("outputCauseLockBusy"),
+  outputCauseLockLost: () => localize("outputCauseLockLost"),
+  outputCauseFileAccess: () => localize("outputCauseFileAccess"),
+  actionRegenerateOutput: () => localize("actionRegenerateOutput"),
+  actionReinstall: () => localize("actionReinstall"),
+  reinstallConfirmReplace: (name: string) =>
+    localize("reinstallConfirmReplace", name),
+  reinstallLocalConflict: () => localize("reinstallLocalConflict"),
+  reinstallRecoveryRequired: () => localize("reinstallRecoveryRequired"),
+  reinstallFailed: (kind: string) => localize("reinstallFailed", kind),
+  updateReinstallFailedAction: () => localize("updateReinstallFailedAction"),
+  updateConfirmFailedReinstall: (count: number) =>
+    localize("updateConfirmFailedReinstall", count),
+  updateRetryTargetChanged: () => localize("updateRetryTargetChanged"),
+  updateRetryMoreTargets: (count: number) =>
+    localize("updateRetryMoreTargets", count),
+  updateLocalConflict: () => localize("updateLocalConflict"),
+  updateRecoveryRequired: () => localize("updateRecoveryRequired"),
 };
 
 export default messages;

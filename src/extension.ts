@@ -28,6 +28,7 @@ import {
 import { searchSkills, SkillQuickPickItem } from "./skillSearch";
 import {
   installSkill,
+  installSkillUpdate,
   uninstallSkill,
   uninstallSkillByPath,
   getInstalledSkillsWithMeta,
@@ -38,8 +39,11 @@ import {
   findIncompleteInstalledSkills,
   findRootLevelSkillArtifacts,
   resolveManagedSkillDirUri,
+  resolveSkillDownloadTarget,
   resolveSkillFolderName,
   SkillInstallIncompleteError,
+  SkillUpdateConflictError,
+  SkillUpdateRecoveryRequiredError,
   classifySkillInstallFailure,
   isRetryableInstallFailure,
   type SkillInstallStatus,
@@ -51,7 +55,7 @@ import {
   updateInstructionFileForRoot,
   removeSkillSectionFromFile,
   withOutputWriteLock,
-  writeOutputGroup,
+  writeOutputGroups,
   observeOutputWrites,
 } from "./instructionManager";
 import {
@@ -77,15 +81,11 @@ import {
   WorkspaceSkillsProvider,
   type SkillViewScope,
 } from "./treeProvider";
-import {
-  normalizeInvocationFilter,
-  normalizeSortMode,
-  type SkillViewOptions,
-} from "./skillListOptions";
+import type { SkillViewOptions } from "./skillListOptions";
+import { createSkillViewOptionsState } from "./skillViewOptionsState";
 import {
   describeViewOptions,
   describeViewOptionsParts,
-  getSortModes,
   showSkillViewOptionsPicker,
 } from "./skillViewOptionsPicker";
 import {
@@ -243,12 +243,6 @@ const LAST_MANAGED_INSTRUCTION_PATHS_KEY =
   "skillNinja.lastManagedInstructionPaths";
 // v1 は単一配列で multi-root を表現できなかった。旧キーは downgrade 時の互換のため触らない。
 const LAST_MANAGED_OUTPUT_PATHS_KEY = "skillNinja.lastManagedOutputPaths.v2";
-// 旧: Installed / User-Global の呼び出しモード絞り込みだけを保存していたキー。読み込み時のみ引き継ぐ。
-const LEGACY_INVOCATION_FILTER_STATE_KEY = "skillNinja.invocationFilter";
-const VIEW_OPTIONS_STATE_KEYS: Record<SkillViewScope, string> = {
-  local: "skillNinja.viewOptions.local",
-  browse: "skillNinja.viewOptions.browse",
-};
 const VIEW_FILTER_CONTEXT_KEYS: Record<SkillViewScope, string> = {
   local: "skillNinja.invocationFilterActive",
   browse: "skillNinja.browseFilterActive",
@@ -932,13 +926,24 @@ export function activate(
     log: (key, result) =>
       skillStateChannel.appendLine(`[Output ${result}] ${key}`),
     detailsAction: messages.actionShowDetails,
-    warn: (action) =>
-      vscode.window.showWarningMessage(
-        isJapanese()
-          ? "一部のスキル出力を再生成できませんでした。詳細で読取・書込権限やロック状態を確認し、解消後に再生成してください。"
-          : "Some skill outputs could not be regenerated. Check read/write permissions or locks in Details, then regenerate after resolving the cause.",
+    warn: async (action, _key, _result, results) => {
+      const causes = [
+        results.includes("locked") && messages.outputCauseLockBusy(),
+        results.includes("lease-lost") && messages.outputCauseLockLost(),
+        (results.includes("unreadable") || results.includes("failed")) &&
+          messages.outputCauseFileAccess(),
+      ].filter(Boolean);
+      const regenerate = messages.actionRegenerateOutput();
+      const choice = await vscode.window.showWarningMessage(
+        messages.outputWriteWarning(causes.join(isJapanese() ? "、" : "; ")),
         action,
-      ),
+        ...(vscode.workspace.workspaceFolders?.length ? [regenerate] : []),
+      );
+      if (choice === regenerate) {
+        await vscode.commands.executeCommand("skillNinja.updateInstruction");
+      }
+      return choice;
+    },
     showDetails: () => skillStateChannel.show(true),
   });
   const storedGitignoreRoots = context.workspaceState.get<unknown>(
@@ -1088,11 +1093,13 @@ export function activate(
   );
   context.subscriptions.push(
     new vscode.Disposable(
-      observeOutputWrites(context, (uri, result) => {
+      observeOutputWrites(context, (entries) => {
         if (isContextActive()) {
-          outputWriteFeedback.record(
-            normalizeFileSystemPath(uri.fsPath),
-            result,
+          outputWriteFeedback.recordBatch(
+            entries.map(({ uri, result }) => ({
+              key: normalizeFileSystemPath(uri.fsPath),
+              result,
+            })),
           );
         }
       }),
@@ -1975,27 +1982,24 @@ export function activate(
     const isWorkspacePath = (filePath: string): boolean =>
       folderPaths.some((folderPath) => isInsidePath(folderPath, filePath));
 
-    const remove = async (target: {
-      filePath: string;
-      deleteWhenEmpty: boolean;
-    }): Promise<void> => {
-      try {
-        await removeSkillSectionFromFile(vscode.Uri.file(target.filePath), {
-          keepShared,
-          // sibling 拡張が同じファイルへ書いた旧マーカーを巻き添えにしない
-          keepLegacyResource: true,
-          deleteWhenEmpty: target.deleteWhenEmpty,
-        });
-      } catch {
-        // ファイルが存在しない場合は無視
-      }
+    const remove = (
+      target: { filePath: string; deleteWhenEmpty: boolean },
+      beforeMutation: () => Promise<void>,
+    ): Promise<void> => {
+      return removeSkillSectionFromFile(vscode.Uri.file(target.filePath), {
+        keepShared,
+        // sibling 拡張が同じファイルへ書いた旧マーカーを巻き添えにしない
+        keepLegacyResource: true,
+        deleteWhenEmpty: target.deleteWhenEmpty,
+        beforeMutation,
+      });
     };
 
     for (const target of targets.filter((entry) =>
       isWorkspacePath(entry.filePath),
     )) {
       // 同じファイルを書く明示コマンドや reconcile と、read-modify-write を重ねない
-      await withOutputWriteLock("workspace", () => remove(target));
+      await withOutputWriteLock("workspace", (check) => remove(target, check));
     }
 
     const sharedTargets = targets.filter(
@@ -2005,9 +2009,9 @@ export function activate(
       return [];
     }
 
-    const handled = await withOutputWriteLock("userGlobal", async () => {
+    const handled = await withOutputWriteLock("userGlobal", async (check) => {
       for (const target of sharedTargets) {
-        await remove(target);
+        await remove(target, check);
       }
       return true;
     });
@@ -2141,9 +2145,7 @@ export function activate(
 
     const unhandledPaths = await cleanupOutputFiles(plan, keepShared);
 
-    for (const group of groupsToWrite.values()) {
-      await writeOutputGroup(group, context);
-    }
+    await writeOutputGroups([...groupsToWrite.values()], context);
 
     await context.workspaceState.update(
       LAST_MANAGED_OUTPUT_PATHS_KEY,
@@ -2920,22 +2922,16 @@ export function activate(
     canSelectMany: true,
   });
 
-  // 保存済みの絞り込み・並べ替えを復元する（旧バージョンの保存値も引き継ぐ）
+  const viewOptionsState = createSkillViewOptionsState(
+    context.globalState,
+    context.workspaceState,
+  );
   for (const scope of ["local", "browse"] as const) {
-    const stored = context.workspaceState.get<Partial<SkillViewOptions>>(
-      VIEW_OPTIONS_STATE_KEYS[scope],
-    );
-    const legacyFilter =
-      scope === "local"
-        ? context.workspaceState.get<string>(LEGACY_INVOCATION_FILTER_STATE_KEY)
-        : undefined;
-    const restored: SkillViewOptions = {
-      filter: normalizeInvocationFilter(stored?.filter ?? legacyFilter),
-      sort: normalizeSortMode(stored?.sort, getSortModes(scope)),
-    };
-    if (restored.filter !== "all" || restored.sort !== "default") {
-      applyViewOptions(scope, restored);
-    }
+    const restored = viewOptionsState.restore(scope);
+    applyViewOptions(scope, restored);
+    void Promise.resolve(viewOptionsState.migrate(scope, restored)).catch(() => {
+      skillStateChannel.appendLine("[View options] Migration could not be saved.");
+    });
   }
 
   // ダブルクリックでインストール機能
@@ -4100,8 +4096,11 @@ export function activate(
         return;
       }
 
-      const targetRoot = getSkillRootFromItem(item);
-      if (!targetRoot) {
+      const targetRoot = resolveCurrentSkillRoot(
+        item,
+        await getCurrentUpdateRoots(),
+      );
+      if (!targetRoot?.isManaged || targetRoot.isReadOnly) {
         vscode.window.showErrorMessage(
           isJapanese()
             ? "再インストール先のスキルルートを特定できません"
@@ -4115,7 +4114,10 @@ export function activate(
         wsFolder.uri,
         targetRoot.rootUri,
       );
-      const meta = installedMeta.find((m) => m.name === skill.name);
+      const byName = installedMeta.filter((m) => m.name === skill.name);
+      const meta =
+        byName.find((m) => m.relativePath === skill.path) ??
+        (byName.length === 1 ? byName[0] : undefined);
       if (!meta) {
         vscode.window.showErrorMessage(
           isJapanese()
@@ -4169,7 +4171,6 @@ export function activate(
       }
 
       try {
-        let reinstallStatus: SkillInstallStatus = "ok";
         await vscode.window.withProgress(
           {
             location: vscode.ProgressLocation.Notification,
@@ -4178,23 +4179,34 @@ export function activate(
               : `Reinstalling ${skill.name}...`,
           },
           async () => {
-            await uninstallSkillByPath(
-              meta.relativePath || skill.name,
-              wsFolder.uri,
-              targetRoot.rootUri,
+            const token = await getGitHubToken();
+            const target = await resolveSkillDownloadTarget(
+              fullSkill,
+              index.sources.find((source) => source.id === fullSkill.source),
+              token,
             );
-            const reinstallResult = await installSkill(
+            if (!target) {
+              throw new Error("Unresolved skill source");
+            }
+            const revision = await createSkillRevisionResolver(token)(target);
+            await installSkillUpdate(
               fullSkill,
               wsFolder.uri,
               context,
               targetRoot,
+              meta,
+              revision,
+              {
+                // 取得元のパスを記録していない古いインストールは、明示的な再インストールで取り込み直す
+                rebind: !meta.remotePath,
+                confirmReplace: async () =>
+                  (await vscode.window.showWarningMessage(
+                    messages.reinstallConfirmReplace(skill.name),
+                    { modal: true },
+                    messages.actionReinstall(),
+                  )) === messages.actionReinstall(),
+              },
             );
-            reinstallStatus = reinstallResult.status;
-
-            const config = vscode.workspace.getConfiguration("skillNinja");
-            if (config.get<boolean>("autoUpdateInstruction")) {
-              await updateInstructionFileForRoot(targetRoot, context);
-            }
           },
         );
 
@@ -4202,38 +4214,56 @@ export function activate(
         markRecentlyInstalled(skill);
 
         // ステータスバーに表示
-        statusBarItem.text =
-          reinstallStatus === "ok"
-            ? `$(sync) ${skill.name} ${
-                isJapanese() ? "再インストール完了" : "reinstalled"
-              }`
-            : `$(warning) ${skill.name} ${
-                isJapanese()
-                  ? "一部ファイル未取得"
-                  : "reinstalled with missing file(s)"
-              }`;
+        statusBarItem.text = `$(sync) ${skill.name} ${
+          isJapanese() ? "再インストール完了" : "reinstalled"
+        }`;
         statusBarItem.show();
         setTimeout(() => statusBarItem.hide(), 4000);
 
-        // partial は installSkill 側で警告済みなので成功通知で上書きしない
-        if (reinstallStatus === "ok") {
-          vscode.window.showInformationMessage(
-            isJapanese()
-              ? `${skill.name} を再インストールしました`
-              : `Reinstalled ${skill.name}`,
-          );
-        }
+        vscode.window.showInformationMessage(
+          isJapanese()
+            ? `${skill.name} を再インストールしました`
+            : `Reinstalled ${skill.name}`,
+        );
         refreshAllViews();
       } catch (error) {
-        if (error instanceof SkillInstallIncompleteError) {
+        const kind = classifySkillInstallFailure(error);
+        if (kind === "cancelled") {
+          return;
+        }
+        if (error instanceof SkillUpdateRecoveryRequiredError) {
+          skillStateChannel.appendLine(
+            `[Reinstall recovery] ${error.backupPath}`,
+          );
+          const details = messages.actionShowDetails();
+          void vscode.window
+            .showErrorMessage(messages.reinstallRecoveryRequired(), details)
+            .then((choice) => {
+              if (choice === details) {
+                skillStateChannel.show(true);
+              }
+            });
           refreshAllViews();
           return;
         }
+        skillStateChannel.appendLine(`[Reinstall] ${kind}`);
         vscode.window.showErrorMessage(
-          isJapanese()
-            ? `再インストール失敗: ${String(error)}（置き換え済みの場合、元のファイルはごみ箱から復元できます）`
-            : `Reinstall failed: ${String(error)} (if the old files were already replaced, they can be restored from the trash)`,
+          error instanceof SkillUpdateConflictError
+            ? messages.reinstallLocalConflict()
+            : messages.reinstallFailed(kind),
         );
+        return;
+      }
+      if (
+        vscode.workspace
+          .getConfiguration("skillNinja")
+          .get<boolean>("autoUpdateInstruction")
+      ) {
+        try {
+          await updateInstructionFileForRoot(targetRoot, context);
+        } catch {
+          outputWriteFeedback.record("reinstall-output", "failed");
+        }
       }
     },
   );
@@ -6492,17 +6522,7 @@ Add examples here
         async (next) => {
           // 見た目を先に更新し、保存の遅れで反映が待たされないようにする
           applyViewOptions(scope, next);
-          await context.workspaceState.update(
-            VIEW_OPTIONS_STATE_KEYS[scope],
-            next.filter === "all" && next.sort === "default" ? undefined : next,
-          );
-          // 旧キーが残っていると、次回起動時に「すべて」へ戻した後でも絞り込みが復活する
-          if (scope === "local") {
-            await context.workspaceState.update(
-              LEGACY_INVOCATION_FILTER_STATE_KEY,
-              undefined,
-            );
-          }
+          await viewOptionsState.save(scope, next);
         },
       );
       return getSkillViewOptions(scope);

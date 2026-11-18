@@ -7,6 +7,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.9.64] - 2026-11-19
+
+### Added
+
+- **Reinstall Failed Skills** - The update result notification now offers **Reinstall Failed Skills**. It rechecks only the eligible failures in workspace roots, shows the targets and the overwrite warning, and reinstalls just those skills. Successful items, targets that changed after the notification, and skills awaiting manual recovery are skipped / 更新結果の通知に「失敗分を再インストール」を追加しました。ワークスペースの対象のうち失敗したものだけを再確認し、対象と上書きの注意を表示してから再インストールします。成功済み、通知後に変わった対象、手動復旧待ちのスキルは対象にしません。
+
+### Changed
+
+- **Reinstall Skill Keeps The Old Copy** - Reinstalling one skill from its row now asks first, prepares and verifies the new version, then swaps it in. It stops on unsaved edits or a change made during the operation, restores the previous version if the swap fails, and retains the backup if it cannot be restored. Skills installed without a recorded source path are re-linked by this explicit action. Reinstall All, per-root and multi-select reinstall still move the current copy to the trash first / 1 件の再インストールは、確認後に新版を準備・検証してから入れ替えます。未保存の編集や処理中の変更を検出したら中止し、入れ替えに失敗したら旧版へ戻し、戻せない場合はバックアップを残します。取得元パスを記録していない古いインストールもこの明示操作で取り込み直します。全スキル・ルート単位・複数選択の再インストールは、従来どおり現在のコピーをごみ箱へ移してから入れ直します。
+- **Update Handles Large Skills And Settings Edits** - Skill updates compare files over 10 MB by size and modification time instead of refusing them, and carry over description edits and registration toggles made while an update is running / スキルの更新は、10 MB を超えるファイルをサイズと更新時刻で比べて拒否せず、更新中に行った説明の編集や登録の切り替えも引き継ぎます。
+- **View Options Persist Per Profile** - The filter and sort choices for the Installed / User-Global and Browse views are now remembered across workspaces in the same VS Code profile (not synced). Existing workspace choices are carried over once / インストール済み・ユーザー/グローバルと Browse の絞り込み・並べ替えを、同じ VS Code プロファイル内でワークスペースをまたいで記憶します（同期はしません）。既存のワークスペースの選択は初回に引き継ぎます。
+
+### Fixed
+
+- **Skill Output Lock Contention** - A busy shared lock is retried once before any file is touched. A lock lost mid-generation stops further writes, and remaining failures are reported in one warning that names the cause and offers **Regenerate Skill Output** / 共有ロックが使用中のときは、ファイルに触れる前に 1 回再試行します。生成中にロックを失った場合は以後の書き込みを止め、残った失敗は原因を示す 1 件の警告にまとめ、「スキル出力を再生成」を案内します。
+
 ## [0.9.63] - 2026-11-12
 
 ### Added

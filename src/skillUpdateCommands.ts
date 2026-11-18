@@ -9,6 +9,8 @@ import {
   installSkillUpdate,
   classifySkillInstallFailure,
   SkillInstallIncompleteError,
+  SkillUpdateConflictError,
+  SkillUpdateRecoveryRequiredError,
   resolveManagedSkillDirUri,
   resolveSkillFolderName,
   resolveSkillDownloadTarget,
@@ -55,7 +57,7 @@ type RootItem = Parameters<typeof resolveCurrentSkillRoot>[0];
 type Candidate = SkillUpdateEntry & { root: SkillRoot; destination: string };
 type Planned = Candidate & {
   revision: SkillSourceRevision;
-  state: "changed" | "untracked";
+  state: "changed" | "untracked" | "reinstall";
 };
 type RenameOffer = SkillUpdateEntry & {
   root: SkillRoot;
@@ -65,6 +67,26 @@ type RenameOffer = SkillUpdateEntry & {
 
 const text = (english: string, japanese: string) =>
   isJapanese() ? japanese : english;
+
+function retryKey(root: SkillRoot, entry: SkillUpdateEntry, index: SkillIndex) {
+  const { meta, skill } = entry;
+  const source = index.sources.find((source) => source.id === skill?.source);
+  return JSON.stringify([
+    root.rootUri.toString(),
+    meta.relativePath,
+    meta.name,
+    meta.source,
+    meta.remotePath,
+    meta.installedAt,
+    meta.sourceRevision,
+    skill?.source,
+    skill?.path,
+    skill?.rawUrl,
+    skill?.url,
+    source?.url,
+    source?.branch,
+  ]);
+}
 
 function matchesSourceRepository(
   sourceUrl: string | undefined,
@@ -94,6 +116,7 @@ export function registerSkillUpdateCommands(
   async function run(
     all: boolean,
     item?: RootItem,
+    retry?: ReadonlyMap<string, Candidate>,
   ): Promise<SkillUpdateSummary | undefined> {
     if (running) {
       void vscode.window.showInformationMessage(
@@ -105,6 +128,14 @@ export function registerSkillUpdateCommands(
       return;
     }
     running = true;
+    const retryAction = messages.updateReinstallFailedAction();
+    const failed = new Map<string, Candidate>();
+    let activeIndex: SkillIndex | undefined;
+    const rememberFailure = (entry: Candidate) => {
+      if (entry.root.scope === "workspace" && activeIndex) {
+        failed.set(retryKey(entry.root, entry, activeIndex), entry);
+      }
+    };
     const summary: SkillUpdateSummary = {
       updated: 0,
       synchronized: 0,
@@ -278,11 +309,20 @@ export function registerSkillUpdateCommands(
     };
     try {
       const currentRoots = await deps.getRoots();
-      const selected = all
-        ? currentRoots
-        : [resolveCurrentSkillRoot(item, currentRoots)].filter(
-            (root): root is SkillRoot => !!root,
-          );
+      const retryRoots =
+        retry &&
+        new Set([...retry.values()].map(({ root }) => root.rootUri.toString()));
+      const selected = retryRoots
+        ? currentRoots.filter(
+            (root) =>
+              root.scope === "workspace" &&
+              retryRoots.has(root.rootUri.toString()),
+          )
+        : all
+          ? currentRoots
+          : [resolveCurrentSkillRoot(item, currentRoots)].filter(
+              (root): root is SkillRoot => !!root,
+            );
       const roots = selected.filter(
         (root) =>
           root.isManaged && !root.isReadOnly && root.rootUri.scheme === "file",
@@ -299,7 +339,9 @@ export function registerSkillUpdateCommands(
       await vscode.window.withProgress(
         {
           location: vscode.ProgressLocation.Notification,
-          title: text("Update changed skills", "変更されたスキルを更新"),
+          title: retry
+            ? retryAction
+            : text("Update changed skills", "変更されたスキルを更新"),
           cancellable: true,
         },
         async (progress, cancellation) => {
@@ -319,12 +361,14 @@ export function registerSkillUpdateCommands(
               ),
             });
             const index = await deps.getIndex();
+            activeIndex = index;
             if (!active()) {
               summary.cancelled = true;
               return;
             }
             const candidates: Candidate[] = [];
             const seen = new Set<string>();
+            const matched = new Set<string>();
             for (const [rootPosition, root] of roots.entries()) {
               if (!active()) {
                 summary.cancelled = true;
@@ -348,7 +392,15 @@ export function registerSkillUpdateCommands(
                   return;
                 }
                 for (const entry of entries) {
-                  if (entry.meta.incomplete || entry.meta.repairState) {
+                  if (retry) {
+                    const key = retryKey(root, entry, index);
+                    if (!retry.has(key)) continue;
+                    matched.add(key);
+                  }
+                  if (
+                    !retry &&
+                    (entry.meta.incomplete || entry.meta.repairState)
+                  ) {
                     summary.repairNeeded++;
                     note(
                       entry,
@@ -509,6 +561,14 @@ export function registerSkillUpdateCommands(
               defer(candidates, text("cancelled", "中断"));
               return;
             }
+            if (retry) {
+              defer(
+                [...retry]
+                  .filter(([key]) => !matched.has(key))
+                  .map(([, entry]) => entry),
+                messages.updateRetryTargetChanged(),
+              );
+            }
             if (candidates.length === 0) {
               return;
             }
@@ -561,12 +621,12 @@ export function registerSkillUpdateCommands(
                 if (skill.path !== candidate.meta.remotePath) {
                   missingUpstream = true;
                   if (
-                    await offerRename(
+                    !retry && (await offerRename(
                       candidate,
                       candidate.root,
                       index,
                       abort.signal,
-                    )
+                    ))
                   ) {
                     continue;
                   }
@@ -604,6 +664,10 @@ export function registerSkillUpdateCommands(
                   continue;
                 }
                 const revision = await resolveRevision(target);
+                if (retry) {
+                  planned.push({ ...candidate, revision, state: "reinstall" });
+                  continue;
+                }
                 const state = classifySkillUpdate(candidate.meta, revision);
                 if (state === "unchanged") {
                   summary.unchanged++;
@@ -634,12 +698,12 @@ export function registerSkillUpdateCommands(
                 if (error instanceof SkillSourcePathMissingError) {
                   missingUpstream = true;
                   if (
-                    await offerRename(
+                    !retry && (await offerRename(
                       candidate,
                       candidate.root,
                       index,
                       abort.signal,
-                    )
+                    ))
                   ) {
                     continue;
                   }
@@ -662,6 +726,7 @@ export function registerSkillUpdateCommands(
                 }
                 summary.checkFailed++;
                 recordFailure("check", error);
+                rememberFailure(candidate);
                 note(candidate, text("check failed", "確認失敗"));
               }
             }
@@ -681,21 +746,40 @@ export function registerSkillUpdateCommands(
               "Update and sync legacy",
               "更新と初回同期",
             );
-            const confirmation = text(
-              `Upstream changed: ${changed}. No comparison baseline: ${summary.untracked}. Selected skills will overwrite local edits. Legacy sync may overwrite skills whose upstream has not changed. Unchanged skills are preserved.`,
-              `配布元の変更: ${changed} 件。比較情報なし: ${summary.untracked} 件。対象スキルのローカル編集は上書きされます。初回同期は配布元が未変更のスキルも上書きする可能性があります。変更なしのスキルは保持します。`,
-            );
-            const choices = summary.untracked
-              ? changed
-                ? [changedOnly, includeLegacy]
-                : [includeLegacy]
-              : [changedOnly];
+            const confirmation = retry
+              ? messages.updateConfirmFailedReinstall(planned.length)
+              : text(
+                  `Upstream changed: ${changed}. No comparison baseline: ${summary.untracked}. Selected skills will overwrite local edits. Legacy sync may overwrite skills whose upstream has not changed. Unchanged skills are preserved.`,
+                  `配布元の変更: ${changed} 件。比較情報なし: ${summary.untracked} 件。対象スキルのローカル編集は上書きされます。初回同期は配布元が未変更のスキルも上書きする可能性があります。変更なしのスキルは保持します。`,
+                );
+            const choices = retry
+              ? [retryAction]
+              : summary.untracked
+                ? changed
+                  ? [changedOnly, includeLegacy]
+                  : [includeLegacy]
+                : [changedOnly];
             const choice = await vscode.window.showWarningMessage(
               confirmation,
-              { modal: true },
+              {
+                modal: true,
+                ...(retry
+                  ? {
+                      detail: [
+                        ...planned.slice(0, 8).map(
+                          (entry) =>
+                            `${label(entry)} — ${entry.destination.replace(/\p{Cc}/gu, " ").slice(0, 240)}`,
+                        ),
+                        ...(planned.length > 8
+                          ? [messages.updateRetryMoreTargets(planned.length - 8)]
+                          : []),
+                      ].join("\n"),
+                    }
+                  : {}),
+              },
               ...choices,
             );
-            if (!active() || !choice) {
+            if (!active() || !choice || (retry && choice !== retryAction)) {
               summary.cancelled = true;
               defer(
                 planned,
@@ -704,7 +788,10 @@ export function registerSkillUpdateCommands(
               return;
             }
             const accepted = planned.filter(
-              (entry) => entry.state === "changed" || choice === includeLegacy,
+              (entry) =>
+                entry.state === "changed" ||
+                entry.state === "reinstall" ||
+                choice === includeLegacy,
             );
             defer(
               planned.filter(
@@ -762,6 +849,7 @@ export function registerSkillUpdateCommands(
                     result.failures?.map((failure) => failure.kind),
                   );
                   note(entry, text("update failed", "更新失敗"));
+                  rememberFailure(entry);
                   continue;
                 }
                 if (entry.state === "untracked") {
@@ -776,9 +864,19 @@ export function registerSkillUpdateCommands(
                   defer(accepted.slice(position), text("cancelled", "中断"));
                   break;
                 }
+                if (error instanceof SkillUpdateConflictError) {
+                  defer([entry], messages.updateLocalConflict());
+                  continue;
+                }
                 summary.updateFailed++;
                 recordFailure("update", error);
-                note(entry, text("update failed", "更新失敗"));
+                if (error instanceof SkillUpdateRecoveryRequiredError) {
+                  note(entry, messages.updateRecoveryRequired());
+                  localNotes.push(error.backupPath);
+                } else {
+                  note(entry, text("update failed", "更新失敗"));
+                  rememberFailure(entry);
+                }
               }
             }
           } finally {
@@ -1017,12 +1115,16 @@ export function registerSkillUpdateCommands(
       void vscode.window
         .showWarningMessage(
           message,
+          ...(failed.size ? [retryAction] : []),
           ...(failures.size ? [report] : []),
           ...(hasDetails ? [showDetails] : []),
           ...(renameOffers.length ? [installAction] : []),
         )
         .then(
           (choice) => {
+            if (failed.size && choice === retryAction) {
+              return run(false, undefined, failed);
+            }
             if (failures.size && choice === report) {
               return vscode.commands.executeCommand(
                 "skillNinja.reportBug",
