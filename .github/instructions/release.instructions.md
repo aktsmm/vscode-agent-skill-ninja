@@ -97,14 +97,17 @@ node scripts/audit-skill-installability.js --raw-only
 
 ### 2. バージョン更新（必須）
 
-リリース時は以下の **4 ファイルを同時に** 更新すること：
+リリース時は以下の **5 ファイルを同時に** 更新すること：
 
 | ファイル              | 更新箇所                                                      |
 | --------------------- | ------------------------------------------------------------- |
 | `package.json`        | `version` フィールド                                          |
+| `package-lock.json`   | ルートの `version`（`package.json` と一致必須。テストが検査） |
 | `package.nls.json`    | `config.versionInfo.markdownDescription` 内のバージョン・日付 |
 | `package.nls.ja.json` | 同上（日本語版）                                              |
 | `CHANGELOG.md`        | リリースノート追加（日付・変更内容）                          |
+
+`package.json` と `package-lock.json` は `npm version X.Y.Z --no-git-tag-version --ignore-scripts` で同時に上げる（依存関係は変わらない）。`CHANGELOG.md` は `## [Unreleased]` の中身を新しい `## [X.Y.Z] - 日付` 見出しへ移し、空の `## [Unreleased]` を先頭に残す。先頭の数値見出しが `package.json` の version と一致することをテストが検査する。見出し行を置換するときは、直後の `### Added` などの行を消していないか読み戻す。
 
 ### 3. CHANGELOG の書き方
 
@@ -179,6 +182,19 @@ $cli = "C:\Users\$env:USERNAME\AppData\Local\Programs\Microsoft VS Code\bin\code
 `Developer: Reload Window` だけでは、ワークスペースの未インストール変更は読まれず、既に入っている Marketplace / VSIX 版を再読込するだけのことがある。ローカル修正版の実機確認は、**生成した VSIX を `code --install-extension ... --force` で入れ直してから reload** するか、Extension Development Host (`F5`) を使うこと（2026-05-23 / GitHub Copilot）。
 
 `vsce ls` が prepublish ログだけを返す・出力不安定な場合は、生成済み `.vsix` を zip として直接列挙して収録物を確認する（例：PowerShell で `tar -xf <vsix> -C <tmpdir>` または `System.IO.Compression.ZipFile`）。この場合も、上記の不要物チェックは省略しない（2026-05-11 / GitHub Copilot）。
+
+通常の VS Code プロファイルを汚さず install と実挙動を確認するには、一時ディレクトリへ隔離して入れ、そのインストール済み実体でスモークを走らせる。VSIX の収録物とサイズだけでなく、`extension` が公開予定の version で、`checks` が通ることを確認する。確認後は一時ディレクトリを削除する。
+
+```pwsh
+$tmp = Join-Path $env:TEMP "ninja-vsix-$([guid]::NewGuid().ToString('N'))"
+New-Item -ItemType Directory -Force "$tmp\extensions", "$tmp\user-data" | Out-Null
+$cli = "$env:LOCALAPPDATA\Programs\Microsoft VS Code\bin\code.cmd"
+$exe = "$env:LOCALAPPDATA\Programs\Microsoft VS Code\Code.exe"
+& $cli --install-extension artifacts\vsix\agent-skill-ninja-X.X.X.vsix --force --extensions-dir "$tmp\extensions" --user-data-dir "$tmp\user-data"
+$ext = (Get-ChildItem "$tmp\extensions" -Directory -Filter "yamapan.agent-skill-ninja-*").FullName
+foreach ($lang in "ja", "en") { node scripts\run-extension-host-smoke.js --code $exe --locale $lang --extension-path $ext }
+Remove-Item $tmp -Recurse -Force
+```
 
 ### 6. Marketplace 公開
 

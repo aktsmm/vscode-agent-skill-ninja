@@ -513,6 +513,22 @@ test("package.json placeholders and both NLS tables stay in sync", () => {
   );
 });
 
+test("runtime code never reads the manifest NLS tables", () => {
+  const sourceDir = path.join(root, "src");
+  const offenders = fs
+    .readdirSync(sourceDir, { recursive: true })
+    .map(String)
+    .filter((name) => name.endsWith(".ts"))
+    .filter((name) =>
+      /package\.nls/.test(fs.readFileSync(path.join(sourceDir, name), "utf8")),
+    );
+  assert.deepStrictEqual(
+    offenders,
+    [],
+    "runtime strings belong in src/i18n.ts; package.nls*.json is manifest-only",
+  );
+});
+
 test("chat participant surface is localized, identifiers are not", () => {
   const participants = pkg.contributes.chatParticipants || [];
   assert.ok(participants.length > 0, "expected a chat participant");
