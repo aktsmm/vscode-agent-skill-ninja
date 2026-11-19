@@ -207,6 +207,7 @@ async function runSmoke(
     assert.equal(result.language, language);
     assert.ok(result.checks.length >= 5);
     assert.ok(result.checks.includes("lm-tool-reinstall-preview-host"));
+    assert.ok(result.checks.includes("empty-recovery-store-host"));
     assert.ok(result.checks.includes("blocked-output-preserved-and-recovered"));
     assert.ok(result.checks.includes("invocation-mode-host"));
     assert.ok(

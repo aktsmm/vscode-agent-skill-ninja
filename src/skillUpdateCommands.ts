@@ -1,7 +1,10 @@
 import * as path from "path";
 import * as vscode from "vscode";
 import { isJapanese, messages } from "./i18n";
-import { isLocalInstalledSkillMeta } from "./installedSkillIndex";
+import {
+  isLocalInstalledSkillMeta,
+  shouldAutoUpdateManagedInstalledSkillFromIndex,
+} from "./installedSkillIndex";
 import type { Skill, SkillIndex } from "./skillIndex";
 import type { SkillRoot } from "./skillLocations";
 import {
@@ -24,6 +27,10 @@ import {
   type SkillSourceRevision,
 } from "./skillUpdates";
 import { resolveCurrentSkillRoot } from "./treeProvider";
+import {
+  assertNoSkillUpdateRecovery,
+  SkillUpdateRecoveryStoreError,
+} from "./skillUpdateRecovery";
 
 export interface SkillUpdateEntry {
   meta: SkillMeta;
@@ -34,10 +41,16 @@ export interface SkillUpdateEntry {
 export interface SkillUpdateCommandDependencies {
   context: vscode.ExtensionContext;
   getRoots(): Promise<SkillRoot[]>;
+  getUpgradeRoots(workspaceUri: vscode.Uri): Promise<SkillRoot[]>;
   getIndex(): Promise<SkillIndex>;
-  getEntries(root: SkillRoot, index: SkillIndex): Promise<SkillUpdateEntry[]>;
+  getEntries(
+    root: SkillRoot,
+    index: SkillIndex,
+    options?: { strict?: boolean },
+  ): Promise<SkillUpdateEntry[]>;
   getToken(): Promise<string | undefined>;
   afterUpdate(roots: SkillRoot[]): Promise<void>;
+  onSuccessfulFullUpdate(): Promise<void>;
 }
 
 export interface SkillUpdateSummary {
@@ -109,7 +122,12 @@ function matchesSourceRepository(
 
 export function registerSkillUpdateCommands(
   deps: SkillUpdateCommandDependencies,
-): vscode.Disposable[] {
+): {
+  disposables: vscode.Disposable[];
+  updateOnUpgrade(
+    workspaceUri: vscode.Uri,
+  ): Promise<SkillUpdateSummary | undefined>;
+} {
   let running = false;
   let detailsChannel: vscode.OutputChannel | undefined;
 
@@ -117,6 +135,7 @@ export function registerSkillUpdateCommands(
     all: boolean,
     item?: RootItem,
     retry?: ReadonlyMap<string, Candidate>,
+    upgradeWorkspaceUri?: vscode.Uri,
   ): Promise<SkillUpdateSummary | undefined> {
     if (running) {
       void vscode.window.showInformationMessage(
@@ -154,6 +173,7 @@ export function registerSkillUpdateCommands(
     const localNotes: string[] = [];
     const renameOffers: RenameOffer[] = [];
     let missingUpstream = false;
+    let recoveryNeeded = false;
     let token: string | undefined;
     let tokenLoaded = false;
     let resolveUnindexed:
@@ -312,17 +332,44 @@ export function registerSkillUpdateCommands(
       const retryRoots =
         retry &&
         new Set([...retry.values()].map(({ root }) => root.rootUri.toString()));
-      const selected = retryRoots
-        ? currentRoots.filter(
-            (root) =>
-              root.scope === "workspace" &&
-              retryRoots.has(root.rootUri.toString()),
-          )
-        : all
-          ? currentRoots
-          : [resolveCurrentSkillRoot(item, currentRoots)].filter(
-              (root): root is SkillRoot => !!root,
+      const upgradeRoots = upgradeWorkspaceUri
+        ? await deps.getUpgradeRoots(upgradeWorkspaceUri)
+        : undefined;
+      const selected = upgradeRoots
+        ? upgradeRoots.flatMap((root) => {
+            const current = resolveCurrentSkillRoot(
+              { skillRoot: root },
+              currentRoots,
             );
+            if (
+              !current ||
+              !current.isManaged ||
+              current.isReadOnly ||
+              current.rootUri.scheme !== "file"
+            ) {
+              summary.checkFailed++;
+              recordFailure("check");
+              details.push(
+                text(
+                  "A skill root is no longer available for the update check",
+                  "更新確認の対象ルートを利用できなくなりました",
+                ),
+              );
+              return [];
+            }
+            return [current];
+          })
+        : retryRoots
+          ? currentRoots.filter(
+              (root) =>
+                root.scope === "workspace" &&
+                retryRoots.has(root.rootUri.toString()),
+            )
+          : all
+            ? currentRoots
+            : [resolveCurrentSkillRoot(item, currentRoots)].filter(
+                (root): root is SkillRoot => !!root,
+              );
       const roots = selected.filter(
         (root) =>
           root.isManaged && !root.isReadOnly && root.rootUri.scheme === "file",
@@ -385,13 +432,24 @@ export function registerSkillUpdateCommands(
               if (seen.has(rootKey)) continue;
               seen.add(rootKey);
               try {
-                const entries = await deps.getEntries(root, index);
+                const entries = await deps.getEntries(root, index, {
+                  strict: !!upgradeWorkspaceUri,
+                });
                 if (!active()) {
                   summary.cancelled = true;
                   defer([...candidates, ...entries], text("cancelled", "中断"));
                   return;
                 }
                 for (const entry of entries) {
+                  if (
+                    upgradeWorkspaceUri &&
+                    !shouldAutoUpdateManagedInstalledSkillFromIndex({
+                      root,
+                      meta: entry.meta,
+                    })
+                  ) {
+                    continue;
+                  }
                   if (retry) {
                     const key = retryKey(root, entry, index);
                     if (!retry.has(key)) continue;
@@ -437,6 +495,37 @@ export function registerSkillUpdateCommands(
                       ),
                     );
                     continue;
+                  }
+                  try {
+                    await assertNoSkillUpdateRecovery(
+                      deps.context,
+                      resolveManagedSkillDirUri(root.rootUri, entry.meta.relativePath)
+                        .fsPath,
+                    );
+                  } catch (error) {
+                    if (!active()) {
+                      summary.cancelled = true;
+                      defer([...candidates, entry], text("cancelled", "中断"));
+                      return;
+                    }
+                    summary.checkFailed++;
+                    recordFailure("check", error);
+                    if (error instanceof SkillUpdateRecoveryRequiredError) {
+                      recoveryNeeded = true;
+                      note(entry, messages.updateRecoveryRequired());
+                      localNotes.push(error.backupPath);
+                    } else if (error instanceof SkillUpdateRecoveryStoreError) {
+                      recoveryNeeded = true;
+                      note(entry, messages.recoveryStoreUnavailable());
+                    } else {
+                      note(entry, text("update check failed", "更新確認に失敗"));
+                    }
+                    continue;
+                  }
+                  if (!active()) {
+                    summary.cancelled = true;
+                    defer([...candidates, entry], text("cancelled", "中断"));
+                    return;
                   }
                   if (!entry.skill) {
                     const previous = entry.meta.sourceRevision;
@@ -683,6 +772,10 @@ export function registerSkillUpdateCommands(
                 } else {
                   if (state === "untracked") {
                     summary.untracked++;
+                    if (upgradeWorkspaceUri) {
+                      defer([candidate], messages.updateUpgradeLegacyHeld());
+                      continue;
+                    }
                   }
                   planned.push({ ...candidate, revision, state });
                 }
@@ -748,13 +841,15 @@ export function registerSkillUpdateCommands(
             );
             const confirmation = retry
               ? messages.updateConfirmFailedReinstall(planned.length)
-              : text(
-                  `Upstream changed: ${changed}. No comparison baseline: ${summary.untracked}. Selected skills will overwrite local edits. Legacy sync may overwrite skills whose upstream has not changed. Unchanged skills are preserved.`,
-                  `配布元の変更: ${changed} 件。比較情報なし: ${summary.untracked} 件。対象スキルのローカル編集は上書きされます。初回同期は配布元が未変更のスキルも上書きする可能性があります。変更なしのスキルは保持します。`,
-                );
+              : upgradeWorkspaceUri
+                ? messages.updateUpgradeConfirm(changed, summary.untracked)
+                : text(
+                    `Upstream changed: ${changed}. No comparison baseline: ${summary.untracked}. Selected skills will overwrite local edits. Legacy sync may overwrite skills whose upstream has not changed. Unchanged skills are preserved.`,
+                    `配布元の変更: ${changed} 件。比較情報なし: ${summary.untracked} 件。対象スキルのローカル編集は上書きされます。初回同期は配布元が未変更のスキルも上書きする可能性があります。変更なしのスキルは保持します。`,
+                  );
             const choices = retry
               ? [retryAction]
-              : summary.untracked
+              : summary.untracked && !upgradeWorkspaceUri
                 ? changed
                   ? [changedOnly, includeLegacy]
                   : [includeLegacy]
@@ -859,9 +954,51 @@ export function registerSkillUpdateCommands(
                 }
                 modified.set(root.rootUri.toString(), root);
               } catch (error) {
+                if (error instanceof SkillUpdateRecoveryRequiredError) {
+                  summary.updateFailed++;
+                  recordFailure("update", error);
+                  recoveryNeeded = true;
+                  note(entry, messages.updateRecoveryRequired());
+                  localNotes.push(error.backupPath);
+                  if (!active()) {
+                    summary.cancelled = true;
+                    defer(
+                      accepted.slice(position + 1),
+                      text("cancelled", "中断"),
+                    );
+                    break;
+                  }
+                  continue;
+                }
+                if (error instanceof SkillUpdateRecoveryStoreError) {
+                  summary.updateFailed++;
+                  recordFailure("update", error);
+                  recoveryNeeded = true;
+                  note(
+                    entry,
+                    error.reason === "inside-root"
+                      ? messages.recoveryStoreInsideRoot()
+                      : messages.recoveryStoreUnavailable(),
+                  );
+                  continue;
+                }
                 if (!active()) {
                   summary.cancelled = true;
-                  defer(accepted.slice(position), text("cancelled", "中断"));
+                  if (
+                    classifySkillInstallFailure(error) !== "cancelled" &&
+                    !(error instanceof SkillUpdateConflictError)
+                  ) {
+                    summary.updateFailed++;
+                    recordFailure("update", error);
+                    note(entry, text("update failed", "更新失敗"));
+                    rememberFailure(entry);
+                    defer(
+                      accepted.slice(position + 1),
+                      text("cancelled", "中断"),
+                    );
+                  } else {
+                    defer(accepted.slice(position), text("cancelled", "中断"));
+                  }
                   break;
                 }
                 if (error instanceof SkillUpdateConflictError) {
@@ -870,13 +1007,8 @@ export function registerSkillUpdateCommands(
                 }
                 summary.updateFailed++;
                 recordFailure("update", error);
-                if (error instanceof SkillUpdateRecoveryRequiredError) {
-                  note(entry, messages.updateRecoveryRequired());
-                  localNotes.push(error.backupPath);
-                } else {
-                  note(entry, text("update failed", "更新失敗"));
-                  rememberFailure(entry);
-                }
+                note(entry, text("update failed", "更新失敗"));
+                rememberFailure(entry);
               }
             }
           } finally {
@@ -1109,6 +1241,7 @@ export function registerSkillUpdateCommands(
     );
     if (failures.size || summary.repairNeeded || missingUpstream) {
       const report = messages.actionReportBug();
+      const reviewRecovery = messages.recoveryReviewAction();
       const diagnostics = `Skill update failures\n${[...failures]
         .map(([kind, count]) => `${kind}=${count}`)
         .join("\n")}`;
@@ -1118,6 +1251,7 @@ export function registerSkillUpdateCommands(
           ...(failed.size ? [retryAction] : []),
           ...(failures.size ? [report] : []),
           ...(hasDetails ? [showDetails] : []),
+          ...(recoveryNeeded ? [reviewRecovery] : []),
           ...(renameOffers.length ? [installAction] : []),
         )
         .then(
@@ -1133,6 +1267,11 @@ export function registerSkillUpdateCommands(
             }
             if (choice === showDetails) {
               openDetails();
+            }
+            if (choice === reviewRecovery && recoveryNeeded) {
+              return vscode.commands.executeCommand(
+                "skillNinja.reviewInterruptedUpdates",
+              );
             }
             if (choice === installAction) {
               return installRenamed();
@@ -1163,11 +1302,26 @@ export function registerSkillUpdateCommands(
     return summary;
   }
 
-  return [
-    vscode.commands.registerCommand(
-      "skillNinja.updateRoot",
-      (item?: RootItem) => run(false, item),
-    ),
-    vscode.commands.registerCommand("skillNinja.updateAll", () => run(true)),
-  ];
+  return {
+    disposables: [
+      vscode.commands.registerCommand(
+        "skillNinja.updateRoot",
+        (item?: RootItem) => run(false, item),
+      ),
+      vscode.commands.registerCommand("skillNinja.updateAll", async () => {
+        const summary = await run(true);
+        if (
+          summary &&
+          !summary.cancelled &&
+          summary.checkFailed === 0 &&
+          summary.updateFailed === 0
+        ) {
+          await deps.onSuccessfulFullUpdate();
+        }
+        return summary;
+      }),
+    ],
+    updateOnUpgrade: (workspaceUri) =>
+      run(true, undefined, undefined, workspaceUri),
+  };
 }

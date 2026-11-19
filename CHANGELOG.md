@@ -7,6 +7,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.9.65] - 2026-11-19
+
+### Changed
+
+- **Check Changed Skills After Extension Upgrades** - Extension upgrades check upstream changes instead of reinstalling every skill. Confirm before replacing changed skills; skills without a comparison baseline are deferred for optional manual first sync / 拡張機能のアップグレード後、全件再インストールせず配布元の変更を確認します。変更分は確認後に更新し、比較情報のないスキルは保留して手動での初回同期を選べます。
+
+### Fixed
+
+- **Install And Update Coordination** - Prevent overlapping fresh installs and single-skill updates in the same extension host, including overlapping parent and child paths / 同じ拡張ホスト内で、新規インストールと単一スキル更新の対象パスが親子関係を含めて重複する場合は同時実行を防ぎます。
+- **Update Comparison Entry Limit** - Skills with more than 100,000 entries now fall back to size-and-modification-time comparison for remaining files instead of refusing the update / 100,000 件を超えるスキルでは、残りのファイルをサイズと更新時刻で比較し、更新を拒否しないようにしました。
+- **Recovery Warnings** - Update checks and bulk reinstalls identify unresolved recovery and offer the recovery review action instead of reporting an unchanged or generic failure / 更新確認と一括再インストールで未解決の復旧を検出し、変更なしや一般的な失敗として扱わず復旧確認を案内します。
+- **Upgrade Recovery And Metadata Protection** - Preserve existing metadata on read errors, malformed JSON, unsaved edits and detected concurrent changes, including changes made during the update swap. After an upgrade check or refresh fails, a successful manual all-roots update retries the pending metadata refresh. If a rollback fails, show the retained backup location locally even when cancellation is requested or the LM reinstall tool was used / 読取失敗・不正な JSON・未保存編集・更新の入れ替え中を含む変更から既存メタデータを保護します。アップグレード時の確認や再抽出に失敗した場合、手動の全管理ルート更新の成功後に保留した再抽出を再試行します。ロールバックに失敗した場合は、キャンセル中や LM 再インストール時も保持したバックアップの場所をローカルで確認できます。
+- **Interrupted Skill Update Recovery** - Record each single-skill swap before moving the old copy. On restart, offer local recovery review and block overlapping installs or updates until the user verifies the target and clears the record; never restore or delete the skill or backup automatically / 1 件のスキルを入れ替える前に復旧記録を保存します。再起動後にローカルで復旧確認を案内し、対象を確認して記録を解除するまで重複するインストールや更新を止めます。スキルやバックアップの自動復元・削除は行いません。
+
 ## [0.9.64] - 2026-11-19
 
 ### Added

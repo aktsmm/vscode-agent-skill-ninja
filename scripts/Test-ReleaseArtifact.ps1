@@ -146,7 +146,7 @@ try {
             $line -match '(?i)\binput (?:is|stays) hidden\b' -or
             $line -match '(?i)^\s*SAVED:\s*VSCE_PAT\b'
         ) {
-            "line $($index + 1): $line"
+            "line $($index + 1)"
         }
     }
     if ($contamination.Count -gt 0) {

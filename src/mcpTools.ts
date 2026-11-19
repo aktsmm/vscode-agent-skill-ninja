@@ -12,7 +12,11 @@ import {
   getLocalizedDescription,
   saveSkillIndex,
 } from "./skillIndex";
-import { installSkill, uninstallSkillByPath } from "./skillInstaller";
+import {
+  installSkill,
+  SkillUpdateRecoveryRequiredError,
+  uninstallSkillByPath,
+} from "./skillInstaller";
 import { updateInstructionFileForRoot } from "./instructionManager";
 import { getSourceLastIndexedAt } from "./sourceIndexFreshness";
 import { searchGitHub, addSource, removeSource } from "./indexUpdater";
@@ -227,7 +231,10 @@ function registerToolAliases(
 /**
  * MCP ツールを登録
  */
-export function registerMcpTools(context: vscode.ExtensionContext): void {
+export function registerMcpTools(
+  context: vscode.ExtensionContext,
+  reportReinstallRecovery: (backupPath: string) => void,
+): void {
   extContext = context;
 
   // vscode.lm API が存在するか確認
@@ -246,7 +253,7 @@ export function registerMcpTools(context: vscode.ExtensionContext): void {
 
     // スキルインストールツール
     registerToolAliases(context, ["skillNinja_install", "installSkill"], () => {
-      return new SkillInstallTool();
+      return new SkillInstallTool(reportReinstallRecovery);
     });
 
     // インストール済み一覧ツール
@@ -277,7 +284,7 @@ export function registerMcpTools(context: vscode.ExtensionContext): void {
       context,
       ["skillNinja_reinstall", "reinstallSkills"],
       () => {
-        return new SkillReinstallTool();
+        return new SkillReinstallTool(reportReinstallRecovery);
       },
     );
 
@@ -498,6 +505,8 @@ interface SkillInstallInput {
 }
 
 class SkillInstallTool implements vscode.LanguageModelTool<SkillInstallInput> {
+  constructor(private readonly reportRecovery: (backupPath: string) => void) {}
+
   prepareInvocation(
     options: vscode.LanguageModelToolInvocationPrepareOptions<SkillInstallInput>,
   ): vscode.PreparedToolInvocation {
@@ -715,6 +724,9 @@ ${summaryTable}
         ),
       ]);
     } catch (error) {
+      if (error instanceof SkillUpdateRecoveryRequiredError) {
+        this.reportRecovery(error.backupPath);
+      }
       return new vscode.LanguageModelToolResult([
         new vscode.LanguageModelTextPart(
           formatMcpError(
@@ -1589,6 +1601,8 @@ ${table}
  * プレビュー（読み取りのみ）と実行を分け、実行は planId で固定した計画だけを行う。
  */
 class SkillReinstallTool implements vscode.LanguageModelTool<ReinstallInput> {
+  constructor(private readonly reportRecovery: (backupPath: string) => void) {}
+
   prepareInvocation(
     options: vscode.LanguageModelToolInvocationPrepareOptions<ReinstallInput>,
   ): vscode.PreparedToolInvocation {
@@ -1797,6 +1811,7 @@ class SkillReinstallTool implements vscode.LanguageModelTool<ReinstallInput> {
         created,
         requireExtContext(),
         abort.signal,
+        this.reportRecovery,
       );
 
       const instructionNotes: string[] = [];

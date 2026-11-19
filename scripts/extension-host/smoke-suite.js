@@ -78,10 +78,20 @@ exports.run = async () => {
       "reinstallAll",
       "reinstall",
       "reportBug",
+      "reviewInterruptedUpdates",
     ]) {
       assert.ok(commands.includes(`skillNinja.${id}`), id);
     }
     checks.push("maintenance-commands-registered");
+
+    stage = "empty-recovery-store";
+    await Promise.race([
+      vscode.commands.executeCommand("skillNinja.reviewInterruptedUpdates"),
+      new Promise((_, reject) =>
+        setTimeout(() => reject(new Error("Empty recovery store was not accessible")), 5000),
+      ),
+    ]);
+    checks.push("empty-recovery-store-host");
 
     stage = "local-update";
     const skillsPath = path.join(workspace.fsPath, ".github", "skills");

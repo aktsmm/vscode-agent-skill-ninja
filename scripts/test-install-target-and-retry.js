@@ -126,6 +126,7 @@ function loadInstaller({
   unreadableError,
   metadataReadFailure,
   metadataAfterOwnerCheck,
+  onErrorMessage,
 } = {}) {
   let metadataReads = 0;
   const writes = [];
@@ -222,7 +223,7 @@ function loadInstaller({
       workspaceFolders: [],
     },
     window: {
-      showErrorMessage: async () => undefined,
+      showErrorMessage: async (...args) => onErrorMessage?.(...args),
       showWarningMessage: (message, options) => {
         if (options && options.modal) {
           modals.push(message);
@@ -333,6 +334,12 @@ function loadInstaller({
           resolveWorkspaceSkillsRootUri: (workspaceUri) => workspaceUri,
         };
       }
+      if (request === "./skillUpdateRecovery") {
+        return {
+          assertNoSkillUpdateRecovery: async () => {},
+          canonicalPath: async (target) => path.resolve(target),
+        };
+      }
       if (request === "./githubFetch") {
         return {
           createGitHubHeaders: () => ({}),
@@ -418,6 +425,24 @@ const DEMO_META_FS = posixPathToFsPath(`${ROOT_POSIX}/demo/.skill-meta.json`);
 const DEMO_SKILL_MD_FS = posixPathToFsPath(`${ROOT_POSIX}/demo/SKILL.md`);
 
 async function main() {
+  await test("interactive retry reuses the active install lock", async () => {
+    const failingUrl = `${RAW}/owner/repo/main/skills/demo/SKILL.md`;
+    const rawFailures = { [failingUrl]: 500 };
+    let retryPrompts = 0;
+    const harness = loadInstaller({
+      ...demoSources(),
+      rawFailures,
+      onErrorMessage: (_message, retryAction) => {
+        retryPrompts += 1;
+        delete rawFailures[failingUrl];
+        return retryAction;
+      },
+    });
+    const result = await installDemo(harness, {}, { interactive: true, allowRetry: true });
+    assert.equal(result.status, "ok");
+    assert.equal(retryPrompts, 1);
+    assert.ok(harness.requestedUrls.filter((url) => url === failingUrl).length >= 2);
+  });
   await test("install into a folder owned by another source is refused", async () => {
     const harness = loadInstaller({
       ...demoSources(),

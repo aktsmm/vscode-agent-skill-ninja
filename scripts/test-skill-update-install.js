@@ -4,6 +4,7 @@ const fs = require("node:fs");
 const os = require("node:os");
 const path = require("node:path");
 const vm = require("node:vm");
+const { fork, spawnSync } = require("node:child_process");
 const ts = require("typescript");
 
 const sourceRoot = path.join(__dirname, "../src");
@@ -41,8 +42,8 @@ const uri = (fsPath) => ({
 });
 const outputCache = new Map();
 
-function harness() {
-  const temporary = fs.mkdtempSync(
+function harness(existingTemporary) {
+  const temporary = existingTemporary || fs.mkdtempSync(
     path.join(os.tmpdir(), "ninja-update-test-"),
   );
   const rootPath = path.join(temporary, "skills");
@@ -80,11 +81,13 @@ function harness() {
     label: "test",
     displayPath: rootPath,
   };
+  const context = { globalStorageUri: uri(path.join(temporary, "storage")) };
   const requests = [];
   const requestOptions = [];
   const state = {
     fetchHook: undefined,
     renameHook: undefined,
+    afterRenameHook: undefined,
     deleteHook: undefined,
     sourceBranch: undefined,
     token: undefined,
@@ -120,6 +123,7 @@ function harness() {
         throw new Error("Destination exists");
       }
       await fs.promises.rename(from.fsPath, to.fsPath);
+      await state.afterRenameHook?.(from, to);
     },
     async delete(target) {
       await state.deleteHook?.(target);
@@ -278,7 +282,10 @@ function harness() {
         };
       }
       if (request === "./skillLocations") {
-        return { resolveWorkspaceSkillsRootUri: (value) => value };
+        return {
+          getManagedSkillRoots: async () => [root],
+          resolveWorkspaceSkillsRootUri: (value) => value,
+        };
       }
       if (request === "./githubFetch") {
         return {
@@ -332,15 +339,17 @@ function harness() {
     destination,
     meta,
     root,
+    context,
     state,
     installer,
+    recovery: load("skillUpdateRecovery"),
     requests,
     requestOptions,
     response,
     createRevisionResolver: load("skillUpdates").createSkillRevisionResolver,
     runFresh: (options = {}, candidate = skill) => {
       state.sourceBranch = "main";
-      return installer.installSkill(candidate, uri(rootPath), {}, root, {
+      return installer.installSkill(candidate, uri(rootPath), context, root, {
         interactive: false,
         ...options,
       });
@@ -356,7 +365,7 @@ function harness() {
       installer.installSkillUpdate(
         skill,
         uri(rootPath),
-        {},
+        context,
         root,
         meta,
         revision,
@@ -620,6 +629,7 @@ async function main() {
     assert.notEqual(saved.installedAt, env.meta.installedAt);
     assert.ok(env.requests.length >= 5);
     assert.ok(env.requests.every((url) => url.includes(sha)));
+    assert.equal((await env.recovery.listSkillUpdateRecoveries(env.context)).length, 0);
     env.clean();
   });
   for (const failure of [
@@ -689,7 +699,7 @@ async function main() {
       const result = await env.installer.installSkillUpdate(
         { ...skill, path: filePath },
         uri(env.rootPath),
-        {},
+        env.context,
         env.root,
         fileMeta,
         fileRevision,
@@ -775,6 +785,41 @@ async function main() {
     );
     env.clean();
   });
+  await test("source metadata changed during the backup rename is preserved", async (env) => {
+    const changed = JSON.stringify({ ...env.meta, source: "new-owner" });
+    env.state.renameHook = (from) => {
+      if (from.fsPath === env.destination) {
+        fs.writeFileSync(path.join(env.destination, ".skill-meta.json"), changed);
+      }
+    };
+    await assert.rejects(env.run(), /installed skill changed/);
+    assert.equal(
+      fs.readFileSync(path.join(env.destination, ".skill-meta.json"), "utf8"),
+      changed,
+    );
+    assert.equal(
+      fs.readFileSync(path.join(env.destination, "SKILL.md"), "utf8"),
+      "locally edited original",
+    );
+    env.clean();
+  });
+  await test("malformed metadata introduced during the backup rename is preserved", async (env) => {
+    delete env.meta.customWhenToUse;
+    delete env.meta.registrationDisabled;
+    fs.writeFileSync(path.join(env.destination, ".skill-meta.json"), JSON.stringify(env.meta));
+    const changed = "{ invalid metadata";
+    env.state.renameHook = (from) => {
+      if (from.fsPath === env.destination) {
+        fs.writeFileSync(path.join(env.destination, ".skill-meta.json"), changed);
+      }
+    };
+    await assert.rejects(env.run(), /installed skill changed/);
+    assert.equal(
+      fs.readFileSync(path.join(env.destination, ".skill-meta.json"), "utf8"),
+      changed,
+    );
+    env.clean();
+  });
   await test("declining confirmation does not download or change the old copy", async (env) => {
     await assert.rejects(env.run({ confirmReplace: async () => false }), {
       name: "AbortError",
@@ -801,6 +846,67 @@ async function main() {
     assert.equal((await env.run()).status, "ok");
     assert.equal(fs.existsSync(path.join(env.destination, "big.bin")), false);
     env.clean();
+  });
+  await test("entry-limit overflow compares files by size and mtime", async (env) => {
+    const virtualRoot = path.join(env.temporary, "virtual-snapshot");
+    const directories = Array.from(
+      { length: 99_999 },
+      (_, index) => `a-${String(index).padStart(5, "0")}`,
+    );
+    const overflowFile = "z-overflow.txt";
+    const originalLstat = fs.promises.lstat;
+    const originalReaddir = fs.promises.readdir;
+    let overflowMtime = 100;
+    const isVirtualPath = (filePath) => {
+      const resolved = path.resolve(String(filePath));
+      return (
+        resolved === virtualRoot ||
+        resolved.startsWith(`${virtualRoot}${path.sep}`)
+      );
+    };
+    const stat = (directory, size = 0, mtimeMs = 1) => ({
+      isDirectory: () => directory,
+      isFile: () => !directory,
+      size,
+      mtimeMs,
+    });
+    fs.promises.lstat = async (filePath, ...args) => {
+      const resolved = path.resolve(String(filePath));
+      if (!isVirtualPath(resolved)) {
+        return originalLstat.call(fs.promises, filePath, ...args);
+      }
+      if (
+        resolved === virtualRoot ||
+        path.basename(resolved).startsWith("a-")
+      ) {
+        return stat(true);
+      }
+      return stat(false, 10, overflowMtime);
+    };
+    fs.promises.readdir = async (directory, ...args) => {
+      const resolved = path.resolve(String(directory));
+      if (resolved === virtualRoot) {
+        return [...directories, overflowFile];
+      }
+      if (isVirtualPath(resolved)) {
+        return [];
+      }
+      return originalReaddir.call(fs.promises, directory, ...args);
+    };
+    try {
+      const snapshot = await env.installer.snapshotSkillDirectory(
+        virtualRoot,
+        () => {},
+      );
+      overflowMtime += 1;
+      assert.notEqual(
+        await env.installer.snapshotSkillDirectory(virtualRoot, () => {}),
+        snapshot,
+      );
+    } finally {
+      fs.promises.lstat = originalLstat;
+      fs.promises.readdir = originalReaddir;
+    }
   });
   await test("an oversized file changed during download stops the replacement", async (env) => {
     const big = path.join(env.destination, "big.bin");
@@ -863,7 +969,37 @@ async function main() {
       { name: "AbortError" },
     );
     env.unchanged();
+    assert.equal((await env.recovery.listSkillUpdateRecoveries(env.context)).length, 0);
     env.clean();
+  });
+  await test("cancellation with failed rollback retains the original backup", async (env) => {
+    const controller = new AbortController();
+    env.state.renameHook = (from) => {
+      if (from.fsPath === env.destination) {
+        controller.abort();
+      } else if (from.fsPath.endsWith(`${path.sep}backup`)) {
+        throw new Error("rollback failed");
+      }
+    };
+    let recovery;
+    await assert.rejects(env.run({ signal: controller.signal }), (error) => {
+      recovery = error;
+      return error instanceof env.installer.SkillUpdateRecoveryRequiredError;
+    });
+    assert.equal(
+      fs.readFileSync(path.join(recovery.backupPath, "SKILL.md"), "utf8"),
+      "locally edited original",
+    );
+    assert.equal(
+      JSON.parse(
+        fs.readFileSync(path.join(recovery.backupPath, ".skill-meta.json"), "utf8"),
+      ).sourceRevision.commitSha,
+      "c".repeat(40),
+    );
+    const records = await env.recovery.listSkillUpdateRecoveries(env.context);
+    assert.equal(records.length, 1);
+    assert.equal(records[0].backupPath, recovery.backupPath);
+    await assert.rejects(env.run(), /recovery required/);
   });
   await test("partial staged install does not persist successful revision", async (env) => {
     env.state.fetchHook = (url) =>
@@ -873,7 +1009,7 @@ async function main() {
     const result = await env.installer.installSkill(
       skill,
       uri(stagePath),
-      {},
+      env.context,
       {
         ...env.root,
         rootUri: uri(stagePath),
@@ -916,6 +1052,7 @@ async function main() {
     };
     await assert.rejects(env.run());
     env.unchanged();
+    assert.equal((await env.recovery.listSkillUpdateRecoveries(env.context)).length, 0);
     env.clean();
   });
   await test("failed rollback retains the only original backup", async (env) => {
@@ -944,6 +1081,123 @@ async function main() {
       ).sourceRevision.commitSha,
       "c".repeat(40),
     );
+    assert.equal((await env.recovery.listSkillUpdateRecoveries(env.context)).length, 1);
+  });
+  await test("failed record retirement retains both the new target and original backup", async (env) => {
+    const originalRename = fs.promises.rename;
+    fs.promises.rename = async (from, to) => {
+      if (String(to).includes(`${path.sep}.finished-`)) {
+        throw new Error("record retirement failed");
+      }
+      return originalRename.call(fs.promises, from, to);
+    };
+    try {
+      let failure;
+      await assert.rejects(env.run(), (error) => {
+        failure = error;
+        return error instanceof env.installer.SkillUpdateRecoveryRequiredError;
+      });
+      assert.equal(fs.readFileSync(path.join(env.destination, "SKILL.md"), "utf8"), content);
+      assert.equal(
+        fs.readFileSync(path.join(failure.backupPath, "SKILL.md"), "utf8"),
+        "locally edited original",
+      );
+      assert.equal((await env.recovery.listSkillUpdateRecoveries(env.context)).length, 1);
+      await assert.rejects(env.run(), /recovery required/);
+    } finally {
+      fs.promises.rename = originalRename;
+    }
+  });
+  await test("a damaged recovery store refuses fresh installs and updates without downloads", async (env) => {
+    const directory = env.recovery.getSkillRecoveryDirectory(env.context);
+    fs.mkdirSync(path.join(directory, "invalid"), { recursive: true });
+    await assert.rejects(env.run(), /recovery records cannot be safely read or written/);
+    await assert.rejects(env.runFresh(), /recovery records cannot be safely read or written/);
+    assert.equal(env.requests.length, 0);
+    env.unchanged();
+  });
+  await test("a killed updater leaves a record, blocks retries, and allows explicit manual recovery", async (env) => {
+    const child = fork(__filename, ["--interrupt-fixture", env.temporary], {
+      stdio: ["ignore", "ignore", "pipe", "ipc"],
+    });
+    let stderr = "";
+    let stopped = false;
+    let hasExited = false;
+    child.stderr.on("data", (chunk) => { stderr += chunk.toString(); });
+    const exited = new Promise((resolve) => child.once("exit", (code, signal) => {
+      hasExited = true;
+      resolve({ code, signal });
+    }));
+    const moved = new Promise((resolve, reject) => {
+      const deadline = setTimeout(() => reject(new Error("Child did not move the backup")), 20000);
+      child.once("message", (message) => {
+        clearTimeout(deadline);
+        resolve(message);
+      });
+      child.once("error", (error) => {
+        clearTimeout(deadline);
+        reject(error);
+      });
+      child.once("exit", () => {
+        clearTimeout(deadline);
+        reject(new Error(`Child exited before backup: ${stderr}`));
+      });
+    });
+    const stopChild = () => {
+      if (stopped || hasExited || child.exitCode !== null || child.signalCode !== null) return;
+      stopped = true;
+      if (process.platform === "win32") {
+        const stopped = spawnSync("powershell.exe", [
+          "-NoProfile",
+          "-NonInteractive",
+          "-Command",
+          `Stop-Process -Id ${child.pid} -Force`,
+        ]);
+        assert.equal(stopped.status, 0, stopped.stderr?.toString());
+      } else {
+        child.kill("SIGKILL");
+      }
+    };
+    try {
+      const message = await moved;
+      assert.equal(message.type, "backup-moved");
+      assert.equal(fs.existsSync(env.destination), false);
+      const active = await env.recovery.listSkillUpdateRecoveries(env.context);
+      assert.equal(active.length, 1);
+      assert.equal(active[0].processId, child.pid);
+      assert.equal(env.recovery.isSkillUpdateRecoveryInUse(active[0]), true);
+      stopChild();
+      await exited;
+      const records = await env.recovery.listSkillUpdateRecoveries(env.context);
+      assert.equal(records.length, 1);
+      const [record] = records;
+      assert.equal(record.processId, child.pid);
+      assert.equal(env.recovery.isSkillUpdateRecoveryInUse(record), false);
+      assert.equal(
+        fs.readFileSync(path.join(record.backupPath, "SKILL.md"), "utf8"),
+        "locally edited original",
+      );
+      await assert.rejects(env.run(), /recovery required/);
+      await assert.rejects(
+        env.installer.installSkill(
+          { ...skill, name: "original-name" },
+          uri(path.dirname(env.destination)),
+          env.context,
+          { ...env.root, rootUri: uri(path.dirname(env.destination)) },
+          { interactive: false },
+        ),
+        /recovery required/,
+      );
+      assert.equal(env.requests.length, 0);
+      fs.renameSync(record.backupPath, env.destination);
+      await env.recovery.resolveSkillUpdateRecovery(env.context, record);
+      env.unchanged();
+      assert.equal((await env.recovery.listSkillUpdateRecoveries(env.context)).length, 0);
+      assert.equal(fs.existsSync(record.transactionPath), true);
+    } finally {
+      stopChild();
+      await exited;
+    }
   });
   await test("cleanup failure after swap remains successful", async (env) => {
     env.state.deleteHook = () => {
@@ -976,7 +1230,7 @@ async function main() {
         env.installer.installSkillUpdate(
           skill,
           uri(env.rootPath),
-          {},
+          env.context,
           env.root,
           { ...env.meta, relativePath: "group" },
           revision,
@@ -988,6 +1242,56 @@ async function main() {
     }
     await pending;
     env.clean();
+  });
+  await test("fresh install cannot overlap an in-flight update in the same host", async (env) => {
+    env.state.sourceBranch = "main";
+    const groupedRootPath = path.join(env.rootPath, "group");
+    const groupedRoot = {
+      ...env.root,
+      rootUri: uri(groupedRootPath),
+      rootPath: groupedRootPath,
+    };
+    const candidate = { ...skill, name: "original-name" };
+    const result = await env.run({
+      beforeSwap: async () => {
+        await assert.rejects(
+          env.installer.installSkill(
+            candidate,
+            uri(env.rootPath),
+            env.context,
+            groupedRoot,
+            { interactive: false },
+          ),
+          /already running/,
+        );
+      },
+    });
+    assert.equal(result.status, "ok");
+    env.clean();
+  });
+  await test("update cannot overlap an in-flight fresh install in the same host", async (env) => {
+    env.state.sourceBranch = "main";
+    let release;
+    let entered;
+    const waiting = new Promise((resolve) => { entered = resolve; });
+    const gate = new Promise((resolve) => { release = resolve; });
+    env.state.fetchHook = async () => { entered(); await gate; };
+    const groupedRootPath = path.join(env.rootPath, "group");
+    const groupedRoot = { ...env.root, rootUri: uri(groupedRootPath), rootPath: groupedRootPath };
+    const pending = env.installer.installSkill(
+      { ...skill, name: "original-name" },
+      uri(env.rootPath),
+      env.context,
+      groupedRoot,
+      { interactive: false },
+    );
+    await waiting;
+    try {
+      await assert.rejects(env.run(), /already running/);
+    } finally {
+      release();
+    }
+    assert.equal((await pending).status, "ok");
   });
   for (const boundary of [
     "readOnly",
@@ -1050,7 +1354,21 @@ async function main() {
   console.log(`PASS ${passed} skill update transaction tests`);
 }
 
-main().catch((error) => {
+const run = process.argv[2] === "--interrupt-fixture"
+  ? (async () => {
+      const env = harness(process.argv[3]);
+      env.state.afterRenameHook = async (from, to) => {
+        if (from.fsPath === env.destination && path.basename(to.fsPath) === "backup") {
+          process.send({ type: "backup-moved" });
+          await new Promise((resolve) => setTimeout(resolve, 30000));
+        }
+      };
+      await env.run();
+      throw new Error("Expected the parent to stop the child during the swap");
+    })()
+  : main();
+
+run.catch((error) => {
   console.error(error);
   process.exitCode = 1;
 });

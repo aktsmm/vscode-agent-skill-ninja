@@ -64,12 +64,14 @@ function harness({ existingMeta } = {}) {
     label: "test",
     displayPath: rootPath,
   };
-  const state = { fetchHook: undefined, sources: [] };
+  const context = { globalStorageUri: uri(path.join(temporary, "storage")) };
+  const state = { fetchHook: undefined, readFileHook: undefined, sources: [] };
   const workspaceFs = {
     async createDirectory(target) {
       await fs.promises.mkdir(target.fsPath, { recursive: true });
     },
     async readFile(target) {
+      await state.readFileHook?.(target);
       return fs.promises.readFile(target.fsPath);
     },
     async writeFile(target, bytes) {
@@ -213,7 +215,10 @@ function harness({ existingMeta } = {}) {
         };
       }
       if (request === "./skillLocations") {
-        return { resolveWorkspaceSkillsRootUri: (value) => value };
+        return {
+          getManagedSkillRoots: async () => [root],
+          resolveWorkspaceSkillsRootUri: (value) => value,
+        };
       }
       if (request === "./githubFetch") {
         return {
@@ -279,7 +284,7 @@ function harness({ existingMeta } = {}) {
       installer.installSkillUpdate(
         overrides.skill ?? skill,
         uri(rootPath),
-        {},
+        context,
         root,
         overrides.meta ?? synthetic,
         overrides.revision ?? revision,
@@ -343,6 +348,50 @@ async function main() {
     async (env) => {
       await assert.rejects(env.run({}), /ownership changed|ENOENT/);
       env.unchanged();
+    },
+  );
+
+  await test(
+    "rebind preserves malformed existing metadata",
+    {},
+    async (env) => {
+      const metaPath = path.join(env.destination, ".skill-meta.json");
+      fs.writeFileSync(metaPath, "{ invalid metadata");
+      await assert.rejects(env.run({ rebind: true }));
+      assert.equal(fs.readFileSync(metaPath, "utf8"), "{ invalid metadata");
+      assert.equal(fs.readFileSync(path.join(env.destination, "SKILL.md"), "utf8"), "locally written skill");
+      env.cleanTransaction();
+    },
+  );
+
+  await test(
+    "rebind refuses unreadable existing metadata",
+    { existingMeta: { name: "demo", source: "local", installedAt: "" } },
+    async (env) => {
+      env.state.readFileHook = (target) => {
+        if (target.fsPath === path.join(env.destination, ".skill-meta.json")) {
+          throw Object.assign(new Error("access denied"), { code: "EACCES" });
+        }
+      };
+      await assert.rejects(env.run({ rebind: true }), /access denied/);
+      env.unchanged();
+      env.cleanTransaction();
+    },
+  );
+
+  await test(
+    "rebind preserves metadata created during download",
+    {},
+    async (env) => {
+      const metaPath = path.join(env.destination, ".skill-meta.json");
+      const created = JSON.stringify({ name: "demo", source: "local", installedAt: "" });
+      env.state.fetchHook = () => {
+        if (!fs.existsSync(metaPath)) fs.writeFileSync(metaPath, created);
+      };
+      await assert.rejects(env.run({ rebind: true }), /installed skill changed/);
+      assert.equal(fs.readFileSync(metaPath, "utf8"), created);
+      assert.equal(fs.readFileSync(path.join(env.destination, "SKILL.md"), "utf8"), "locally written skill");
+      env.cleanTransaction();
     },
   );
 

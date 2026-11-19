@@ -51,11 +51,15 @@ const REVIEWED_STARTUP_DIALOGS = {
   },
   checkVersionAndRefreshMetadata: {
     mechanical: false,
-    why: "only runs when the stored extension version changed or a format migration happened, so it cannot repeat on an unchanged install",
+    why: "persists the new version before checking and reminds about pending metadata once; test-extension-upgrade-updates.js exercises repeated activations",
   },
-  promptForSkillUpdate: {
+  refreshUpgradeMetadata: {
     mechanical: false,
-    why: "reached only from checkVersionAndRefreshMetadata, which persists the new version before prompting, and skillNinja.autoUpdateSkillsOnUpgrade set to never disables it for good",
+    why: "reached only after a version change or an explicit retry of the full update",
+  },
+  resumePendingUpgradeMetadata: {
+    mechanical: false,
+    why: "reached only after an explicit full-update command; a different first workspace must be reported",
   },
   updateStaleSourceIndexes: {
     mechanical: false,

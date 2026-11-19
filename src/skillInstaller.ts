@@ -52,6 +52,17 @@ import {
   readSkillInvocationFromText,
   type SkillInvocation,
 } from "./skillInvocation";
+import {
+  assertNoSkillUpdateRecovery,
+  beginSkillUpdateRecovery,
+  canonicalPath,
+  finishSkillUpdateRecovery,
+  releaseSkillUpdateRecovery,
+  SkillUpdateRecoveryRequiredError,
+  type SkillUpdateRecoveryRecord,
+} from "./skillUpdateRecovery";
+
+export { SkillUpdateRecoveryRequiredError } from "./skillUpdateRecovery";
 
 function normalizeNewlines(text: string): string {
   return text.replace(/\r\n/g, "\n");
@@ -1063,15 +1074,23 @@ async function ensureInstallTargetAvailable(
 
 const activeSkillUpdates = new Set<string>();
 
+async function acquireSkillWrite(targetPath: string): Promise<() => void> {
+  const lockPath = await canonicalPath(targetPath);
+  for (const active of activeSkillUpdates) {
+    if (
+      isContainedPath(active, lockPath) ||
+      isContainedPath(lockPath, active)
+    ) {
+      throw new Error("An overlapping skill operation is already running");
+    }
+  }
+  activeSkillUpdates.add(lockPath);
+  return () => activeSkillUpdates.delete(lockPath);
+}
+
 export class SkillUpdateConflictError extends Error {
   constructor() {
     super("The installed skill changed or has unsaved edits; update cancelled");
-  }
-}
-
-export class SkillUpdateRecoveryRequiredError extends Error {
-  constructor(readonly backupPath: string) {
-    super("Skill update recovery required; the original backup was retained in the managed root");
   }
 }
 
@@ -1082,10 +1101,10 @@ const SKILL_META_FILE_NAME = ".skill-meta.json";
 
 /**
  * スキルフォルダの内容を 1 つのダイジェストにする。
- * 大きいファイルは内容ではなくサイズと更新時刻で比べ、上限を超えても更新を拒否しない。
+ * 大きいファイルや項目数の上限を超えたファイルはサイズと更新時刻で比べる。
  * ignoreMetadata は、更新中にユーザーが編集し得る .skill-meta.json を内容比較から外す。
  */
-async function snapshotSkillDirectory(
+export async function snapshotSkillDirectory(
   root: string,
   checkCancelled: () => void,
   options?: { ignoreMetadata?: boolean },
@@ -1101,10 +1120,8 @@ async function snapshotSkillDirectory(
     }
     const absolute = path.join(root, relative);
     const stat = await fs.lstat(absolute);
-    if (
-      ++count > SNAPSHOT_MAX_ENTRIES ||
-      (!stat.isDirectory() && !stat.isFile())
-    ) {
+    const entryLimitExceeded = ++count > SNAPSHOT_MAX_ENTRIES;
+    if (!stat.isDirectory() && !stat.isFile()) {
       throw new Error("Cannot safely compare this skill directory");
     }
     const name = relative.split(path.sep).join("/");
@@ -1113,6 +1130,12 @@ async function snapshotSkillDirectory(
       for (const child of (await fs.readdir(absolute)).sort()) {
         await visit(path.join(relative, child));
       }
+      return;
+    }
+    if (entryLimitExceeded) {
+      hash.update(
+        JSON.stringify([name, "metadata-only", stat.size, stat.mtimeMs]),
+      );
       return;
     }
     if (
@@ -1193,6 +1216,7 @@ export async function installSkillUpdate(
     }
   };
   assertContained(destination);
+  await assertNoSkillUpdateRecovery(context, destination.fsPath);
   const lockPath = realpathSync.native(destination.fsPath);
   const assertNoUnsavedEdits = () => {
     if (
@@ -1204,17 +1228,10 @@ export async function installSkillUpdate(
       throw new SkillUpdateConflictError();
     }
   };
-  for (const active of activeSkillUpdates) {
-    if (
-      isContainedPath(active, lockPath) ||
-      isContainedPath(lockPath, active)
-    ) {
-      throw new Error("An overlapping skill update is already running");
-    }
-  }
-  activeSkillUpdates.add(lockPath);
+  const releaseWrite = await acquireSkillWrite(lockPath);
   let transaction: vscode.Uri | undefined;
   let retainBackup = false;
+  let recovery: SkillUpdateRecoveryRecord | undefined;
   try {
     const identity = (value: Pick<SkillMeta, "source" | "remotePath">) =>
       normalizeInstalledSkillSource(
@@ -1250,7 +1267,10 @@ export async function installSkillUpdate(
     if (ownershipChanged) {
       throw new Error("Skill update source ownership changed");
     }
-    const readCurrent = async (): Promise<SkillMeta> => {
+    const readCurrent = async (): Promise<{
+      metadata: SkillMeta;
+      rawMetadata?: Buffer;
+    }> => {
       assertContained(destination);
       if (
         (await vscode.workspace.fs.stat(destination)).type &
@@ -1258,38 +1278,33 @@ export async function installSkillUpdate(
       ) {
         throw new Error("Skill update cannot replace symbolic links");
       }
-      if (rebind) {
-        // メタが無い配置は、無いままであることを確認する。あるなら計画時と同じ出所のままか確認する。
-        let stored: SkillMeta | undefined;
-        try {
-          stored = JSON.parse(
-            Buffer.from(
-              await vscode.workspace.fs.readFile(
-                vscode.Uri.joinPath(destination, ".skill-meta.json"),
-              ),
-            ).toString("utf-8"),
-          ) as SkillMeta;
-        } catch {
-          stored = undefined;
-        }
-        if (
-          stored &&
-          (identity(stored) !== identity(meta) ||
-            normalizeRemoteSkillPath(stored.remotePath ?? "") !==
-              normalizeRemoteSkillPath(meta.remotePath ?? ""))
-        ) {
-          throw new Error("Skill update source ownership changed");
-        }
-        return stored ?? meta;
-      }
-      const current = JSON.parse(
-        Buffer.from(
+      let rawMetadata: Buffer;
+      try {
+        rawMetadata = Buffer.from(
           await vscode.workspace.fs.readFile(
             vscode.Uri.joinPath(destination, ".skill-meta.json"),
           ),
-        ).toString("utf-8"),
-      ) as SkillMeta;
-      if (
+        );
+      } catch (error) {
+        if (rebind && isFileNotFoundError(error)) {
+          return { metadata: meta };
+        }
+        throw error;
+      }
+      const current = JSON.parse(rawMetadata.toString("utf-8")) as SkillMeta;
+      if (!current || typeof current !== "object" || Array.isArray(current)) {
+        throw new Error("Skill update metadata is invalid");
+      }
+      if (rebind) {
+        // メタが無い配置は、無いままであることを確認する。あるなら計画時と同じ出所のままか確認する。
+        if (
+          identity(current) !== identity(meta) ||
+          normalizeRemoteSkillPath(current.remotePath ?? "") !==
+            normalizeRemoteSkillPath(meta.remotePath ?? "")
+        ) {
+          throw new Error("Skill update source ownership changed");
+        }
+      } else if (
         current.name !== meta.name ||
         identity(current) !== identity(meta) ||
         !current.remotePath ||
@@ -1300,13 +1315,13 @@ export async function installSkillUpdate(
       ) {
         throw new Error("Skill update source ownership changed");
       }
-      return current;
+      return { metadata: current, rawMetadata };
     };
     assertNoUnsavedEdits();
     const contentSnapshot = (directory: string, cancelled = checkCancelled) =>
       snapshotSkillDirectory(directory, cancelled, { ignoreMetadata: true });
     const baseline = await contentSnapshot(lockPath);
-    await readCurrent();
+    const initialMetadata = await readCurrent();
     const rejectNestedSkills = async (directory: vscode.Uri): Promise<void> => {
       for (const [name, type] of await vscode.workspace.fs.readDirectory(
         directory,
@@ -1390,8 +1405,11 @@ export async function installSkillUpdate(
     const stagedMetaUri = vscode.Uri.joinPath(staged, ".skill-meta.json");
     const relativePath = resolveTrustedRelativePath(root.rootUri, destination)!;
     // ダウンロード中や確認中に行われた説明の編集・登録の切り替えを、入れ替え直前にも引き継ぐ
-    const writeStagedMeta = async (): Promise<SkillMeta> => {
+    const writeStagedMeta = async (): Promise<Buffer | undefined> => {
       const current = await readCurrent();
+      if ((current.rawMetadata === undefined) !== (initialMetadata.rawMetadata === undefined)) {
+        throw new SkillUpdateConflictError();
+      }
       const stagedMeta = JSON.parse(
         Buffer.from(await vscode.workspace.fs.readFile(stagedMetaUri)).toString(
           "utf-8",
@@ -1403,8 +1421,8 @@ export async function installSkillUpdate(
           JSON.stringify(
             {
               ...stagedMeta,
-              customWhenToUse: current.customWhenToUse,
-              registrationDisabled: current.registrationDisabled,
+              customWhenToUse: current.metadata.customWhenToUse,
+              registrationDisabled: current.metadata.registrationDisabled,
               sourceRevision: { ...revision, remotePath },
               relativePath,
               ...derivePackageMetadata(skill.name, remotePath, relativePath),
@@ -1415,7 +1433,7 @@ export async function installSkillUpdate(
           "utf-8",
         ),
       );
-      return current;
+      return current.rawMetadata;
     };
     await writeStagedMeta();
     checkCancelled();
@@ -1423,6 +1441,27 @@ export async function installSkillUpdate(
     assertContained(backup);
     await options?.beforeSwap?.(staged);
     const merged = await writeStagedMeta();
+    const workspaceUris = new Map<string, vscode.Uri>();
+    workspaceUris.set(workspaceUri.toString(), workspaceUri);
+    for (const folder of vscode.workspace.workspaceFolders ?? []) {
+      workspaceUris.set(folder.uri.toString(), folder.uri);
+    }
+    const scannedRoots = (
+      await Promise.all(
+        [...workspaceUris.values()].map((uri) => getManagedSkillRoots(uri)),
+      )
+    )
+      .flat()
+      .filter((candidate) => candidate.rootUri.scheme === "file")
+      .map((candidate) => candidate.rootUri.fsPath);
+    if (vscode.env?.appRoot) {
+      scannedRoots.push(vscode.env.appRoot);
+    }
+    for (const extension of vscode.extensions?.all ?? []) {
+      if (extension.extensionUri.scheme === "file") {
+        scannedRoots.push(extension.extensionUri.fsPath);
+      }
+    }
     const stagedSnapshot = await snapshotSkillDirectory(
       staged.fsPath,
       checkCancelled,
@@ -1432,11 +1471,31 @@ export async function installSkillUpdate(
     }
     assertNoUnsavedEdits();
     checkCancelled();
+    recovery = await beginSkillUpdateRecovery(
+      context,
+      root.rootUri.fsPath,
+      destination.fsPath,
+      transaction.fsPath,
+      scannedRoots,
+    );
+    const finishRecovery = async () => {
+      if (!recovery) {
+        throw new Error("Missing skill update recovery record");
+      }
+      try {
+        await finishSkillUpdateRecovery(context, recovery);
+        recovery = undefined;
+      } catch {
+        retainBackup = true;
+        throw new SkillUpdateRecoveryRequiredError(backup.fsPath);
+      }
+    };
     try {
       await vscode.workspace.fs.rename(destination, backup, {
         overwrite: false,
       });
     } catch (error) {
+      await finishRecovery();
       // rename は途中で止まらないので、ここで失敗しても元のフォルダはそのまま残る
       throw new Error(
         `Skill update could not start: the installed folder could not be moved aside (it may be open in another application or locked). The installed version was not changed. (${error instanceof Error ? error.message : String(error)})`,
@@ -1448,22 +1507,21 @@ export async function installSkillUpdate(
       if ((await contentSnapshot(backup.fsPath)) !== baseline) {
         throw new SkillUpdateConflictError();
       }
-      // 退避の直前に説明や登録の設定が変わっていたら新版へ引き継げていないので、元へ戻す
-      let moved: Partial<SkillMeta> = {};
+      // 直前の読取後にメタデータが変わっていれば、変更を保持して元へ戻す
+      let movedMetadata: Buffer | undefined;
       try {
-        moved = JSON.parse(
-          Buffer.from(
-            await vscode.workspace.fs.readFile(
-              vscode.Uri.joinPath(backup, SKILL_META_FILE_NAME),
-            ),
-          ).toString("utf-8"),
-        ) as Partial<SkillMeta>;
-      } catch {
-        moved = {};
+        movedMetadata = Buffer.from(
+          await vscode.workspace.fs.readFile(
+            vscode.Uri.joinPath(backup, SKILL_META_FILE_NAME),
+          ),
+        );
+      } catch (error) {
+        if (!isFileNotFoundError(error)) throw error;
       }
       if (
-        moved.customWhenToUse !== merged.customWhenToUse ||
-        moved.registrationDisabled !== merged.registrationDisabled
+        merged === undefined
+          ? movedMetadata !== undefined
+          : movedMetadata === undefined || !merged.equals(movedMetadata)
       ) {
         throw new SkillUpdateConflictError();
       }
@@ -1499,17 +1557,23 @@ export async function installSkillUpdate(
         retainBackup = true;
         throw new SkillUpdateRecoveryRequiredError(backup.fsPath);
       }
+      await finishRecovery();
       if (error instanceof SkillUpdateConflictError || (error instanceof Error && error.name === "AbortError")) {
         throw error;
       }
       throw new Error("Skill update switch failed; the original was restored");
     }
+    await finishRecovery();
     return {
       ...result,
       installedRoot: root.rootUri.fsPath,
       installedPath: relativePath,
     };
   } finally {
+    if (recovery) {
+      retainBackup = true;
+      releaseSkillUpdateRecovery(recovery);
+    }
     if (transaction && !retainBackup) {
       try {
         await deleteSkillDirectory(root.rootUri, transaction);
@@ -1519,26 +1583,44 @@ export async function installSkillUpdate(
         );
       }
     }
-    activeSkillUpdates.delete(lockPath);
+    releaseWrite();
     await synchronizeSkillGitignore(root.rootUri, vscode.workspace);
   }
 }
+
+type SkillInstallOptions = {
+  allowRetry?: boolean;
+  interactive?: boolean;
+  isCancelled?: () => boolean;
+  signal?: AbortSignal;
+  downloadTarget?: SkillDownloadTarget;
+  sourceRevision?: SkillSourceRevision;
+  resolveSourceRevision?: ReturnType<typeof createSkillRevisionResolver>;
+};
 
 export async function installSkill(
   skill: Skill,
   workspaceUri: vscode.Uri,
   context: vscode.ExtensionContext,
   targetRoot?: SkillRoot,
-  options?: {
-    allowRetry?: boolean;
-    interactive?: boolean;
-    isCancelled?: () => boolean;
-    /** 中断時に実行中の HTTP 取得ごと止める */
-    signal?: AbortSignal;
-    downloadTarget?: SkillDownloadTarget;
-    sourceRevision?: SkillSourceRevision;
-    resolveSourceRevision?: ReturnType<typeof createSkillRevisionResolver>;
-  },
+  options?: SkillInstallOptions,
+): Promise<SkillInstallResult> {
+  const root = resolveSkillsRootUri(workspaceUri, targetRoot?.rootUri);
+  const target = vscode.Uri.joinPath(root, resolveSkillFolderName(skill));
+  const releaseWrite = await acquireSkillWrite(target.fsPath);
+  try {
+    return await installSkillCore(skill, workspaceUri, context, targetRoot, options);
+  } finally {
+    releaseWrite();
+  }
+}
+
+async function installSkillCore(
+  skill: Skill,
+  workspaceUri: vscode.Uri,
+  context: vscode.ExtensionContext,
+  targetRoot?: SkillRoot,
+  options?: SkillInstallOptions,
 ): Promise<SkillInstallResult> {
   if (targetRoot && (!targetRoot.isManaged || targetRoot.isReadOnly)) {
     throw new Error(
@@ -1574,6 +1656,7 @@ export async function installSkill(
       `Refusing to install outside the skill root: ${skillPath.fsPath} (root: ${skillsRootUri.fsPath})`,
     );
   }
+  await assertNoSkillUpdateRecovery(context, skillPath.fsPath);
 
   // 所有者比較をメタデータ書き込み側と一致させるため、
   // index / token / ダウンロード先はフォルダ作成より前に解決する
@@ -2077,7 +2160,7 @@ async function reportInstallResult(
   );
 
   if (choice === retryInstall) {
-    return await installSkill(
+    return await installSkillCore(
       skill,
       options.workspaceUri,
       options.context,
@@ -2476,6 +2559,7 @@ export interface ManagedInstalledSkill {
 
 export async function getManagedInstalledSkillsWithMeta(
   workspaceUri: vscode.Uri,
+  options: { strict?: boolean } = {},
 ): Promise<ManagedInstalledSkill[]> {
   const roots = await getManagedSkillRoots(workspaceUri);
   const groupedSkills = await Promise.all(
@@ -2483,6 +2567,7 @@ export async function getManagedInstalledSkillsWithMeta(
       const metas = await getInstalledSkillsWithMeta(
         workspaceUri,
         root.rootUri,
+        options,
       );
       return metas.map((meta) => ({ root, meta }));
     }),
@@ -2606,12 +2691,17 @@ export async function findRootLevelSkillArtifacts(
 
 export async function refreshManagedSkillMetadata(
   workspaceUri: vscode.Uri,
+  options: { onFailure?: () => void } = {},
 ): Promise<number> {
   const roots = await getManagedSkillRoots(workspaceUri);
   let updatedCount = 0;
 
   for (const root of roots) {
-    updatedCount += await refreshSkillMetadata(workspaceUri, root.rootUri);
+    updatedCount += await refreshSkillMetadata(
+      workspaceUri,
+      root.rootUri,
+      options,
+    );
   }
 
   return updatedCount;
@@ -2633,6 +2723,7 @@ async function scanSkillsRecursively(
     skillMdPath: vscode.Uri;
   }>,
   depth: number = 0,
+  strict: boolean = false,
 ): Promise<void> {
   // 最大深度を制限（無限ループ防止）
   if (depth > 3) return;
@@ -2640,7 +2731,8 @@ async function scanSkillsRecursively(
   try {
     try {
       await vscode.workspace.fs.stat(currentPath);
-    } catch {
+    } catch (error) {
+      if (strict && !isFileNotFoundError(error)) throw error;
       return;
     }
 
@@ -2665,7 +2757,8 @@ async function scanSkillsRecursively(
       try {
         await vscode.workspace.fs.stat(skillMdPath);
         hasSkillMd = true;
-      } catch {
+      } catch (error) {
+        if (strict && !isFileNotFoundError(error)) throw error;
         // SKILL.md がない
       }
 
@@ -2686,9 +2779,11 @@ async function scanSkillsRecursively(
         subRelativePath,
         results,
         depth + 1,
+        strict,
       );
     }
-  } catch {
+  } catch (error) {
+    if (strict) throw error;
     // ディレクトリ読み取りエラー
   }
 }
@@ -2700,15 +2795,25 @@ async function scanSkillsRecursively(
 export async function refreshSkillMetadata(
   workspaceUri: vscode.Uri,
   skillsRootUri?: vscode.Uri,
+  options: { onFailure?: () => void } = {},
 ): Promise<number> {
   const skillsPath = resolveSkillsRootUri(workspaceUri, skillsRootUri);
-
   let updatedCount = 0;
+  const reportFailure = (relativePath?: string) => {
+    const target = relativePath
+      ? relativePath.replace(/\p{Cc}/gu, " ").slice(0, 120)
+      : "skill root";
+    console.warn(
+      `[Skill Ninja] Metadata refresh failed for ${target}; existing metadata was preserved.`,
+    );
+    options.onFailure?.();
+  };
 
   try {
     try {
       await vscode.workspace.fs.stat(skillsPath);
-    } catch {
+    } catch (error) {
+      if (!isFileNotFoundError(error)) reportFailure();
       return 0;
     }
 
@@ -2719,73 +2824,62 @@ export async function refreshSkillMetadata(
       metaPath: vscode.Uri;
       skillMdPath: vscode.Uri;
     }> = [];
-    await scanSkillsRecursively(skillsPath, skillsPath, "", skillEntries);
+    await scanSkillsRecursively(skillsPath, skillsPath, "", skillEntries, 0, true);
 
     for (const entry of skillEntries) {
       const { folderName, relativePath, metaPath, skillMdPath } = entry;
 
       try {
-        // 既存のメタデータを読み込む
-        const content = await vscode.workspace.fs.readFile(metaPath);
-        const meta = enrichSkillMeta(
-          JSON.parse(Buffer.from(content).toString("utf-8")) as SkillMeta,
-          relativePath,
+        const skillContent = Buffer.from(
+          await vscode.workspace.fs.readFile(skillMdPath),
         );
-
-        // SKILL.md から description と whenToUse を再抽出
-        const newDescription = await extractDescriptionFromSkillMd(skillMdPath);
-        const newWhenToUse = await extractWhenToUseFromSkillMd(skillMdPath);
-
-        let updated = false;
-
-        // description が変更された場合
-        if (newDescription && meta.description !== newDescription) {
-          meta.description = newDescription;
-          updated = true;
-        }
-
-        // whenToUse が変更された場合
-        // （customWhenToUse がある場合は whenToUse のみ更新、ユーザーのカスタム値は保持）
-        if (meta.whenToUse !== newWhenToUse) {
-          meta.whenToUse = newWhenToUse || undefined;
-          updated = true;
-        }
-
-        if (meta.metadataVersion !== 2) {
-          meta.metadataVersion = 2;
-          updated = true;
-        }
-
-        if (
-          syncStoredInvocation(
-            meta,
-            await readInvocationFromSkillMd(skillMdPath),
-          )
-        ) {
-          updated = true;
-        }
-
-        if (updated) {
-          // メタデータを保存
-          await vscode.workspace.fs.writeFile(
-            metaPath,
-            Buffer.from(JSON.stringify(meta, null, 2), "utf-8"),
-          );
-          updatedCount++;
-          console.log(`[Skill Ninja] Refreshed metadata for ${relativePath}`);
-        }
-      } catch {
-        // メタデータがない場合は新規作成。
-        // 走査はネストも見るが、新規作成は従来どおり直下のスキルに限る
-        if (relativePath.includes("/")) {
-          continue;
-        }
+        const skillText = skillContent.toString("utf-8");
+        let previous: Buffer | undefined;
         try {
-          const { name, description } =
-            await extractNameAndDescriptionFromSkillMd(skillMdPath, folderName);
-          const whenToUse = await extractWhenToUseFromSkillMd(skillMdPath);
+          previous = Buffer.from(await vscode.workspace.fs.readFile(metaPath));
+        } catch (error) {
+          if (!isFileNotFoundError(error)) throw error;
+        }
 
-          const newMeta: SkillMeta = {
+        let meta: SkillMeta;
+        let updated = false;
+        if (previous) {
+          const parsed = JSON.parse(previous.toString("utf-8")) as Partial<SkillMeta>;
+          if (
+            !parsed ||
+            typeof parsed !== "object" ||
+            Array.isArray(parsed) ||
+            typeof parsed.name !== "string"
+          ) {
+            throw new Error("Invalid skill metadata");
+          }
+          meta = enrichSkillMeta(parsed as SkillMeta, relativePath);
+          const newDescription = extractDescriptionFromSkillText(skillText);
+          const newWhenToUse = parseWhenToUseFromText(skillText);
+          if (newDescription && meta.description !== newDescription) {
+            meta.description = newDescription;
+            updated = true;
+          }
+          if (meta.whenToUse !== newWhenToUse) {
+            meta.whenToUse = newWhenToUse || undefined;
+            updated = true;
+          }
+          if (meta.metadataVersion !== 2) {
+            meta.metadataVersion = 2;
+            updated = true;
+          }
+          if (
+            syncStoredInvocation(meta, readSkillInvocationFromText(skillText))
+          ) {
+            updated = true;
+          }
+        } else {
+          // 新規作成は従来どおり直下のスキルに限る。
+          if (relativePath.includes("/")) continue;
+          const { name, description } =
+            extractNameAndDescriptionFromSkillText(skillText, folderName);
+          const whenToUse = parseWhenToUseFromText(skillText);
+          meta = enrichSkillMeta({
             name,
             source: FALLBACK_LOCAL_SOURCE,
             description,
@@ -2793,26 +2887,53 @@ export async function refreshSkillMetadata(
             categories: [],
             installedAt: new Date().toISOString(),
             relativePath,
-          };
+          }, relativePath);
+          updated = true;
+        }
 
+        if (updated) {
+          const skillDirectory = vscode.Uri.joinPath(skillsPath, relativePath);
+          if (
+            vscode.workspace.textDocuments?.some(
+              ({ isDirty, uri }) =>
+                isDirty &&
+                uri.scheme === skillDirectory.scheme &&
+                isContainedPath(skillDirectory.fsPath, uri.fsPath),
+            )
+          ) {
+            throw new Error("Unsaved skill edits");
+          }
+          const currentSkill = Buffer.from(
+            await vscode.workspace.fs.readFile(skillMdPath),
+          );
+          if (!currentSkill.equals(skillContent)) {
+            throw new Error("Skill changed during metadata refresh");
+          }
+          try {
+            const current = Buffer.from(
+              await vscode.workspace.fs.readFile(metaPath),
+            );
+            if (!previous || !current.equals(previous)) {
+              throw new Error("Metadata changed during refresh");
+            }
+          } catch (error) {
+            if (previous || !isFileNotFoundError(error)) throw error;
+          }
           await vscode.workspace.fs.writeFile(
             metaPath,
-            Buffer.from(
-              JSON.stringify(enrichSkillMeta(newMeta, relativePath), null, 2),
-              "utf-8",
-            ),
+            Buffer.from(JSON.stringify(meta, null, 2), "utf-8"),
           );
           updatedCount++;
           console.log(
-            `[Skill Ninja] Created metadata for ${relativePath}: ${whenToUse}`,
+            `[Skill Ninja] ${previous ? "Refreshed" : "Created"} metadata for ${relativePath}`,
           );
-        } catch {
-          // SKILL.md もない場合はスキップ
         }
+      } catch {
+        reportFailure(relativePath);
       }
     }
   } catch {
-    // skills ディレクトリがない場合は何もしない
+    reportFailure();
   }
 
   if (updatedCount > 0) {
@@ -2950,13 +3071,15 @@ function syncStoredInvocation(
 export async function getInstalledSkillsWithMeta(
   workspaceUri: vscode.Uri,
   skillsRootUri?: vscode.Uri,
+  options: { strict?: boolean } = {},
 ): Promise<SkillMeta[]> {
   const skillsPath = resolveSkillsRootUri(workspaceUri, skillsRootUri);
 
   try {
     try {
       await vscode.workspace.fs.stat(skillsPath);
-    } catch {
+    } catch (error) {
+      if (options.strict && !isFileNotFoundError(error)) throw error;
       return [];
     }
 
@@ -2967,7 +3090,14 @@ export async function getInstalledSkillsWithMeta(
       metaPath: vscode.Uri;
       skillMdPath: vscode.Uri;
     }> = [];
-    await scanSkillsRecursively(skillsPath, skillsPath, "", skillEntries);
+    await scanSkillsRecursively(
+      skillsPath,
+      skillsPath,
+      "",
+      skillEntries,
+      0,
+      options.strict,
+    );
 
     const metas: SkillMeta[] = [];
     for (const entry of skillEntries) {
@@ -2990,7 +3120,8 @@ export async function getInstalledSkillsWithMeta(
           delete meta.invocation;
         }
         metas.push(meta);
-      } catch {
+      } catch (error) {
+        if (options.strict && !isFileNotFoundError(error)) throw error;
         // メタデータがない場合は SKILL.md から name と description を読み取る
         const { name, description, license, author, version } =
           await extractMetadataFromSkillMd(entry.skillMdPath, entry.folderName);
@@ -3017,7 +3148,8 @@ export async function getInstalledSkillsWithMeta(
       }
     }
     return metas;
-  } catch {
+  } catch (error) {
+    if (options.strict) throw error;
     return [];
   }
 }
@@ -3027,58 +3159,42 @@ export async function getInstalledSkillsWithMeta(
  * frontmatter の name, description フィールドを読み取る
  * frontmatter がない場合は # ヘッダーから name を抽出
  */
-async function extractNameAndDescriptionFromSkillMd(
-  skillMdUri: vscode.Uri,
+function extractNameAndDescriptionFromSkillText(
+  text: string,
   fallbackName: string,
-): Promise<{ name: string; description: string }> {
-  try {
-    const content = await vscode.workspace.fs.readFile(skillMdUri);
-    const text = Buffer.from(content).toString("utf-8");
-    const normalizedText = normalizeNewlines(text);
-
-    // frontmatter を解析
-    const frontmatterMatch = normalizedText.match(/^---\n([\s\S]*?)\n---/);
-    if (frontmatterMatch) {
-      const frontmatter = frontmatterMatch[1];
-
-      // name フィールドを抽出
-      let name = fallbackName;
-      const nameMatch = frontmatter.match(/^name:\s*(.+)$/m);
-      if (nameMatch) {
-        name = nameMatch[1].trim().replace(/^["']|["']$/g, "");
-      }
-
-      // description を抽出
-      const description = extractDescriptionFromFrontmatter(frontmatter);
-
-      return { name, description };
+): { name: string; description: string } {
+  const normalizedText = normalizeNewlines(text);
+  const frontmatterMatch = normalizedText.match(/^---\n([\s\S]*?)\n---/);
+  if (frontmatterMatch) {
+    const frontmatter = frontmatterMatch[1];
+    let name = fallbackName;
+    const nameMatch = frontmatter.match(/^name:\s*(.+)$/m);
+    if (nameMatch) {
+      name = nameMatch[1].trim().replace(/^["']|["']$/g, "");
     }
 
-    // frontmatter がない場合は # ヘッダーから name を抽出
-    const headerMatch = normalizedText.match(/^#\s+(.+)$/m);
-    if (headerMatch) {
-      const name = headerMatch[1].trim();
-      // 2行目以降で説明文を探す（空行を除く）
-      const lines = normalizedText.split("\n").slice(1);
-      let description = "";
-      for (const line of lines) {
-        const trimmed = line.trim();
-        if (
-          trimmed &&
-          !trimmed.startsWith("#") &&
-          !trimmed.startsWith("Source:")
-        ) {
-          description = trimmed;
-          break;
-        }
-      }
-      return { name, description };
-    }
-
-    return { name: fallbackName, description: "" };
-  } catch {
-    return { name: fallbackName, description: "" };
+    return { name, description: extractDescriptionFromFrontmatter(frontmatter) };
   }
+
+  const headerMatch = normalizedText.match(/^#\s+(.+)$/m);
+  if (headerMatch) {
+    const name = headerMatch[1].trim();
+    const lines = normalizedText.split("\n").slice(1);
+    let description = "";
+    for (const line of lines) {
+      const trimmed = line.trim();
+      if (
+        trimmed &&
+        !trimmed.startsWith("#") &&
+        !trimmed.startsWith("Source:")
+      ) {
+        description = trimmed;
+        break;
+      }
+    }
+    return { name, description };
+  }
+  return { name: fallbackName, description: "" };
 }
 
 /**
@@ -3209,19 +3325,17 @@ async function extractDescriptionFromSkillMd(
 ): Promise<string> {
   try {
     const content = await vscode.workspace.fs.readFile(skillMdUri);
-    const text = Buffer.from(content).toString("utf-8");
-    const normalizedText = normalizeNewlines(text);
-
-    // frontmatter を解析
-    const frontmatterMatch = normalizedText.match(/^---\n([\s\S]*?)\n---/);
-    if (!frontmatterMatch) {
-      return "";
-    }
-
-    return extractDescriptionFromFrontmatter(frontmatterMatch[1]);
+    return extractDescriptionFromSkillText(Buffer.from(content).toString("utf-8"));
   } catch {
     return "";
   }
+}
+
+function extractDescriptionFromSkillText(text: string): string {
+  const frontmatterMatch = normalizeNewlines(text).match(/^---\n([\s\S]*?)\n---/);
+  return frontmatterMatch
+    ? extractDescriptionFromFrontmatter(frontmatterMatch[1])
+    : "";
 }
 
 /**

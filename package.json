@@ -2,7 +2,7 @@
   "name": "agent-skill-ninja",
   "displayName": "%displayName%",
   "description": "%description%",
-  "version": "0.9.64",
+  "version": "0.9.65",
   "publisher": "yamapan",
   "license": "CC-BY-NC-SA-4.0",
   "icon": "resources/icon.png",
@@ -604,6 +604,12 @@
         "title": "%command.updateRoot%",
         "category": "Agent Skills Ninja",
         "icon": "$(sync)"
+      },
+      {
+        "command": "skillNinja.reviewInterruptedUpdates",
+        "title": "%command.reviewInterruptedUpdates%",
+        "category": "Agent Skills Ninja",
+        "icon": "$(warning)"
       },
       {
         "command": "skillNinja.reinstallAll",

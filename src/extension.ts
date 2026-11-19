@@ -65,8 +65,19 @@ import {
 import { runBulkInstallPlan, type BulkAttemptResult } from "./bulkInstall";
 import { showBulkFailureActions } from "./bulkRetry";
 import { resolveReinstallEntries } from "./reinstallPlanner";
-import { registerSkillUpdateCommands } from "./skillUpdateCommands";
+import {
+  registerSkillUpdateCommands,
+  type SkillUpdateSummary,
+} from "./skillUpdateCommands";
 import { createSkillRevisionResolver } from "./skillUpdates";
+import {
+  assertNoSkillUpdateRecovery,
+  SkillUpdateRecoveryStoreError,
+} from "./skillUpdateRecovery";
+import {
+  notifyInterruptedSkillUpdates,
+  registerSkillRecoveryCommand,
+} from "./skillUpdateRecoveryCommands";
 import {
   BrowseSkillsProvider,
   getInvocationLabel,
@@ -234,6 +245,9 @@ import {
 const EXTENSION_VERSION =
   vscode.extensions.getExtension("yamapan.agent-skill-ninja")?.packageJSON
     ?.version || "0.0.0";
+const UPGRADE_METADATA_PENDING_KEY = "skillNinja.upgradeMetadataPending";
+const UPGRADE_METADATA_REMINDER_KEY =
+  "skillNinja.upgradeMetadataPendingReminderShown";
 
 // activation 時に保存し、deactivate で beacon をクリアするために使用。
 let activeContext: vscode.ExtensionContext | undefined;
@@ -386,6 +400,11 @@ async function installBulkItem(
 ): Promise<BulkAttemptResult> {
   try {
     if (allowUninstall && item.uninstallRelativePath) {
+      await assertNoSkillUpdateRecovery(
+        context,
+        resolveManagedSkillDirUri(item.root.rootUri, item.uninstallRelativePath)
+          .fsPath,
+      );
       await uninstallSkillByPath(
         item.uninstallRelativePath,
         workspaceUri,
@@ -411,6 +430,21 @@ async function installBulkItem(
     };
   } catch (error) {
     console.error(`Failed to install ${item.label}:`, error);
+    if (
+      error instanceof SkillUpdateRecoveryRequiredError ||
+      error instanceof SkillUpdateRecoveryStoreError
+    ) {
+      return {
+        status: "failed",
+        retryable: false,
+        failureKinds: [
+          error instanceof SkillUpdateRecoveryRequiredError
+            ? "recovery-required"
+            : "recovery-store",
+        ],
+        unsafeSkips: 0,
+      };
+    }
     const failures =
       error instanceof SkillInstallIncompleteError
         ? error.failures
@@ -545,23 +579,48 @@ async function showBulkInstallSummary(
     return;
   }
 
-  showBulkFailureActions(summaryText, outcomes, manualRetries, {
-    retryLabel: messages.retryFailedInstallsAction,
-    reportLabel: messages.actionReportBug(),
-    stoppedText: isJapanese()
-      ? "（再試行を停止しました。バグ報告から診断情報を確認できます）"
-      : " (retry stopped; report a bug to review diagnostics)",
-    showWarning: (message, ...actions) =>
-      vscode.window.showWarningMessage(message, ...actions),
-    retry: (items) =>
-      retryFailedBulkInstalls(items, context, workspaceUri, outcomes),
-    report: async (details) => {
-      await vscode.commands.executeCommand("skillNinja.reportBug", details);
+  const recoveryNeeded = outcomes.some((outcome) =>
+    outcome.failureKinds?.some(
+      (kind) => kind === "recovery-required" || kind === "recovery-store",
+    ),
+  );
+  const recoveryStoreUnavailable = outcomes.some((outcome) =>
+    outcome.failureKinds?.includes("recovery-store"),
+  );
+  showBulkFailureActions(
+    recoveryNeeded
+      ? `${summaryText} ${
+          recoveryStoreUnavailable
+            ? messages.recoveryStoreUnavailable()
+            : messages.updateRecoveryRequired()
+        }`
+      : summaryText,
+    outcomes,
+    manualRetries,
+    {
+      retryLabel: messages.retryFailedInstallsAction,
+      reportLabel: messages.actionReportBug(),
+      recoveryLabel: messages.recoveryReviewAction(),
+      stoppedText: isJapanese()
+        ? "（再試行を停止しました。バグ報告から診断情報を確認できます）"
+        : " (retry stopped; report a bug to review diagnostics)",
+      showWarning: (message, ...actions) =>
+        vscode.window.showWarningMessage(message, ...actions),
+      retry: (items) =>
+        retryFailedBulkInstalls(items, context, workspaceUri, outcomes),
+      report: async (details) => {
+        await vscode.commands.executeCommand("skillNinja.reportBug", details);
+      },
+      reviewRecovery: async () => {
+        await vscode.commands.executeCommand(
+          "skillNinja.reviewInterruptedUpdates",
+        );
+      },
+      onError: () => {
+        console.error("[Skill Ninja] Bulk failure action failed");
+      },
     },
-    onError: () => {
-      console.error("[Skill Ninja] Bulk failure action failed");
-    },
-  });
+  );
 }
 
 async function retryFailedBulkInstalls(
@@ -913,6 +972,35 @@ export function activate(
   const skillStateChannel = vscode.window.createOutputChannel(
     "Agent Skills Ninja: Skill State",
   );
+  const reportReinstallRecovery = (backupPath: string): void => {
+    skillStateChannel.appendLine(`[Reinstall recovery] ${backupPath}`);
+    const details = messages.actionShowDetails();
+    const review = messages.recoveryReviewAction();
+    void vscode.window
+      .showErrorMessage(messages.reinstallRecoveryRequired(), details, review)
+      .then((choice) => {
+        if (choice === details) {
+          skillStateChannel.show(true);
+        } else if (choice === review) {
+          void vscode.commands.executeCommand("skillNinja.reviewInterruptedUpdates");
+        }
+      });
+  };
+  const reportRecoveryStore = (error: SkillUpdateRecoveryStoreError): void => {
+    const review = messages.recoveryReviewAction();
+    void vscode.window
+      .showErrorMessage(
+        error.reason === "inside-root"
+          ? messages.recoveryStoreInsideRoot()
+          : messages.recoveryStoreUnavailable(),
+        review,
+      )
+      .then((choice) => {
+        if (choice === review) {
+          void vscode.commands.executeCommand("skillNinja.reviewInterruptedUpdates");
+        }
+      });
+  };
   const sourceIndexChannel = vscode.window.createOutputChannel(
     "Agent Skills Ninja: Source Index",
   );
@@ -920,7 +1008,9 @@ export function activate(
     coexistenceChannel,
     skillStateChannel,
     sourceIndexChannel,
+    registerSkillRecoveryCommand(context, skillStateChannel),
   );
+  void notifyInterruptedSkillUpdates(context, isContextActive);
 
   const outputWriteFeedback = createOutputWriteFeedback({
     log: (key, result) =>
@@ -1220,14 +1310,6 @@ export function activate(
   }
 
   void refreshViewRegistrationContext();
-
-  void checkVersionAndRefreshMetadata(
-    context,
-    workspaceFolder?.uri,
-    formatMigrated,
-  ).finally(() => {
-    void settleInitialSync();
-  });
 
   void notifyIncompleteSkillsOnce(context, workspaceFolder?.uri);
   void notifyRootLevelArtifactsOnce(context, workspaceFolder?.uri);
@@ -2540,34 +2622,54 @@ export function activate(
       .filter((entry) => shouldCheckManagedInstalledSkillAgainstIndex(entry));
   }
 
-  context.subscriptions.push(
-    ...registerSkillUpdateCommands({
-      context,
-      getRoots: getCurrentUpdateRoots,
-      getIndex: () => loadSkillIndex(context),
-      getToken: getGitHubToken,
-      getEntries: async (root, index) => {
-        const workspaceUri =
-          vscode.workspace.getWorkspaceFolder(root.rootUri)?.uri ??
-          root.rootUri;
-        const metas = await getInstalledSkillsWithMeta(
-          workspaceUri,
-          root.rootUri,
-        );
-        return metas.map((meta) => ({
-          workspaceUri,
-          meta,
-          skill: shouldCheckManagedInstalledSkillAgainstIndex({ root, meta })
-            ? findIndexedSkillForInstalledMeta(index.skills, meta)
-            : undefined,
-        }));
-      },
-      afterUpdate: async (roots) => {
-        await updateInstructionFilesForRoots(roots);
-        refreshAllViews();
-      },
-    }),
-  );
+  let upgradeStartup: Promise<void> | undefined;
+  const skillUpdateController = registerSkillUpdateCommands({
+    context,
+    getRoots: getCurrentUpdateRoots,
+    getUpgradeRoots: getManagedSkillRoots,
+    getIndex: () => loadSkillIndex(context),
+    getToken: getGitHubToken,
+    getEntries: async (root, index, options) => {
+      const workspaceUri =
+        vscode.workspace.getWorkspaceFolder(root.rootUri)?.uri ?? root.rootUri;
+      const metas = await getInstalledSkillsWithMeta(
+        workspaceUri,
+        root.rootUri,
+        options,
+      );
+      return metas.map((meta) => ({
+        workspaceUri,
+        meta,
+        skill: shouldCheckManagedInstalledSkillAgainstIndex({ root, meta })
+          ? findIndexedSkillForInstalledMeta(index.skills, meta)
+          : undefined,
+      }));
+    },
+    afterUpdate: async (roots) => {
+      await updateInstructionFilesForRoots(roots);
+      refreshAllViews();
+    },
+    onSuccessfulFullUpdate: async () => {
+      await upgradeStartup;
+      await resumePendingUpgradeMetadata(
+        context,
+        vscode.workspace.workspaceFolders?.[0]?.uri,
+      );
+    },
+  });
+  context.subscriptions.push(...skillUpdateController.disposables);
+  upgradeStartup = checkVersionAndRefreshMetadata(
+    context,
+    workspaceFolder?.uri,
+    formatMigrated,
+    skillUpdateController.updateOnUpgrade,
+  ).catch((error: unknown) => {
+    console.error("[Skill Ninja] Failed to start the upgrade check:", error);
+    void vscode.window.showWarningMessage(messages.updateUpgradeStartFailed());
+  });
+  void upgradeStartup.finally(() => {
+    void settleInitialSync();
+  });
 
   if (workspaceFolder) {
     cleanupStaleStoredInstructionPaths(workspaceFolder.uri).catch((err) => {
@@ -3085,7 +3187,7 @@ export function activate(
   createChatParticipant(context);
 
   // MCP Tools for Language Model API
-  registerMcpTools(context);
+  registerMcpTools(context, reportReinstallRecovery);
 
   // Command: Refresh
   const refreshCmd = vscode.commands.registerCommand(
@@ -3547,6 +3649,14 @@ export function activate(
         // 不完全インストールは installSkill 側で回復手段付きの通知済み
         if (error instanceof SkillInstallIncompleteError) {
           refreshAllViews();
+          return;
+        }
+        if (error instanceof SkillUpdateRecoveryRequiredError) {
+          reportReinstallRecovery(error.backupPath);
+          return;
+        }
+        if (error instanceof SkillUpdateRecoveryStoreError) {
+          reportRecoveryStore(error);
           return;
         }
         const errorMessage =
@@ -4232,18 +4342,12 @@ export function activate(
           return;
         }
         if (error instanceof SkillUpdateRecoveryRequiredError) {
-          skillStateChannel.appendLine(
-            `[Reinstall recovery] ${error.backupPath}`,
-          );
-          const details = messages.actionShowDetails();
-          void vscode.window
-            .showErrorMessage(messages.reinstallRecoveryRequired(), details)
-            .then((choice) => {
-              if (choice === details) {
-                skillStateChannel.show(true);
-              }
-            });
+          reportReinstallRecovery(error.backupPath);
           refreshAllViews();
+          return;
+        }
+        if (error instanceof SkillUpdateRecoveryStoreError) {
+          reportRecoveryStore(error);
           return;
         }
         skillStateChannel.appendLine(`[Reinstall] ${kind}`);
@@ -7000,7 +7104,12 @@ Add examples here
   const pendingUpdates = new Map<string, NodeJS.Timeout>();
 
   const handleSkillMdChange = async (uri: vscode.Uri) => {
-    if (!isContextActive()) {
+    if (
+      !isContextActive() ||
+      uri.fsPath
+        .split(/[\\/]/)
+        .some((segment) => segment.startsWith(".skill-update-"))
+    ) {
       return;
     }
 
@@ -7025,6 +7134,19 @@ Add examples here
           ? await findManagedRootForSkillFile(workspaceFolder.uri, uri)
           : undefined;
         if (!skillRoot) {
+          return;
+        }
+
+        try {
+          await assertNoSkillUpdateRecovery(context, path.dirname(uri.fsPath));
+        } catch (error) {
+          if (error instanceof SkillUpdateRecoveryRequiredError) {
+            return;
+          }
+          if (!(error instanceof SkillUpdateRecoveryStoreError)) {
+            console.error("[Skill Ninja] Failed to check skill recovery before metadata refresh");
+          }
+          void notifyInterruptedSkillUpdates(context, isContextActive);
           return;
         }
 
@@ -7105,15 +7227,98 @@ Add examples here
   return buildExtensionApi();
 }
 
+let upgradeMetadataRefreshing = false;
+
+async function refreshUpgradeMetadata(
+  context: vscode.ExtensionContext,
+  workspaceUri: vscode.Uri,
+  resumed: boolean,
+): Promise<void> {
+  if (upgradeMetadataRefreshing) return;
+  upgradeMetadataRefreshing = true;
+  try {
+    for (const root of await getManagedSkillRoots(workspaceUri)) {
+      if (root.rootUri.scheme === "file") {
+        await assertNoSkillUpdateRecovery(context, root.rootUri.fsPath);
+      }
+    }
+    let metadataRefreshFailed = false;
+    const updatedCount = await refreshManagedSkillMetadata(workspaceUri, {
+      onFailure: () => {
+        metadataRefreshFailed = true;
+      },
+    });
+
+    if (updatedCount > 0) {
+      console.log(`[Skill Ninja] Refreshed metadata for ${updatedCount} skills`);
+      const autoUpdate = vscode.workspace
+        .getConfiguration("skillNinja")
+        .get<boolean>("autoUpdateInstruction") ?? true;
+      if (autoUpdate && activeContext === context && !extensionShuttingDown) {
+        await updateAllInstructionFiles(workspaceUri, context);
+        console.log("[Skill Ninja] Instruction files updated");
+      }
+    }
+
+    if (metadataRefreshFailed) {
+      void vscode.window.showWarningMessage(messages.updateUpgradeMetadataFailed());
+      return;
+    }
+
+    await context.workspaceState.update(UPGRADE_METADATA_PENDING_KEY, undefined);
+    if (resumed) {
+      void vscode.window.showInformationMessage(
+        messages.updateUpgradeMetadataRetried(updatedCount),
+      );
+    } else if (updatedCount > 0) {
+      void vscode.window.showInformationMessage(
+        isJapanese()
+          ? `🥷 v${EXTENSION_VERSION} にアップデートしました。${updatedCount} 個のスキルのメタデータを更新しました。`
+          : `🥷 Updated to v${EXTENSION_VERSION}. Refreshed metadata for ${updatedCount} skill(s).`,
+      );
+    }
+  } catch (error) {
+    console.error("[Skill Ninja] Failed to refresh metadata:", error);
+    void vscode.window.showWarningMessage(messages.updateUpgradeMetadataFailed());
+  } finally {
+    upgradeMetadataRefreshing = false;
+  }
+}
+
+async function resumePendingUpgradeMetadata(
+  context: vscode.ExtensionContext,
+  workspaceUri: vscode.Uri | undefined,
+): Promise<void> {
+  if (activeContext !== context || extensionShuttingDown) {
+    return;
+  }
+  const pendingWorkspace = context.workspaceState.get<string>(
+    UPGRADE_METADATA_PENDING_KEY,
+  );
+  if (!pendingWorkspace) {
+    return;
+  }
+  if (!workspaceUri || pendingWorkspace !== workspaceUri.toString()) {
+    void vscode.window.showWarningMessage(
+      messages.updateUpgradeMetadataWorkspaceChanged(),
+    );
+    return;
+  }
+  await refreshUpgradeMetadata(context, workspaceUri, true);
+}
+
 /**
- * バージョンアップ時にメタデータを再抽出 & スキル自動更新
+ * バージョンアップ時にメタデータを再抽出 & スキルの差分を確認
  * 拡張機能のバージョンが変わった場合、インストール済みスキルの whenToUse を再抽出
- * オプションでスキルを自動再インストール
+ * 設定に応じて配布元の変更を確認し、承認後に更新
  */
 async function checkVersionAndRefreshMetadata(
   context: vscode.ExtensionContext,
   workspaceUri: vscode.Uri | undefined,
-  formatMigrated: boolean = false,
+  formatMigrated: boolean,
+  updateOnUpgrade: (
+    workspaceUri: vscode.Uri,
+  ) => Promise<SkillUpdateSummary | undefined>,
 ): Promise<void> {
   if (!workspaceUri) return;
 
@@ -7140,8 +7345,24 @@ async function checkVersionAndRefreshMetadata(
     }
   }
 
-  if (lastVersion === EXTENSION_VERSION) {
-    // バージョンが同じなら何もしない
+  const pendingWorkspace = context.workspaceState.get<string>(
+    UPGRADE_METADATA_PENDING_KEY,
+  );
+  const pendingWorkspaceChanged =
+    !!pendingWorkspace && pendingWorkspace !== workspaceUri.toString();
+  if (pendingWorkspaceChanged || lastVersion === EXTENSION_VERSION) {
+    if (pendingWorkspace) {
+      const reminder = pendingWorkspaceChanged ? "workspaceChanged" : "pending";
+      if (context.workspaceState.get<string>(UPGRADE_METADATA_REMINDER_KEY) === reminder) {
+        return;
+      }
+      await context.workspaceState.update(UPGRADE_METADATA_REMINDER_KEY, reminder);
+      void vscode.window.showWarningMessage(
+        pendingWorkspaceChanged
+          ? messages.updateUpgradeMetadataWorkspaceChanged()
+          : messages.updateUpgradeMetadataSkipped(),
+      );
+    }
     return;
   }
 
@@ -7149,75 +7370,55 @@ async function checkVersionAndRefreshMetadata(
     `[Skill Ninja] Version changed: ${lastVersion || "none"} → ${EXTENSION_VERSION}`,
   );
 
-  // バージョンを更新
-  await context.globalState.update(LAST_VERSION_KEY, EXTENSION_VERSION);
-
   // 初回起動（lastVersion がない）の場合はスキップ
   if (!lastVersion) {
+    await context.globalState.update(LAST_VERSION_KEY, EXTENSION_VERSION);
     console.log("[Skill Ninja] First activation, skipping metadata refresh");
     return;
   }
 
-  // インストール済みスキルを取得
-  const installedSkills = await getManagedInstalledSkillsWithMeta(workspaceUri);
-  const remoteSkillCount = installedSkills.filter((entry) =>
-    shouldAutoUpdateManagedInstalledSkillFromIndex(entry),
-  ).length;
+  await context.workspaceState.update(UPGRADE_METADATA_REMINDER_KEY, undefined);
+  await context.workspaceState.update(
+    UPGRADE_METADATA_PENDING_KEY,
+    workspaceUri.toString(),
+  );
+  await context.globalState.update(LAST_VERSION_KEY, EXTENSION_VERSION);
 
   // スキル自動更新設定を確認
   const config = vscode.workspace.getConfiguration("skillNinja");
   const autoUpdateSkills =
     config.get<string>("autoUpdateSkillsOnUpgrade") ?? "prompt";
 
-  if (remoteSkillCount > 0 && autoUpdateSkills !== "never") {
-    const shouldUpdate =
-      autoUpdateSkills === "always" ||
-      (await promptForSkillUpdate(remoteSkillCount));
-
-    if (shouldUpdate) {
-      try {
-        // 全スキルを再インストール
-        await vscode.commands.executeCommand("skillNinja.reinstallAll");
-        vscode.window.showInformationMessage(
-          isJapanese()
-            ? `🥷 v${EXTENSION_VERSION} にアップデートしました。${remoteSkillCount} 個のスキルを最新版に更新しました。`
-            : `🥷 Updated to v${EXTENSION_VERSION}. Updated ${remoteSkillCount} skill(s) to latest version.`,
-        );
-        await showRefFormatUpdateNotice(context);
-        await showFrozenOutputMigrationNotice(context);
-        return; // 再インストールしたのでメタデータ更新はスキップ
-      } catch (error) {
-        console.error("[Skill Ninja] Failed to reinstall skills:", error);
+  let metadataSafeToRefresh = true;
+  if (autoUpdateSkills !== "never") {
+    try {
+      const installedSkills = await getManagedInstalledSkillsWithMeta(
+        workspaceUri,
+        { strict: true },
+      );
+      if (
+        installedSkills.some((entry) =>
+          shouldAutoUpdateManagedInstalledSkillFromIndex(entry),
+        )
+      ) {
+        const result = await updateOnUpgrade(workspaceUri);
+        if (!result || result.checkFailed > 0 || result.updateFailed > 0) {
+          metadataSafeToRefresh = false;
+        }
       }
+    } catch {
+      metadataSafeToRefresh = false;
+      console.error("[Skill Ninja] Failed to check skill updates.");
+      void vscode.window.showWarningMessage(messages.updateUpgradeStartFailed());
     }
   }
 
-  // メタデータを再抽出（再インストールしなかった場合）
-  try {
-    const updatedCount = await refreshManagedSkillMetadata(workspaceUri);
-
-    if (updatedCount > 0) {
-      console.log(
-        `[Skill Ninja] Refreshed metadata for ${updatedCount} skills`,
-      );
-
-      // instruction ファイルを更新
-      const autoUpdate = config.get<boolean>("autoUpdateInstruction") ?? true;
-
-      if (autoUpdate && activeContext === context && !extensionShuttingDown) {
-        await updateAllInstructionFiles(workspaceUri, context);
-        console.log("[Skill Ninja] Instruction files updated");
-      }
-
-      // 通知
-      vscode.window.showInformationMessage(
-        isJapanese()
-          ? `🥷 v${EXTENSION_VERSION} にアップデートしました。${updatedCount} 個のスキルのメタデータを更新しました。`
-          : `🥷 Updated to v${EXTENSION_VERSION}. Refreshed metadata for ${updatedCount} skill(s).`,
-      );
-    }
-  } catch (error) {
-    console.error("[Skill Ninja] Failed to refresh metadata:", error);
+  if (metadataSafeToRefresh) {
+    await refreshUpgradeMetadata(context, workspaceUri, false);
+  } else {
+    void vscode.window.showWarningMessage(
+      messages.updateUpgradeMetadataSkipped(),
+    );
   }
 
   await showRefFormatUpdateNotice(context);
@@ -7305,24 +7506,6 @@ async function showRefFormatUpdateNotice(
       "skillNinja.outputFormat",
     );
   }
-}
-
-/**
- * スキル更新の確認ダイアログを表示
- */
-async function promptForSkillUpdate(skillCount: number): Promise<boolean> {
-  const message = isJapanese()
-    ? `🥷 拡張機能がアップデートされました。${skillCount} 個のリモートスキルを最新版に更新しますか？`
-    : `🥷 Extension updated. Update ${skillCount} remote skill(s) to latest version?`;
-
-  const result = await vscode.window.showInformationMessage(
-    message,
-    { modal: false },
-    isJapanese() ? "更新する" : "Update",
-    isJapanese() ? "スキップ" : "Skip",
-  );
-
-  return result === (isJapanese() ? "更新する" : "Update");
 }
 
 const INCOMPLETE_SKILL_SCAN_STATE_KEY = "skillNinja.incompleteSkillScanDone";

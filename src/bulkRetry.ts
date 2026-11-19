@@ -14,6 +14,8 @@ const failureKinds = new Set([
   "filesystem",
   "cancelled",
   "unknown",
+  "recovery-required",
+  "recovery-store",
 ]);
 
 export function formatBulkFailureDetails<TItem>(
@@ -53,6 +55,7 @@ export function showBulkFailureActions<TItem>(
   deps: {
     retryLabel(count: number): string;
     reportLabel: string;
+    recoveryLabel?: string;
     stoppedText: string;
     showWarning(
       message: string,
@@ -60,6 +63,7 @@ export function showBulkFailureActions<TItem>(
     ): Thenable<string | undefined>;
     retry(items: TItem[]): Promise<void>;
     report(details: string): Promise<void>;
+    reviewRecovery?(): Promise<void>;
     onError(): void;
   },
 ): void {
@@ -78,12 +82,20 @@ export function showBulkFailureActions<TItem>(
         )
       : [];
   const retryLabel = deps.retryLabel(retryable.length);
+  const hasRecovery = outcomes.some((outcome) =>
+    outcome.failureKinds?.some(
+      (kind) => kind === "recovery-required" || kind === "recovery-store",
+    ),
+  );
   const actions = retryable.length
     ? [retryLabel, deps.reportLabel]
     : [deps.reportLabel];
+  if (hasRecovery && deps.recoveryLabel && deps.reviewRecovery) {
+    actions.push(deps.recoveryLabel);
+  }
   void deps
     .showWarning(
-      retryable.length || rateLimitReached
+      retryable.length || rateLimitReached || hasRecovery
         ? summary
         : `${summary}${deps.stoppedText}`,
       ...actions,
@@ -93,6 +105,8 @@ export function showBulkFailureActions<TItem>(
         await deps.report(formatBulkFailureDetails(outcomes, manualRetries));
       } else if (retryable.length && choice === retryLabel) {
         await deps.retry(retryable.map((outcome) => outcome.item));
+      } else if (hasRecovery && choice === deps.recoveryLabel) {
+        await deps.reviewRecovery?.();
       }
     })
     .then(undefined, deps.onError);

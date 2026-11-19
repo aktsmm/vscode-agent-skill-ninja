@@ -13,6 +13,7 @@ const source = ts.createSourceFile(
   true,
 );
 const matches = [];
+const recoveryReporters = [];
 (function visit(node) {
   if (
     ts.isCallExpression(node) &&
@@ -22,14 +23,22 @@ const matches = [];
   ) {
     matches.push(node.getText(source));
   }
+  if (
+    ts.isVariableDeclaration(node) &&
+    ts.isIdentifier(node.name) &&
+    node.name.text === "reportReinstallRecovery"
+  ) {
+    recoveryReporters.push(node.getText(source));
+  }
   ts.forEachChild(node, visit);
 })(source);
 assert.equal(matches.length, 1, "exactly one skillNinja.reinstall registration");
+assert.equal(recoveryReporters.length, 1, "exactly one recovery reporter");
 assert.ok(
   !matches[0].includes("uninstallSkillByPath"),
   "the single reinstall must not delete the installed copy before the new one is verified",
 );
-const executable = ts.transpileModule(matches[0], {
+const executable = ts.transpileModule(`const ${recoveryReporters[0]};\n${matches[0]}`, {
   compilerOptions: {
     target: ts.ScriptTarget.ES2022,
     module: ts.ModuleKind.CommonJS,
@@ -91,6 +100,7 @@ async function run({
   confirm = true,
   install,
   autoUpdate = true,
+  showDetails = false,
 } = {}) {
   const calls = {
     install: [],
@@ -98,6 +108,7 @@ async function run({
     errors: [],
     infos: [],
     channel: [],
+    channelShown: 0,
     output: 0,
     refresh: 0,
   };
@@ -120,7 +131,7 @@ async function run({
     window: {
       showErrorMessage: (message, ...buttons) => {
         calls.errors.push({ message, buttons });
-        return Promise.resolve(undefined);
+        return Promise.resolve(showDetails ? buttons[0] : undefined);
       },
       showInformationMessage: (message) => {
         calls.infos.push(message);
@@ -172,9 +183,11 @@ async function run({
       error?.name === "AbortError" ? "cancelled" : "other",
     SkillUpdateConflictError: ConflictError,
     SkillUpdateRecoveryRequiredError: RecoveryRequiredError,
+    SkillUpdateRecoveryStoreError: class extends Error {},
+    reportRecoveryStore: () => {},
     skillStateChannel: {
       appendLine: (line) => calls.channel.push(line),
-      show() {},
+      show: () => calls.channelShown++,
     },
     updateInstructionFileForRoot: async () => {
       calls.output++;
@@ -251,10 +264,20 @@ async function main() {
     recovery.errors[0].message,
     recovery.messages.reinstallRecoveryRequired(),
   );
-  assert.deepEqual(recovery.errors[0].buttons, [recovery.messages.actionShowDetails()]);
+  assert.deepEqual(recovery.errors[0].buttons, [
+    recovery.messages.actionShowDetails(),
+    recovery.messages.recoveryReviewAction(),
+  ]);
   assert.ok(recovery.channel.some((line) => line.includes("/skills/.skill-update-x/backup")));
   assert.equal(recovery.refresh, 1);
   assert.deepEqual(recovery.infos, []);
+  const recoveryDetails = await run({
+    showDetails: true,
+    install: async () => {
+      throw new RecoveryRequiredError("/skills/.skill-update-x/backup");
+    },
+  });
+  assert.equal(recoveryDetails.channelShown, 1);
 
   const legacy = await run({
     metas: [{ ...demoMeta, remotePath: undefined }],

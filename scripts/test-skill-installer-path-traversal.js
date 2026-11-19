@@ -284,6 +284,12 @@ function loadInstaller({
           resolveWorkspaceSkillsRootUri: (workspaceUri) => workspaceUri,
         };
       }
+      if (request === "./skillUpdateRecovery") {
+        return {
+          assertNoSkillUpdateRecovery: async () => {},
+          canonicalPath: async (target) => path.resolve(target),
+        };
+      }
       if (request === "./skillUpdates") {
         return {
           createSkillRevisionResolver: () => async () => {

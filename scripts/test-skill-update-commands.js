@@ -77,6 +77,8 @@ async function scenario({
   retryFlow,
   partialKinds,
   cancelInstall,
+  cancelRecovery,
+  cancelFailure,
   cancelCheck,
   cancelEntries,
   language = "auto",
@@ -98,6 +100,14 @@ async function scenario({
   item = { skillRoot: root },
   all = false,
   roots = [root],
+  upgradeRoots = roots,
+  upgrade = false,
+  entriesByRoot,
+  failEntriesRoot,
+  recoveryTarget,
+  recoveryStoreFailure,
+  cancelRecoveryCheck,
+  reviewRecovery = false,
 }) {
   const commands = new Map();
   const installed = [];
@@ -128,6 +138,7 @@ async function scenario({
   let requests = 0;
   let rootReads = 0;
   let tokenReads = 0;
+  let successfulFullChecks = 0;
   const vscode = {
     env: { language: envLanguage },
     FileSystemError,
@@ -209,6 +220,10 @@ async function scenario({
                   ["Report Bug", "バグ報告"].includes(label),
                 ),
               )
+            : reviewRecovery
+              ? Promise.resolve(
+                  [options, ...choices].find((label) => label === "Review Recovery"),
+                )
             : renameChoice === "install" || renameChoice === "decline"
               ? Promise.resolve(
                   [options, ...choices].find(
@@ -243,11 +258,20 @@ async function scenario({
         ),
     },
   };
+  class RecoveryStoreError extends Error {}
   const controller = load("skillUpdateCommands", {
     vscode,
     "./i18n": load("i18n", { vscode }),
     "./githubResponse": githubResponse,
     "./installedSkillIndex": load("installedSkillIndex", {}),
+    "./skillUpdateRecovery": {
+      SkillUpdateRecoveryStoreError: RecoveryStoreError,
+      assertNoSkillUpdateRecovery: async (_, target) => {
+        if (cancelRecoveryCheck) cancel();
+        if (recoveryStoreFailure) throw new RecoveryStoreError();
+        if (target === recoveryTarget) throw new RecoveryRequired();
+      },
+    },
     "./treeProvider": {
       resolveCurrentSkillRoot: (item, current) => {
         const previous = item?.skillRoot || item?.skill?.root;
@@ -316,7 +340,11 @@ async function scenario({
         return { status: renameInstallStatus };
       },
       classifySkillInstallFailure: (error) =>
-        githubResponse.isGitHubResponseError(error) ? error.kind : "unknown",
+        error?.name === "AbortError"
+          ? "cancelled"
+          : githubResponse.isGitHubResponseError(error)
+            ? error.kind
+            : "unknown",
       resolveManagedSkillDirUri: (rootUri, relative) =>
         uri(path.join(rootUri.fsPath, relative)),
       resolveSkillFolderName: (skill) =>
@@ -351,7 +379,13 @@ async function scenario({
         }
         if (cancelInstall) {
           cancel();
-          throw Error("cancelled");
+          throw Object.assign(Error("cancelled"), { name: "AbortError" });
+        }
+        if (cancelRecovery || cancelFailure) {
+          cancel();
+          throw cancelRecovery
+            ? new RecoveryRequired()
+            : Error("private-name ghp_secret C:\\private");
         }
         if (fail) {
           throw Error("private-name ghp_secret C:\\private");
@@ -360,14 +394,17 @@ async function scenario({
       },
     },
   });
-  const disposables = controller.registerSkillUpdateCommands({
+  const registered = controller.registerSkillUpdateCommands({
     context: { subscriptions: [] },
     getRoots: async () => (disappear && rootReads++ > 0 ? [] : roots),
+    getUpgradeRoots: async () => upgradeRoots,
     getIndex: async () => ({ sources: indexSources }),
-    getEntries: async (installRoot) => {
+    getEntries: async (installRoot, _index, options) => {
+      if (upgrade) assert.strictEqual(options.strict, true);
       if (cancelEntries) cancel();
+      if (installRoot.rootPath === failEntriesRoot) throw new Error("denied");
       if (retryFlow?.getEntries) return retryFlow.getEntries(installRoot, retrySelected);
-      return entries;
+      return entriesByRoot ? entriesByRoot[installRoot.rootPath] || [] : entries;
     },
     getToken: async () => {
       tokenReads++;
@@ -377,11 +414,16 @@ async function scenario({
       refreshed.push(...changedRoots);
       if (failRefresh) throw Error("private-name ghp_secret C:\\private");
     },
+    onSuccessfulFullUpdate: async () => {
+      successfulFullChecks++;
+    },
   });
-  assert.strictEqual(disposables.length, 2);
-  const summary = await commands.get(
-    all ? "skillNinja.updateAll" : "skillNinja.updateRoot",
-  )(item);
+  assert.strictEqual(registered.disposables.length, 2);
+  const summary = upgrade
+    ? await registered.updateOnUpgrade(uri("/workspace"))
+    : await commands.get(
+        all ? "skillNinja.updateAll" : "skillNinja.updateRoot",
+      )(item);
   return {
     summary,
     progressMessages,
@@ -393,6 +435,7 @@ async function scenario({
     messages,
     requests,
     tokenReads,
+    successfulFullChecks,
     executed,
     notifications,
     output,
@@ -520,6 +563,39 @@ async function main() {
   });
   assert.strictEqual(unindexedCurrent.summary.unchanged, 1);
   assert.strictEqual(unindexedCurrent.summary.deferred, 0);
+  for (const indexed of [true, false]) {
+    const recovering = entry("recovering");
+    if (!indexed) recovering.skill = undefined;
+    const blocked = await scenario({
+      entries: [recovering],
+      indexSources: [{ id: "source", url: "https://github.com/owner/repo" }],
+      recoveryTarget: path.join(root.rootPath, "recovering"),
+      reviewRecovery: true,
+    });
+    assert.strictEqual(blocked.summary.unchanged, 0);
+    assert.strictEqual(blocked.summary.checkFailed, 1);
+    assert.strictEqual(blocked.installed.length, 0);
+    assert.ok(blocked.notifications.some(({ message }) => /recovery/i.test(message)));
+    assert.ok(blocked.notifications.some(({ options, choices }) =>
+      [options, ...choices].includes("Review Recovery"),
+    ));
+    await new Promise((resolve) => setImmediate(resolve));
+    assert.ok(blocked.executed.some(([command]) =>
+      command === "skillNinja.reviewInterruptedUpdates",
+    ));
+  }
+  const unavailableRecovery = await scenario({
+    entries: [entry("demo")],
+    recoveryStoreFailure: true,
+  });
+  assert.strictEqual(unavailableRecovery.summary.checkFailed, 1);
+  assert.strictEqual(unavailableRecovery.summary.unchanged, 0);
+  const cancelledRecoveryCheck = await scenario({
+    entries: [entry("demo")],
+    cancelRecoveryCheck: true,
+  });
+  assert.strictEqual(cancelledRecoveryCheck.summary.cancelled, true);
+  assert.strictEqual(cancelledRecoveryCheck.summary.unchanged, 0);
   assert.strictEqual(unindexedCurrent.renameChecks.count, 0);
   const changedUnindexed = entry("new-name");
   changedUnindexed.meta.sourceRevision.contentSha = "d".repeat(40);
@@ -1025,12 +1101,103 @@ async function main() {
   assert.strictEqual(result.installed[0][5].commitSha, revision.commitSha);
   assert.strictEqual(result.summary.deferred, 1);
   assert.strictEqual(result.refreshed.length, 1);
+  const globalRoot = {
+    ...root,
+    scope: "userGlobal",
+    rootPath: "/global",
+    rootUri: uri("/global"),
+  };
+  const otherRoot = {
+    ...root,
+    rootPath: "/other-workspace",
+    rootUri: uri("/other-workspace"),
+  };
+  const changedGlobal = entry("changed-global");
+  changedGlobal.meta.sourceRevision.contentSha = "d".repeat(40);
+  const changedOther = entry("changed-other");
+  changedOther.meta.sourceRevision.contentSha = "d".repeat(40);
+  const legacy = entry("legacy", false);
+  const unchanged = entry("unchanged");
+  const upgradeEntries = [changed, changedGlobal, changedOther, legacy, unchanged];
+  const upgradeOptions = {
+    entries: upgradeEntries,
+    roots: [root, globalRoot, otherRoot],
+    upgradeRoots: [root, globalRoot],
+    entriesByRoot: {
+      [root.rootPath]: [changed, legacy, unchanged],
+      [globalRoot.rootPath]: [changedGlobal],
+      [otherRoot.rootPath]: [changedOther],
+    },
+    upgrade: true,
+    choice: "legacy",
+  };
+  const upgraded = await scenario(upgradeOptions);
+  assert.deepStrictEqual(
+    upgraded.installed.map((args) => args[4].name),
+    ["changed", "changed-global"],
+  );
+  assert.strictEqual(upgraded.summary.untracked, 1);
+  assert.strictEqual(upgraded.summary.unchanged, 1);
+  const upgradeDialog = upgraded.notifications.find((item) => item.options?.modal);
+  assert.strictEqual(upgradeDialog.choices.length, 1);
+  assert.ok(upgradeDialog.message.includes("2 skills changed upstream"));
+  assert.ok(upgradeDialog.message.includes("1 skills without a comparison baseline"));
+  const upgradeCancelled = await scenario({ ...upgradeOptions, choice: "cancel" });
+  assert.strictEqual(upgradeCancelled.summary.cancelled, true);
+  assert.strictEqual(upgradeCancelled.installed.length, 0);
+  const upgradeNoChange = await scenario({
+    entries: [legacy, unchanged],
+    upgrade: true,
+  });
+  assert.strictEqual(upgradeNoChange.installed.length, 0);
+  assert.strictEqual(upgradeNoChange.summary.unchanged, 1);
+  assert.strictEqual(upgradeNoChange.summary.untracked, 1);
+  assert.ok(!upgradeNoChange.notifications.some((item) => item.options?.modal));
+  const upgradeFailed = await scenario({
+    entries: [changed],
+    upgrade: true,
+    failCheck: true,
+  });
+  assert.strictEqual(upgradeFailed.summary.checkFailed, 1);
+  assert.strictEqual(upgradeFailed.summary.unchanged, 0);
+  assert.strictEqual(upgradeFailed.installed.length, 0);
+  const upgradeScanFailed = await scenario({
+    ...upgradeOptions,
+    failEntriesRoot: root.rootPath,
+  });
+  assert.strictEqual(upgradeScanFailed.summary.checkFailed, 1);
+  assert.deepStrictEqual(
+    upgradeScanFailed.installed.map((args) => args[4].name),
+    ["changed-global"],
+  );
+  const upgradeRootMissing = await scenario({
+    ...upgradeOptions,
+    roots: [root],
+  });
+  assert.strictEqual(upgradeRootMissing.summary.checkFailed, 1);
+  assert.deepStrictEqual(
+    upgradeRootMissing.installed.map((args) => args[4].name),
+    ["changed"],
+  );
   result = await scenario({
     entries: [entry("legacy", false)],
     choice: "legacy",
     all: true,
   });
   assert.strictEqual(result.summary.synchronized, 1);
+  assert.strictEqual(result.successfulFullChecks, 1);
+  const cancelledFullCheck = await scenario({
+    entries: [changed],
+    choice: "cancel",
+    all: true,
+  });
+  assert.strictEqual(cancelledFullCheck.successfulFullChecks, 0);
+  const failedFullCheck = await scenario({
+    entries: [changed],
+    failCheck: true,
+    all: true,
+  });
+  assert.strictEqual(failedFullCheck.successfulFullChecks, 0);
   result = await scenario({ entries: [changed], choice: "cancel" });
   assert.strictEqual(result.summary.cancelled, true);
   assert.strictEqual(result.installed.length, 0);
@@ -1046,6 +1213,29 @@ async function main() {
   assert.strictEqual(result.installed.length, 0);
   result = await scenario({ entries: [changed], cancelInstall: true });
   assert.strictEqual(result.summary.cancelled, true);
+  assert.strictEqual(result.summary.updateFailed, 0);
+  const cancelledRecovery = await scenario({
+    entries: [changed, changedGlobal],
+    upgrade: true,
+    cancelRecovery: true,
+    showDetails: true,
+  });
+  assert.strictEqual(cancelledRecovery.summary.cancelled, true);
+  assert.strictEqual(cancelledRecovery.summary.updateFailed, 1);
+  assert.strictEqual(cancelledRecovery.summary.deferred, 1);
+  assert.strictEqual(cancelledRecovery.installed.length, 1);
+  assert.ok(cancelledRecovery.output.lines.includes("/retained/backup"));
+  assert.ok(cancelledRecovery.output.shown);
+  assert.ok(!JSON.stringify(cancelledRecovery.messages).includes("/retained/backup"));
+  assert.strictEqual(cancelledRecovery.hasRetry, false);
+  const cancelledFailure = await scenario({
+    entries: [changed],
+    upgrade: true,
+    cancelFailure: true,
+  });
+  assert.strictEqual(cancelledFailure.summary.cancelled, true);
+  assert.strictEqual(cancelledFailure.summary.updateFailed, 1);
+  assert.strictEqual(cancelledFailure.summary.deferred, 0);
   assert.strictEqual(result.summary.updateFailed, 0);
   result = await scenario({ entries: [changed], item: {} });
   assert.strictEqual(result.installed.length, 0);

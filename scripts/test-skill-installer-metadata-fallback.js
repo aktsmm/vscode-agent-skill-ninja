@@ -73,7 +73,7 @@ class FsBackedFs {
   }
 }
 
-function loadModule() {
+function loadModule(fsImpl = new FsBackedFs(), textDocuments = []) {
   const moduleExports = {};
   const vscodeStub = {
     FileType,
@@ -82,7 +82,8 @@ function loadModule() {
       joinPath,
     },
     workspace: {
-      fs: new FsBackedFs(),
+      fs: fsImpl,
+      textDocuments,
       getConfiguration() {
         return {
           get(_key, defaultValue) {
@@ -214,6 +215,57 @@ async function main() {
   }
 
   {
+    const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "skill-strict-scan-"));
+    try {
+      writeSkill(tmp, "local", "Local skill");
+      const strict = { strict: true };
+      const local = await getInstalledSkillsWithMeta(
+        makeUri(tmp),
+        makeUri(tmp),
+        strict,
+      );
+      assert.strictEqual(local.length, 1);
+      assert.strictEqual(local[0].source, "local");
+      const missing = await getInstalledSkillsWithMeta(
+        makeUri(tmp),
+        makeUri(path.join(tmp, "missing")),
+        strict,
+      );
+      assert.strictEqual(missing.length, 0);
+
+      fs.writeFileSync(path.join(tmp, "local", ".skill-meta.json"), "{bad");
+      await assert.rejects(
+        getInstalledSkillsWithMeta(makeUri(tmp), makeUri(tmp), strict),
+        /JSON|property name|Unexpected/i,
+      );
+      const fallback = await getInstalledSkillsWithMeta(
+        makeUri(tmp),
+        makeUri(tmp),
+      );
+      assert.strictEqual(fallback[0].source, "local");
+
+      class DeniedFs extends FsBackedFs {
+        async readDirectory(uri) {
+          if (uri.fsPath === path.join(tmp, "local")) {
+            const error = new Error("access denied");
+            error.code = "EACCES";
+            throw error;
+          }
+          return super.readDirectory(uri);
+        }
+      }
+      const denied = loadModule(new DeniedFs());
+      await assert.rejects(
+        denied.getInstalledSkillsWithMeta(makeUri(tmp), makeUri(tmp), strict),
+        /access denied/,
+      );
+      console.log("PASS strict installed-skill scan reports errors and permits absent files");
+    } finally {
+      fs.rmSync(tmp, { recursive: true, force: true });
+    }
+  }
+
+  {
     const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "skill-refresh-"));
     try {
       writeSkill(tmp, "expense-report", "Create expense reports");
@@ -233,6 +285,93 @@ async function main() {
       assert.strictEqual(meta.source, "local");
       assert.strictEqual(meta.name, "expense-report");
       console.log("PASS refreshSkillMetadata creates local source metadata");
+    } finally {
+      fs.rmSync(tmp, { recursive: true, force: true });
+    }
+  }
+
+  {
+    const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "skill-refresh-errors-"));
+    try {
+      writeSkill(tmp, "demo", "New description");
+      const metaPath = path.join(tmp, "demo", ".skill-meta.json");
+      const skillPath = path.join(tmp, "demo", "SKILL.md");
+      const original = JSON.stringify({
+        name: "demo",
+        source: "remote",
+        remotePath: "skills/demo",
+        description: "Old description",
+        whenToUse: "Keep this",
+        customWhenToUse: "User edit",
+        categories: [],
+        installedAt: "",
+      });
+      const refresh = async (module) => {
+        let failures = 0;
+        const updated = await module.refreshSkillMetadata(
+          makeUri(tmp),
+          makeUri(tmp),
+          { onFailure: () => failures++ },
+        );
+        assert.strictEqual(updated, 0);
+        assert.strictEqual(failures, 1);
+      };
+
+      fs.writeFileSync(metaPath, "{bad");
+      await refresh(loadModule());
+      assert.strictEqual(fs.readFileSync(metaPath, "utf8"), "{bad");
+
+      fs.writeFileSync(metaPath, original);
+      class DeniedMetadata extends FsBackedFs {
+        async readFile(uri) {
+          if (uri.fsPath === metaPath) {
+            throw Object.assign(new Error("denied"), { code: "EACCES" });
+          }
+          return super.readFile(uri);
+        }
+      }
+      await refresh(loadModule(new DeniedMetadata()));
+      assert.strictEqual(fs.readFileSync(metaPath, "utf8"), original);
+
+      class DeniedSkill extends FsBackedFs {
+        async readFile(uri) {
+          if (uri.fsPath === skillPath) {
+            throw Object.assign(new Error("denied"), { code: "EACCES" });
+          }
+          return super.readFile(uri);
+        }
+      }
+      await refresh(loadModule(new DeniedSkill()));
+      assert.strictEqual(fs.readFileSync(metaPath, "utf8"), original);
+
+      const changed = JSON.stringify({
+        ...JSON.parse(original),
+        customWhenToUse: "Changed during refresh",
+      });
+      class ConcurrentEdit extends FsBackedFs {
+        edited = false;
+        async readFile(uri) {
+          const value = await super.readFile(uri);
+          if (uri.fsPath === metaPath && !this.edited) {
+            this.edited = true;
+            fs.writeFileSync(metaPath, changed);
+          }
+          return value;
+        }
+      }
+      await refresh(loadModule(new ConcurrentEdit()));
+      assert.strictEqual(fs.readFileSync(metaPath, "utf8"), changed);
+
+      fs.writeFileSync(metaPath, original);
+      await refresh(
+        loadModule(new FsBackedFs(), [{ isDirty: true, uri: makeUri(metaPath) }]),
+      );
+      assert.strictEqual(fs.readFileSync(metaPath, "utf8"), original);
+
+      fs.unlinkSync(metaPath);
+      await refresh(loadModule(new DeniedSkill()));
+      assert.strictEqual(fs.existsSync(metaPath), false);
+      console.log("PASS metadata refresh preserves unreadable, invalid, dirty and concurrently edited files");
     } finally {
       fs.rmSync(tmp, { recursive: true, force: true });
     }

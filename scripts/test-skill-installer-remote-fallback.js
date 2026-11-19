@@ -407,7 +407,7 @@ async function main() {
           "https://raw.githubusercontent.com/aktsmm/Agent-Skills/master/local-media-transcription/SKILL.md",
       },
       makeUri(tmp),
-      {},
+      { globalStorageUri: makeUri(path.join(tmp, "storage")) },
     );
 
     const skillMdPath = path.join(tmp, "local-media-transcription", "SKILL.md");
@@ -433,7 +433,7 @@ async function main() {
     await managedInstaller.installSkill(
       managedSkill,
       makeUri(tmp),
-      {},
+      { globalStorageUri: makeUri(path.join(tmp, "storage")) },
       managedRoot,
     );
     const managedIgnorePath = path.join(managedRootPath, ".gitignore");
@@ -456,7 +456,7 @@ async function main() {
     await managedInstaller.installSkill(
       managedSkill,
       makeUri(tmp),
-      {},
+      { globalStorageUri: makeUri(path.join(tmp, "storage")) },
       managedRoot,
     );
     assert(
@@ -499,7 +499,7 @@ async function main() {
           "https://raw.githubusercontent.com/MicrosoftDocs/Agent-Skills/main/skills/microsoft-foundry/SKILL.md",
       },
       makeUri(tmp),
-      {},
+      { globalStorageUri: makeUri(path.join(tmp, "storage")) },
     );
 
     assert.strictEqual(
@@ -553,7 +553,7 @@ async function main() {
           description: "A skill whose download target cannot be resolved",
         },
         makeUri(tmp),
-        {},
+        { globalStorageUri: makeUri(path.join(tmp, "storage")) },
       ),
       (error) => error.name === "SkillInstallIncompleteError",
       "a placeholder-only install must not be reported as success",
@@ -590,7 +590,7 @@ async function main() {
           description: "A skill installed as part of a bulk operation",
         },
         makeUri(tmp),
-        {},
+        { globalStorageUri: makeUri(path.join(tmp, "storage")) },
         undefined,
         { interactive: false },
       ),
@@ -671,7 +671,7 @@ async function main() {
           description: "Private demo skill",
         },
         makeUri(tmp),
-        {},
+        { globalStorageUri: makeUri(path.join(tmp, "storage")) },
       ),
       /Skill not found: private-demo/,
     );
@@ -714,7 +714,7 @@ async function main() {
           description: "Private demo skill",
         },
         makeUri(tmp),
-        {},
+        { globalStorageUri: makeUri(path.join(tmp, "storage")) },
       ),
       /Skill not found: private-demo/,
     );
@@ -752,7 +752,7 @@ async function main() {
           description: "Private demo skill",
         },
         makeUri(tmp),
-        {},
+        { globalStorageUri: makeUri(path.join(tmp, "storage")) },
       ),
       /Skill not found: private-demo/,
     );

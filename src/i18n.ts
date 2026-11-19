@@ -374,7 +374,7 @@ const jaMessages = {
   reinstallLocalConflict:
     "スキルの内容が変わったか未保存の編集があるため、再インストールを中止しました。変更を確認してからやり直してください。",
   reinstallRecoveryRequired:
-    "再インストール前の状態に戻せませんでした。バックアップは保持されています。再試行の前に詳細を確認してください。",
+    "スキル更新の状態を確認する必要があります。再試行の前に復旧の詳細を確認してください。",
   reinstallFailed:
     "再インストールできませんでした（{0}）。以前のバージョンは置き換えていません。",
   updateReinstallFailedAction: "失敗分を再インストール",
@@ -383,10 +383,49 @@ const jaMessages = {
   updateRetryTargetChanged:
     "インストール済みスキル、配布元、またはルートが変わったため再インストールを保留",
   updateRetryMoreTargets: "…ほか {0} 件",
+  updateUpgradeConfirm:
+    "配布元が変更されたスキル {0} 件を更新しますか？ローカル編集が上書きされる可能性があります。比較情報のない {1} 件は保留します。",
+  updateUpgradeLegacyHeld:
+    "比較情報なし。手動の「全管理ルートの変更されたスキルを更新」から初回同期を選択できます",
+  updateUpgradeStartFailed:
+    "スキルの更新確認を開始できませんでした。手動で「全管理ルートの変更されたスキルを更新」を実行してください。",
+  updateUpgradeMetadataSkipped:
+    "スキルのメタデータ再抽出を保留しています。原因を解消し、必要ならバックアップを復元した後、「全管理ルートの変更されたスキルを更新」を実行すると再試行します。",
+  updateUpgradeMetadataFailed:
+    "一部のスキルのメタデータを再抽出できませんでした。既存のメタデータは保持されています。原因を解消して「全管理ルートの変更されたスキルを更新」を実行すると再試行します。詳細は拡張機能ホストのログを確認してください。",
+  updateUpgradeMetadataRetried:
+    "保留していたメタデータ再抽出が完了しました（更新 {0} 件）。",
+  updateUpgradeMetadataWorkspaceChanged:
+    "メタデータ再抽出を保留したワークスペースが現在の先頭と異なります。元のワークスペースを先頭に戻してから「全管理ルートの変更されたスキルを更新」を実行してください。",
   updateLocalConflict:
     "スキルの内容が変わったか未保存の編集があるため保留。変更を確認してからやり直してください",
   updateRecoveryRequired:
-    "以前の状態に復元できませんでした。バックアップは保持されています",
+    "復旧の確認が必要なため保留しました",
+  recoveryStartup:
+    "中断した可能性のあるスキル更新が {0} 件あります。内容を確認するまで対象の再更新は保留します。",
+  recoveryStoreUnavailable:
+    "スキルの復旧記録を確認できません。インストールや更新を行う前に復旧記録を確認してください。",
+  recoveryStoreInsideRoot:
+    "復旧記録の保存先がスキルの走査ルート内にあるため、更新を中止しました。スキルの場所の設定を確認してください。",
+  recoveryReviewAction: "復旧を確認",
+  recoveryOpenRecordsAction: "復旧記録を開く",
+  recoveryPickerPlaceholder: "確認するスキル更新の復旧記録を選択",
+  recoveryNone: "確認が必要な復旧記録はありません。",
+  recoveryInUse:
+    "この更新のプロセスが動作中の可能性があります。該当の VS Code ウィンドウで処理を終えるか閉じてから確認してください。",
+  recoveryMissingTarget:
+    "対象に SKILL.md がありません。詳細のバックアップを確認し、先に手動で復旧してください。",
+  recoveryConfirm:
+    "表示したスキル本体とバックアップを手動で確認・復旧しましたか？記録だけを解除します。スキルやバックアップは変更しません。",
+  recoveryResolveAction: "復旧済みとして記録を解除",
+  recoveryResolved:
+    "復旧記録を解除しました。スキルとバックアップは変更していません。",
+  recoveryResolveFailed:
+    "復旧記録を解除できませんでした。状態が変わっていないか確認してください。",
+  recoveryTargetLabel: "対象",
+  recoveryBackupLabel: "バックアップ候補（存在しない場合もあります）",
+  recoveryTransactionLabel: "一時フォルダー",
+  recoveryRecordsLabel: "復旧記録の保存先",
 } as const;
 
 type MessageKey = keyof typeof jaMessages;
@@ -761,7 +800,7 @@ const enMessages: MessageDictionary = {
   reinstallLocalConflict:
     "Reinstall cancelled because the installed skill changed or has unsaved edits. Review the changes, then try again.",
   reinstallRecoveryRequired:
-    "Reinstall could not restore the previous version. The backup was retained; see Details before trying again.",
+    "The skill update needs recovery review. See the local details before trying again.",
   reinstallFailed:
     "Reinstall did not complete ({0}). The previous version was not replaced.",
   updateReinstallFailedAction: "Reinstall Failed Skills",
@@ -770,10 +809,49 @@ const enMessages: MessageDictionary = {
   updateRetryTargetChanged:
     "reinstall skipped because the installed skill, source, or root changed",
   updateRetryMoreTargets: "…and {0} more",
+  updateUpgradeConfirm:
+    "Update {0} skills changed upstream? Local edits may be overwritten. {1} skills without a comparison baseline will be deferred.",
+  updateUpgradeLegacyHeld:
+    "no comparison baseline; use Update Changed Skills to choose first sync",
+  updateUpgradeStartFailed:
+    "Could not start the skill update check. Run Update Changed Skills manually.",
+  updateUpgradeMetadataSkipped:
+    "Metadata refresh is pending. Resolve the cause and restore any retained backup if needed, then run Update Changed Skills to retry.",
+  updateUpgradeMetadataFailed:
+    "Some skill metadata could not be refreshed. Existing metadata was preserved. Resolve the cause and run Update Changed Skills to retry. Check the Extension Host log for details.",
+  updateUpgradeMetadataRetried:
+    "Deferred metadata refresh completed ({0} skill(s) updated).",
+  updateUpgradeMetadataWorkspaceChanged:
+    "Metadata refresh is pending for a different workspace. Restore the original first workspace and run Update Changed Skills.",
   updateLocalConflict:
     "skipped because the installed skill changed or has unsaved edits; review the changes before trying again",
   updateRecoveryRequired:
-    "the previous version could not be restored; the backup was retained",
+    "deferred because recovery needs review",
+  recoveryStartup:
+    "{0} skill update(s) may have been interrupted. Further updates to those skills are deferred until reviewed.",
+  recoveryStoreUnavailable:
+    "Skill recovery records cannot be checked. Review the recovery records before installing or updating skills.",
+  recoveryStoreInsideRoot:
+    "The recovery record location is inside a skill scan root, so the update was stopped. Check the configured skill locations.",
+  recoveryReviewAction: "Review Recovery",
+  recoveryOpenRecordsAction: "Open Recovery Records",
+  recoveryPickerPlaceholder: "Select a skill update recovery record to review",
+  recoveryNone: "There are no recovery records to review.",
+  recoveryInUse:
+    "The update process may still be running. Finish it or close its VS Code window before resolving this record.",
+  recoveryMissingTarget:
+    "The target has no SKILL.md. Review the backup in Details and restore the skill manually first.",
+  recoveryConfirm:
+    "Have you manually checked and recovered the displayed skill and backup? Only the record will be cleared; the skill and backup will not be changed.",
+  recoveryResolveAction: "Mark Resolved and Clear Record",
+  recoveryResolved:
+    "The recovery record was cleared. The skill and backup were not changed.",
+  recoveryResolveFailed:
+    "The recovery record could not be cleared. Check whether its state has changed.",
+  recoveryTargetLabel: "Target",
+  recoveryBackupLabel: "Possible backup (may not exist)",
+  recoveryTransactionLabel: "Transaction folder",
+  recoveryRecordsLabel: "Recovery record location",
 };
 
 /**
@@ -1285,8 +1363,35 @@ export const messages = {
   updateRetryTargetChanged: () => localize("updateRetryTargetChanged"),
   updateRetryMoreTargets: (count: number) =>
     localize("updateRetryMoreTargets", count),
+  updateUpgradeConfirm: (changed: number, untracked: number) =>
+    localize("updateUpgradeConfirm", changed, untracked),
+  updateUpgradeLegacyHeld: () => localize("updateUpgradeLegacyHeld"),
+  updateUpgradeStartFailed: () => localize("updateUpgradeStartFailed"),
+  updateUpgradeMetadataSkipped: () => localize("updateUpgradeMetadataSkipped"),
+  updateUpgradeMetadataFailed: () => localize("updateUpgradeMetadataFailed"),
+  updateUpgradeMetadataRetried: (count: number) =>
+    localize("updateUpgradeMetadataRetried", count),
+  updateUpgradeMetadataWorkspaceChanged: () =>
+    localize("updateUpgradeMetadataWorkspaceChanged"),
   updateLocalConflict: () => localize("updateLocalConflict"),
   updateRecoveryRequired: () => localize("updateRecoveryRequired"),
+  recoveryStartup: (count: number) => localize("recoveryStartup", count),
+  recoveryStoreUnavailable: () => localize("recoveryStoreUnavailable"),
+  recoveryStoreInsideRoot: () => localize("recoveryStoreInsideRoot"),
+  recoveryReviewAction: () => localize("recoveryReviewAction"),
+  recoveryOpenRecordsAction: () => localize("recoveryOpenRecordsAction"),
+  recoveryPickerPlaceholder: () => localize("recoveryPickerPlaceholder"),
+  recoveryNone: () => localize("recoveryNone"),
+  recoveryInUse: () => localize("recoveryInUse"),
+  recoveryMissingTarget: () => localize("recoveryMissingTarget"),
+  recoveryConfirm: () => localize("recoveryConfirm"),
+  recoveryResolveAction: () => localize("recoveryResolveAction"),
+  recoveryResolved: () => localize("recoveryResolved"),
+  recoveryResolveFailed: () => localize("recoveryResolveFailed"),
+  recoveryTargetLabel: () => localize("recoveryTargetLabel"),
+  recoveryBackupLabel: () => localize("recoveryBackupLabel"),
+  recoveryTransactionLabel: () => localize("recoveryTransactionLabel"),
+  recoveryRecordsLabel: () => localize("recoveryRecordsLabel"),
 };
 
 export default messages;

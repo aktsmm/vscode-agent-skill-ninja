@@ -10,6 +10,7 @@ import { createHash } from "crypto";
 import * as vscode from "vscode";
 import type { Skill, SkillIndex } from "./skillIndex";
 import {
+  SkillUpdateRecoveryRequiredError,
   getInstalledSkillsWithMeta,
   installSkillUpdate,
   resolveManagedSkillDirUri,
@@ -640,7 +641,8 @@ let applyInProgress = false;
 export async function applyReinstallPlan(
   context: PlanContext,
   extension: vscode.ExtensionContext,
-  signal?: AbortSignal,
+  signal: AbortSignal | undefined,
+  reportRecovery: (backupPath: string) => void,
 ): Promise<ApplyResult[]> {
   const deps = context.deps;
   if (applyInProgress) {
@@ -771,6 +773,9 @@ export async function applyReinstallPlan(
             : `post-install verification failed; the result is not recorded as up to date${mismatch ? `. Files that do not match the source: ${mismatch}` : ""}`,
         });
       } catch (error) {
+        if (error instanceof SkillUpdateRecoveryRequiredError) {
+          reportRecovery(error.backupPath);
+        }
         results.push({
           ...base,
           status: "failed",

@@ -15,6 +15,13 @@ const vm = require("node:vm");
 const ts = require("typescript");
 const { createHash } = require("node:crypto");
 
+class RecoveryRequired extends Error {
+  constructor(backupPath) {
+    super("Skill update recovery required; the original backup was retained in the managed root");
+    this.backupPath = backupPath;
+  }
+}
+
 // vm 内で作られた値は prototype が違うので、構造だけを比べる
 const same = (actual, expected) =>
   assert.deepStrictEqual(JSON.parse(JSON.stringify(actual)), expected);
@@ -159,6 +166,7 @@ function setup(installBehavior = "ok") {
     "./githubAuth": { getGitHubToken: async () => undefined },
     "./skillLocations": { getManagedSkillRoots: async () => managedRoots },
     "./skillInstaller": {
+      SkillUpdateRecoveryRequiredError: RecoveryRequired,
       resolveSkillFolderName: (skill) => skill.name,
       resolveManagedSkillDirUri: (rootUri, relative) =>
         uri(path.join(rootUri.fsPath, relative)),
@@ -213,6 +221,10 @@ function setup(installBehavior = "ok") {
         });
         if (installBehavior === "throw" && root.rootPath === roots.codex) {
           throw new Error("simulated install failure");
+        }
+        if (installBehavior === "recovery") {
+          log.cancel?.();
+          throw new RecoveryRequired(path.join(root.rootPath, ".retained-backup"));
         }
         // 実装と同じく、取得をステージングへ書いてから、入れ替える直前に確認する
         if (installBehavior === "edit-during-download") {
@@ -738,6 +750,33 @@ async function main() {
       assert.equal(result.status, "updated");
       assert.equal(result.source, "mine");
       assert.equal(log.install[0].rebind, false);
+    },
+  );
+
+  await test(
+    "rollback failure reports the retained backup locally even when cancellation is requested",
+    "recovery",
+    async ({ reinstall, roots, log }) => {
+      const created = await reinstall.createReinstallPlan(
+        {
+          mode: "apply",
+          targets: { entryIds: ["workspace:.github/skills::demo"] },
+        },
+        options,
+      );
+      const abort = new AbortController();
+      log.cancel = () => abort.abort();
+      const backups = [];
+      const [result] = await reinstall.applyReinstallPlan(
+        created,
+        {},
+        abort.signal,
+        (backupPath) => backups.push(backupPath),
+      );
+      assert.equal(result.status, "failed");
+      assert.match(result.message, /recovery required/i);
+      same(backups, [path.join(roots.workspace, ".retained-backup")]);
+      assert.ok(!result.message.includes(backups[0]));
     },
   );
 

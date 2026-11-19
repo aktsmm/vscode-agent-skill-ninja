@@ -126,6 +126,7 @@ function harness() {
     sideEffects: [],
     errors: [],
     progress: [],
+    recoveryChecks: [],
     token: makeToken(),
     handlers: new Map(),
   };
@@ -135,6 +136,8 @@ function harness() {
       this.failures = kinds.map((kind) => ({ kind, message: this.message }));
     }
   }
+  class SkillUpdateRecoveryRequiredError extends Error {}
+  class SkillUpdateRecoveryStoreError extends Error {}
   state.fail = (kinds = ["transport"]) => {
     throw new SkillInstallIncompleteError(kinds);
   };
@@ -155,6 +158,7 @@ function harness() {
       },
       executeCommand: async (name, ...args) => {
         state.reports.push({ name, args });
+        if (name === "skillNinja.reviewInterruptedUpdates") return;
         assert.equal(name, "skillNinja.reportBug");
         return state.handlers.get(name)(...args);
       },
@@ -214,7 +218,15 @@ function harness() {
       state.deletes.push(args);
       forbidden();
     },
+    resolveManagedSkillDirUri: (root, relative) => ({ fsPath: `${root}/${relative}` }),
+    assertNoSkillUpdateRecovery: async (_, target) => {
+      state.recoveryChecks.push(target);
+      if (state.recoveryBlocked) throw new SkillUpdateRecoveryRequiredError();
+      if (state.recoveryStoreBlocked) throw new SkillUpdateRecoveryStoreError();
+    },
     SkillInstallIncompleteError,
+    SkillUpdateRecoveryRequiredError,
+    SkillUpdateRecoveryStoreError,
     classifySkillInstallFailure: () => "unknown",
     isRetryableInstallFailure: (failures) =>
       failures.length > 0 &&
@@ -229,6 +241,9 @@ function harness() {
       retryingFailedInstalls: (label) => `Retrying ${label}`,
       retryFailedInstallsAction: (count) => `Retry ${count}`,
       actionReportBug: () => "Report bug",
+      recoveryReviewAction: () => "Review Recovery",
+      updateRecoveryRequired: () => "Recovery required",
+      recoveryStoreUnavailable: () => "Recovery store unavailable",
       retryingFailedInstallsTitle: () => "Retry failed installs",
       retryFailedInstallsSummary: (done, total) => `${done}/${total} installed`,
     },
@@ -281,6 +296,37 @@ async function main() {
       console.error(`FAIL ${name}: ${error.stack}`);
     }
   }
+
+  await test("bulk reinstall checks recovery before moving any installed skill to trash", async () => {
+    const state = harness();
+    state.recoveryBlocked = true;
+    const item = makeItem();
+    const result = await state.api.installBulkItem(item, {}, "workspace", true);
+    assert.equal(result.status, "failed");
+    assert.equal(result.retryable, false);
+    assert.deepEqual(Array.from(result.failureKinds), ["recovery-required"]);
+    assert.deepEqual(state.recoveryChecks, ["C:/private-home/skills/private-skill"]);
+    assert.deepEqual(state.deletes, []);
+    assert.deepEqual(state.installs, []);
+    const outcomes = await state.run([item], { allowUninstall: true });
+    await state.summary(outcomes);
+    assert.ok(state.warnings[0].message.includes("Recovery required"));
+    assert.ok(state.warnings[0].actions.includes("Review Recovery"));
+    state.warnings[0].choice.resolve("Review Recovery");
+    await settle();
+    assert.ok(state.reports.some(({ name }) => name === "skillNinja.reviewInterruptedUpdates"));
+  });
+
+  await test("bulk reinstall reports an unavailable recovery store", async () => {
+    const state = harness();
+    state.recoveryStoreBlocked = true;
+    const outcomes = await state.run([makeItem()], { allowUninstall: true });
+    assert.deepEqual(Array.from(outcomes[0].failureKinds), ["recovery-store"]);
+    assert.deepEqual(state.deletes, []);
+    await state.summary(outcomes);
+    assert.ok(state.warnings[0].message.includes("Recovery store unavailable"));
+    assert.ok(state.warnings[0].actions.includes("Review Recovery"));
+  });
 
   await test("actual extension: transient auto retry then manual once, no delete, no 0/1 loop", async () => {
     const state = harness();

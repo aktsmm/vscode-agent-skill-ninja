@@ -86,6 +86,82 @@ async function main() {
     assert.ok(body.includes("readReinstallTextDiff("));
   });
 
+  await test("reinstall recovery goes to local details without exposing the backup path to the model", async () => {
+    const tools = new Map();
+    const backups = [];
+    const backupPath = "C:\\private\\retained-backup";
+    class LanguageModelTextPart {
+      constructor(value) {
+        this.value = value;
+      }
+    }
+    class LanguageModelToolResult {
+      constructor(content) {
+        this.content = content;
+      }
+    }
+    const modules = {
+      vscode: {
+        LanguageModelTextPart,
+        LanguageModelToolResult,
+        lm: {
+          registerTool(name, tool) {
+            tools.set(name, tool);
+            return { dispose() {} };
+          },
+        },
+        workspace: { getConfiguration: () => ({ get: () => false }) },
+        commands: { executeCommand: async () => {} },
+      },
+      "./i18n": { isJapanese: () => false },
+      "./skillIndex": { loadSkillIndex: async () => ({}) },
+      "./skillReinstall": {
+        createReinstallPlan: async () => ({
+          plan: { planId: "preview-id", items: [{ status: "ready" }] },
+          entries: new Map(),
+        }),
+        applyReinstallPlan: async (_plan, _context, _signal, reportRecovery) => {
+          reportRecovery(backupPath);
+          return [{
+            entryId: "home::demo",
+            name: "demo",
+            rootLabel: "Home",
+            status: "failed",
+            message: "Recovery required; check local details.",
+          }];
+        },
+      },
+    };
+    const exports = {};
+    vm.runInNewContext(
+      ts.transpileModule(mcpSource, {
+        compilerOptions: {
+          module: ts.ModuleKind.CommonJS,
+          target: ts.ScriptTarget.ES2022,
+        },
+      }).outputText,
+      {
+        exports,
+        require: (name) => modules[name] ?? {},
+        AbortController,
+        console,
+      },
+    );
+    exports.registerMcpTools({ subscriptions: [] }, (value) => backups.push(value));
+    const tool = tools.get("skillNinja_reinstall");
+    const token = {
+      isCancellationRequested: false,
+      onCancellationRequested: () => ({ dispose() {} }),
+    };
+    const result = await tool.invoke(
+      { input: { mode: "apply", planId: "preview-id" } },
+      token,
+    );
+    assert.deepStrictEqual(backups, [backupPath]);
+    assert.match(result.content[0].value, /recovery required/i);
+    assert.ok(!result.content[0].value.includes(backupPath));
+  });
+
   await test("reinstall diff confirms its target before loading and labels the returned data", async () => {
     const tools = new Map();
     let planCalls = 0;

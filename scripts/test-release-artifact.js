@@ -109,7 +109,7 @@ try {
     [
       "# Changelog",
       "## [1.2.3] - 2026-09-07",
-      "Paste the NEW Marketplace PAT here (input is hidden):- Release note",
+      "Paste the NEW Marketplace PAT here: synthetic-sensitive-marker",
     ].join("\n"),
   );
   const contaminatedResult = verify(contaminated);
@@ -117,6 +117,14 @@ try {
   assert.match(
     `${contaminatedResult.stdout}${contaminatedResult.stderr}`,
     /terminal or secret-input transcript text/,
+  );
+  assert.match(
+    `${contaminatedResult.stdout}${contaminatedResult.stderr}`,
+    /line 3/,
+  );
+  assert.doesNotMatch(
+    `${contaminatedResult.stdout}${contaminatedResult.stderr}`,
+    /synthetic-sensitive-marker/,
   );
 
   const reordered = createFixture(
