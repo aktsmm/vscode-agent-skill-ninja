@@ -5,6 +5,7 @@ const os = require("node:os");
 const path = require("node:path");
 const vm = require("node:vm");
 const { fork, spawnSync } = require("node:child_process");
+const { createHash } = require("node:crypto");
 const ts = require("typescript");
 
 const sourceRoot = path.join(__dirname, "../src");
@@ -43,9 +44,9 @@ const uri = (fsPath) => ({
 const outputCache = new Map();
 
 function harness(existingTemporary) {
-  const temporary = existingTemporary || fs.mkdtempSync(
-    path.join(os.tmpdir(), "ninja-update-test-"),
-  );
+  const temporary =
+    existingTemporary ||
+    fs.mkdtempSync(path.join(os.tmpdir(), "ninja-update-test-"));
   const rootPath = path.join(temporary, "skills");
   const installedPath = "group/original-name";
   const destination = path.join(rootPath, installedPath);
@@ -629,7 +630,10 @@ async function main() {
     assert.notEqual(saved.installedAt, env.meta.installedAt);
     assert.ok(env.requests.length >= 5);
     assert.ok(env.requests.every((url) => url.includes(sha)));
-    assert.equal((await env.recovery.listSkillUpdateRecoveries(env.context)).length, 0);
+    assert.equal(
+      (await env.recovery.listSkillUpdateRecoveries(env.context)).length,
+      0,
+    );
     env.clean();
   });
   for (const failure of [
@@ -752,7 +756,10 @@ async function main() {
       beforeSwap: async () => {
         fs.writeFileSync(
           path.join(env.destination, ".skill-meta.json"),
-          JSON.stringify({ ...env.meta, customWhenToUse: "changed before swap" }),
+          JSON.stringify({
+            ...env.meta,
+            customWhenToUse: "changed before swap",
+          }),
         );
       },
     });
@@ -779,8 +786,9 @@ async function main() {
       "locally edited original",
     );
     assert.equal(
-      JSON.parse(fs.readFileSync(path.join(env.destination, ".skill-meta.json"), "utf8"))
-        .customWhenToUse,
+      JSON.parse(
+        fs.readFileSync(path.join(env.destination, ".skill-meta.json"), "utf8"),
+      ).customWhenToUse,
       "changed at rename",
     );
     env.clean();
@@ -789,7 +797,10 @@ async function main() {
     const changed = JSON.stringify({ ...env.meta, source: "new-owner" });
     env.state.renameHook = (from) => {
       if (from.fsPath === env.destination) {
-        fs.writeFileSync(path.join(env.destination, ".skill-meta.json"), changed);
+        fs.writeFileSync(
+          path.join(env.destination, ".skill-meta.json"),
+          changed,
+        );
       }
     };
     await assert.rejects(env.run(), /installed skill changed/);
@@ -806,11 +817,17 @@ async function main() {
   await test("malformed metadata introduced during the backup rename is preserved", async (env) => {
     delete env.meta.customWhenToUse;
     delete env.meta.registrationDisabled;
-    fs.writeFileSync(path.join(env.destination, ".skill-meta.json"), JSON.stringify(env.meta));
+    fs.writeFileSync(
+      path.join(env.destination, ".skill-meta.json"),
+      JSON.stringify(env.meta),
+    );
     const changed = "{ invalid metadata";
     env.state.renameHook = (from) => {
       if (from.fsPath === env.destination) {
-        fs.writeFileSync(path.join(env.destination, ".skill-meta.json"), changed);
+        fs.writeFileSync(
+          path.join(env.destination, ".skill-meta.json"),
+          changed,
+        );
       }
     };
     await assert.rejects(env.run(), /installed skill changed/);
@@ -838,6 +855,201 @@ async function main() {
     env.unchanged();
     env.clean();
   });
+
+  await test("a dirty document with a double-dot prefix blocks replacement", async (env) => {
+    env.state.textDocuments.push({
+      isDirty: true,
+      uri: uri(path.join(env.destination, "..notes", "draft.md")),
+    });
+    await assert.rejects(env.run());
+    assert.equal(env.requests.length, 0);
+    env.unchanged();
+  });
+
+  for (const scenario of [
+    "bundled",
+    "scannable",
+    "added",
+    "removed",
+    "independent",
+    "modified",
+    "extra",
+    "unknown",
+    "stage-unknown",
+    "truncated",
+    "legacy",
+    "unavailable",
+    "declined",
+  ]) {
+    await test(`nested template ${scenario} respects source ownership`, async (env) => {
+      const relative =
+        scenario === "scannable"
+          ? "assets/inbox/SKILL.md"
+          : "assets/workspace-skills/inbox/SKILL.md";
+      const child = path.join(env.destination, relative);
+      const originalTemplate = "previous bundled template";
+      const templateSha = createHash("sha1")
+        .update(`blob ${Buffer.byteLength(originalTemplate)}\0`)
+        .update(originalTemplate)
+        .digest("hex");
+      if (scenario !== "added") {
+        fs.mkdirSync(path.dirname(child), { recursive: true });
+        fs.writeFileSync(child, scenario === "modified" ? "independent local template" : originalTemplate);
+      }
+      if (scenario === "extra") {
+        fs.writeFileSync(path.join(path.dirname(child), "personal.md"), "personal data");
+      }
+      if (scenario === "independent") {
+        fs.writeFileSync(
+          path.join(path.dirname(child), ".skill-meta.json"),
+          "{}",
+        );
+      }
+      if (scenario === "legacy") {
+        delete env.meta.sourceRevision;
+        fs.writeFileSync(
+          path.join(env.destination, ".skill-meta.json"),
+          JSON.stringify(env.meta),
+        );
+      }
+      env.state.fetchHook = async (url) => {
+        if (url.includes("/git/trees/")) {
+          if (scenario === "unavailable") return env.response({}, 403);
+          const treeSha = url.split("/git/trees/")[1].split("?")[0];
+          return env.response({
+            sha: treeSha,
+            truncated: scenario === "truncated",
+            tree:
+              scenario === "unknown" ||
+              (scenario === "stage-unknown" && treeSha === revision.contentSha)
+                ? []
+                : [{ path: relative, type: "blob", mode: "100644", sha: templateSha }],
+          });
+        }
+        if (
+          ["bundled", "scannable", "added", "stage-unknown"].includes(
+            scenario,
+          ) &&
+          url.includes("/contents/skills/demo/assets")
+        ) {
+          if (url.includes("/inbox?")) {
+            return env.response([
+              {
+                name: "SKILL.md",
+                type: "file",
+                download_url: "https://example.invalid/template",
+              },
+            ]);
+          }
+          return env.response([
+            {
+              name:
+                scenario === "scannable" || url.includes("/workspace-skills?")
+                  ? "inbox"
+                  : "workspace-skills",
+              type: "dir",
+            },
+          ]);
+        }
+      };
+      if (["bundled", "scannable", "added", "removed"].includes(scenario)) {
+        const result = await env.run();
+        assert.equal(result.status, "ok");
+        assert.equal(fs.existsSync(child), scenario !== "removed");
+        if (scenario !== "removed")
+          assert.equal(fs.readFileSync(child, "utf8"), content);
+        if (scenario === "scannable") {
+          const metas = await env.installer.getInstalledSkillsWithMeta(
+            uri(env.rootPath),
+            env.root.rootUri,
+          );
+          assert.equal(metas.length, 1);
+          await env.installer.refreshSkillMetadata(
+            uri(env.rootPath),
+            env.root.rootUri,
+          );
+          assert.equal(
+            fs.existsSync(path.join(path.dirname(child), ".skill-meta.json")),
+            false,
+          );
+          const nestedIndependent = path.join(path.dirname(child), "independent");
+          fs.mkdirSync(nestedIndependent);
+          fs.writeFileSync(path.join(nestedIndependent, "SKILL.md"), "independent");
+          fs.writeFileSync(path.join(nestedIndependent, ".skill-meta.json"),
+            JSON.stringify({ name: "independent", source: "other", remotePath: "independent" }));
+          Object.assign(env.meta, JSON.parse(fs.readFileSync(
+            path.join(env.destination, ".skill-meta.json"), "utf8")));
+          await assert.rejects(env.run(), /Nested skill ownership/);
+          assert.equal(fs.readFileSync(path.join(nestedIndependent, "SKILL.md"), "utf8"), "independent");
+          fs.rmSync(nestedIndependent, { recursive: true });
+          fs.writeFileSync(
+            path.join(path.dirname(child), ".skill-meta.json"),
+            JSON.stringify({
+              name: "independent-inbox",
+              source: "other",
+              remotePath: "inbox",
+            }),
+          );
+          const independent = await env.installer.getInstalledSkillsWithMeta(
+            uri(env.rootPath),
+            env.root.rootUri,
+          );
+          assert.equal(independent.length, 2);
+          assert.equal(
+            (await env.runFresh({ downloadTarget, sourceRevision: revision }))
+              .status,
+            "ok",
+          );
+          assert.deepEqual(env.readFreshMeta().bundledSkillPaths, [relative]);
+          const afterFresh = await env.installer.getInstalledSkillsWithMeta(
+            uri(env.rootPath),
+            env.root.rootUri,
+          );
+          assert.ok(
+            !afterFresh.some(
+              (meta) => meta.relativePath === "demo/assets/inbox",
+            ),
+          );
+          const freshIndependent = path.join(env.rootPath, "demo", "assets", "inbox", "independent");
+          fs.mkdirSync(freshIndependent);
+          fs.writeFileSync(path.join(freshIndependent, "SKILL.md"), "independent");
+          fs.writeFileSync(path.join(freshIndependent, ".skill-meta.json"),
+            JSON.stringify({ name: "independent", source: "other", remotePath: "independent" }));
+          const descendants = await env.installer.getInstalledSkillsWithMeta(
+            uri(env.rootPath), env.root.rootUri,
+          );
+          assert.ok(descendants.some((meta) =>
+            meta.relativePath === "demo/assets/inbox/independent"));
+        }
+      } else {
+        const originalMeta = fs.readFileSync(
+          path.join(env.destination, ".skill-meta.json"),
+        );
+        await assert.rejects(
+          env.run(
+            scenario === "declined"
+              ? { confirmReplace: async () => false }
+              : undefined,
+          ),
+        );
+        assert.equal(fs.readFileSync(child, "utf8"),
+          scenario === "modified" ? "independent local template" : originalTemplate);
+        if (scenario === "extra") {
+          assert.equal(fs.readFileSync(path.join(path.dirname(child), "personal.md"), "utf8"), "personal data");
+        }
+        assert.ok(
+          originalMeta.equals(
+            fs.readFileSync(path.join(env.destination, ".skill-meta.json")),
+          ),
+        );
+        if (scenario !== "stage-unknown") {
+          assert.ok(!env.requests.some((url) => url.includes("/contents/")));
+        }
+        if (scenario === "declined") assert.equal(env.requests.length, 0);
+      }
+      env.clean();
+    });
+  }
   await test("files over the hashing limit do not block an update", async (env) => {
     fs.writeFileSync(
       path.join(env.destination, "big.bin"),
@@ -927,7 +1139,10 @@ async function main() {
   await test("a save during the backup rename is restored with the old metadata", async (env) => {
     env.state.renameHook = (from) => {
       if (from.fsPath === env.destination) {
-        fs.writeFileSync(path.join(env.destination, "SKILL.md"), "saved during rename");
+        fs.writeFileSync(
+          path.join(env.destination, "SKILL.md"),
+          "saved during rename",
+        );
       }
     };
     await assert.rejects(env.run(), /installed skill changed/);
@@ -936,7 +1151,9 @@ async function main() {
       "saved during rename",
     );
     assert.deepEqual(
-      JSON.parse(fs.readFileSync(path.join(env.destination, ".skill-meta.json"), "utf8")),
+      JSON.parse(
+        fs.readFileSync(path.join(env.destination, ".skill-meta.json"), "utf8"),
+      ),
       env.meta,
     );
     env.clean();
@@ -964,12 +1181,14 @@ async function main() {
         controller.abort();
       }
     };
-    await assert.rejects(
-      env.run({ signal: controller.signal }),
-      { name: "AbortError" },
-    );
+    await assert.rejects(env.run({ signal: controller.signal }), {
+      name: "AbortError",
+    });
     env.unchanged();
-    assert.equal((await env.recovery.listSkillUpdateRecoveries(env.context)).length, 0);
+    assert.equal(
+      (await env.recovery.listSkillUpdateRecoveries(env.context)).length,
+      0,
+    );
     env.clean();
   });
   await test("cancellation with failed rollback retains the original backup", async (env) => {
@@ -992,7 +1211,10 @@ async function main() {
     );
     assert.equal(
       JSON.parse(
-        fs.readFileSync(path.join(recovery.backupPath, ".skill-meta.json"), "utf8"),
+        fs.readFileSync(
+          path.join(recovery.backupPath, ".skill-meta.json"),
+          "utf8",
+        ),
       ).sourceRevision.commitSha,
       "c".repeat(40),
     );
@@ -1052,7 +1274,10 @@ async function main() {
     };
     await assert.rejects(env.run());
     env.unchanged();
-    assert.equal((await env.recovery.listSkillUpdateRecoveries(env.context)).length, 0);
+    assert.equal(
+      (await env.recovery.listSkillUpdateRecoveries(env.context)).length,
+      0,
+    );
     env.clean();
   });
   await test("failed rollback retains the only original backup", async (env) => {
@@ -1081,7 +1306,10 @@ async function main() {
       ).sourceRevision.commitSha,
       "c".repeat(40),
     );
-    assert.equal((await env.recovery.listSkillUpdateRecoveries(env.context)).length, 1);
+    assert.equal(
+      (await env.recovery.listSkillUpdateRecoveries(env.context)).length,
+      1,
+    );
   });
   await test("failed record retirement retains both the new target and original backup", async (env) => {
     const originalRename = fs.promises.rename;
@@ -1097,12 +1325,18 @@ async function main() {
         failure = error;
         return error instanceof env.installer.SkillUpdateRecoveryRequiredError;
       });
-      assert.equal(fs.readFileSync(path.join(env.destination, "SKILL.md"), "utf8"), content);
+      assert.equal(
+        fs.readFileSync(path.join(env.destination, "SKILL.md"), "utf8"),
+        content,
+      );
       assert.equal(
         fs.readFileSync(path.join(failure.backupPath, "SKILL.md"), "utf8"),
         "locally edited original",
       );
-      assert.equal((await env.recovery.listSkillUpdateRecoveries(env.context)).length, 1);
+      assert.equal(
+        (await env.recovery.listSkillUpdateRecoveries(env.context)).length,
+        1,
+      );
       await assert.rejects(env.run(), /recovery required/);
     } finally {
       fs.promises.rename = originalRename;
@@ -1111,8 +1345,14 @@ async function main() {
   await test("a damaged recovery store refuses fresh installs and updates without downloads", async (env) => {
     const directory = env.recovery.getSkillRecoveryDirectory(env.context);
     fs.mkdirSync(path.join(directory, "invalid"), { recursive: true });
-    await assert.rejects(env.run(), /recovery records cannot be safely read or written/);
-    await assert.rejects(env.runFresh(), /recovery records cannot be safely read or written/);
+    await assert.rejects(
+      env.run(),
+      /recovery records cannot be safely read or written/,
+    );
+    await assert.rejects(
+      env.runFresh(),
+      /recovery records cannot be safely read or written/,
+    );
     assert.equal(env.requests.length, 0);
     env.unchanged();
   });
@@ -1123,13 +1363,20 @@ async function main() {
     let stderr = "";
     let stopped = false;
     let hasExited = false;
-    child.stderr.on("data", (chunk) => { stderr += chunk.toString(); });
-    const exited = new Promise((resolve) => child.once("exit", (code, signal) => {
-      hasExited = true;
-      resolve({ code, signal });
-    }));
+    child.stderr.on("data", (chunk) => {
+      stderr += chunk.toString();
+    });
+    const exited = new Promise((resolve) =>
+      child.once("exit", (code, signal) => {
+        hasExited = true;
+        resolve({ code, signal });
+      }),
+    );
     const moved = new Promise((resolve, reject) => {
-      const deadline = setTimeout(() => reject(new Error("Child did not move the backup")), 20000);
+      const deadline = setTimeout(
+        () => reject(new Error("Child did not move the backup")),
+        20000,
+      );
       child.once("message", (message) => {
         clearTimeout(deadline);
         resolve(message);
@@ -1144,7 +1391,13 @@ async function main() {
       });
     });
     const stopChild = () => {
-      if (stopped || hasExited || child.exitCode !== null || child.signalCode !== null) return;
+      if (
+        stopped ||
+        hasExited ||
+        child.exitCode !== null ||
+        child.signalCode !== null
+      )
+        return;
       stopped = true;
       if (process.platform === "win32") {
         const stopped = spawnSync("powershell.exe", [
@@ -1192,7 +1445,10 @@ async function main() {
       fs.renameSync(record.backupPath, env.destination);
       await env.recovery.resolveSkillUpdateRecovery(env.context, record);
       env.unchanged();
-      assert.equal((await env.recovery.listSkillUpdateRecoveries(env.context)).length, 0);
+      assert.equal(
+        (await env.recovery.listSkillUpdateRecoveries(env.context)).length,
+        0,
+      );
       assert.equal(fs.existsSync(record.transactionPath), true);
     } finally {
       stopChild();
@@ -1273,11 +1529,22 @@ async function main() {
     env.state.sourceBranch = "main";
     let release;
     let entered;
-    const waiting = new Promise((resolve) => { entered = resolve; });
-    const gate = new Promise((resolve) => { release = resolve; });
-    env.state.fetchHook = async () => { entered(); await gate; };
+    const waiting = new Promise((resolve) => {
+      entered = resolve;
+    });
+    const gate = new Promise((resolve) => {
+      release = resolve;
+    });
+    env.state.fetchHook = async () => {
+      entered();
+      await gate;
+    };
     const groupedRootPath = path.join(env.rootPath, "group");
-    const groupedRoot = { ...env.root, rootUri: uri(groupedRootPath), rootPath: groupedRootPath };
+    const groupedRoot = {
+      ...env.root,
+      rootUri: uri(groupedRootPath),
+      rootPath: groupedRootPath,
+    };
     const pending = env.installer.installSkill(
       { ...skill, name: "original-name" },
       uri(env.rootPath),
@@ -1335,6 +1602,10 @@ async function main() {
           path.join(env.destination, "child/SKILL.md"),
           "child skill",
         );
+        fs.writeFileSync(
+          path.join(env.destination, "child/.skill-meta.json"),
+          "{}",
+        );
       }
       if (boundary === "symlink") {
         const outside = path.join(env.temporary, "outside");
@@ -1354,19 +1625,25 @@ async function main() {
   console.log(`PASS ${passed} skill update transaction tests`);
 }
 
-const run = process.argv[2] === "--interrupt-fixture"
-  ? (async () => {
-      const env = harness(process.argv[3]);
-      env.state.afterRenameHook = async (from, to) => {
-        if (from.fsPath === env.destination && path.basename(to.fsPath) === "backup") {
-          process.send({ type: "backup-moved" });
-          await new Promise((resolve) => setTimeout(resolve, 30000));
-        }
-      };
-      await env.run();
-      throw new Error("Expected the parent to stop the child during the swap");
-    })()
-  : main();
+const run =
+  process.argv[2] === "--interrupt-fixture"
+    ? (async () => {
+        const env = harness(process.argv[3]);
+        env.state.afterRenameHook = async (from, to) => {
+          if (
+            from.fsPath === env.destination &&
+            path.basename(to.fsPath) === "backup"
+          ) {
+            process.send({ type: "backup-moved" });
+            await new Promise((resolve) => setTimeout(resolve, 30000));
+          }
+        };
+        await env.run();
+        throw new Error(
+          "Expected the parent to stop the child during the swap",
+        );
+      })()
+    : main();
 
 run.catch((error) => {
   console.error(error);

@@ -383,6 +383,18 @@ const jaMessages = {
   updateRetryTargetChanged:
     "インストール済みスキル、配布元、またはルートが変わったため再インストールを保留",
   updateRetryMoreTargets: "…ほか {0} 件",
+  updateCompletedNames: "更新したスキル: {0}",
+  updateCompletedMore: "ほか {0} 件",
+  updateItemUpdated: "更新",
+  updateItemSynchronized: "初回同期",
+  updateItemFailed: "更新失敗（{0}）",
+  updateCheckFailedReason: "確認失敗（{0}）",
+  updateNestedIndependent:
+    "別管理または配布元にない子スキルを検出。子スキルの配置・管理情報を確認してください",
+  updateNestedUnverified:
+    "同梱子スキルの比較情報を確認できません。配布元と記録済み revision を確認してください",
+  updateNestedModified:
+    "同梱子スキルにローカル変更があります。内容を保護するため更新を中止しました",
   updateUpgradeConfirm:
     "配布元が変更されたスキル {0} 件を更新しますか？ローカル編集が上書きされる可能性があります。比較情報のない {1} 件は保留します。",
   updateUpgradeLegacyHeld:
@@ -399,8 +411,7 @@ const jaMessages = {
     "メタデータ再抽出を保留したワークスペースが現在の先頭と異なります。元のワークスペースを先頭に戻してから「全管理ルートの変更されたスキルを更新」を実行してください。",
   updateLocalConflict:
     "スキルの内容が変わったか未保存の編集があるため保留。変更を確認してからやり直してください",
-  updateRecoveryRequired:
-    "復旧の確認が必要なため保留しました",
+  updateRecoveryRequired: "復旧の確認が必要なため保留しました",
   recoveryStartup:
     "中断した可能性のあるスキル更新が {0} 件あります。内容を確認するまで対象の再更新は保留します。",
   recoveryStoreUnavailable:
@@ -809,6 +820,18 @@ const enMessages: MessageDictionary = {
   updateRetryTargetChanged:
     "reinstall skipped because the installed skill, source, or root changed",
   updateRetryMoreTargets: "…and {0} more",
+  updateCompletedNames: "Updated skills: {0}",
+  updateCompletedMore: "and {0} more",
+  updateItemUpdated: "updated",
+  updateItemSynchronized: "first sync",
+  updateItemFailed: "update failed ({0})",
+  updateCheckFailedReason: "check failed ({0})",
+  updateNestedIndependent:
+    "independently managed or untracked nested skill; review its location and ownership",
+  updateNestedUnverified:
+    "bundled nested skill ownership could not be verified; review the source and recorded revision",
+  updateNestedModified:
+    "a bundled nested skill has local changes; the update was stopped to preserve them",
   updateUpgradeConfirm:
     "Update {0} skills changed upstream? Local edits may be overwritten. {1} skills without a comparison baseline will be deferred.",
   updateUpgradeLegacyHeld:
@@ -825,8 +848,7 @@ const enMessages: MessageDictionary = {
     "Metadata refresh is pending for a different workspace. Restore the original first workspace and run Update Changed Skills.",
   updateLocalConflict:
     "skipped because the installed skill changed or has unsaved edits; review the changes before trying again",
-  updateRecoveryRequired:
-    "deferred because recovery needs review",
+  updateRecoveryRequired: "deferred because recovery needs review",
   recoveryStartup:
     "{0} skill update(s) may have been interrupted. Further updates to those skills are deferred until reviewed.",
   recoveryStoreUnavailable:
@@ -1363,6 +1385,18 @@ export const messages = {
   updateRetryTargetChanged: () => localize("updateRetryTargetChanged"),
   updateRetryMoreTargets: (count: number) =>
     localize("updateRetryMoreTargets", count),
+  updateCompletedNames: (names: string) =>
+    localize("updateCompletedNames", names),
+  updateCompletedMore: (count: number) =>
+    localize("updateCompletedMore", count),
+  updateItemUpdated: () => localize("updateItemUpdated"),
+  updateItemSynchronized: () => localize("updateItemSynchronized"),
+  updateItemFailed: (reason: string) => localize("updateItemFailed", reason),
+  updateCheckFailedReason: (reason: string) =>
+    localize("updateCheckFailedReason", reason),
+  updateNestedIndependent: () => localize("updateNestedIndependent"),
+  updateNestedUnverified: () => localize("updateNestedUnverified"),
+  updateNestedModified: () => localize("updateNestedModified"),
   updateUpgradeConfirm: (changed: number, untracked: number) =>
     localize("updateUpgradeConfirm", changed, untracked),
   updateUpgradeLegacyHeld: () => localize("updateUpgradeLegacyHeld"),

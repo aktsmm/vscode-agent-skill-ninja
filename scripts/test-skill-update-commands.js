@@ -68,12 +68,21 @@ class RecoveryRequired extends Error {
   backupPath = "/retained/backup";
 }
 
+class NestedSkillError extends Error {
+  constructor(reason) {
+    super("private-name ghp_secret");
+    this.reason = reason;
+  }
+}
+
 async function scenario({
   entries,
   choice,
   fail,
   failCheck,
   failKinds,
+  failNames = [],
+  nestedReason,
   retryFlow,
   partialKinds,
   cancelInstall,
@@ -189,11 +198,16 @@ async function scenario({
       showWarningMessage: (message, options, ...choices) => {
         messages.push(message);
         notifications.push({ message, options, choices });
-        if (options?.modal && choices.some((label) => retryLabels.includes(label))) {
+        if (
+          options?.modal &&
+          choices.some((label) => retryLabels.includes(label))
+        ) {
           return Promise.resolve(retryFlow?.cancel ? undefined : choices[0]);
         }
         if (!options?.modal && retryFlow && !retrySelected) {
-          const label = [options, ...choices].find((item) => retryLabels.includes(item));
+          const label = [options, ...choices].find((item) =>
+            retryLabels.includes(item),
+          );
           if (label) {
             return new Promise((resolve) => {
               selectRetry = () => resolve(label);
@@ -222,24 +236,26 @@ async function scenario({
               )
             : reviewRecovery
               ? Promise.resolve(
-                  [options, ...choices].find((label) => label === "Review Recovery"),
-                )
-            : renameChoice === "install" || renameChoice === "decline"
-              ? Promise.resolve(
                   [options, ...choices].find(
-                    (value) =>
-                      value === "Install renamed skill" ||
-                      value === "名前が変わったスキルを導入",
+                    (label) => label === "Review Recovery",
                   ),
                 )
-              : showDetails
+              : renameChoice === "install" || renameChoice === "decline"
                 ? Promise.resolve(
                     [options, ...choices].find(
                       (value) =>
-                        value === "Show details" || value === "詳細を表示",
+                        value === "Install renamed skill" ||
+                        value === "名前が変わったスキルを導入",
                     ),
                   )
-                : new Promise(() => {});
+                : showDetails
+                  ? Promise.resolve(
+                      [options, ...choices].find(
+                        (value) =>
+                          value === "Show details" || value === "詳細を表示",
+                      ),
+                    )
+                  : new Promise(() => {});
       },
       withProgress: async (_, callback) =>
         callback(
@@ -332,6 +348,7 @@ async function scenario({
       SkillInstallIncompleteError: IncompleteInstall,
       SkillUpdateConflictError: class extends Error {},
       SkillUpdateRecoveryRequiredError: RecoveryRequired,
+      SkillUpdateNestedSkillError: NestedSkillError,
       installSkill: async (...args) => {
         installedRenamed.push(args);
         if (renameInstallFailure) {
@@ -364,6 +381,9 @@ async function scenario({
       installSkillUpdate: async (...args) => {
         installed.push(args);
         const [, , , installRoot, meta] = args;
+        if (nestedReason) throw new NestedSkillError(nestedReason);
+        if (failNames.includes(meta.name))
+          throw new IncompleteInstall(["filesystem"]);
         if (!retrySelected && retryFlow?.fail?.(meta, installRoot)) {
           if (retryFlow.needsRecovery) throw new RecoveryRequired();
           throw new IncompleteInstall(["transport"]);
@@ -403,8 +423,11 @@ async function scenario({
       if (upgrade) assert.strictEqual(options.strict, true);
       if (cancelEntries) cancel();
       if (installRoot.rootPath === failEntriesRoot) throw new Error("denied");
-      if (retryFlow?.getEntries) return retryFlow.getEntries(installRoot, retrySelected);
-      return entriesByRoot ? entriesByRoot[installRoot.rootPath] || [] : entries;
+      if (retryFlow?.getEntries)
+        return retryFlow.getEntries(installRoot, retrySelected);
+      return entriesByRoot
+        ? entriesByRoot[installRoot.rootPath] || []
+        : entries;
     },
     getToken: async () => {
       tokenReads++;
@@ -474,6 +497,154 @@ function entry(name, baseline = true) {
 }
 
 async function main() {
+  const changedEntry = (name) => {
+    const value = entry(name);
+    value.meta.sourceRevision.contentSha = "d".repeat(40);
+    return value;
+  };
+  for (const language of ["en", "ja"]) {
+    const success = await scenario({
+      entries: ["alpha", "beta", "gamma", "delta"].map(changedEntry),
+      language,
+    });
+    const notification = success.messages.at(-1);
+    assert.ok(notification.includes("alpha"));
+    assert.ok(notification.includes("gamma"));
+    assert.ok(!notification.includes("delta"));
+    assert.ok(
+      notification.includes(language === "ja" ? "ほか 1 件" : "and 1 more"),
+    );
+    assert.ok(
+      success.output.lines.some((line) => line.includes("delta (workspace):")),
+    );
+    assert.strictEqual(success.output.shown, false);
+
+    const localEntries = Array.from({ length: 9 }, (_, i) => {
+      const local = entry(`local-${i}`);
+      local.meta.source = "local";
+      delete local.meta.remotePath;
+      delete local.skill;
+      return local;
+    });
+    const mixed = await scenario({
+      entries: [
+        ...["alpha", "beta", "gamma", "failed-item"].map(changedEntry),
+        ...Array.from({ length: 44 }, (_, i) => entry(`unchanged-${i}`)),
+        ...localEntries,
+      ],
+      failNames: ["failed-item"],
+      language,
+      showDetails: true,
+    });
+    await new Promise((resolve) => setImmediate(resolve));
+    assert.strictEqual(mixed.summary.updated, 3);
+    assert.strictEqual(mixed.summary.unchanged, 44);
+    assert.strictEqual(mixed.summary.updateFailed, 1);
+    assert.strictEqual(mixed.summary.localOnly, 9);
+    assert.strictEqual(mixed.output.shown, true);
+    for (const name of ["alpha", "beta", "gamma"]) {
+      assert.ok(
+        mixed.output.lines.some((line) =>
+          line.startsWith(`${name} (workspace):`),
+        ),
+      );
+    }
+    assert.ok(
+      mixed.output.lines.some(
+        (line) => line.includes("failed-item:") && line.includes("filesystem"),
+      ),
+    );
+    assert.ok(!/private-name|ghp_secret/.test(JSON.stringify(mixed.output)));
+
+    const synced = await scenario({
+      entries: [entry("legacy-name", false)],
+      choice: "legacy",
+      language,
+    });
+    assert.ok(
+      synced.output.lines.some((line) =>
+        line.includes(
+          language === "ja"
+            ? "legacy-name (workspace): 初回同期"
+            : "legacy-name (workspace): first sync",
+        ),
+      ),
+    );
+    for (const nestedReason of ["independent", "unverified", "modified"]) {
+      const failed = await scenario({
+        entries: [changedEntry("nested")],
+        nestedReason,
+        language,
+      });
+      assert.strictEqual(failed.summary.updateFailed, 1);
+      assert.ok(
+        failed.output.lines.some((line) =>
+          line.includes(language === "ja" ? "子スキル" : "nested skill"),
+        ),
+      );
+      assert.ok(!/private-name|ghp_secret/.test(JSON.stringify(failed.output)));
+    }
+  }
+  const namedRoots = ["first", "second"].map((label) => ({
+    ...root,
+    label,
+    rootPath: `/skills-${label}`,
+    rootUri: uri(`/skills-${label}`),
+  }));
+  const duplicateNames = await scenario({
+    entries: [changedEntry("same-name")],
+    all: true,
+    roots: namedRoots,
+  });
+  assert.strictEqual(duplicateNames.summary.updated, 2);
+  for (const label of ["first", "second"]) {
+    assert.ok(
+      duplicateNames.output.lines.some((line) =>
+        line.startsWith(`same-name (${label}): updated`),
+      ),
+    );
+  }
+  const sameLabelRoots = ["one", "two"].map((id) => ({
+    ...root,
+    label: "Workspace Skills",
+    rootPath: `/private/${id}/skills`,
+    rootUri: uri(`/private/${id}/skills`),
+  }));
+  const sameLabelResults = await scenario({
+    entries: [changedEntry("duplicate")],
+    all: true,
+    roots: sameLabelRoots,
+    failNames: ["duplicate"],
+  });
+  assert.ok(sameLabelResults.output.lines.some((line) =>
+    line.startsWith("duplicate (Workspace Skills #1): update failed"),
+  ), JSON.stringify(sameLabelResults.output.lines));
+  assert.ok(sameLabelResults.output.lines.some((line) =>
+    line.startsWith("duplicate (Workspace Skills #2): update failed"),
+  ));
+  assert.ok(sameLabelResults.output.lines.some((line) => line.includes("/private/one/skills")));
+  assert.ok(!sameLabelResults.messages.at(-1).includes("/private/"));
+  const sameLabelSuccess = await scenario({
+    entries: [changedEntry("duplicate")],
+    all: true,
+    roots: sameLabelRoots,
+  });
+  assert.ok(sameLabelSuccess.messages.at(-1).includes("Workspace Skills #1"));
+  assert.ok(sameLabelSuccess.messages.at(-1).includes("Workspace Skills #2"));
+  const failedScan = await scenario({
+    entries: [],
+    all: true,
+    roots: sameLabelRoots,
+    failEntriesRoot: sameLabelRoots[0].rootPath,
+  });
+  assert.ok(!failedScan.messages.at(-1).includes("/private/"));
+  assert.ok(failedScan.output.lines.some((line) => line.includes("/private/one/skills")));
+  const successDetails = await scenario({
+    entries: [changedEntry("only-success")],
+    showDetails: true,
+  });
+  await new Promise((resolve) => setImmediate(resolve));
+  assert.strictEqual(successDetails.output.shown, true);
   const failedSkill = entry("failed");
   const successfulSkill = entry("successful");
   const retryEntries = [failedSkill, successfulSkill].map((item) => ({
@@ -516,7 +687,11 @@ async function main() {
     );
     if (mode === "stale") {
       assert.strictEqual(retryPrompt, undefined);
-      assert.ok(outcome.messages.some((message) => message.includes("reinstall skipped")));
+      assert.ok(
+        outcome.messages.some((message) =>
+          message.includes("reinstall skipped"),
+        ),
+      );
     } else {
       assert.ok(retryPrompt.options.detail.includes("failed"));
       assert.ok(!retryPrompt.options.detail.includes("successful"));
@@ -529,8 +704,15 @@ async function main() {
     assert.strictEqual(missingAtFirst.summary.checkFailed, 1);
     assert.strictEqual(missingAtFirst.installed.length, 0);
     await missingAtFirst.retryFailures();
-    assert.deepStrictEqual(missingAtFirst.installed.map((args) => args[4].name), ["failed"]);
-    assert.ok(missingAtFirst.messages.some((message) => message.includes("失敗した 1 件")));
+    assert.deepStrictEqual(
+      missingAtFirst.installed.map((args) => args[4].name),
+      ["failed"],
+    );
+    assert.ok(
+      missingAtFirst.messages.some((message) =>
+        message.includes("失敗した 1 件"),
+      ),
+    );
 
     const sameNameElsewhere = {
       ...retryEntries[1],
@@ -575,14 +757,20 @@ async function main() {
     assert.strictEqual(blocked.summary.unchanged, 0);
     assert.strictEqual(blocked.summary.checkFailed, 1);
     assert.strictEqual(blocked.installed.length, 0);
-    assert.ok(blocked.notifications.some(({ message }) => /recovery/i.test(message)));
-    assert.ok(blocked.notifications.some(({ options, choices }) =>
-      [options, ...choices].includes("Review Recovery"),
-    ));
+    assert.ok(
+      blocked.notifications.some(({ message }) => /recovery/i.test(message)),
+    );
+    assert.ok(
+      blocked.notifications.some(({ options, choices }) =>
+        [options, ...choices].includes("Review Recovery"),
+      ),
+    );
     await new Promise((resolve) => setImmediate(resolve));
-    assert.ok(blocked.executed.some(([command]) =>
-      command === "skillNinja.reviewInterruptedUpdates",
-    ));
+    assert.ok(
+      blocked.executed.some(
+        ([command]) => command === "skillNinja.reviewInterruptedUpdates",
+      ),
+    );
   }
   const unavailableRecovery = await scenario({
     entries: [entry("demo")],
@@ -1118,7 +1306,13 @@ async function main() {
   changedOther.meta.sourceRevision.contentSha = "d".repeat(40);
   const legacy = entry("legacy", false);
   const unchanged = entry("unchanged");
-  const upgradeEntries = [changed, changedGlobal, changedOther, legacy, unchanged];
+  const upgradeEntries = [
+    changed,
+    changedGlobal,
+    changedOther,
+    legacy,
+    unchanged,
+  ];
   const upgradeOptions = {
     entries: upgradeEntries,
     roots: [root, globalRoot, otherRoot],
@@ -1138,11 +1332,18 @@ async function main() {
   );
   assert.strictEqual(upgraded.summary.untracked, 1);
   assert.strictEqual(upgraded.summary.unchanged, 1);
-  const upgradeDialog = upgraded.notifications.find((item) => item.options?.modal);
+  const upgradeDialog = upgraded.notifications.find(
+    (item) => item.options?.modal,
+  );
   assert.strictEqual(upgradeDialog.choices.length, 1);
   assert.ok(upgradeDialog.message.includes("2 skills changed upstream"));
-  assert.ok(upgradeDialog.message.includes("1 skills without a comparison baseline"));
-  const upgradeCancelled = await scenario({ ...upgradeOptions, choice: "cancel" });
+  assert.ok(
+    upgradeDialog.message.includes("1 skills without a comparison baseline"),
+  );
+  const upgradeCancelled = await scenario({
+    ...upgradeOptions,
+    choice: "cancel",
+  });
   assert.strictEqual(upgradeCancelled.summary.cancelled, true);
   assert.strictEqual(upgradeCancelled.installed.length, 0);
   const upgradeNoChange = await scenario({
@@ -1226,7 +1427,9 @@ async function main() {
   assert.strictEqual(cancelledRecovery.installed.length, 1);
   assert.ok(cancelledRecovery.output.lines.includes("/retained/backup"));
   assert.ok(cancelledRecovery.output.shown);
-  assert.ok(!JSON.stringify(cancelledRecovery.messages).includes("/retained/backup"));
+  assert.ok(
+    !JSON.stringify(cancelledRecovery.messages).includes("/retained/backup"),
+  );
   assert.strictEqual(cancelledRecovery.hasRetry, false);
   const cancelledFailure = await scenario({
     entries: [changed],

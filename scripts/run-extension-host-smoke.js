@@ -148,6 +148,7 @@ async function runSmoke(
   executable,
   language = "en",
   extensionRoot = path.resolve(__dirname, ".."),
+  remoteUpdate = false,
 ) {
   assert.ok(fs.existsSync(executable), "VS Code executable must exist");
   assert.ok(
@@ -176,15 +177,21 @@ async function runSmoke(
     let code;
     try {
       child = spawn(executable, args, {
-        env: buildSmokeEnvironment(run, process.env, extensionRoot),
+        env: {
+          ...buildSmokeEnvironment(run, process.env, extensionRoot),
+          SKILL_NINJA_SMOKE_REMOTE_UPDATE: remoteUpdate ? "1" : "0",
+        },
         cwd: run.paths.workspace,
         stdio: ["ignore", log, log],
         windowsHide: false,
       });
       code = await new Promise((resolve, reject) => {
-        const deadline = setTimeout(() => {
-          reject(new Error("Extension Host smoke exceeded 90 seconds"));
-        }, 90000);
+        const deadline = setTimeout(
+          () => {
+            reject(new Error("Extension Host smoke exceeded its deadline"));
+          },
+          remoteUpdate ? 180000 : 90000,
+        );
         child.once("error", (error) => {
           clearTimeout(deadline);
           reject(error);
@@ -206,6 +213,13 @@ async function runSmoke(
     assert.equal(result.status, "passed");
     assert.equal(result.language, language);
     assert.ok(result.checks.length >= 5);
+    if (remoteUpdate) {
+      assert.ok(
+        result.checks.includes(
+          "real-upstream-update-bytes-notification-and-noop",
+        ),
+      );
+    }
     assert.ok(result.checks.includes("lm-tool-reinstall-preview-host"));
     assert.ok(result.checks.includes("empty-recovery-store-host"));
     assert.ok(result.checks.includes("blocked-output-preserved-and-recovered"));
@@ -263,7 +277,7 @@ if (require.main === module) {
       (!extensionPath || extensionPath.startsWith("--")))
   ) {
     console.error(
-      "Usage: node scripts/run-extension-host-smoke.js --code <VS Code executable> [--locale en|ja] [--extension-path <extension directory>]",
+      "Usage: node scripts/run-extension-host-smoke.js --code <VS Code executable> [--locale en|ja] [--extension-path <extension directory>] [--remote-update]",
     );
     process.exitCode = 1;
   } else {
@@ -271,6 +285,7 @@ if (require.main === module) {
       path.resolve(executable),
       language,
       extensionPath ? path.resolve(extensionPath) : undefined,
+      args.includes("--remote-update"),
     ).catch(() => {
       process.exitCode = 1;
     });

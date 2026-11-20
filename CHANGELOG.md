@@ -7,6 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.9.66] - 2026-11-21
+
+### Fixed
+
+- 🐛 **Bundled Child Skills Update** - Skills that bundle child `SKILL.md` templates (for example customer-workspace) now update. Children are verified against the recorded upstream file list; independently managed children and locally modified bundled children stay protected and stop the update / 子 `SKILL.md` テンプレートを同梱するスキル（例: customer-workspace）を更新できるようにしました。子は記録済み配布元の一覧で確認し、独立管理の子やローカルで変更された同梱子は保護して更新を中止します。
+- 🐛 **Invalid Index Data** - Malformed local or shared source entries no longer widen scan restrictions or overwrite the local index; diagnostics go to the Source Index output channel / 不正なローカル・共有ソース項目が走査範囲を広げたりローカル索引を上書きしたりしないようにし、診断を Source Index 出力へ記録します。
+- 🐛 **Unsaved Edit Guard** - A child folder such as `..notes` is no longer mistaken for a parent path / `..notes` のような子フォルダーを親パスと誤認しないようにしました。
+
+### Changed
+
+- **Update Results** - Notifications name up to three updated skills; **Show details** lists every update, first sync and per-item failure reason. Roots with the same label are numbered, and paths stay in the output channel / 完了通知に更新したスキル名を最大3件表示し、［詳細を表示］で全件と項目別の失敗理由を確認できます。同名ルートは番号で区別し、パスは出力にだけ表示します。
+
 ## [0.9.65] - 2026-11-19
 
 ### Changed

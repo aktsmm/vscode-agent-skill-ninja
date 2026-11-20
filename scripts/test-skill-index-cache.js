@@ -9,7 +9,6 @@
 
 const assert = require("assert");
 const fs = require("fs");
-const os = require("os");
 const path = require("path");
 const vm = require("vm");
 const ts = require("typescript");
@@ -39,10 +38,12 @@ function makeUri(filePath) {
  * 実ファイルを読むが、読み取り回数を数える vscode スタブ。
  * shared manifest は無効にしてあるので、この経路は通らない。
  */
-function makeHarness(root) {
-  const counters = { readFile: 0, bundledReads: 0, stat: 0 };
+function makeHarness(root, { sharedManifest, attachChannel = true } = {}) {
+  const counters = { readFile: 0, bundledReads: 0, stat: 0, writes: 0, bootstraps: 0 };
+  const warnings = [];
   let readFileError = null;
   let statError = null;
+  let writeFileError = null;
 
   const vscodeStub = {
     Uri: {
@@ -51,7 +52,8 @@ function makeHarness(root) {
     },
     workspace: {
       getConfiguration: () => ({
-        get: (key, fallback) => fallback,
+        get: (key, fallback) =>
+          key === "useSharedSourcesManifest" ? sharedManifest !== undefined : fallback,
       }),
       fs: {
         async readFile(target) {
@@ -68,6 +70,10 @@ function makeHarness(root) {
           return fs.promises.readFile(target.fsPath);
         },
         async writeFile(target, content) {
+          counters.writes += 1;
+          if (writeFileError) {
+            throw writeFileError;
+          }
           await fs.promises.mkdir(path.dirname(target.fsPath), {
             recursive: true,
           });
@@ -114,6 +120,19 @@ function makeHarness(root) {
           fetchGitHubWithOptionalAuthRetry: async () => ({ ok: false }),
         };
       }
+      if (request === "./i18n") {
+        return { isJapanese: () => false };
+      }
+      if (request === "./shared-sources-manifest-store" && sharedManifest !== undefined) {
+        const real = loadDependency(request);
+        return {
+          ...real,
+          readSharedSourcesManifestResult: async () => sharedManifest,
+          bootstrapSharedSourcesManifest: async () => {
+            counters.bootstraps += 1;
+          },
+        };
+      }
       if (request.startsWith(".")) {
         return loadDependency(request);
       }
@@ -148,6 +167,12 @@ function makeHarness(root) {
   }
 
   vm.runInNewContext(transpiled, sandbox, { filename: skillIndexPath });
+  const setOutputChannel = () => moduleObject.exports.setSkillIndexOutputChannel({
+    appendLine: (line) => warnings.push(line),
+  });
+  if (attachChannel) {
+    setOutputChannel();
+  }
 
   const context = {
     extensionUri: makeUri(path.join(root, "extension")),
@@ -156,14 +181,20 @@ function makeHarness(root) {
 
   return {
     counters,
+    warnings,
+    setOutputChannel,
     context,
     module: moduleObject.exports,
+    searchSkills: loadDependency("./skillSearch").searchSkills,
     bundledPath: path.join(root, "extension", "resources", "skill-index.json"),
     setReadFileError(error) {
       readFileError = error;
     },
     setStatError(error) {
       statError = error;
+    },
+    setWriteFileError(error) {
+      writeFileError = error;
     },
   };
 }
@@ -173,17 +204,29 @@ function writeBundled(harness, index) {
   fs.writeFileSync(harness.bundledPath, JSON.stringify(index), "utf8");
 }
 
+function writeLocal(harness, index) {
+  const target = path.join(harness.context.globalStorageUri.fsPath, "skill-index.json");
+  fs.mkdirSync(path.dirname(target), { recursive: true });
+  fs.writeFileSync(target, JSON.stringify(index), "utf8");
+  return target;
+}
+
 const BASE_INDEX = {
   version: "1.0.0",
   lastUpdated: "2026-01-01",
-  sources: [{ id: "alpha", name: "Alpha" }],
-  skills: [{ name: "one", source: "alpha", description: "first" }],
+  sources: [{
+    id: "alpha", name: "Alpha", url: "https://github.com/example/alpha",
+    type: "community", description: "",
+  }],
+  skills: [{
+    name: "one", source: "alpha", path: "", categories: [], description: "first",
+  }],
   categories: [],
 };
 
 async function main() {
   await test("a second load does not re-read the bundled index", async () => {
-    const root = fs.mkdtempSync(path.join(os.tmpdir(), "skill-index-cache-"));
+    const root = fs.mkdtempSync(path.join(repoRoot, ".skill-index-cache-"));
     try {
       const harness = makeHarness(root);
       writeBundled(harness, BASE_INDEX);
@@ -204,7 +247,7 @@ async function main() {
   });
 
   await test("concurrent first loads parse the bundle once", async () => {
-    const root = fs.mkdtempSync(path.join(os.tmpdir(), "skill-index-cache-"));
+    const root = fs.mkdtempSync(path.join(repoRoot, ".skill-index-cache-"));
     try {
       const harness = makeHarness(root);
       writeBundled(harness, BASE_INDEX);
@@ -226,7 +269,7 @@ async function main() {
   });
 
   await test("mutating the returned index does not poison the cache", async () => {
-    const root = fs.mkdtempSync(path.join(os.tmpdir(), "skill-index-cache-"));
+    const root = fs.mkdtempSync(path.join(repoRoot, ".skill-index-cache-"));
     try {
       const harness = makeHarness(root);
       writeBundled(harness, BASE_INDEX);
@@ -253,7 +296,7 @@ async function main() {
   });
 
   await test("a changed bundled file invalidates the cache", async () => {
-    const root = fs.mkdtempSync(path.join(os.tmpdir(), "skill-index-cache-"));
+    const root = fs.mkdtempSync(path.join(repoRoot, ".skill-index-cache-"));
     try {
       const harness = makeHarness(root);
       writeBundled(harness, BASE_INDEX);
@@ -263,7 +306,7 @@ async function main() {
         ...BASE_INDEX,
         skills: [
           ...BASE_INDEX.skills,
-          { name: "two", source: "alpha", description: "second" },
+          { ...BASE_INDEX.skills[0], name: "two", description: "second" },
         ],
       });
 
@@ -283,7 +326,7 @@ async function main() {
   });
 
   await test("a failed bundle read is not cached", async () => {
-    const root = fs.mkdtempSync(path.join(os.tmpdir(), "skill-index-cache-"));
+    const root = fs.mkdtempSync(path.join(repoRoot, ".skill-index-cache-"));
     try {
       const harness = makeHarness(root);
       writeBundled(harness, BASE_INDEX);
@@ -295,6 +338,8 @@ async function main() {
         0,
         "a failing bundle read should fall back to an empty index",
       );
+      assert.strictEqual(harness.counters.writes, 0);
+      assert.ok(harness.warnings.some((line) => line.includes("Bundled index could not")));
 
       harness.setReadFileError(null);
       const recovered = await harness.module.loadSkillIndex({
@@ -313,7 +358,7 @@ async function main() {
   });
 
   await test("an unusable stat falls back to reading every time", async () => {
-    const root = fs.mkdtempSync(path.join(os.tmpdir(), "skill-index-cache-"));
+    const root = fs.mkdtempSync(path.join(repoRoot, ".skill-index-cache-"));
     try {
       const harness = makeHarness(root);
       writeBundled(harness, BASE_INDEX);
@@ -335,7 +380,7 @@ async function main() {
   });
 
   await test("the fingerprint is taken from stat", async () => {
-    const root = fs.mkdtempSync(path.join(os.tmpdir(), "skill-index-cache-"));
+    const root = fs.mkdtempSync(path.join(repoRoot, ".skill-index-cache-"));
     try {
       const harness = makeHarness(root);
       writeBundled(harness, BASE_INDEX);
@@ -343,6 +388,272 @@ async function main() {
       const index = await harness.module.loadSkillIndex(harness.context);
       assert.strictEqual(index.skills.length, 1);
       assert.ok(harness.counters.stat >= 1, "the fingerprint must use stat");
+    } finally {
+      fs.rmSync(root, { recursive: true, force: true });
+    }
+  });
+
+  await test("malformed cached entries do not break search and normalization is idempotent", async () => {
+    const root = fs.mkdtempSync(path.join(repoRoot, ".skill-index-cache-"));
+    try {
+      const harness = makeHarness(root);
+      writeLocal(harness, {
+        ...BASE_INDEX,
+        sources: [
+          { ...BASE_INDEX.sources[0], includePaths: [""], excludePaths: [""] },
+          null, 2, [],
+          { ...BASE_INDEX.sources[0], id: "bad-scope", includePaths: [true] },
+          { ...BASE_INDEX.sources[0], id: "bad-branch", branch: {} },
+        ],
+        skills: [
+          {
+            ...BASE_INDEX.skills[0], standalone: false, requires: ["base"],
+            bundle: "framework", license: "MIT", author: "author", version: "2",
+            invocation: "explicitOnly", argumentHint: "[topic]", context: "fork",
+          },
+          null, [], false, { ...BASE_INDEX.skills[0], name: 7 },
+          { ...BASE_INDEX.skills[0], path: null },
+          {
+            ...BASE_INDEX.skills[0], name: "broken-metadata",
+            description: {}, description_ja: 1, categories: ["safe", null, 3],
+            requires: [false, "one"], standalone: "no", isOrg: {},
+            invocation: "unknown", context: [], stars: "many", url: {},
+            argumentHint: 4,
+          },
+        ],
+        categories: [null, { id: 3 }, { id: "safe", name: "Safe", description: 4 }],
+        bundles: [false, { id: "framework", name: "Framework", source: "alpha",
+          description: [], skills: ["one"], installOrder: 5 },
+          { id: "bad-bundle", name: "Bad", source: "alpha", skills: ["one", null] }],
+        retiredSources: [null, { id: "retired", supersededBy: 7 }],
+      });
+
+      const index = await harness.module.loadSkillIndex(harness.context);
+      assert.strictEqual(index.sources.length, 1, "invalid scan fields must not widen a scan");
+      assert.deepStrictEqual(Array.from(index.sources[0].includePaths), [""]);
+      assert.deepStrictEqual(Array.from(index.sources[0].excludePaths), [""]);
+      assert.strictEqual(index.skills.length, 2);
+      assert.strictEqual(index.skills[0].path, "", "repository-root skills remain valid");
+      assert.strictEqual(index.skills[0].standalone, false);
+      assert.strictEqual(index.skills[0].invocation, "explicitOnly");
+      assert.strictEqual(index.skills[0].context, "fork");
+      assert.strictEqual(index.skills[0].argumentHint, "[topic]");
+      assert.strictEqual(index.skills[0].license, "MIT");
+      assert.strictEqual(index.skills[0].bundle, "framework");
+      assert.strictEqual(index.skills[1].description, "");
+      assert.strictEqual(index.skills[1].description_ja, undefined);
+      assert.deepStrictEqual(Array.from(index.skills[1].categories), ["safe"]);
+      assert.deepStrictEqual(Array.from(index.skills[1].requires), ["one"]);
+      assert.strictEqual(index.skills[1].invocation, undefined);
+      assert.strictEqual(index.skills[1].url, undefined);
+      assert.strictEqual(index.bundles[0].installOrder, undefined);
+      assert.deepStrictEqual(Array.from(index.bundles[0].skills), ["one"]);
+      assert.strictEqual(harness.searchSkills(index, "one").items.length, 1);
+      assert.strictEqual(harness.searchSkills(index, "").items.length, 2);
+      assert.ok(harness.warnings.some((line) => line.includes("invalid identity")));
+      assert.ok(harness.warnings.some((line) => line.includes("invalid metadata")));
+      writeLocal(harness, index);
+      const warningCount = harness.warnings.filter((line) => /ignored|repaired/.test(line)).length;
+      const again = await harness.module.loadSkillIndex(harness.context);
+      assert.strictEqual(JSON.stringify(again), JSON.stringify(index));
+      assert.strictEqual(
+        harness.warnings.filter((line) => /ignored|repaired/.test(line)).length,
+        warningCount,
+      );
+    } finally {
+      fs.rmSync(root, { recursive: true, force: true });
+    }
+  });
+
+  await test("legacy indexes missing categories retain local sources and skills", async () => {
+    const root = fs.mkdtempSync(path.join(repoRoot, ".skill-index-cache-"));
+    try {
+      const harness = makeHarness(root);
+      writeBundled(harness, BASE_INDEX);
+      const local = { ...BASE_INDEX, sources: [{ ...BASE_INDEX.sources[0], id: "custom" }],
+        skills: [{ ...BASE_INDEX.skills[0], source: "custom" }] };
+      delete local.categories;
+      writeLocal(harness, local);
+      const result = await harness.module.loadSkillIndex(harness.context);
+      assert.ok(result.sources.some((source) => source.id === "custom"));
+      assert.ok(result.skills.some((skill) => skill.source === "custom"));
+    } finally {
+      fs.rmSync(root, { recursive: true, force: true });
+    }
+  });
+
+  await test("invalid local scan restrictions never fall back to an unrestricted preset or overwrite the cache", async () => {
+    const root = fs.mkdtempSync(path.join(repoRoot, ".skill-index-cache-"));
+    try {
+      const harness = makeHarness(root);
+      writeBundled(harness, { ...BASE_INDEX, version: "2.0.0" });
+      const target = writeLocal(harness, { ...BASE_INDEX,
+        sources: [{ ...BASE_INDEX.sources[0], includePaths: ["restricted", false] }] });
+      const before = fs.readFileSync(target, "utf8");
+      const result = await harness.module.loadSkillIndex(harness.context);
+      assert.ok(!result.sources.some((source) => source.id === "alpha"));
+      assert.ok(!result.skills.some((skill) => skill.source === "alpha"));
+      assert.strictEqual(harness.counters.writes, 0);
+      assert.strictEqual(fs.readFileSync(target, "utf8"), before);
+      await assert.rejects(harness.module.saveSkillIndex(harness.context, result), /repair or restore/);
+      assert.strictEqual(fs.readFileSync(target, "utf8"), before);
+    } finally {
+      fs.rmSync(root, { recursive: true, force: true });
+    }
+  });
+
+  await test("a corrupt local index is never replaced by the bundled index", async () => {
+    const root = fs.mkdtempSync(path.join(repoRoot, ".skill-index-cache-"));
+    try {
+      const harness = makeHarness(root);
+      writeBundled(harness, BASE_INDEX);
+      const target = writeLocal(harness, { sources: {}, skills: [], categories: [] });
+      const before = fs.readFileSync(target, "utf8");
+      const result = await harness.module.loadSkillIndex(harness.context);
+      assert.strictEqual(harness.counters.writes, 0);
+      assert.strictEqual(fs.readFileSync(target, "utf8"), before);
+      await assert.rejects(harness.module.saveSkillIndex(harness.context, result), /repair or restore/);
+      assert.strictEqual(fs.readFileSync(target, "utf8"), before);
+    } finally {
+      fs.rmSync(root, { recursive: true, force: true });
+    }
+  });
+
+  await test("invalid shared restrictions do not revive the matching unrestricted preset", async () => {
+    const root = fs.mkdtempSync(path.join(repoRoot, ".skill-index-cache-"));
+    try {
+      const harness = makeHarness(root, { sharedManifest: {
+        status: "valid", manifest: { sources: [
+          { ...BASE_INDEX.sources[0], excludePaths: ["private", false] },
+        ] },
+      } });
+      writeBundled(harness, BASE_INDEX);
+      const target = writeLocal(harness, BASE_INDEX);
+      const before = fs.readFileSync(target, "utf8");
+      const result = await harness.module.loadSkillIndex(harness.context);
+      assert.ok(!result.sources.some((source) => source.id === "alpha"));
+      assert.ok(!result.skills.some((skill) => skill.source === "alpha"));
+      assert.strictEqual(harness.counters.writes, 0);
+      assert.strictEqual(fs.readFileSync(target, "utf8"), before);
+      await assert.rejects(harness.module.saveSkillIndex(harness.context, result), /shared source index is invalid/);
+      assert.strictEqual(fs.readFileSync(target, "utf8"), before);
+    } finally {
+      fs.rmSync(root, { recursive: true, force: true });
+    }
+  });
+
+  await test("missing local and bundled indexes can still read a valid shared source without bootstrapping", async () => {
+    const root = fs.mkdtempSync(path.join(repoRoot, ".skill-index-cache-"));
+    try {
+      const harness = makeHarness(root, { sharedManifest: {
+        status: "valid", manifest: { sources: BASE_INDEX.sources },
+      } });
+      const result = await harness.module.loadSkillIndex(harness.context);
+      assert.strictEqual(result.sources[0].id, "alpha");
+      assert.strictEqual(harness.counters.writes, 0);
+      assert.strictEqual(harness.counters.bootstraps, 0);
+    } finally {
+      fs.rmSync(root, { recursive: true, force: true });
+    }
+  });
+
+  await test("bundled input and shared merged sources use the same entry validation", async () => {
+    const root = fs.mkdtempSync(path.join(repoRoot, ".skill-index-cache-"));
+    try {
+      const harness = makeHarness(root, {
+        sharedManifest: {
+          status: "valid",
+          manifest: {
+            sources: [
+              ...BASE_INDEX.sources, null,
+              { ...BASE_INDEX.sources[0], id: "other", name: false },
+            ],
+          },
+        },
+      });
+      writeBundled(harness, {
+        ...BASE_INDEX,
+        sources: [null, ...BASE_INDEX.sources],
+        skills: [null, { ...BASE_INDEX.skills[0], description: true }],
+      });
+      const index = await harness.module.loadSkillIndex(harness.context);
+      assert.strictEqual(index.sources.length, 1);
+      assert.strictEqual(index.skills.length, 1);
+      assert.strictEqual(index.skills[0].description, "");
+      assert.strictEqual(harness.searchSkills(index, "one").items.length, 1);
+      assert.ok(harness.warnings.some((line) => line.includes("sources: ignored 2")));
+    } finally {
+      fs.rmSync(root, { recursive: true, force: true });
+    }
+  });
+
+  await test("the real bundled catalog is unchanged by normalization", async () => {
+    const root = fs.mkdtempSync(path.join(repoRoot, ".skill-index-cache-"));
+    try {
+      const harness = makeHarness(root);
+      const bundled = JSON.parse(fs.readFileSync(
+        path.join(repoRoot, "resources", "skill-index.json"), "utf8",
+      ));
+      writeBundled(harness, bundled);
+      const index = await harness.module.loadSkillIndex(harness.context);
+      assert.deepStrictEqual(JSON.parse(JSON.stringify(index)), bundled);
+      assert.ok(!harness.warnings.some((line) => /ignored|repaired/.test(line)));
+    } finally {
+      fs.rmSync(root, { recursive: true, force: true });
+    }
+  });
+
+  await test("unreadable indexes never persist or bootstrap an empty success", async () => {
+    const root = fs.mkdtempSync(path.join(repoRoot, ".skill-index-cache-"));
+    try {
+      const harness = makeHarness(root, { sharedManifest: { status: "missing" } });
+      for (const invalid of [null, [], { sources: {}, skills: [], categories: [] }]) {
+        const target = writeLocal(harness, invalid);
+        const before = fs.readFileSync(target, "utf8");
+        const index = await harness.module.loadSkillIndex(harness.context);
+        assert.strictEqual(index.skills.length, 0);
+        assert.strictEqual(harness.counters.writes, 0);
+        assert.strictEqual(harness.counters.bootstraps, 0);
+        assert.strictEqual(fs.readFileSync(target, "utf8"), before);
+      }
+      assert.ok(harness.warnings.some((line) => line.includes("unsaved empty fallback")));
+      assert.ok(!harness.warnings.some((line) => line.includes(root)));
+    } finally {
+      fs.rmSync(root, { recursive: true, force: true });
+    }
+  });
+
+  await test("early invalid-data diagnostics are queued until the output channel is ready", async () => {
+    const root = fs.mkdtempSync(path.join(repoRoot, ".skill-index-cache-"));
+    try {
+      const harness = makeHarness(root, { attachChannel: false });
+      writeBundled(harness, { ...BASE_INDEX, skills: [null] });
+      await harness.module.loadSkillIndex(harness.context);
+      assert.strictEqual(harness.warnings.length, 0);
+      harness.setOutputChannel();
+      assert.ok(harness.warnings.some((line) => line.includes("skills: ignored 1")));
+      const count = harness.warnings.length;
+      harness.setOutputChannel();
+      assert.strictEqual(harness.warnings.length, count, "queued warnings are drained once");
+    } finally {
+      fs.rmSync(root, { recursive: true, force: true });
+    }
+  });
+
+  await test("a failed merged-cache write does not replace local data with the bundled fallback", async () => {
+    const root = fs.mkdtempSync(path.join(repoRoot, ".skill-index-cache-"));
+    try {
+      const harness = makeHarness(root);
+      writeBundled(harness, { ...BASE_INDEX, version: "2.0.0" });
+      const target = writeLocal(harness, {
+        ...BASE_INDEX,
+        skills: [{ ...BASE_INDEX.skills[0], name: "local-only" }],
+      });
+      const before = fs.readFileSync(target, "utf8");
+      harness.setWriteFileError(new Error("write failed"));
+      await assert.rejects(harness.module.loadSkillIndex(harness.context), /write failed/);
+      assert.strictEqual(harness.counters.writes, 1, "do not retry a write with bundled-only data");
+      assert.strictEqual(fs.readFileSync(target, "utf8"), before);
     } finally {
       fs.rmSync(root, { recursive: true, force: true });
     }

@@ -130,19 +130,228 @@ function createBundleKey(bundle: Pick<Bundle, "source" | "id">): string {
   return `${bundle.source}:${bundle.id}`;
 }
 
-function normalizeSkillIndex(index: Partial<SkillIndex>): SkillIndex {
+let indexOutputChannel: Pick<vscode.OutputChannel, "appendLine"> | undefined;
+const pendingIndexWarnings = new Set<string>();
+
+export function setSkillIndexOutputChannel(
+  channel: Pick<vscode.OutputChannel, "appendLine">,
+): void {
+  indexOutputChannel = channel;
+  for (const warning of pendingIndexWarnings) {
+    channel.appendLine(`[Index] ${warning}`);
+  }
+  pendingIndexWarnings.clear();
+}
+
+function warnInvalidIndex(message: string): void {
+  if (indexOutputChannel) {
+    indexOutputChannel.appendLine(`[Index] ${message}`);
+  } else {
+    pendingIndexWarnings.add(message);
+  }
+}
+
+function isIndexRecord(value: unknown): value is Record<string, unknown> {
+  return value !== null && typeof value === "object" && !Array.isArray(value);
+}
+
+function isIndexStringList(value: unknown): value is string[] {
+  return Array.isArray(value) && value.every((item) => typeof item === "string");
+}
+
+type IndexEntryKind =
+  | "sources"
+  | "skills"
+  | "categories"
+  | "bundles"
+  | "retiredSources";
+
+function normalizeIndexEntries<T>(
+  value: unknown,
+  kind: IndexEntryKind,
+  onInvalid?: () => void,
+  rejectedSourceIds?: Set<string>,
+): T[] {
+  if (!Array.isArray(value)) {
+    if (value !== undefined) {
+      warnInvalidIndex(`${kind}: expected an array; ignoring invalid data.`);
+    }
+    return [];
+  }
+
+  const entries: T[] = [];
+  let dropped = 0;
+  let repaired = 0;
+  let changedExisting = false;
+  const identityFields =
+    kind === "skills"
+      ? ["name", "source"]
+      : kind === "bundles"
+        ? ["id", "name", "source"]
+        : kind === "retiredSources"
+          ? ["id"]
+          : kind === "sources"
+            ? ["id", "name", "url"]
+            : ["id", "name"];
+  for (const raw of value) {
+    if (
+      !isIndexRecord(raw) ||
+      identityFields.some(
+        (field) => typeof raw[field] !== "string" || !raw[field].trim(),
+      ) ||
+      (kind === "skills" && typeof raw.path !== "string") ||
+      (kind === "bundles" && !isIndexStringList(raw.skills)) ||
+      // Do not repair scan restrictions by removing them: that widens the scan.
+      (kind === "sources" &&
+        (["branch", "scanner"].some(
+          (field) => raw[field] !== undefined && typeof raw[field] !== "string",
+        ) ||
+          ["includePaths", "excludePaths"].some(
+            (field) => raw[field] !== undefined && !isIndexStringList(raw[field]),
+          )))
+    ) {
+      dropped += 1;
+      if (kind === "sources" && isIndexRecord(raw) && typeof raw.id === "string") {
+        rejectedSourceIds?.add(raw.id);
+      }
+      continue;
+    }
+
+    const entry = { ...raw };
+    const textFields = [
+      "description_ja",
+      "url",
+      "rawUrl",
+      "owner",
+      "bundle",
+      "license",
+      "author",
+      "version",
+      "argumentHint",
+      "lastIndexedAt",
+      "lastIndexedBy",
+      "name_ja",
+      "coreSkill",
+      "supersededBy",
+    ];
+    for (const field of textFields) {
+      if (entry[field] !== undefined && typeof entry[field] !== "string") {
+        delete entry[field];
+      }
+    }
+    if (kind !== "retiredSources") {
+      entry.description =
+        typeof raw.description === "string" ? raw.description : "";
+    }
+    if (kind === "sources" && typeof raw.type !== "string") {
+      entry.type = "community";
+    }
+    if (kind === "skills") {
+      entry.categories = Array.isArray(raw.categories)
+        ? raw.categories.filter((item) => typeof item === "string")
+        : [];
+      for (const field of ["isOrg", "standalone"]) {
+        if (raw[field] !== undefined && typeof raw[field] !== "boolean") {
+          delete entry[field];
+        }
+      }
+      if (
+        raw.invocation !== undefined &&
+        !["auto", "explicitOnly", "modelOnly"].includes(raw.invocation as string)
+      ) {
+        delete entry.invocation;
+      }
+      if (raw.context !== undefined && raw.context !== "fork") {
+        delete entry.context;
+      }
+    }
+    for (const field of ["requires", "skills", "installOrder"]) {
+      if (raw[field] !== undefined || (kind === "bundles" && field === "skills")) {
+        if (field === "installOrder" && !isIndexStringList(raw[field])) {
+          delete entry[field];
+        } else {
+          entry[field] = Array.isArray(raw[field])
+            ? raw[field].filter((item) => typeof item === "string")
+            : [];
+        }
+      }
+    }
+    for (const field of ["stars", "repoId"]) {
+      if (
+        raw[field] !== undefined &&
+        !(
+          typeof raw[field] === "number" &&
+          Number.isFinite(raw[field]) &&
+          raw[field] >= 0
+        )
+      ) {
+        delete entry[field];
+      }
+    }
+    if (JSON.stringify(entry) !== JSON.stringify(raw)) {
+      repaired += 1;
+      changedExisting ||= Object.keys(raw).some(
+        (key) => JSON.stringify(raw[key]) !== JSON.stringify(entry[key]),
+      );
+    }
+    entries.push(entry as T);
+  }
+  if (dropped || repaired) {
+    if (dropped || changedExisting) onInvalid?.();
+    warnInvalidIndex(
+      `${kind}: ignored ${dropped} entries with invalid identity or scan fields; repaired ${repaired} entries with invalid metadata types.`,
+    );
+  }
+  return entries;
+}
+
+function normalizeSkillIndex(
+  value: unknown,
+  onInvalid?: () => void,
+  rejectedSourceIds?: Set<string>,
+): SkillIndex {
+  if (!isIndexRecord(value)) {
+    warnInvalidIndex("Expected an index object; rejecting invalid data.");
+    throw new Error("Invalid skill index");
+  }
+  const index = value;
+  for (const field of ["version", "lastUpdated", "lastScannedAt"]) {
+    if (index[field] !== undefined && typeof index[field] !== "string") {
+      warnInvalidIndex(
+        `Index metadata ${field} has an invalid type; using a fallback.`,
+      );
+    }
+  }
+  for (const field of ["sources", "skills", "categories"]) {
+    if (field === "categories" && index[field] === undefined) continue;
+    if (!Array.isArray(index[field])) {
+      warnInvalidIndex(
+        `Required index field ${field} is not an array; rejecting invalid data.`,
+      );
+      throw new Error("Invalid skill index");
+    }
+  }
   return {
-    version: index.version || "1.0.0",
-    lastUpdated: index.lastUpdated || new Date().toISOString().split("T")[0],
+    version:
+      typeof index.version === "string" && index.version ? index.version : "1.0.0",
+    lastUpdated:
+      typeof index.lastUpdated === "string" && index.lastUpdated
+        ? index.lastUpdated
+        : new Date().toISOString().split("T")[0],
     lastScannedAt:
       typeof index.lastScannedAt === "string" ? index.lastScannedAt : undefined,
-    sources: Array.isArray(index.sources) ? index.sources : [],
-    skills: Array.isArray(index.skills) ? index.skills : [],
-    categories: Array.isArray(index.categories) ? index.categories : [],
-    bundles: Array.isArray(index.bundles) ? index.bundles : [],
-    retiredSources: Array.isArray(index.retiredSources)
-      ? index.retiredSources
-      : undefined,
+    sources: normalizeIndexEntries<Source>(index.sources, "sources", onInvalid, rejectedSourceIds),
+    skills: normalizeIndexEntries<Skill>(index.skills, "skills", onInvalid),
+    categories: normalizeIndexEntries<Category>(index.categories, "categories", onInvalid),
+    bundles: normalizeIndexEntries<Bundle>(index.bundles, "bundles", onInvalid),
+    retiredSources:
+      index.retiredSources === undefined
+        ? undefined
+        : normalizeIndexEntries<RetiredSource>(
+            index.retiredSources,
+            "retiredSources",
+            onInvalid,
+          ),
   };
 }
 
@@ -177,7 +386,7 @@ async function readBundledSkillIndex(
     return normalizeSkillIndex(
       JSON.parse(
         Buffer.from(bundledContent).toString("utf-8"),
-      ) as Partial<SkillIndex>,
+      ),
     );
   };
 
@@ -194,6 +403,7 @@ async function readBundledSkillIndex(
     try {
       return await parse();
     } catch {
+      warnInvalidIndex("Bundled index could not be read or parsed; not caching the failure.");
       return null;
     }
   }
@@ -206,6 +416,7 @@ async function readBundledSkillIndex(
     try {
       return cloneSkillIndex(await bundledIndexInflight.promise);
     } catch {
+      warnInvalidIndex("Bundled index could not be read or parsed; not caching the failure.");
       return null;
     }
   }
@@ -218,6 +429,7 @@ async function readBundledSkillIndex(
     return cloneSkillIndex(value);
   } catch {
     // 失敗はキャッシュしない。次の呼び出しで読み直す
+    warnInvalidIndex("Bundled index could not be read or parsed; not caching the failure.");
     return null;
   } finally {
     if (bundledIndexInflight?.promise === promise) {
@@ -243,6 +455,8 @@ async function writeLocalSkillIndex(
 
 async function loadSharedSourcesIntoSkillIndex(
   currentIndex: SkillIndex,
+  rejectedSourceIds = new Set<string>(),
+  bootstrap = true,
 ): Promise<SkillIndex> {
   if (!getConfiguredUseSharedSourcesManifest()) {
     return currentIndex;
@@ -251,31 +465,47 @@ async function loadSharedSourcesIntoSkillIndex(
   const retiredSourceIds = getRetiredSourceIds(currentIndex.retiredSources);
   const result = await readSharedSourcesManifestResult();
   if (result.status === "valid") {
-    return applySharedSourcesManifestToSkillIndex(
-      currentIndex,
-      result.manifest,
-      {
-        retiredSourceIds,
-      },
+    const merged = normalizeSkillIndex(
+      applySharedSourcesManifestToSkillIndex(
+        currentIndex,
+        {
+          ...result.manifest,
+          sources: normalizeIndexEntries<Source>(
+            result.manifest.sources,
+            "sources",
+            undefined,
+            rejectedSourceIds,
+          ),
+        },
+        { retiredSourceIds },
+      ),
     );
+    return rejectedSourceIds.size
+      ? {
+          ...merged,
+          sources: merged.sources.filter((source) => !rejectedSourceIds.has(source.id)),
+          skills: merged.skills.filter((skill) => !rejectedSourceIds.has(skill.source)),
+          bundles: merged.bundles?.filter((bundle) => !rejectedSourceIds.has(bundle.source)),
+        }
+      : merged;
   }
 
   // 採用できないだけで中身はある。bootstrap で上書きすると sibling の登録が消える
   if (result.status === "rejected") {
-    console.warn(
-      `[Skill Ninja] Keeping the shared sources manifest untouched (${result.reason})`,
+    warnInvalidIndex(
+      "Shared sources manifest was rejected; leaving it untouched.",
     );
     return currentIndex;
   }
 
+  if (!bootstrap) return currentIndex;
   try {
     await bootstrapSharedSourcesManifest(
       currentIndex.sources.map((source) => ({ ...source })),
     );
-  } catch (error) {
-    console.warn(
-      "[Skill Ninja] Failed to bootstrap shared sources manifest:",
-      error,
+  } catch {
+    warnInvalidIndex(
+      "Shared sources manifest bootstrap failed; leaving it untouched.",
     );
   }
 
@@ -310,49 +540,65 @@ export async function loadSkillIndex(
     // バンドルがなければ null のまま
   }
 
+  let localIndex: SkillIndex;
+  let localInvalid = false;
+  const rejectedSourceIds = new Set<string>();
   try {
     // ローカルインデックスを読み込む
     const content = await vscode.workspace.fs.readFile(localIndexPath);
-    const localIndex = normalizeSkillIndex(
-      JSON.parse(Buffer.from(content).toString("utf-8")) as Partial<SkillIndex>,
+    localIndex = normalizeSkillIndex(
+      JSON.parse(Buffer.from(content).toString("utf-8")),
+      () => { localInvalid = true; },
+      rejectedSourceIds,
     );
-
-    // バンドル版がある場合は常にマージ（description_ja の補完のため）
-    if (bundledIndex) {
-      const mergedIndex = mergeSkillIndexes(localIndex, bundledIndex);
-      const sharedMergedIndex =
-        await loadSharedSourcesIntoSkillIndex(mergedIndex);
-      // バンドル版または shared manifest で補完できるメタデータがあれば保存する
-      if (shouldPersistMergedIndex(localIndex, sharedMergedIndex)) {
-        await writeLocalSkillIndex(context, sharedMergedIndex);
-      }
-      return sharedMergedIndex;
-    }
-
-    const sharedLocalIndex = await loadSharedSourcesIntoSkillIndex(localIndex);
-    if (shouldPersistMergedIndex(localIndex, sharedLocalIndex)) {
-      await writeLocalSkillIndex(context, sharedLocalIndex);
-    }
-
-    return sharedLocalIndex;
-  } catch {
-    // ローカルにない場合はバンドルされたインデックスを使用
-    if (bundledIndex) {
+  } catch (error) {
+    warnInvalidIndex(
+      "Local index could not be read or parsed; preserving any existing local data.",
+    );
+    const code = (error as { code?: unknown } | undefined)?.code;
+    const missing = code === "FileNotFound" || code === "ENOENT";
+    if (missing && bundledIndex) {
       // ローカルにコピー
       await writeLocalSkillIndex(context, bundledIndex);
       return loadSharedSourcesIntoSkillIndex(bundledIndex);
     }
 
     // バンドルされたインデックスもない場合は空のインデックスを返す
-    console.warn("No skill index found, using empty index");
-    return loadSharedSourcesIntoSkillIndex({
+    warnInvalidIndex(
+      "No readable skill index; returning an unsaved empty fallback without bootstrapping shared data.",
+    );
+    const emptyIndex: SkillIndex = {
       version: "1.0.0",
       lastUpdated: new Date().toISOString().split("T")[0],
       sources: [],
       skills: [],
       categories: [],
-    });
+    };
+    return missing
+      ? loadSharedSourcesIntoSkillIndex(emptyIndex, rejectedSourceIds, false)
+      : emptyIndex;
   }
+
+  const mergedIndex = bundledIndex
+    ? mergeSkillIndexes(localIndex, bundledIndex)
+    : localIndex;
+  const sharedMergedIndex = await loadSharedSourcesIntoSkillIndex(
+    mergedIndex, rejectedSourceIds, !localInvalid,
+  );
+  const safeIndex = rejectedSourceIds.size
+    ? {
+        ...sharedMergedIndex,
+        sources: sharedMergedIndex.sources.filter((source) => !rejectedSourceIds.has(source.id)),
+        skills: sharedMergedIndex.skills.filter((skill) => !rejectedSourceIds.has(skill.source)),
+        bundles: sharedMergedIndex.bundles?.filter((bundle) => !rejectedSourceIds.has(bundle.source)),
+      }
+    : sharedMergedIndex;
+  if (!localInvalid && rejectedSourceIds.size === 0 && shouldPersistMergedIndex(localIndex, safeIndex)) {
+    await writeLocalSkillIndex(context, safeIndex);
+  } else if (localInvalid || rejectedSourceIds.size) {
+    warnInvalidIndex("Invalid entries were omitted; the local index was left untouched.");
+  }
+  return safeIndex;
 }
 
 /**
@@ -644,6 +890,39 @@ export async function saveSkillIndex(
   context: vscode.ExtensionContext,
   index: SkillIndex,
 ): Promise<void> {
+  const localIndexPath = vscode.Uri.joinPath(context.globalStorageUri, "skill-index.json");
+  let content: Uint8Array | undefined;
+  try {
+    content = await vscode.workspace.fs.readFile(localIndexPath);
+  } catch (error) {
+    const code = (error as { code?: unknown } | undefined)?.code;
+    if (code !== "FileNotFound" && code !== "ENOENT") {
+      throw new Error("Cannot read the local skill index; it was not overwritten.");
+    }
+  }
+  if (content) {
+    let invalid = false;
+    try {
+      normalizeSkillIndex(JSON.parse(Buffer.from(content).toString("utf-8")), () => {
+        invalid = true;
+      });
+    } catch {
+      invalid = true;
+    }
+    if (invalid) {
+      throw new Error("The local skill index is invalid; repair or restore it before saving.");
+    }
+  }
+  if (getConfiguredUseSharedSourcesManifest()) {
+    const shared = await readSharedSourcesManifestResult();
+    if (shared.status === "valid") {
+      const rejected = new Set<string>();
+      normalizeIndexEntries<Source>(shared.manifest.sources, "sources", undefined, rejected);
+      if (rejected.size) {
+        throw new Error("The shared source index is invalid; repair or restore it before saving.");
+      }
+    }
+  }
   await writeLocalSkillIndex(context, index);
 
   if (!getConfiguredUseSharedSourcesManifest()) {

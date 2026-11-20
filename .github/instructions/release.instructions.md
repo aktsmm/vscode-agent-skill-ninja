@@ -170,30 +170,38 @@ npx vsce ls              # VSIX 収録物確認
 
 ### 5.1 VSIX install 検証（publish 前に必須）
 
-`vsce ls` だけでは VSIX 作成中の zip 破損（`End of central directory record` エラー等）を検出できない。生成後は必ずローカル VS Code へ install テストを走らせてセルフチェックする（2026-05-12 / GitHub Copilot）。
+`vsce ls` だけでは zip 破損や古いインストール実体を検出できない。生成後は候補 VSIX を次のゲートで検証する。通常プロファイルやグローバル拡張へ上書きインストールしない。
 
 ```pwsh
-$cli = "C:\Users\$env:USERNAME\AppData\Local\Programs\Microsoft VS Code\bin\code.cmd"
-& $cli --install-extension artifacts\vsix\agent-skill-ninja-X.X.X.vsix --force
-# Error: End of central directory record signature not found ... が出たら
-# VSIX が truncate しているので再生成する
+node scripts\verify-vsix-install.js artifacts\vsix\agent-skill-ninja-X.X.X.vsix
+# CLI の場所を明示する場合だけ --code を付ける
+# node scripts\verify-vsix-install.js <candidate.vsix> --code <code.cmd>
 ```
 
-`Developer: Reload Window` だけでは、ワークスペースの未インストール変更は読まれず、既に入っている Marketplace / VSIX 版を再読込するだけのことがある。ローカル修正版の実機確認は、**生成した VSIX を `code --install-extension ... --force` で入れ直してから reload** するか、Extension Development Host (`F5`) を使うこと（2026-05-23 / GitHub Copilot）。
+ゲートは候補内の manifest から版・entrypoint を読み、所有する専用 `user-data-dir` / `extensions-dir` にインストールする。CLI 一覧と installed manifest の版・識別子・entrypoint、および entrypoint・`dist/`・`resources/`・日英 manifest 翻訳の実バイトを VSIX と照合する。欠落・不一致・CLI 失敗は非ゼロ終了とし、所有する一時ディレクトリは失敗時も `finally` で削除する。回帰テストは `node scripts\test-verify-vsix-install.js`（`npm test` でも自動検出）。
+
+バイト一致は activation や画面動作の証明ではない。`Developer: Reload Window` は既存の配布版を再読込する場合があるため、実挙動は下記の隔離インストール実体の smoke または Extension Development Host (`F5`) で別途確認する。
 
 `vsce ls` が prepublish ログだけを返す・出力不安定な場合は、生成済み `.vsix` を zip として直接列挙して収録物を確認する（例：PowerShell で `tar -xf <vsix> -C <tmpdir>` または `System.IO.Compression.ZipFile`）。この場合も、上記の不要物チェックは省略しない（2026-05-11 / GitHub Copilot）。
 
 通常の VS Code プロファイルを汚さず install と実挙動を確認するには、一時ディレクトリへ隔離して入れ、そのインストール済み実体でスモークを走らせる。VSIX の収録物とサイズだけでなく、`extension` が公開予定の version で、`checks` が通ることを確認する。確認後は一時ディレクトリを削除する。
 
 ```pwsh
-$tmp = Join-Path $env:TEMP "ninja-vsix-$([guid]::NewGuid().ToString('N'))"
+$tmp = Join-Path $PWD ".skill-vsix-smoke-$([guid]::NewGuid().ToString('N'))"
 New-Item -ItemType Directory -Force "$tmp\extensions", "$tmp\user-data" | Out-Null
 $cli = "$env:LOCALAPPDATA\Programs\Microsoft VS Code\bin\code.cmd"
 $exe = "$env:LOCALAPPDATA\Programs\Microsoft VS Code\Code.exe"
-& $cli --install-extension artifacts\vsix\agent-skill-ninja-X.X.X.vsix --force --extensions-dir "$tmp\extensions" --user-data-dir "$tmp\user-data"
-$ext = (Get-ChildItem "$tmp\extensions" -Directory -Filter "yamapan.agent-skill-ninja-*").FullName
-foreach ($lang in "ja", "en") { node scripts\run-extension-host-smoke.js --code $exe --locale $lang --extension-path $ext }
-Remove-Item $tmp -Recurse -Force
+try {
+    & $cli --install-extension artifacts\vsix\agent-skill-ninja-X.X.X.vsix --force --extensions-dir "$tmp\extensions" --user-data-dir "$tmp\user-data"
+    if ($LASTEXITCODE -ne 0) { throw "Isolated VSIX installation failed" }
+    $ext = (Get-ChildItem "$tmp\extensions" -Directory -Filter "yamapan.agent-skill-ninja-*").FullName
+    foreach ($lang in "ja", "en") {
+        node scripts\run-extension-host-smoke.js --code $exe --locale $lang --extension-path $ext
+        if ($LASTEXITCODE -ne 0) { throw "Extension host smoke failed: $lang" }
+    }
+} finally {
+    Remove-Item -LiteralPath $tmp -Recurse -Force
+}
 ```
 
 ### 6. Marketplace 公開
@@ -291,7 +299,7 @@ New-Item -ItemType Directory -Force artifacts/vsix | Out-Null; npx vsce package 
 - ✅ `npm run compile` が成功することを確認してから公開
 - ✅ `node scripts/audit-skill-installability.js --raw-only` で、プリセット index の全 skill が install 到達可能であることを確認してから公開
 - ✅ `npx vsce ls` で不要な開発用ファイルが VSIX に入っていないことを確認してから公開
-- ✅ **`code --install-extension <vsix>` でローカル install が通ることを確認してから publish**（VSIX truncate / zip 破損は `vsce ls` で見逃しやすい，2026-05-12 / GitHub Copilot）
+- publish 前に `node scripts\verify-vsix-install.js <candidate.vsix>` で隔離 install と実バイト一致を確認する（activation / UI は別の smoke で確認）
 - ✅ 一時的な VS Code task を使った場合は、公開完了前に `.vscode/tasks.json` から release / verify 用 task を削除し、watch task だけの状態に戻す
 - ✅ 一時 script（例: publish / release / verify / VSCE fallback）や `%TEMP%` 配下の一時 VSCE install は、公開完了前に削除する
 - ✅ `git status --short` と `git rev-parse HEAD` / `git rev-parse origin/master` で、作業ツリーと push 状態を最後に確認

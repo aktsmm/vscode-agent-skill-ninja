@@ -87,7 +87,9 @@ export function isContainedPath(rootPath: string, targetPath: string): boolean {
   const relativePath = path.relative(normalizedRoot, normalizedTarget);
   return (
     relativePath === "" ||
-    (!relativePath.startsWith("..") && !path.isAbsolute(relativePath))
+    (relativePath !== ".." &&
+      !relativePath.startsWith(`..${path.sep}`) &&
+      !path.isAbsolute(relativePath))
   );
 }
 
@@ -104,7 +106,8 @@ export function isStrictlyInsidePath(
   const relativePath = path.relative(normalizedRoot, normalizedTarget);
   return (
     relativePath !== "" &&
-    !relativePath.startsWith("..") &&
+    relativePath !== ".." &&
+    !relativePath.startsWith(`..${path.sep}`) &&
     !path.isAbsolute(relativePath)
   );
 }

@@ -10,6 +10,7 @@ import {
   buildGitHubContentUrl,
   normalizeGitHubRepoUrl,
   loadSkillIndex,
+  setSkillIndexOutputChannel,
   getLocalizedDescription,
   getSkillGitHubUrl,
   getSkillGitHubUrlAsync,
@@ -1004,6 +1005,7 @@ export function activate(
   const sourceIndexChannel = vscode.window.createOutputChannel(
     "Agent Skills Ninja: Source Index",
   );
+  setSkillIndexOutputChannel(sourceIndexChannel);
   context.subscriptions.push(
     coexistenceChannel,
     skillStateChannel,

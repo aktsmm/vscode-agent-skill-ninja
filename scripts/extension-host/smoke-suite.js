@@ -2,7 +2,15 @@ const assert = require("node:assert/strict");
 const fs = require("node:fs");
 const os = require("node:os");
 const path = require("node:path");
-const vscode = require("vscode");
+const { createRequire } = require("node:module");
+// Packaged-host tests live outside the extension; use its API instance for interception.
+const vscode = createRequire(
+  path.join(
+    process.env.SKILL_NINJA_SMOKE_EXTENSION_ROOT ??
+      path.resolve(__dirname, "../.."),
+    "package.json",
+  ),
+)("vscode");
 
 exports.run = async () => {
   const root = process.env.SKILL_NINJA_SMOKE_ROOT;
@@ -67,6 +75,15 @@ exports.run = async () => {
       "",
     );
     stage = "activation";
+    let remoteDirectory;
+    if (process.env.SKILL_NINJA_SMOKE_REMOTE_UPDATE === "1") {
+      stage = "remote-update-fixture";
+      remoteDirectory = await require("./skill-update-suite").prepare(
+        root,
+        workspace.fsPath,
+      );
+    }
+    stage = "activation";
     await extension.activate();
     assert.equal(extension.isActive, true);
     checks.push("actual-extension-activation");
@@ -84,11 +101,24 @@ exports.run = async () => {
     }
     checks.push("maintenance-commands-registered");
 
+    if (remoteDirectory) {
+      stage = "real-upstream-update";
+      await require("./skill-update-suite").run(
+        vscode,
+        remoteDirectory,
+        language,
+      );
+      checks.push("real-upstream-update-bytes-notification-and-noop");
+    }
+
     stage = "empty-recovery-store";
     await Promise.race([
       vscode.commands.executeCommand("skillNinja.reviewInterruptedUpdates"),
       new Promise((_, reject) =>
-        setTimeout(() => reject(new Error("Empty recovery store was not accessible")), 5000),
+        setTimeout(
+          () => reject(new Error("Empty recovery store was not accessible")),
+          5000,
+        ),
       ),
     ]);
     checks.push("empty-recovery-store-host");
@@ -168,7 +198,9 @@ exports.run = async () => {
       fs.existsSync(path.join(skillsPath, "smoke-local", ".skill-meta.json")),
     );
     assert.deepEqual(
-      fs.readdirSync(skillsPath).filter((name) => name.startsWith(".skill-update-")),
+      fs
+        .readdirSync(skillsPath)
+        .filter((name) => name.startsWith(".skill-update-")),
       [],
     );
     checks.push("single-reinstall-local-skill-untouched-host");

@@ -13,6 +13,7 @@ import {
   classifySkillInstallFailure,
   SkillInstallIncompleteError,
   SkillUpdateConflictError,
+  SkillUpdateNestedSkillError,
   SkillUpdateRecoveryRequiredError,
   resolveManagedSkillDirUri,
   resolveSkillFolderName,
@@ -170,7 +171,12 @@ export function registerSkillUpdateCommands(
     const modified = new Map<string, SkillRoot>();
     const failures = new Map<string, number>();
     const details: string[] = [];
+    const completed: Array<{ name: string; detail: string }> = [];
     const localNotes: string[] = [];
+    const entryRoots = new WeakMap<SkillUpdateEntry, SkillRoot>();
+    const rootAliases = new Map<string, string>();
+    const ambiguousRoots = new Set<string>();
+    const rootMappings = new Map<string, string>();
     const renameOffers: RenameOffer[] = [];
     let missingUpstream = false;
     let recoveryNeeded = false;
@@ -195,8 +201,24 @@ export function registerSkillUpdateCommands(
       )
         .replace(/\p{Cc}/gu, " ")
         .slice(0, 120);
+    const rootLabel = (root: SkillRoot) =>
+      rootAliases.get(root.rootUri.toString()) ??
+      (root.label || root.scope).replace(/\p{Cc}/gu, " ").slice(0, 120);
+    const detailLabel = (entry: SkillUpdateEntry & { root?: SkillRoot }) => {
+      const root = entry.root ?? entryRoots.get(entry);
+      return root && ambiguousRoots.has(root.rootUri.toString())
+        ? `${label(entry)} (${rootLabel(root)})`
+        : label(entry);
+    };
+    const includeRootMapping = (root: SkillRoot) => {
+      const key = root.rootUri.toString();
+      rootMappings.set(
+        key,
+        `${rootLabel(root)}: ${root.rootPath.replace(/\p{Cc}/gu, " ")}`,
+      );
+    };
     const note = (entry: SkillUpdateEntry, reason: string) => {
-      details.push(`${label(entry)}: ${reason}`);
+      details.push(`${detailLabel(entry)}: ${reason}`);
     };
     const defer = (entries: readonly SkillUpdateEntry[], reason: string) => {
       summary.deferred += entries.length;
@@ -214,6 +236,7 @@ export function registerSkillUpdateCommands(
         : error instanceof SkillInstallIncompleteError && error.failures.length
           ? error.failures.map((failure) => failure.kind)
           : [classifySkillInstallFailure(error)];
+      const safeKinds: string[] = [];
       for (const candidate of new Set(kinds)) {
         const kind = [
           "rate-limit",
@@ -232,8 +255,18 @@ export function registerSkillUpdateCommands(
           : "other";
         const key = `${stage}:${kind}`;
         failures.set(key, Math.min((failures.get(key) ?? 0) + 1, 999999));
+        safeKinds.push(kind);
       }
+      return safeKinds.join(", ");
     };
+    const failureReason = (error: unknown, kinds: string) =>
+      error instanceof SkillUpdateNestedSkillError
+        ? error.reason === "independent"
+          ? messages.updateNestedIndependent()
+          : error.reason === "modified"
+            ? messages.updateNestedModified()
+            : messages.updateNestedUnverified()
+        : kinds;
     const offerRename = async (
       entry: SkillUpdateEntry,
       root: SkillRoot,
@@ -383,6 +416,23 @@ export function registerSkillUpdateCommands(
         );
         return summary;
       }
+      const uniqueRoots = [
+        ...new Map(roots.map((root) => [root.rootUri.toString(), root])).values(),
+      ];
+      const labelCounts = new Map<string, number>();
+      for (const root of uniqueRoots) {
+        const name = rootLabel(root);
+        labelCounts.set(name, (labelCounts.get(name) ?? 0) + 1);
+      }
+      if ([...labelCounts.values()].some((count) => count > 1)) {
+        for (const [position, root] of uniqueRoots.entries()) {
+          const name = rootLabel(root);
+          const key = root.rootUri.toString();
+          rootAliases.set(key, `${name} #${position + 1}`);
+          ambiguousRoots.add(key);
+          includeRootMapping(root);
+        }
+      }
       await vscode.window.withProgress(
         {
           location: vscode.ProgressLocation.Notification,
@@ -435,6 +485,7 @@ export function registerSkillUpdateCommands(
                 const entries = await deps.getEntries(root, index, {
                   strict: !!upgradeWorkspaceUri,
                 });
+                for (const entry of entries) entryRoots.set(entry, root);
                 if (!active()) {
                   summary.cancelled = true;
                   defer([...candidates, ...entries], text("cancelled", "中断"));
@@ -479,7 +530,7 @@ export function registerSkillUpdateCommands(
                   if (isLocalInstalledSkillMeta(entry.meta)) {
                     summary.localOnly++;
                     localNotes.push(
-                      `${label(entry)}: ${text(
+                      `${detailLabel(entry)}: ${text(
                         "local skill without an upstream; not updated",
                         "配布元のないローカルスキルのため更新対象外",
                       )}`,
@@ -499,8 +550,10 @@ export function registerSkillUpdateCommands(
                   try {
                     await assertNoSkillUpdateRecovery(
                       deps.context,
-                      resolveManagedSkillDirUri(root.rootUri, entry.meta.relativePath)
-                        .fsPath,
+                      resolveManagedSkillDirUri(
+                        root.rootUri,
+                        entry.meta.relativePath,
+                      ).fsPath,
                     );
                   } catch (error) {
                     if (!active()) {
@@ -518,7 +571,10 @@ export function registerSkillUpdateCommands(
                       recoveryNeeded = true;
                       note(entry, messages.recoveryStoreUnavailable());
                     } else {
-                      note(entry, text("update check failed", "更新確認に失敗"));
+                      note(
+                        entry,
+                        text("update check failed", "更新確認に失敗"),
+                      );
                     }
                     continue;
                   }
@@ -614,14 +670,16 @@ export function registerSkillUpdateCommands(
                       root.rootUri,
                       entry.meta.relativePath,
                     ).fsPath;
-                    candidates.push({
+                    const candidate = {
                       ...entry,
                       root,
                       destination:
                         process.platform === "win32"
                           ? destination.toLowerCase()
                           : destination,
-                    });
+                    };
+                    entryRoots.set(candidate, root);
+                    candidates.push(candidate);
                   } catch {
                     defer(
                       [entry],
@@ -640,8 +698,9 @@ export function registerSkillUpdateCommands(
                 }
                 summary.checkFailed++;
                 recordFailure("check", error);
+                includeRootMapping(root);
                 details.push(
-                  `${root.rootPath.replace(/\p{Cc}/gu, " ").slice(0, 120)}: ${text("skill root scan failed", "スキルルートの確認に失敗")}`,
+                  `${rootLabel(root)}: ${text("skill root scan failed", "スキルルートの確認に失敗")}`,
                 );
               }
             }
@@ -710,7 +769,8 @@ export function registerSkillUpdateCommands(
                 if (skill.path !== candidate.meta.remotePath) {
                   missingUpstream = true;
                   if (
-                    !retry && (await offerRename(
+                    !retry &&
+                    (await offerRename(
                       candidate,
                       candidate.root,
                       index,
@@ -791,7 +851,8 @@ export function registerSkillUpdateCommands(
                 if (error instanceof SkillSourcePathMissingError) {
                   missingUpstream = true;
                   if (
-                    !retry && (await offerRename(
+                    !retry &&
+                    (await offerRename(
                       candidate,
                       candidate.root,
                       index,
@@ -818,9 +879,9 @@ export function registerSkillUpdateCommands(
                   continue;
                 }
                 summary.checkFailed++;
-                recordFailure("check", error);
+                const reason = recordFailure("check", error);
                 rememberFailure(candidate);
-                note(candidate, text("check failed", "確認失敗"));
+                note(candidate, messages.updateCheckFailedReason(reason));
               }
             }
             if (!active()) {
@@ -861,12 +922,18 @@ export function registerSkillUpdateCommands(
                 ...(retry
                   ? {
                       detail: [
-                        ...planned.slice(0, 8).map(
-                          (entry) =>
-                            `${label(entry)} — ${entry.destination.replace(/\p{Cc}/gu, " ").slice(0, 240)}`,
-                        ),
+                        ...planned
+                          .slice(0, 8)
+                          .map(
+                            (entry) =>
+                              `${label(entry)} — ${entry.destination.replace(/\p{Cc}/gu, " ").slice(0, 240)}`,
+                          ),
                         ...(planned.length > 8
-                          ? [messages.updateRetryMoreTargets(planned.length - 8)]
+                          ? [
+                              messages.updateRetryMoreTargets(
+                                planned.length - 8,
+                              ),
+                            ]
                           : []),
                       ].join("\n"),
                     }
@@ -938,12 +1005,12 @@ export function registerSkillUpdateCommands(
                 );
                 if (result.status !== "ok") {
                   summary.updateFailed++;
-                  recordFailure(
+                  const reason = recordFailure(
                     "update",
                     undefined,
                     result.failures?.map((failure) => failure.kind),
                   );
-                  note(entry, text("update failed", "更新失敗"));
+                  note(entry, messages.updateItemFailed(reason));
                   rememberFailure(entry);
                   continue;
                 }
@@ -952,6 +1019,15 @@ export function registerSkillUpdateCommands(
                 } else {
                   summary.updated++;
                 }
+                const name = `${label(entry)} (${rootLabel(root)})`;
+                completed.push({
+                  name,
+                  detail: `${name}: ${
+                    entry.state === "untracked"
+                      ? messages.updateItemSynchronized()
+                      : messages.updateItemUpdated()
+                  }`,
+                });
                 modified.set(root.rootUri.toString(), root);
               } catch (error) {
                 if (error instanceof SkillUpdateRecoveryRequiredError) {
@@ -989,8 +1065,11 @@ export function registerSkillUpdateCommands(
                     !(error instanceof SkillUpdateConflictError)
                   ) {
                     summary.updateFailed++;
-                    recordFailure("update", error);
-                    note(entry, text("update failed", "更新失敗"));
+                    const kinds = recordFailure("update", error);
+                    note(
+                      entry,
+                      messages.updateItemFailed(failureReason(error, kinds)),
+                    );
                     rememberFailure(entry);
                     defer(
                       accepted.slice(position + 1),
@@ -1006,8 +1085,11 @@ export function registerSkillUpdateCommands(
                   continue;
                 }
                 summary.updateFailed++;
-                recordFailure("update", error);
-                note(entry, text("update failed", "更新失敗"));
+                const kinds = recordFailure("update", error);
+                note(
+                  entry,
+                  messages.updateItemFailed(failureReason(error, kinds)),
+                );
                 rememberFailure(entry);
               }
             }
@@ -1065,23 +1147,39 @@ export function registerSkillUpdateCommands(
         ].join("、") || "更新対象なし"
       }。`,
     );
-    const message = summaryMessage + (details.length ? ` ${details[0]}` : "");
-    const hasDetails = details.length > 0 || localNotes.length > 0;
+    const names = completed.slice(0, 3).map((entry) => entry.name);
+    if (completed.length > 3) {
+      names.push(messages.updateCompletedMore(completed.length - 3));
+    }
+    const message = [
+      summaryMessage,
+      ...(names.length
+        ? [messages.updateCompletedNames(names.join(", "))]
+        : []),
+      ...(details.length ? [details[0]] : []),
+    ].join(" ");
+    const hasDetails =
+      completed.length > 0 || details.length > 0 || localNotes.length > 0;
     const showDetails = text("Show details", "詳細を表示");
-    const openDetails = () => {
+    if (hasDetails) {
       if (!detailsChannel) {
         detailsChannel = vscode.window.createOutputChannel(
           "Agent Skills Ninja Skill Updates",
         );
         deps.context.subscriptions.push(detailsChannel);
       }
-      detailsChannel.clear();
       detailsChannel.appendLine(summaryMessage);
-      for (const detail of [...details, ...localNotes]) {
+      for (const detail of [
+        ...completed.map((entry) => entry.detail),
+        ...details,
+        ...localNotes,
+        ...rootMappings.values(),
+      ]) {
         detailsChannel.appendLine(detail);
       }
-      detailsChannel.show(true);
-    };
+      detailsChannel.appendLine("");
+    }
+    const openDetails = () => detailsChannel?.show(true);
     const installRenamed = async () => {
       const offer =
         renameOffers.length === 1

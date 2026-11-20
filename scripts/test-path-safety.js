@@ -153,6 +153,15 @@ test("isContainedPath allows root itself and descendants", () => {
   assert.strictEqual(isContainedPath(root, path.join(root, "a", "b")), true);
 });
 
+test("double-dot prefixes are descendants, not parent traversal", () => {
+  const root = path.resolve("/tmp/skills-root");
+  for (const name of ["..notes", "..notes/file.md"]) {
+    assert.strictEqual(isContainedPath(root, path.join(root, name)), true);
+    assert.strictEqual(isStrictlyInsidePath(root, path.join(root, name)), true);
+  }
+  assert.strictEqual(isStrictlyInsidePath(root, path.dirname(root)), false);
+});
+
 test("isContainedPath rejects escapes and siblings", () => {
   const root = path.resolve("/tmp/skills-root");
   assert.strictEqual(
