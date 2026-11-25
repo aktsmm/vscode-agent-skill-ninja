@@ -15,6 +15,11 @@ export interface SkillRoot {
   displayPath: string;
   isManaged: boolean;
   isReadOnly: boolean;
+  /**
+   * 設定に無いが、標準のワークスペーススキルフォルダとして自動検出した root。
+   * 一覧とインストール先の選択にだけ使い、instruction 出力や .gitignore の管理対象にしない。
+   */
+  isAutoDetected?: boolean;
   extensionId?: string;
   extensionDisplayName?: string;
   instructionUri?: vscode.Uri;
@@ -744,6 +749,78 @@ export function resolveWorkspaceSkillRootUris(
   return roots;
 }
 
+/** 自動検出で SKILL.md を探すとき、1 つの候補フォルダで読むディレクトリ数の上限 */
+const AUTO_DETECT_MAX_DIRECTORY_READS = 64;
+
+/**
+ * フォルダ配下（直下のスキルフォルダと、その 1 つ下の分類フォルダまで）に
+ * SKILL.md があるかを調べる。存在しない・読めないフォルダは「無い」として扱う。
+ */
+async function containsSkillFile(rootUri: vscode.Uri): Promise<boolean> {
+  let reads = 0;
+  const visit = async (dir: vscode.Uri, depth: number): Promise<boolean> => {
+    if (reads++ >= AUTO_DETECT_MAX_DIRECTORY_READS) {
+      return false;
+    }
+
+    const entries = await vscode.workspace.fs.readDirectory(dir);
+    if (
+      depth > 0 &&
+      entries.some(
+        ([name, type]) =>
+          name.toLowerCase() === "skill.md" &&
+          (type & vscode.FileType.File) !== 0,
+      )
+    ) {
+      return true;
+    }
+    if (depth >= 2) {
+      return false;
+    }
+
+    for (const [name, type] of entries) {
+      if (name.startsWith(".") || (type & vscode.FileType.Directory) === 0) {
+        continue;
+      }
+      if (await visit(vscode.Uri.joinPath(dir, name), depth + 1)) {
+        return true;
+      }
+    }
+    return false;
+  };
+
+  try {
+    return await visit(rootUri, 0);
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * `.github/skills` `.agents/skills` `.claude/skills` のうち、スキルが入っているものを返す。
+ * 設定済みの root と重なるものの除外は呼び出し側で行う。
+ */
+export async function detectWorkspaceSkillRootUris(
+  workspaceUri: vscode.Uri,
+): Promise<vscode.Uri[]> {
+  if (workspaceUri.scheme !== "file") {
+    return [];
+  }
+
+  const detected: vscode.Uri[] = [];
+  for (const relativePath of [
+    WORKSPACE_SKILLS_DIRECTORY_PRESET_PATHS.github,
+    WORKSPACE_SKILLS_DIRECTORY_PRESET_PATHS.agents,
+    WORKSPACE_SKILLS_DIRECTORY_PRESET_PATHS.claude,
+  ]) {
+    const candidate = vscode.Uri.joinPath(workspaceUri, relativePath);
+    if (await containsSkillFile(candidate)) {
+      detected.push(candidate);
+    }
+  }
+  return detected;
+}
+
 function getWorkspaceSkillsDisplayPath(
   workspaceUri: vscode.Uri,
   workspaceRootUri: vscode.Uri,
@@ -826,7 +903,7 @@ export async function getManagedSkillRoots(
 
   const addWorkspaceRoot = (
     workspaceRootUri: vscode.Uri,
-    instructionUri: vscode.Uri,
+    instructionUri: vscode.Uri | undefined,
   ): void => {
     if (!workspaceUri) {
       return;
@@ -839,15 +916,31 @@ export async function getManagedSkillRoots(
       return;
     }
 
+    const displayPath = getWorkspaceSkillsDisplayPath(
+      workspaceUri,
+      workspaceRootUri,
+    );
+    if (!instructionUri) {
+      roots.push({
+        scope: "workspace",
+        label: "Workspace Skills",
+        rootUri: workspaceRootUri,
+        rootPath: workspaceRootUri.fsPath,
+        displayPath,
+        isManaged: true,
+        isReadOnly: false,
+        isAutoDetected: true,
+      });
+      seen.add(normalizedWorkspaceRoot);
+      return;
+    }
+
     roots.push({
       scope: "workspace",
       label: "Workspace Skills",
       rootUri: workspaceRootUri,
       rootPath: workspaceRootUri.fsPath,
-      displayPath: getWorkspaceSkillsDisplayPath(
-        workspaceUri,
-        workspaceRootUri,
-      ),
+      displayPath,
       isManaged: true,
       isReadOnly: false,
       instructionUri,
@@ -873,6 +966,17 @@ export async function getManagedSkillRoots(
 
     for (const workspaceRootUri of workspaceRootUris) {
       addWorkspaceRoot(workspaceRootUri, instructionUri);
+    }
+
+    // 設定済みの root が先に入っているので、同じフォルダは重複しない
+    if (
+      skillNinjaConfig.get<boolean>("autoDetectWorkspaceSkillRoots") !== false
+    ) {
+      for (const detectedUri of await detectWorkspaceSkillRootUris(
+        workspaceUri,
+      )) {
+        addWorkspaceRoot(detectedUri, undefined);
+      }
     }
   }
 

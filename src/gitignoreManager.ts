@@ -28,6 +28,19 @@ const syncObservers = new Set<
   (root: vscode.Uri, result: GitignoreSyncResult) => void
 >();
 
+let managedRootPolicy: ((rootUri: vscode.Uri) => boolean) | undefined;
+
+/**
+ * 管理ブロックを書いてよい root を決める。自動検出しただけの root（設定にないフォルダ）の
+ * .gitignore は書き換えたくないので、拡張機能側が設定済みの root だけを許可する。
+ * 管理ブロックを外す方向の同期（removeBlock）には適用しない。
+ */
+export function setSkillGitignoreRootPolicy(
+  policy: ((rootUri: vscode.Uri) => boolean) | undefined,
+): void {
+  managedRootPolicy = policy;
+}
+
 export function observeGitignoreSynchronization(
   observer: (root: vscode.Uri, result: GitignoreSyncResult) => void,
 ): () => void {
@@ -513,6 +526,9 @@ export async function synchronizeSkillGitignore(
       .split(path.sep)
       .some((segment) => segment.startsWith(".skill-update-"))
   ) {
+    return { status: "skipped", reason: "out-of-scope" };
+  }
+  if (!options?.removeBlock && managedRootPolicy && !managedRootPolicy(rootUri)) {
     return { status: "skipped", reason: "out-of-scope" };
   }
   let lock: fs.FileHandle | undefined;

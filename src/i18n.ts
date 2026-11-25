@@ -412,6 +412,7 @@ const jaMessages = {
   updateLocalConflict:
     "スキルの内容が変わったか未保存の編集があるため保留。変更を確認してからやり直してください",
   updateRecoveryRequired: "復旧の確認が必要なため保留しました",
+  skillRootAutoDetected: "自動検出",
   recoveryStartup:
     "中断した可能性のあるスキル更新が {0} 件あります。内容を確認するまで対象の再更新は保留します。",
   recoveryStoreUnavailable:
@@ -849,6 +850,7 @@ const enMessages: MessageDictionary = {
   updateLocalConflict:
     "skipped because the installed skill changed or has unsaved edits; review the changes before trying again",
   updateRecoveryRequired: "deferred because recovery needs review",
+  skillRootAutoDetected: "Auto-detected",
   recoveryStartup:
     "{0} skill update(s) may have been interrupted. Further updates to those skills are deferred until reviewed.",
   recoveryStoreUnavailable:
@@ -1409,6 +1411,7 @@ export const messages = {
     localize("updateUpgradeMetadataWorkspaceChanged"),
   updateLocalConflict: () => localize("updateLocalConflict"),
   updateRecoveryRequired: () => localize("updateRecoveryRequired"),
+  skillRootAutoDetected: () => localize("skillRootAutoDetected"),
   recoveryStartup: (count: number) => localize("recoveryStartup", count),
   recoveryStoreUnavailable: () => localize("recoveryStoreUnavailable"),
   recoveryStoreInsideRoot: () => localize("recoveryStoreInsideRoot"),

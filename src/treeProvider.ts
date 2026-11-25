@@ -444,9 +444,29 @@ function getRootLabelFromPath(root: SkillRoot): string | undefined {
   return parentLabel;
 }
 
+/**
+ * ワークスペースの行は、保存場所そのものをラベルにする（.agents/skills と
+ * .github/skills が並んでも先頭で見分けられる）。複数フォルダのワークスペースでは
+ * フォルダ名を前に付け、同じ相対パスの行を区別する。
+ */
+function getWorkspaceRootLabel(root: SkillRoot): string {
+  const displayPath = root.displayPath.replace(/\\/g, "/");
+  const folders = vscode.workspace.workspaceFolders ?? [];
+  if (folders.length < 2) {
+    return displayPath;
+  }
+
+  const rootKey = normalizeFileSystemPath(root.rootPath);
+  const owner = folders.find((folder) => {
+    const folderKey = normalizeFileSystemPath(folder.uri.fsPath);
+    return rootKey === folderKey || rootKey.startsWith(`${folderKey}/`);
+  });
+  return owner ? `${owner.name}/${displayPath}` : displayPath;
+}
+
 export function getSkillRootGroupLabel(root: SkillRoot): string {
   if (root.scope === "workspace") {
-    return localizeRootLabel("Workspace Skills", "ワークスペース スキル");
+    return getWorkspaceRootLabel(root);
   }
 
   if (root.scope === "extension") {
@@ -471,6 +491,10 @@ export function getSkillRootGroupDescription(
   const countText = isJapanese()
     ? `${skillCount} 件のスキル`
     : `${skillCount} skills`;
+  if (root.scope === "workspace") {
+    // パスは行ラベルに出しているので、ここでは件数だけにする
+    return countText;
+  }
   const readers = formatRootReaders(
     resolveSkillRootIdentity(root, undefined, undefined, {
       matchBySuffix: true,
@@ -780,7 +804,10 @@ function createSkillRootGroupItem(
     root.isReadOnly ? "folder-library" : "folder-opened",
   );
 
-  const tooltipLines = [getSkillRootGroupLabel(root), root.displayPath];
+  const tooltipLines = [getSkillRootGroupLabel(root)];
+  if (root.displayPath !== getSkillRootGroupLabel(root)) {
+    tooltipLines.push(root.displayPath);
+  }
   if (root.instructionPath) {
     tooltipLines.push(`Instruction: ${root.instructionPath}`);
   }

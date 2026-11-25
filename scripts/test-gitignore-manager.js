@@ -616,8 +616,41 @@ async function main() {
     } finally {
       promises.open = savedOpen;
     }
-    const { reconcileSkillGitignores, observeGitignoreSynchronization } =
-      moduleExports;
+    const {
+      reconcileSkillGitignores,
+      observeGitignoreSynchronization,
+      setSkillGitignoreRootPolicy,
+    } = moduleExports;
+    // 設定にない root は管理ブロックを書かない。外す方向の同期には適用しない
+    fs.writeFileSync(ignorePath, original);
+    setSkillGitignoreRootPolicy(() => false);
+    try {
+      const unmanaged = await synchronizeSkillGitignore(
+        rootUri,
+        vscode.workspace,
+      );
+      assert.strictEqual(unmanaged.status, "skipped");
+      assert.strictEqual(unmanaged.reason, "out-of-scope");
+      assert.strictEqual(fs.readFileSync(ignorePath, "utf8"), original);
+      assert(!fs.existsSync(path.join(rootPath, GITIGNORE_LOCK_NAME)));
+
+      setSkillGitignoreRootPolicy(() => true);
+      await synchronizeSkillGitignore(rootUri, vscode.workspace);
+      assert(
+        fs.readFileSync(ignorePath, "utf8").includes("# Agent Skills Ninja START"),
+      );
+      setSkillGitignoreRootPolicy(() => false);
+      const removal = await synchronizeSkillGitignore(rootUri, vscode.workspace, {
+        removeBlock: true,
+      });
+      assert.strictEqual(removal.status, "updated");
+      assert(
+        !fs.readFileSync(ignorePath, "utf8").includes("# Agent Skills Ninja START"),
+      );
+    } finally {
+      setSkillGitignoreRootPolicy(undefined);
+      fs.writeFileSync(ignorePath, original);
+    }
     const observed = [];
     const stopObserving = observeGitignoreSynchronization((_root, result) =>
       observed.push(result),

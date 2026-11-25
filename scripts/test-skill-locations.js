@@ -21,6 +21,7 @@ const vscodeStub = {
   Uri: {
     file(filePath) {
       return {
+        scheme: "file",
         fsPath: path.resolve(filePath),
         path: path.resolve(filePath).replace(/\\/g, "/"),
       };
@@ -35,6 +36,7 @@ const vscodeStub = {
     joinPath(base, ...parts) {
       const fsPath = path.join(base.fsPath, ...parts);
       return {
+        scheme: base.scheme,
         fsPath,
         path: fsPath.replace(/\\/g, "/"),
       };
@@ -705,6 +707,97 @@ function makeConfigStub(values) {
       );
     } finally {
       vscodeStub.__configBySection.skillNinja = {};
+    }
+  });
+
+  await test("getManagedSkillRoots: auto-detects standard workspace skill folders that contain a SKILL.md", async () => {
+    const workspacePath = fs.mkdtempSync(
+      path.join(os.tmpdir(), "skill-ninja-autodetect-"),
+    );
+    const workspaceUri = vscodeStub.Uri.file(workspacePath);
+    const write = (relative) => {
+      const file = path.join(workspacePath, ...relative.split("/"));
+      fs.mkdirSync(path.dirname(file), { recursive: true });
+      fs.writeFileSync(file, "---\nname: demo\n---\n");
+    };
+    write(".github/skills/primary/SKILL.md");
+    write(".agents/skills/codex-skill/SKILL.md");
+    write(".claude/skills/category/nested-skill/SKILL.md");
+    fs.mkdirSync(path.join(workspacePath, ".agents", "skills", ".hidden"), {
+      recursive: true,
+    });
+    const summarize = async () =>
+      JSON.parse(JSON.stringify(await getManagedSkillRoots(workspaceUri))).map(
+        (root) => ({
+          displayPath: root.displayPath,
+          isAutoDetected: root.isAutoDetected === true,
+          hasInstruction: Boolean(root.instructionPath),
+          isReadOnly: root.isReadOnly,
+        }),
+      );
+
+    try {
+      vscodeStub.__configBySection.skillNinja = {
+        useVsCodeAgentSkillLocations: false,
+      };
+      assert.deepStrictEqual(await summarize(), [
+        {
+          displayPath: ".github/skills",
+          isAutoDetected: false,
+          hasInstruction: true,
+          isReadOnly: false,
+        },
+        {
+          displayPath: ".agents/skills",
+          isAutoDetected: true,
+          hasInstruction: false,
+          isReadOnly: false,
+        },
+        {
+          displayPath: ".claude/skills",
+          isAutoDetected: true,
+          hasInstruction: false,
+          isReadOnly: false,
+        },
+      ]);
+
+      // 設定済みの root は自動検出として重複せず、instruction も保つ
+      vscodeStub.__configBySection.skillNinja = {
+        additionalSkillRoots: [".agents/skills"],
+        useVsCodeAgentSkillLocations: false,
+      };
+      const configured = await summarize();
+      assert.deepStrictEqual(
+        configured.map((root) => [root.displayPath, root.isAutoDetected]),
+        [
+          [".github/skills", false],
+          [".agents/skills", false],
+          [".claude/skills", true],
+        ],
+      );
+      assert.strictEqual(configured[1].hasInstruction, true);
+
+      vscodeStub.__configBySection.skillNinja = {
+        autoDetectWorkspaceSkillRoots: false,
+        useVsCodeAgentSkillLocations: false,
+      };
+      assert.deepStrictEqual(
+        (await summarize()).map((root) => root.displayPath),
+        [".github/skills"],
+      );
+
+      // SKILL.md が無いフォルダは検出しない
+      fs.rmSync(path.join(workspacePath, ".claude"), { recursive: true });
+      vscodeStub.__configBySection.skillNinja = {
+        useVsCodeAgentSkillLocations: false,
+      };
+      assert.deepStrictEqual(
+        (await summarize()).map((root) => root.displayPath),
+        [".github/skills", ".agents/skills"],
+      );
+    } finally {
+      vscodeStub.__configBySection.skillNinja = {};
+      fs.rmSync(workspacePath, { recursive: true, force: true });
     }
   });
 

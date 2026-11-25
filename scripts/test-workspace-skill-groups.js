@@ -42,6 +42,7 @@ const vscodeStub = {
       return { fsPath: path.resolve(filePath) };
     },
   },
+  workspace: { workspaceFolders: undefined },
 };
 
 function loadTreeProviderExports(japanese = false) {
@@ -727,7 +728,7 @@ test("localizes root labels and descriptions for Japanese UI", () => {
     getSkillRootGroupLabelJa(
       createSkill("gamma", "workspace", "D:/repo/.github/skills", "gamma").root,
     ),
-    "ワークスペース スキル",
+    "D:/repo/.github/skills",
   );
 
   assert.strictEqual(
@@ -779,6 +780,37 @@ test("localizes root labels and descriptions for Japanese UI", () => {
     }),
     "instructions/custom-skill • 未登録",
   );
+});
+
+test("workspace rows are labelled by folder path, with the count as description", () => {
+  const workspaceRoot = (rootPath, displayPath) => ({
+    ...createSkill("s", "workspace", rootPath, "s").root,
+    displayPath,
+  });
+  const github = workspaceRoot("D:/repo/.github/skills", ".github/skills");
+  const agents = workspaceRoot("D:/repo/.agents/skills", ".agents/skills");
+  const custom = workspaceRoot("D:/repo/copilot-skills/m-skills", "copilot-skills/m-skills");
+
+  assert.strictEqual(getSkillRootGroupLabel(github), ".github/skills");
+  assert.strictEqual(getSkillRootGroupLabel(agents), ".agents/skills");
+  assert.strictEqual(getSkillRootGroupLabel(custom), "copilot-skills/m-skills");
+  assert.strictEqual(getSkillRootGroupLabelJa(agents), ".agents/skills");
+  assert.strictEqual(getSkillRootGroupDescription(agents, 1), "1 skills");
+  assert.strictEqual(getSkillRootGroupDescriptionJa(github, 31), "31 件のスキル");
+
+  vscodeStub.workspace.workspaceFolders = [
+    { name: "app", uri: { fsPath: "D:/repo" } },
+    { name: "docs", uri: { fsPath: "D:/docs" } },
+  ];
+  try {
+    assert.strictEqual(getSkillRootGroupLabel(agents), "app/.agents/skills");
+    const docsRoot = workspaceRoot("D:/docs/.agents/skills", ".agents/skills");
+    assert.strictEqual(getSkillRootGroupLabel(docsRoot), "docs/.agents/skills");
+    const outside = workspaceRoot("E:/shared/skills", "E:/shared/skills");
+    assert.strictEqual(getSkillRootGroupLabel(outside), "E:/shared/skills");
+  } finally {
+    vscodeStub.workspace.workspaceFolders = undefined;
+  }
 });
 
 test("a source that this extension has never scanned reads as not indexed", () => {

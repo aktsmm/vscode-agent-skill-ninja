@@ -1492,6 +1492,14 @@
           "description": "%config.additionalSkillRoots.description%",
           "markdownDescription": "%config.additionalSkillRoots.markdownDescription%"
         },
+        "skillNinja.autoDetectWorkspaceSkillRoots": {
+          "type": "boolean",
+          "scope": "resource",
+          "default": true,
+          "order": 23,
+          "description": "%config.autoDetectWorkspaceSkillRoots.description%",
+          "markdownDescription": "%config.autoDetectWorkspaceSkillRoots.markdownDescription%"
+        },
         "skillNinja.useVsCodeAgentSkillLocations": {
           "type": "boolean",
           "default": true,

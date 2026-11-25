@@ -20,6 +20,7 @@ import {
   synchronizeSkillGitignore,
   reconcileSkillGitignores,
   observeGitignoreSynchronization,
+  setSkillGitignoreRootPolicy,
   createGitignoreInventory,
   formatGitignoreFailure,
   GITIGNORE_LOCK_NAME,
@@ -1048,6 +1049,16 @@ export function activate(
       .map((value) => vscode.Uri.file(value)),
     ...currentGitignoreRoots(),
   ];
+  // 自動検出しただけの workspace root は、.gitignore の管理ブロックを書く対象にしない
+  setSkillGitignoreRootPolicy((rootUri) => {
+    const key = normalizeFileSystemPath(rootUri.fsPath);
+    return currentGitignoreRoots().some(
+      (candidate) => normalizeFileSystemPath(candidate.fsPath) === key,
+    );
+  });
+  context.subscriptions.push({
+    dispose: () => setSkillGitignoreRootPolicy(undefined),
+  });
   const gitignoreInventory = createGitignoreInventory({
     initialRoots: initialGitignoreRoots,
     currentRoots: currentGitignoreRoots,
@@ -2707,7 +2718,12 @@ export function activate(
     const selection = await vscode.window.showQuickPick(
       roots.map((root) => ({
         label: getSkillRootGroupLabel(root),
-        description: root.displayPath,
+        // ワークスペースの行はラベルがパスそのものなので、説明で繰り返さない
+        description: root.isAutoDetected
+          ? messages.skillRootAutoDetected()
+          : root.scope === "workspace"
+            ? undefined
+            : root.displayPath,
         detail: root.instructionPath,
         root,
       })),
@@ -3120,6 +3136,7 @@ export function activate(
       e.affectsConfiguration("skillNinja.skillsDirectory") ||
       e.affectsConfiguration("skillNinja.skillsDirectoryPreset") ||
       e.affectsConfiguration("skillNinja.additionalSkillRoots") ||
+      e.affectsConfiguration("skillNinja.autoDetectWorkspaceSkillRoots") ||
       e.affectsConfiguration("skillNinja.useVsCodeAgentSkillLocations") ||
       e.affectsConfiguration("skillNinja.explicitOnlySkillsInInstructions") ||
       e.affectsConfiguration("skillNinja.showBuiltInSkills")

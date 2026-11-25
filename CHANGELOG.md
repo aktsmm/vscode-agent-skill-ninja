@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **Auto-Detect Workspace Skill Folders** - `.github/skills`, `.agents/skills` and `.claude/skills` that contain a `SKILL.md` are now listed in Installed Skills and offered in the install-target picker even when they are not in `skillNinja.skillsDirectory` or `skillNinja.additionalSkillRoots`. Detected folders are display and install-target only: they are not written to the generated skill list and their `.gitignore` is not managed. Turn it off with `skillNinja.autoDetectWorkspaceSkillRoots` / `.github/skills`、`.agents/skills`、`.claude/skills` に `SKILL.md` があれば、`skillNinja.skillsDirectory` や `skillNinja.additionalSkillRoots` に設定していなくても「インストール済みスキル」とインストール先の選択に表示します。検出したフォルダは表示とインストール先のみで、生成されるスキル一覧への出力と `.gitignore` の管理は行いません。`skillNinja.autoDetectWorkspaceSkillRoots` で止められます。
+
+### Changed
+
+- **Workspace Rows Show The Folder Path** - Each workspace row in Installed Skills is labelled with its folder path (for example `.agents/skills`) followed by the skill count, so several workspace folders are told apart at a glance. This also applies to `skillNinja.additionalSkillRoots`; multi-root workspaces prefix the folder name / ワークスペースの各行をフォルダのパス（例: `.agents/skills`）と件数で表示し、複数の保存先を行の先頭で見分けられるようにしました。`skillNinja.additionalSkillRoots` のフォルダにも適用され、複数フォルダのワークスペースではフォルダ名を前に付けます。
+
 ## [0.9.66] - 2026-11-21
 
 ### Fixed

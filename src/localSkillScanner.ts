@@ -632,6 +632,7 @@ async function scanSkillsForRoot(root: SkillRoot): Promise<LocalSkill[]> {
   if (root.isManaged) {
     await checkRegistrationStatusForRoot(skills, root);
     markExcludedManualOnlySkillsRegistered(skills);
+    markAutoDetectedRootSkills(skills, root);
   }
   markEmbeddedSkills(skills);
 
@@ -691,6 +692,27 @@ function markExcludedManualOnlySkillsRegistered(skills: LocalSkill[]): void {
       skill.registrationReason =
         "Manual-only skill (disable-model-invocation: true) is intentionally left out of the generated skill list (skillNinja.explicitOnlySkillsInInstructions = exclude).";
     }
+  }
+}
+
+/**
+ * 自動検出した root は instruction へ出力しないので、登録の概念がない。
+ * 「未登録」と表示されないよう登録済み扱いにして、理由を残す。
+ */
+function markAutoDetectedRootSkills(
+  skills: LocalSkill[],
+  root: SkillRoot,
+): void {
+  if (!root.isAutoDetected) {
+    return;
+  }
+
+  for (const skill of skills) {
+    skill.isRegistered = true;
+    skill.registrationState = "registered";
+    skill.registrationSource = "none";
+    skill.registrationReason =
+      "Auto-detected workspace folder; it is listed but not written to the generated skill list. Add it to skillNinja.additionalSkillRoots to manage it.";
   }
 }
 

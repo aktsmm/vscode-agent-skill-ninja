@@ -231,7 +231,8 @@ ext install yamapan.agent-skill-ninja
 1. アクティビティバーの **螺旋手裏剣アイコン** をクリック
 2. **インストール済みスキル** - workspace managed skills を skill root ごとに表示
 
-- **ワークスペース スキル**: `skillNinja.skillsDirectory`（既定: `.github/skills`）と `skillNinja.additionalSkillRoots` 配下の managed skills
+- **ワークスペース スキル**: `skillNinja.skillsDirectory`（既定: `.github/skills`）と `skillNinja.additionalSkillRoots` 配下の managed skills。各行はフォルダのパス（例: `.agents/skills`）をラベルにし、その後ろに件数を表示します
+- 標準フォルダ（`.github/skills`、`.agents/skills`、`.claude/skills`）に `SKILL.md` があれば、設定していなくても自動で一覧に表示し、インストール先の選択にも出ます。生成されるスキル一覧への出力と `.gitignore` の管理は行いません。管理したいフォルダは `skillNinja.additionalSkillRoots` に追加し、検出を止めるには `skillNinja.autoDetectWorkspaceSkillRoots` を使います
 - 新しくインストールしたスキル（一時的なバッジ）
 - ツールバー: スキル出力 / スキル出力を再生成 / 新規作成 / ビューを更新 / 設定
 - 書き込み可能な各 root 行の右端にも **スキル出力を再生成** が表示され、remote-backed skill を 1 件以上含む root にだけ **このルートの変更されたスキルを更新** が表示されます
@@ -527,6 +528,7 @@ MCP ツールが不要な場合は、GitHub Copilot Chat のツール一覧か�
 |  20  | `skillNinja.explicitOnlySkillsInInstructions` | `exclude`              | 手動専用スキル（`disable-model-invocation: true`）を生成するスキル一覧にどう載せるか（`exclude` / `separate` / `include`） |
 |  21  | `skillNinja.autoManageGitignore`          | `true`                     | 保存先直下の .gitignore を自動管理。ワークスペース・フォルダ設定でレポごとに上書き可能                     |
 |  22  | `skillNinja.includeCodexHome`             | `true`                     | Codex のスキル（`~/.codex/skills`）も管理する（中身があるときだけ表示。instruction ファイルは書き込まない） |
+|  23  | `skillNinja.autoDetectWorkspaceSkillRoots` | `true`                    | `.github/skills`、`.agents/skills`、`.claude/skills` にスキルがあれば、未設定でも一覧に表示する（表示とインストール先の選択のみ。生成されるスキル一覧と `.gitignore` は管理しない） |
 
 > 設定画面では上記の順序で表示されます
 
