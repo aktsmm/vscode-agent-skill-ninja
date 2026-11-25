@@ -7,12 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.9.67] - 2026-11-26
+
 ### Added
 
 - **Auto-Detect Workspace Skill Folders** - `.github/skills`, `.agents/skills` and `.claude/skills` that contain a `SKILL.md` are now listed in Installed Skills and offered in the install-target picker even when they are not in `skillNinja.skillsDirectory` or `skillNinja.additionalSkillRoots`. Detected folders are display and install-target only: symbolic-link folders (which may point outside the workspace) are never detected, and detected folders are not written to the generated skill list, their `.gitignore` is not managed, and the upgrade-time metadata refresh does not create `.skill-meta.json` in them. Turn it off with `skillNinja.autoDetectWorkspaceSkillRoots` / `.github/skills`、`.agents/skills`、`.claude/skills` に `SKILL.md` があれば、`skillNinja.skillsDirectory` や `skillNinja.additionalSkillRoots` に設定していなくても「インストール済みスキル」とインストール先の選択に表示します。検出したフォルダは表示とインストール先のみで、ワークスペース外を指し得るシンボリックリンクのフォルダは検出せず、生成されるスキル一覧への出力、`.gitignore` の管理、アップグレード時のメタデータ再抽出による `.skill-meta.json` の作成は行いません。`skillNinja.autoDetectWorkspaceSkillRoots` で止められます。
 
 ### Changed
 
+- **Preset Skill Index v1.35.0** - Refreshed the GitHub Awesome Copilot source (1,929 skills across 13 sources) and dropped a skill path that no longer exists upstream / GitHub Awesome Copilot ソースを更新し（13 ソース・1,929 スキル）、配布元に存在しなくなったスキルパスを除外しました。
 - **Workspace Rows Show The Folder Path** - Each workspace row in Installed Skills is labelled with its folder path (for example `.agents/skills`) followed by the skill count, so several workspace folders are told apart at a glance. This also applies to `skillNinja.additionalSkillRoots`; multi-root workspaces prefix the folder name / ワークスペースの各行をフォルダのパス（例: `.agents/skills`）と件数で表示し、複数の保存先を行の先頭で見分けられるようにしました。`skillNinja.additionalSkillRoots` のフォルダにも適用され、複数フォルダのワークスペースではフォルダ名を前に付けます。
 
 ## [0.9.66] - 2026-11-21

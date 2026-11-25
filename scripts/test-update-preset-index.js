@@ -9,6 +9,7 @@ const {
   processTree,
   assertNoUnexpectedShrink,
   mergeUpdatedSkills,
+  buildNextIndex,
 } = require("./update-preset-index.js");
 
 const pending = [];
@@ -318,6 +319,31 @@ test("regenerated sources carry a lastIndexedAt stamp", () => {
   );
   assert.ok(regenerated, "Expected prps-agentic source in bundled index");
   assert.strictEqual(typeof regenerated.lastIndexedAt, "string");
+});
+
+test("regenerating the index keeps retiredSources and untouched fields", () => {
+  const previous = {
+    version: "1.0.0",
+    lastUpdated: "2026-01-01",
+    retiredSources: [{ id: "gone" }],
+    sources: [{ id: "a" }, { id: "b" }],
+    categories: [{ id: "c" }],
+    bundles: [],
+    skills: [{ name: "old", source: "a" }],
+  };
+  const next = buildNextIndex(previous, {
+    skills: [{ name: "new", source: "a" }],
+    updatedSourceIds: new Set(["a"]),
+    indexedAt: "2026-02-02T00:00:00.000Z",
+    scannedEverySource: false,
+  });
+  assert.deepStrictEqual(next.retiredSources, [{ id: "gone" }]);
+  assert.strictEqual(next.lastUpdated, "2026-01-01");
+  assert.deepStrictEqual(next.categories, previous.categories);
+  assert.strictEqual(next.sources[0].lastIndexedAt, "2026-02-02T00:00:00.000Z");
+  assert.strictEqual(next.sources[1].lastIndexedAt, undefined);
+  assert.deepStrictEqual(next.skills, [{ name: "new", source: "a" }]);
+  assert.strictEqual(previous.skills[0].name, "old");
 });
 
 Promise.all(pending).then(() => {

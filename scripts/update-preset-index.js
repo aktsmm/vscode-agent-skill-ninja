@@ -666,20 +666,12 @@ async function main() {
   const indexedAt = new Date().toISOString();
   // source を絞った再生成は index 全体の鮮度ではないので lastUpdated を進めない
   const scannedEverySource = SOURCE_FILTER.length === 0;
-  const newIndex = {
-    version: index.version,
-    lastUpdated: scannedEverySource
-      ? new Date().toISOString().split("T")[0]
-      : index.lastUpdated,
-    sources: index.sources.map((source) =>
-      updatedSourceIds.has(source.id)
-        ? { ...source, lastIndexedAt: indexedAt }
-        : source,
-    ),
-    categories: index.categories,
-    bundles: index.bundles,
+  const newIndex = buildNextIndex(index, {
     skills: uniqueSkills,
-  };
+    updatedSourceIds,
+    indexedAt,
+    scannedEverySource,
+  });
 
   // 保存
   fs.writeFileSync(
@@ -692,6 +684,28 @@ async function main() {
     `\n✅ Updated: ${uniqueSkills.length} skills (was ${index.skills.length})`,
   );
   console.log(`📁 Saved to: ${INDEX_PATH}`);
+}
+
+/**
+ * 再生成後の index を組み立てる。`retiredSources` のように、このスクリプトが
+ * 生成しない最上位フィールドは元の index から引き継ぐ（落とすと廃止済みソースが復活する）。
+ */
+function buildNextIndex(
+  index,
+  { skills, updatedSourceIds, indexedAt, scannedEverySource },
+) {
+  return {
+    ...index,
+    lastUpdated: scannedEverySource
+      ? new Date().toISOString().split("T")[0]
+      : index.lastUpdated,
+    sources: index.sources.map((source) =>
+      updatedSourceIds.has(source.id)
+        ? { ...source, lastIndexedAt: indexedAt }
+        : source,
+    ),
+    skills,
+  };
 }
 
 if (require.main === module) {
@@ -708,4 +722,5 @@ module.exports = {
   processTree,
   assertNoUnexpectedShrink,
   mergeUpdatedSkills,
+  buildNextIndex,
 };

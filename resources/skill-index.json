@@ -1,6 +1,6 @@
 {
-  "version": "1.34.0",
-  "lastUpdated": "2026-11-12",
+  "version": "1.35.0",
+  "lastUpdated": "2026-11-26",
   "retiredSources": [
     {
       "id": "openai-codex"
@@ -23,7 +23,7 @@
       "type": "official",
       "description": "GitHub Awesome Copilot (Official)",
       "description_ja": "GitHub Awesome Copilot (Official)",
-      "lastIndexedAt": "2026-09-07T00:00:00.719Z"
+      "lastIndexedAt": "2026-11-25T22:28:53.372Z"
     },
     {
       "id": "microsoftdocs-agent-skills",
@@ -442,6 +442,15 @@
       "description_ja": ""
     },
     {
+      "name": "adobe-illustrator-integrations",
+      "source": "github-awesome-copilot",
+      "path": "skills/adobe-illustrator-integrations",
+      "invocation": "auto",
+      "categories": [],
+      "description": "Build, debug, package, and document Adobe Illustrator integrations: CEP extension panels, C++ SDK plug-ins (.aip), the coming UXP plugins, MCP servers that drive Illustrator, computer-use automation, and OS scripts (batch, PowerShell, bash, AppleScript) that run ExtendScript in Illustrator. Use when creating or fixing an Illustrator extension or plug-in, choosing between a script, extension, or plug-in, connecting an AI tool to Illustrator, automating Illustrator from the command line, or writing install and usage docs for an Illustrator tool someone will publish. Pairs with adobe-illustrator-scripting for the ExtendScript DOM.",
+      "description_ja": ""
+    },
+    {
       "name": "adobe-illustrator-scripting",
       "source": "github-awesome-copilot",
       "path": "skills/adobe-illustrator-scripting",
@@ -521,6 +530,16 @@
       "categories": [],
       "description": "Automate Agencyzoom tasks via Rube MCP (Composio). Always search tools first for current schemas.",
       "description_ja": ""
+    },
+    {
+      "name": "agent-architecture",
+      "source": "github-awesome-copilot",
+      "path": "skills/agent-architecture",
+      "invocation": "auto",
+      "categories": [],
+      "description": "Design AI agent architectures through requirements discovery, or audit and diagnose architectural flaws in existing agents. Architecture only; excludes implementation and general code review.",
+      "description_ja": "",
+      "license": "MIT"
     },
     {
       "name": "agent-governance",
@@ -793,15 +812,6 @@
       "description_ja": ""
     },
     {
-      "name": "ai-team-orchestration",
-      "source": "github-awesome-copilot",
-      "path": "skills/ai-team-orchestration",
-      "invocation": "auto",
-      "categories": [],
-      "description": "Bootstrap and run a lightweight multi-agent development team. Use when starting or adopting a project, planning work, coordinating implementation and optional QA, brainstorming with distinct perspectives, or preserving context across sessions.",
-      "description_ja": ""
-    },
-    {
       "name": "aivoov-automation",
       "source": "composio-awesome",
       "path": "composio-skills/aivoov-automation",
@@ -1038,6 +1048,15 @@
       "invocation": "auto",
       "categories": [],
       "description": "Automate API Bible tasks via Rube MCP (Composio). Always search tools first for current schemas.",
+      "description_ja": ""
+    },
+    {
+      "name": "api-breaking-change-detector",
+      "source": "github-awesome-copilot",
+      "path": "skills/api-breaking-change-detector",
+      "invocation": "auto",
+      "categories": [],
+      "description": "Cross-references C# Web API controllers/DTOs against their TypeScript/JavaScript consumers (React, Angular, Vue, Svelte, Node.js, or hand-written/auto-generated HTTP clients like Fetch, Axios, NSwag) to catch contract drift in both directions: backend changes that break client applications (renamed/removed JSON keys, new required parameters, status code shifts) and frontend code sending fields the backend no longer reads. Works directly against source code, not exported OpenAPI spec files. Use when the user asks to check for breaking API changes, verify frontend/backend contract sync, or audit a DTO/controller change against its TypeScript/JS consumers before merging. Not for generating new API code from a spec (see openapi-to-application-code) or scaffolding new endpoints (see aspnet-minimal-api-openapi).",
       "description_ja": ""
     },
     {
@@ -1522,8 +1541,9 @@
       "path": "skills/audit-integrity",
       "invocation": "auto",
       "categories": [],
-      "description": "Shared audit integrity framework for all AppSec agents — enforces output quality, intellectual honesty, and continuous improvement through anti-rationalization guards, self-critique loops, retry protocols, non-negotiable behaviors, self-reflection quality gates (1-10 scoring, ≥8 threshold), and a self-learning system with lesson/memory governance for security analysis agents.",
-      "description_ja": ""
+      "description": "Enforce output quality, evidence verification, and quality gates across security audits. Use this skill when you perform SAST, SCA, threat modeling, or security code reviews. Use this skill to verify code locations and taint traces for all findings. Use this skill to prevent the suppression of valid security findings. Use this skill to evaluate reports against quality thresholds (score ≥ 8/10) before delivery.",
+      "description_ja": "",
+      "license": "MIT"
     },
     {
       "name": "auth0-automation",
@@ -2753,6 +2773,15 @@
       "description_ja": ""
     },
     {
+      "name": "azure-logic-apps-standard-cli",
+      "source": "github-awesome-copilot",
+      "path": "skills/azure-logic-apps-standard-cli",
+      "invocation": "auto",
+      "categories": [],
+      "description": "Create, inspect, validate, test, run, debug, package, and deploy Azure Logic Apps Standard projects using the Azure CLI logicapp extension. Use for Standard workflow authoring, optional workspaces, connector discovery, identity-based connections, local runtimes, native workflow tests, and approved cloud lifecycle operations. Not for Consumption-only workflow development.",
+      "description_ja": ""
+    },
+    {
       "name": "azure-machine-learning",
       "source": "microsoftdocs-agent-skills",
       "path": "skills/azure-machine-learning",
@@ -3608,6 +3637,15 @@
       "invocation": "auto",
       "categories": [],
       "description": "Expert-level Windows batch file (.bat/.cmd) skill for writing, debugging, and maintaining CMD scripts. Use when asked to \"create a batch file\", \"write a .bat script\", \"automate a Windows task\", \"CMD scripting\", \"batch automation\", \"scheduled task script\", \"Windows shell script\", or when working with .bat/.cmd files in the workspace. Covers cmd.exe syntax, environment variables, control flow, string processing, error handling, and integration with system tools.",
+      "description_ja": ""
+    },
+    {
+      "name": "batch-script-progress",
+      "source": "github-awesome-copilot",
+      "path": "skills/batch-script-progress",
+      "invocation": "auto",
+      "categories": [],
+      "description": "Design and verify runtime output when creating or modifying Python, PowerShell, or Node.js scripts that process multiple files, records, or API requests. Use for batch scripts, bulk operations, silent long-running loops, progress reporting, per-item failures, final counts, stdout separation, or exit-status consistency. Not for UI progress bars, monitoring infrastructure, or progress updates in the AI conversation.",
       "description_ja": ""
     },
     {
@@ -4527,6 +4565,16 @@
       "categories": [],
       "description": "Automate Capsule CRM tasks via Rube MCP (Composio): contacts, opportunities, cases, tasks, and pipeline management. Always search tools first for current schemas.",
       "description_ja": ""
+    },
+    {
+      "name": "caption-qa",
+      "source": "github-awesome-copilot",
+      "path": "skills/caption-qa",
+      "invocation": "auto",
+      "categories": [],
+      "description": "Check SRT or WebVTT captions and subtitles against published standards (Netflix English, BBC subtitle guidelines, DCMP Captioning Key) for reading speed, line length, line count, time on screen, gaps and overlaps, then fix failures by retiming before rewording. Use when asked to QA, lint or validate captions, check whether subtitles read too fast, prepare captions for Netflix, broadcast or educational delivery, or add a caption check to CI.",
+      "description_ja": "",
+      "license": "MIT"
     },
     {
       "name": "carbone-automation",
@@ -5466,7 +5514,7 @@
       "path": "skills/commit-message-storyteller",
       "invocation": "auto",
       "categories": [],
-      "description": "Analyzes git diffs or staged changes and generates narrative commit messages that explain WHY a change was made, not just what changed — following Conventional Commits format. Use when asked to \"write a commit message\", \"generate a commit\", \"describe my changes\", \"what should I commit this as\", \"commit this\", \"summarize my diff\", or \"help me commit\". Works with git diff output, staged files, or plain descriptions of changes.",
+      "description": "Analyzes git diffs or staged changes and generates narrative commit messages that explain WHY a change was made, not just what changed — following Conventional Commits format. Use when asked to \"write a commit message\", \"describe my changes\", \"what should I commit this as\", or \"summarize my diff\". Works with git diff output, staged files, or plain descriptions of changes. Does not run git commit; to stage files and make the commit, use the git-commit skill.",
       "description_ja": ""
     },
     {
@@ -5674,7 +5722,7 @@
       "path": "skills/conventional-branch",
       "invocation": "auto",
       "categories": [],
-      "description": "Create Git branches following the Conventional Branch specification (feature/, bugfix/, hotfix/, release/, chore/). Use when creating a new branch, naming a branch, or checking whether a branch name complies with the spec.",
+      "description": "Create Git branches following the Conventional Branch specification (feature/, bugfix/, hotfix/, release/, chore/, plus AI agent prefixes ai/, copilot/, cursor/, claude/, codex/). Use when creating a new branch, naming a branch, or checking whether a branch name complies with the spec.",
       "description_ja": ""
     },
     {
@@ -5791,7 +5839,7 @@
       "path": "skills/copilot-sdk",
       "invocation": "auto",
       "categories": [],
-      "description": "Build agentic applications with GitHub Copilot SDK. Use when embedding AI agents in apps, creating custom tools, implementing streaming responses, managing sessions, connecting to MCP servers, or creating custom agents. Triggers on Copilot SDK, GitHub SDK, agentic app, embed Copilot, programmable agent, MCP server, custom agent.",
+      "description": "Build agentic applications with the Microsoft Copilot SDK, transitioning from GitHub Copilot SDK. Use when embedding AI agents in apps, creating custom tools, implementing streaming responses, managing sessions, connecting to MCP servers, or creating custom agents. Triggers on Copilot SDK, Microsoft Copilot SDK, GitHub Copilot SDK, agentic app, embed Copilot, programmable agent, MCP server, custom agent.",
       "description_ja": ""
     },
     {
@@ -5963,6 +6011,15 @@
       "description_ja": ""
     },
     {
+      "name": "create-quarkus-project",
+      "source": "github-awesome-copilot",
+      "path": "skills/create-quarkus-project",
+      "invocation": "auto",
+      "categories": [],
+      "description": "Create a new Quarkus project (Maven or Gradle) with the Quarkus CLI, code.quarkus.io API or Maven plugin, choose extensions, and run it in dev mode. Use when asked to scaffold, bootstrap or start a Quarkus application or REST API.",
+      "description_ja": ""
+    },
+    {
       "name": "create-readme",
       "source": "github-awesome-copilot",
       "path": "skills/create-readme",
@@ -5986,7 +6043,7 @@
       "path": "skills/create-spring-boot-java-project",
       "invocation": "auto",
       "categories": [],
-      "description": "Create Spring Boot Java Project Skeleton",
+      "description": "Create a new Spring Boot Java project (Maven or Gradle) from start.spring.io with sensible defaults for configuration, PostgreSQL, logging, security, testing and Docker. Use when asked to scaffold, bootstrap or generate a Spring Boot application. Detects existing project versions and never upgrades implicitly.",
       "description_ja": ""
     },
     {
@@ -6205,6 +6262,15 @@
       "invocation": "auto",
       "categories": [],
       "description": "Automate Cutt Ly tasks via Rube MCP (Composio). Always search tools first for current schemas.",
+      "description_ja": ""
+    },
+    {
+      "name": "cypress-flake-fixer",
+      "source": "github-awesome-copilot",
+      "path": "skills/cypress-flake-fixer",
+      "invocation": "auto",
+      "categories": [],
+      "description": "Find and fix flake-prone anti-patterns in an existing Cypress suite, and APIs removed in Cypress 12 to 16. Bundles a zero-dependency scanner for fixed cy.wait() delays, assigned command return values, async/await, force: true, chaining after actions, one-shot expect() inside .then(), conditional testing, and removed APIs such as Cypress.env(), cy.exec(), cy.server()/cy.route(). Use when asked to fix flaky Cypress tests, remove cy.wait, stabilize or harden a Cypress suite, audit Cypress specs, debug \"detached from the DOM\" errors, or prepare an upgrade to Cypress 15 or 16.",
       "description_ja": ""
     },
     {
@@ -6626,6 +6692,15 @@
       "description_ja": ""
     },
     {
+      "name": "diagnose-ci-gate",
+      "source": "github-awesome-copilot",
+      "path": "skills/diagnose-ci-gate",
+      "invocation": "auto",
+      "categories": [],
+      "description": "Determine whether a failing CI check was caused by the current change, then recommend exactly one action. Use when a required check fails on a pull request, when asked \"is this failure mine?\", when a job passes locally but fails in CI, or before retrying a red build. Covers fetching the real log, reading the first error instead of the tail, classifying bug / flaky / environment / pipeline, comparing against the base branch and recent runs, reproducing with CI versions, and fixing a flaky test rather than re-running it forever.",
+      "description_ja": ""
+    },
+    {
       "name": "dialmycalls-automation",
       "source": "composio-awesome",
       "path": "composio-skills/dialmycalls-automation",
@@ -6787,6 +6862,16 @@
       "categories": [],
       "description": "Automate Docnify tasks via Rube MCP (Composio). Always search tools first for current schemas.",
       "description_ja": ""
+    },
+    {
+      "name": "docs-sync-audit",
+      "source": "github-awesome-copilot",
+      "path": "skills/docs-sync-audit",
+      "invocation": "auto",
+      "categories": [],
+      "description": "Run a read-only documentation drift audit for a feature, PR, branch, release, API, configuration change, workflow, CLI, package, or repository area. Use when the user asks whether docs are stale, missing, inconsistent with code, or need updates after code changes. Checks README files, setup guides, API docs, env docs, changelogs, examples, comments, generated docs, and user-facing instructions. This is not a general code review; it compares what the docs claim against what the code does.",
+      "description_ja": "",
+      "license": "MIT"
     },
     {
       "name": "docsbot-ai-automation",
@@ -7214,6 +7299,16 @@
       "categories": [],
       "description": "Automate Emailoctopus tasks via Rube MCP (Composio). Always search tools first for current schemas.",
       "description_ja": ""
+    },
+    {
+      "name": "embedding-anisotropy-check",
+      "source": "github-awesome-copilot",
+      "path": "skills/embedding-anisotropy-check",
+      "invocation": "auto",
+      "categories": [],
+      "description": "Use before reporting any cosine similarity computed over embeddings or transformer hidden states, whether the agent computed the vectors or loaded them. Measures the anisotropy of each side, centres by the population mean, and scores matched pairs against a permuted floor taken from the same comparison. Use when comparing one model''s embeddings across precisions, runtimes or layers, when evaluating retrieval, probes or adapters, or before calling a similarity high, two conditions in agreement, or a small gap a null.",
+      "description_ja": "",
+      "license": "MIT"
     },
     {
       "name": "emelia-automation",
@@ -8070,12 +8165,21 @@
       "description_ja": ""
     },
     {
+      "name": "foundry-agentic-loop",
+      "source": "github-awesome-copilot",
+      "path": "skills/foundry-agentic-loop",
+      "invocation": "auto",
+      "categories": [],
+      "description": "Build agentic solutions on Microsoft Foundry, GitHub and Azure: hosted agents, toolbox tools and skills, Foundry IQ grounding and a React/FastAPI app. Three modes: rapid prototyping in an existing Foundry project; spec-driven development (SDD), where the foundry-agentic-loop-workflow runs Specify, Implement, Verify and Deploy to create the Foundry project and deploy with azd, or one phase runs alone; and Improve, which refines this skill and the workflow from past runs. Use for Agentic Loop requests and canvas actions, or end-to-end agent solutions from architecture to Azure deployment. Not for isolated Azure administration or unrelated UI edits.",
+      "description_ja": ""
+    },
+    {
       "name": "foundry-hosted-agent-copilotkit",
       "source": "github-awesome-copilot",
       "path": "skills/foundry-hosted-agent-copilotkit",
       "invocation": "auto",
       "categories": [],
-      "description": "Ongoing development guidance for agentic web apps that pair a CopilotKit frontend with Microsoft Agent Framework agents on Azure AI Foundry hosted agents over the AG-UI protocol - add and gate agent tools, wire human-in-the-loop approvals, build generative UI and shared state, debug the event stream, upgrade pre-1.0 packages safely, and deploy hosted agent updates.",
+      "description": "Build and evolve agentic web apps that pair a CopilotKit React frontend with a Microsoft Agent Framework agent running as a Microsoft Foundry hosted agent, connected over the AG-UI protocol. Covers choosing the wiring, using Foundry-native primitives instead of hand-rolled plumbing, agent tools, human-in-the-loop approvals, generative UI and shared state, local run and azd deploy, debugging the event stream, and safe upgrades.",
       "description_ja": ""
     },
     {
@@ -8467,7 +8571,7 @@
       "path": "skills/git-commit",
       "invocation": "auto",
       "categories": [],
-      "description": "Execute git commit with conventional commit message analysis, intelligent staging, and message generation. Use when user asks to commit changes, create a git commit, or mentions \"/commit\". Supports: (1) Auto-detecting type and scope from changes, (2) Generating conventional commit messages from diff, (3) Interactive commit with optional type/scope/description overrides, (4) Intelligent file staging for logical grouping",
+      "description": "Use this skill when the user wants to make a Git commit or split changes into more than one commit. Also use it when the user types \"/commit\" or asks for a conventional commit. The skill examines the diff, stages the related files, writes a Conventional Commits message, and runs git commit. Do not use it when the user wants only a commit message and no commit. Do not use it to push, open a pull request, rebase, or change the commit history.",
       "description_ja": "Git Commit",
       "license": "MIT"
     },
@@ -8975,6 +9079,17 @@
       "categories": [],
       "description": "Automate Globalping tasks via Rube MCP (Composio). Always search tools first for current schemas.",
       "description_ja": ""
+    },
+    {
+      "name": "globestudio",
+      "source": "github-awesome-copilot",
+      "path": "skills/globestudio",
+      "invocation": "auto",
+      "categories": [],
+      "description": "Creates, edits and embeds dotted world maps and animated 3D globes with Globestudio (globestudio.app), a free open source studio with 21 looks. Use when the user wants a dotted map, a dotted or 3D globe, a spinning earth or a stylized world map for a website hero, background, slide, social post or video; when they paste a globestudio.app link or a ?c= config; or when code uses @globestudio/react, @globestudio/element, the globe-studio web component or globestudio.app/embed. Also use it to highlight a country, continent or region, plot points and arcs, match brand colors, or prepare PNG, SVG, GLB, MP4, WebM or GIF exports. Not for interactive tiled maps, routing, geocoding or GIS analysis (Mapbox, MapLibre, deck.gl), or for ordinary charts.",
+      "description_ja": "",
+      "license": "MIT",
+      "author": "alevizio"
     },
     {
       "name": "go-mcp-server-generator",
@@ -10308,7 +10423,7 @@
       "path": "skills/incident-postmortem",
       "invocation": "auto",
       "categories": [],
-      "description": "Use when an outage, production incident, or significant service degradation has occurred and the team needs to write a structured blameless post-mortem. Triggers on phrases like \"write a post-mortem\", \"incident review\", \"what went wrong\", \"outage report\", \"root cause analysis\", or \"RCA\". Covers timeline reconstruction, contributing factor analysis, impact quantification, and action item generation with owners.",
+      "description": "Use when an outage, production incident, or significant service degradation has occurred and the team needs a blameless post-mortem / RCA document in the Google SRE format. Triggers on phrases like \"write a post-mortem\", \"incident review\", \"what went wrong\", \"outage report\", \"root cause analysis\", \"RCA\", or \"fishbone\". Collects incident inputs from the user, uses a fishbone (Ishikawa) diagram to surface candidate causes, drills the strongest branches with 5 Whys, and produces typed action items. Outputs Markdown by default, with HTML, DOCX, or PDF on request.",
       "description_ja": ""
     },
     {
@@ -10513,7 +10628,34 @@
       "path": "skills/java-add-graalvm-native-image-support",
       "invocation": "auto",
       "categories": [],
-      "description": "GraalVM Native Image expert that adds native image support to Java applications, builds the project, analyzes build errors, applies fixes, and iterates until successful compilation using Oracle best practices.",
+      "description": "GraalVM Native Image skill for Spring Boot, Micronaut and plain Java: detects the build tool and framework, adds native image support, builds the executable, analyzes errors, and iterates until the native build succeeds and the binary runs correctly. For Quarkus projects it only dispatches to the quarkus-native-and-container skill.",
+      "description_ja": ""
+    },
+    {
+      "name": "java-debugging",
+      "source": "github-awesome-copilot",
+      "path": "skills/java-debugging",
+      "invocation": "auto",
+      "categories": [],
+      "description": "Debug Java applications systematically: JDWP remote debugging, jdb, VS Code and IntelliJ attach, debugging Maven/Gradle tests, Spring Boot and Quarkus dev mode, containers, breakpoints/logpoints, and reading stack traces. Use when the user needs to find the cause of a Java bug, exception, wrong behavior, or failing test, or asks how to attach a debugger.",
+      "description_ja": ""
+    },
+    {
+      "name": "java-development",
+      "source": "github-awesome-copilot",
+      "path": "skills/java-development",
+      "invocation": "auto",
+      "categories": [],
+      "description": "Day-to-day plain Java development without a framework: Maven and Gradle usage and wrappers, project layout, dependency and vulnerability management, modern Java idioms by JDK version (records, sealed types, pattern matching, virtual threads), SLF4J logging, error and null handling, immutability, concurrency basics, static analysis and formatting (Spotless, Error Prone, -Xlint), packaging (jar, jlink, jpackage) and GitHub Actions CI. Use when writing, building, reviewing or maintaining ordinary Java code.",
+      "description_ja": ""
+    },
+    {
+      "name": "java-diagnostics",
+      "source": "github-awesome-copilot",
+      "path": "skills/java-diagnostics",
+      "invocation": "auto",
+      "categories": [],
+      "description": "Symptom-first runtime diagnostics for JVM applications using JDK tools: jcmd, jstack, jmap, jstat, JFR, GC logs, async-profiler, Native Memory Tracking, and Eclipse MAT. Use when a Java app has high CPU, memory leaks or OutOfMemoryError, slow startup, deadlocks or thread starvation, long GC pauses, native memory growth, or slow requests. Includes permission tiers for safe use.",
       "description_ja": ""
     },
     {
@@ -10535,12 +10677,21 @@
       "description_ja": ""
     },
     {
+      "name": "java-hibernate-jpa",
+      "source": "github-awesome-copilot",
+      "path": "skills/java-hibernate-jpa",
+      "invocation": "auto",
+      "categories": [],
+      "description": "Diagnose and fix Hibernate ORM / Jakarta Persistence problems in plain Java: N+1 queries, lazy loading errors, identifier generation, entity equals/hashCode, cascades, pagination, batching, locking, caching, Lombok on entities, and Hibernate 6/7 differences. Use when reviewing or writing JPA entities, mappings, and queries. Framework-neutral.",
+      "description_ja": ""
+    },
+    {
       "name": "java-junit",
       "source": "github-awesome-copilot",
       "path": "skills/java-junit",
       "invocation": "auto",
       "categories": [],
-      "description": "Get best practices for JUnit 5 unit testing, including data-driven tests",
+      "description": "Write, review and fix Java unit tests with JUnit 5 and JUnit 6 (Jupiter), AssertJ and Mockito: assertions, parameterized and nested tests, mocking rules, deterministic time and randomness, Surefire vs Failsafe, JaCoCo coverage, optional PIT mutation testing, and guardrails for agents (never skip or delete failing tests). Use when adding, refactoring or debugging tests in Maven or Gradle projects. Framework-neutral.",
       "description_ja": ""
     },
     {
@@ -10549,7 +10700,7 @@
       "path": "skills/java-mcp-server-generator",
       "invocation": "auto",
       "categories": [],
-      "description": "Generate a complete Model Context Protocol server project in Java using the official MCP Java SDK with reactive streams and optional Spring Boot integration.",
+      "description": "Use this skill when the user wants to create a Model Context Protocol (MCP) server in Java or in a Spring Boot app. Also use it when the user wants AI agents, such as GitHub Copilot or Claude, to use Java code, an API, or a database. Use it even if the user does not say \"MCP\". The skill makes a Maven or Gradle project with the MCP Java SDK 2.x, tools, JUnit tests, and client configuration. Do not use it for Quarkus/Quarkiverse MCP servers (use the `quarkus-mcp-server-sse` instruction), for an MCP client or for a server in another language.",
       "description_ja": ""
     },
     {
@@ -10576,7 +10727,25 @@
       "path": "skills/java-springboot",
       "invocation": "auto",
       "categories": [],
-      "description": "Get best practices for developing applications with Spring Boot.",
+      "description": "Write and review application code in an existing Spring Boot 3/4 project: controllers, validation and ProblemDetail errors, Spring Data JPA/JDBC, RestClient and HTTP interfaces, configuration properties, Kafka/AMQP, caching, scheduling, virtual threads, AOT and startup tuning. Use when adding or changing features. To scaffold a new project use create-spring-boot-java-project instead.",
+      "description_ja": ""
+    },
+    {
+      "name": "java-testcontainers",
+      "source": "github-awesome-copilot",
+      "path": "skills/java-testcontainers",
+      "invocation": "auto",
+      "categories": [],
+      "description": "Write reliable integration tests in plain Java with Testcontainers 2.x: JUnit Jupiter lifecycle, singleton containers, reuse, generic containers, wait strategies, networks, init scripts, Docker Compose, CI and Docker/Podman setup. Use when adding or fixing Testcontainers tests, or migrating from 1.x. Framework-neutral.",
+      "description_ja": ""
+    },
+    {
+      "name": "java-upgrade",
+      "source": "github-awesome-copilot",
+      "path": "skills/java-upgrade",
+      "invocation": "auto",
+      "categories": [],
+      "description": "Upgrade a Java project to a newer JDK (11 to 17, 17 to 21, 21 to 25) and adopt the new language and library features. Detects the current Java version from the build files, then loads only the matching per-version guide. Use when the user asks to upgrade Java, modernize Java code, or adopt records, sealed classes, pattern matching, virtual threads or other new Java features. For automated end-to-end upgrades see the modernize-java plugin.",
       "description_ja": ""
     },
     {
@@ -10595,7 +10764,7 @@
       "invocation": "auto",
       "argumentHint": "File, package, or module to migrate",
       "categories": [],
-      "description": "Migrate Java code from javax.* to jakarta.* namespace. Use when upgrading to Tomcat 11, Jakarta EE 10, or when javax imports are detected in the codebase.",
+      "description": "Migrate Java code from javax.* to jakarta.* namespace. Use only when the user explicitly asks for a javax to jakarta namespace or framework migration (for example to Tomcat 10+/11 or Jakarta EE), or when java-upgrade or spring-boot-4-migration delegates it. Finding javax imports alone does not authorize a migration.",
       "description_ja": ""
     },
     {
@@ -10909,6 +11078,15 @@
       "description_ja": ""
     },
     {
+      "name": "lean-comments",
+      "source": "github-awesome-copilot",
+      "path": "skills/lean-comments",
+      "invocation": "auto",
+      "categories": [],
+      "description": "Audits, writes, and refines maintained first-party source-code comments and declaration-level documentation across languages. Use when adding, editing, reviewing, cleaning up, or auditing comments, doc comments, docstrings, TODO, FIXME, NOTE, suppressions, or other source commentary, including while modifying code and deciding whether a comment is warranted at all. Defaults to no comment unless it preserves meaningful, non-obvious information that cannot reasonably be recovered from the code or nearby repository context.",
+      "description_ja": ""
+    },
+    {
       "name": "legacy-circuit-mockups",
       "source": "github-awesome-copilot",
       "path": "skills/legacy-circuit-mockups",
@@ -11020,6 +11198,17 @@
       "version": "1.5.43"
     },
     {
+      "name": "lightweight-charts-react-components",
+      "source": "github-awesome-copilot",
+      "path": "skills/lightweight-charts-react-components",
+      "invocation": "auto",
+      "categories": [],
+      "description": "lightweight-charts-react-components recipes for TradingView lightweight-charts in React. Candlestick, line, and area series; volume and indicator panes; realtime WebSocket updates; infinite history on scroll; crosshair OHLC legends and tooltips; trade markers and price lines; synchronized charts; numeric options and yield-curve axes. Use when adding or fixing a financial or trading chart in a React app, or when the user mentions lightweight-charts, TradingView charts in React, or this package.",
+      "description_ja": "",
+      "license": "MIT",
+      "author": "ukorvl"
+    },
+    {
       "name": "linear",
       "source": "openai-skills",
       "path": "skills/.curated/linear",
@@ -11120,6 +11309,16 @@
       "description_ja": ""
     },
     {
+      "name": "logicapps-custom-code-net10-migration",
+      "source": "github-awesome-copilot",
+      "path": "skills/logicapps-custom-code-net10-migration",
+      "invocation": "auto",
+      "categories": [],
+      "description": "Migrate Azure Logic Apps Standard local-function custom-code projects from .NET 8 to .NET 10. Use for legacy Logic Apps custom-code workspace upgrades, project/package configuration, custom-worker settings, publication, and integrated VS Code debugging. Not for ordinary .NET applications, standalone Azure Functions, Consumption workflows, or cloud deployment.",
+      "description_ja": "",
+      "license": "MIT"
+    },
+    {
       "name": "logo-dev-automation",
       "source": "composio-awesome",
       "path": "composio-skills/logo-dev-automation",
@@ -11163,6 +11362,16 @@
       "categories": [],
       "description": "Enable code intelligence (go-to-definition, find-references, hover, type info) for any programming language by installing and configuring an LSP server for Copilot CLI. Detects the OS, installs the right server, and generates the JSON configuration (user-level or repo-level). Use when you need deeper code understanding and no LSP server is configured, or when the user asks to set up, install, or configure an LSP server.",
       "description_ja": ""
+    },
+    {
+      "name": "macos-golden-gate-design",
+      "source": "github-awesome-copilot",
+      "path": "skills/macos-golden-gate-design",
+      "invocation": "auto",
+      "categories": [],
+      "description": "Design, implement, review, or refactor native macOS 27 Golden Gate interfaces in SwiftUI or AppKit. Use when a Mac app must match Apple''s current macOS 27 UI kit and restrained Liquid Glass language: integrated windows, full-height sidebars, native toolbars, flat lists, tables, and forms, clear pane boundaries, accessible materials, and removal of unnecessary nested cards, framed panels, or glassmorphism. Also use for Figma macOS 27 design-to-code work and audits of interfaces that feel too boxed.",
+      "description_ja": "",
+      "license": "MIT"
     },
     {
       "name": "magnetic-automation",
@@ -11255,6 +11464,16 @@
       "description_ja": ""
     },
     {
+      "name": "make-blog-post",
+      "source": "github-awesome-copilot",
+      "path": "skills/make-blog-post",
+      "invocation": "auto",
+      "argumentHint": "Optional: code or topic to cover, where the post goes, and links or files of your past posts",
+      "categories": [],
+      "description": "Turn code from the current session into a blog post written in the voice of its author. Covers one function, script, class, or tool as a focused walkthrough with a generalized sample and a usage example, learns tone and structure from existing posts or writing samples by the same author, takes the destination from what the user names or the blog repository in use instead of assumed folders, and saves no file until the draft is approved. Use when asked to write, draft, or turn code into a blog post, article, tutorial, or gist, or when invoked as /make-blog-post at the end of a turn.",
+      "description_ja": ""
+    },
+    {
       "name": "make-repo-contribution",
       "source": "github-awesome-copilot",
       "path": "skills/make-repo-contribution",
@@ -11334,6 +11553,17 @@
       "categories": [],
       "description": "Convert Markdown files to HTML similar to `marked.js`, `pandoc`, `gomarkdown/markdown`, or similar tools; or writing custom script to convert markdown to html and/or working on web template systems like `jekyll/jekyll`, `gohugoio/hugo`, or similar web templating systems that utilize markdown documents, converting them to html. Use when asked to \"convert markdown to html\", \"transform md to html\", \"render markdown\", \"generate html from markdown\", or when working with .md files and/or web a templating system that converts markdown to HTML output. Supports CLI and Node.js workflows with GFM, CommonMark, and standard Markdown flavors.",
       "description_ja": ""
+    },
+    {
+      "name": "markdown-to-word-mermaid",
+      "source": "github-awesome-copilot",
+      "path": "skills/markdown-to-word-mermaid",
+      "invocation": "auto",
+      "argumentHint": "Markdown input file and optional DOCX output path",
+      "categories": [],
+      "description": "Export Markdown containing Mermaid code fences to Word (.docx) with embedded SVG diagrams and PNG fallbacks. Use when diagram sharpness, Office-compatible labels, or page-aware placement matters. Not for Word-to-Markdown conversion, editable Office shapes, or general slide creation.",
+      "description_ja": "",
+      "license": "MIT"
     },
     {
       "name": "markstream-install",
@@ -11433,7 +11663,7 @@
       "path": "skills/mcp-security-audit",
       "invocation": "auto",
       "categories": [],
-      "description": "Audit MCP (Model Context Protocol) server configurations for security issues. Use this skill when:\n- Reviewing .mcp.json files for security risks\n- Checking MCP server args for hardcoded secrets or shell injection patterns\n- Validating that MCP servers use pinned versions (not @latest)\n- Detecting unpinned dependencies in MCP server configurations\n- Auditing which MCP servers a project registers and whether they're on an approved list\n- Checking for environment variable usage vs. hardcoded credentials in MCP configs\n- Any request like \"is my MCP config secure?\", \"audit my MCP servers\", or \"check .mcp.json\"\nkeywords: [mcp, security, audit, secrets, shell-injection, supply-chain, governance]",
+      "description": "Audit MCP (Model Context Protocol) server configurations for security issues. Use this skill when:\n- Reviewing .mcp.json files for security risks\n- Checking MCP server args for hardcoded secrets or shell injection patterns\n- Validating that MCP package-runner dependencies use exact reviewed versions, not bare names, @latest, or ranges\n- Detecting mutable npm/npx, bunx, pnpm dlx, yarn dlx, npm exec, uvx, uv tool run, and pipx run references in MCP configurations\n- Auditing which MCP servers a project registers and whether they're on an approved list\n- Checking for environment variable usage vs. hardcoded credentials in MCP configs\n- Any request like \"is my MCP config secure?\", \"audit my MCP servers\", or \"check .mcp.json\"\nkeywords: [mcp, security, audit, secrets, shell-injection, supply-chain, governance]",
       "description_ja": ""
     },
     {
@@ -11663,6 +11893,15 @@
       "context": "fork",
       "categories": [],
       "description": "Create agent skills for Microsoft technologies using Learn MCP tools. Use when users want to create a skill that teaches agents about any Microsoft technology, library, framework, or service (Azure, .NET, M365, VS Code, Bicep, etc.). Investigates topics deeply, then generates a hybrid skill storing essential knowledge locally while enabling dynamic deeper investigation.",
+      "description_ja": ""
+    },
+    {
+      "name": "microsoft-store-publisher",
+      "source": "github-awesome-copilot",
+      "path": "skills/microsoft-store-publisher",
+      "invocation": "auto",
+      "categories": [],
+      "description": "Prepare, validate, submit, and monitor Windows desktop apps in Microsoft Partner Center. Use for MSIX packaging, Store identity, listings, WACK, Partner Center automation, certification, and publishing.",
       "description_ja": ""
     },
     {
@@ -12245,6 +12484,15 @@
       "description_ja": ""
     },
     {
+      "name": "npm-trusted-publishing",
+      "source": "github-awesome-copilot",
+      "path": "skills/npm-trusted-publishing",
+      "invocation": "auto",
+      "categories": [],
+      "description": "Set up or fix npm trusted publishing (OIDC) in GitHub Actions and remove NPM_TOKEN. Use for ENEEDAUTH, E404 on PUT, E422 repository.url, or migrating off 2FA-bypass tokens before January 2027.",
+      "description_ja": ""
+    },
+    {
       "name": "nuget-manager",
       "source": "github-awesome-copilot",
       "path": "skills/nuget-manager",
@@ -12287,6 +12535,15 @@
       "invocation": "auto",
       "categories": [],
       "description": "Setup and configure oh-my-codex using current CLI behavior",
+      "description_ja": ""
+    },
+    {
+      "name": "on-device-delegate",
+      "source": "github-awesome-copilot",
+      "path": "skills/on-device-delegate",
+      "invocation": "auto",
+      "categories": [],
+      "description": "Saves cloud-model context by briefing one bounded, read-heavy sub-task (more than about 25 KB of prose, or many files that no single command can answer) to the local-coding plugin''s on-device worker, which runs on the local MAI Code 1.1 Flash model. Use for log and test triage, summarizing many files, or extracting facts from large inputs. When the user names this skill, call the skill tool in the same response as your first other tool call, never as a separate step.",
       "description_ja": ""
     },
     {
@@ -12395,6 +12652,15 @@
       "invocation": "auto",
       "categories": [],
       "description": "Generate a complete, production-ready application from an OpenAPI specification",
+      "description_ja": ""
+    },
+    {
+      "name": "openapi-to-application-java-spring-boot",
+      "source": "github-awesome-copilot",
+      "path": "skills/openapi-to-application-java-spring-boot",
+      "invocation": "auto",
+      "categories": [],
+      "description": "Generate a Spring Boot (Java) application from an OpenAPI 3 specification using the spec-first approach: openapi-generator (Maven or Gradle) produces API interfaces and DTOs, you implement controllers, services, persistence, security and tests. Use when asked to build, scaffold or implement a Spring Boot API from an OpenAPI/Swagger file.",
       "description_ja": ""
     },
     {
@@ -13003,6 +13269,24 @@
       "description_ja": ""
     },
     {
+      "name": "polytype-middleware",
+      "source": "github-awesome-copilot",
+      "path": "skills/polytype-middleware",
+      "invocation": "auto",
+      "categories": [],
+      "description": "Design or review the public API of a PolyType middleware library so it stays complete on net472 and netstandard2.0 while modern .NET callers use where T : IShapeable<T> with no witness. Use when adding generic methods, witness or TProvider overloads, extension members, or a #if NET / #if !NET split.",
+      "description_ja": ""
+    },
+    {
+      "name": "ponder",
+      "source": "github-awesome-copilot",
+      "path": "skills/ponder",
+      "invocation": "auto",
+      "categories": [],
+      "description": "Convergent deliberation loop - repeated grading passes over one subject until the answer stops changing, with coverage enforced so no unit is silently skipped. Use when the user says \"ponder <anything>\" (\"ponder the UI\", \"ponder our error handling\"), \"think this over properly\", \"keep thinking until it converges\", \"keep looping until it converges\", \"loop on this until it stops changing\", \"go through all the screens and grade them\", \"audit/rate/grade every X\", or asks for any broad sweep-and-grade across many units where a single pass would miss things. Also use to resume or recover a ponder already in flight - \"where were we\", \"carry on pondering\", a lost thread mid-loop, or a .ponder/ directory in the project - where the move is to run ponder status rather than start over.",
+      "description_ja": ""
+    },
+    {
       "name": "poptin-automation",
       "source": "composio-awesome",
       "path": "composio-skills/poptin-automation",
@@ -13130,6 +13414,25 @@
       "description": "Use this skill any time a .pptx or .potx file is involved in any way — as input, output, or both. This includes: creating slide decks, pitch decks, or presentations; reading, parsing, or extracting text from any .pptx or .potx file (even if the extracted content will be used elsewhere, like in an email or summary); editing, modifying, or updating existing presentations; combining or splitting slide files; working with templates (.potx), layouts, speaker notes, or comments. Trigger whenever the user mentions \\\"deck,\\\" \\\"slides,\\\" \\\"presentation,\\\" or references a .pptx or .potx filename, regardless of what they plan to do with the content afterward. If a .pptx or .potx file needs to be opened, created, or touched, use this skill.",
       "description_ja": "Process PowerPoint presentations (.pptx)",
       "license": "Proprietary. LICENSE.txt has complete terms"
+    },
+    {
+      "name": "pr-address-feedback",
+      "source": "github-awesome-copilot",
+      "path": "skills/pr-address-feedback",
+      "invocation": "auto",
+      "argumentHint": "[PR number or URL] (defaults to current branch's PR)",
+      "categories": [],
+      "description": "Walk through PR review comments one-by-one, deciding for each whether to act on the feedback or reply with reasoning, and build an approvable resolution plan before changing anything. Use when the user wants to address, respond to, or triage PR review feedback.",
+      "description_ja": ""
+    },
+    {
+      "name": "pr-artifact-explorer",
+      "source": "github-awesome-copilot",
+      "path": "skills/pr-artifact-explorer",
+      "invocation": "auto",
+      "categories": [],
+      "description": "Open, share, and inspect GitHub PRs, issues, workflow runs (including scheduled, manual and other runs with no PR), Actions artifacts, and local or HTTP(S) web previews in the Artifact Explorer canvas, with viewport presets, zoom, screenshots, and recoverable download jobs.",
+      "description_ja": ""
     },
     {
       "name": "pr-dashboard",
@@ -13303,6 +13606,15 @@
       "invocation": "auto",
       "categories": [],
       "description": "Automate Proofly tasks via Rube MCP (Composio). Always search tools first for current schemas.",
+      "description_ja": ""
+    },
+    {
+      "name": "protobuf-grpc-api-review",
+      "source": "github-awesome-copilot",
+      "path": "skills/protobuf-grpc-api-review",
+      "invocation": "auto",
+      "categories": [],
+      "description": "Review Protocol Buffer (.proto) and gRPC API changes for wire and JSON compatibility, safe schema evolution, rollout hazards, and RPC contract quality. Use when reviewing proto diffs, adding or changing messages and services, planning migrations, or diagnosing cross-version failures.",
       "description_ja": ""
     },
     {
@@ -13555,7 +13867,7 @@
       "path": "skills/python-mcp-server-generator",
       "invocation": "auto",
       "categories": [],
-      "description": "Generate a complete MCP server project in Python with tools, resources, and proper configuration",
+      "description": "Use this skill when the user wants to create a new Model Context Protocol (MCP) server in Python. Also use it to expose Python functions, an API, or a database to AI clients as MCP tools. The skill makes a uv project with the MCP Python SDK v2 (MCPServer), typed tools, in-memory tests, and client configuration. Do not use it for an MCP client or for a server in another language.",
       "description_ja": ""
     },
     {
@@ -13804,6 +14116,33 @@
       "author": "Andrew Stellman"
     },
     {
+      "name": "quarkus-application-development",
+      "source": "github-awesome-copilot",
+      "path": "skills/quarkus-application-development",
+      "invocation": "auto",
+      "categories": [],
+      "description": "Write Quarkus application code: REST with Quarkus REST, validation, exception mappers, OpenAPI, configuration, CDI (ArC), Hibernate ORM with Panache, Mutiny and virtual threads, Reactive Messaging with Kafka, OIDC security, health, metrics, OpenTelemetry, fault tolerance, REST Client, scheduler and cache. Use when implementing or changing features in an existing Quarkus project.",
+      "description_ja": ""
+    },
+    {
+      "name": "quarkus-dev-services-and-testing",
+      "source": "github-awesome-copilot",
+      "path": "skills/quarkus-dev-services-and-testing",
+      "invocation": "auto",
+      "categories": [],
+      "description": "Quarkus Dev Services and testing: zero-config containers, @QuarkusTest, @QuarkusIntegrationTest, test resources, RestAssured, @InjectMock, profiles and continuous testing. Use when writing or fixing tests in a Quarkus project.",
+      "description_ja": ""
+    },
+    {
+      "name": "quarkus-native-and-container",
+      "source": "github-awesome-copilot",
+      "path": "skills/quarkus-native-and-container",
+      "invocation": "auto",
+      "categories": [],
+      "description": "Build Quarkus native executables (Mandrel/GraalVM), fix native failures with reflection registration, test the native binary, and produce container images and Kubernetes/OpenShift manifests. Use for native, Docker, Jib or Kubernetes work in a Quarkus project.",
+      "description_ja": ""
+    },
+    {
       "name": "quasi-coder",
       "source": "github-awesome-copilot",
       "path": "skills/quasi-coder",
@@ -14039,6 +14378,16 @@
       "categories": [],
       "description": "Debug and optimize AI agents by analyzing reasoning traces, context degradation, tool confusion, instruction drift, repeated task failures, and performance regressions.",
       "description_ja": "Reasoning Trace Optimizer"
+    },
+    {
+      "name": "rebase-current-branch",
+      "source": "github-awesome-copilot",
+      "path": "skills/rebase-current-branch",
+      "invocation": "auto",
+      "categories": [],
+      "description": "Rebase the currently checked out feature branch onto the latest upstream default branch. Use when asked to update a branch with main or master, rebase the current branch onto the default branch, or sync a feature branch before review. Detects whether the repository uses main or master and guides safe conflict handling.",
+      "description_ja": "",
+      "license": "MIT"
     },
     {
       "name": "recallai-automation",
@@ -14606,6 +14955,15 @@
       "description_ja": ""
     },
     {
+      "name": "sap-cloud-integration",
+      "source": "github-awesome-copilot",
+      "path": "skills/sap-cloud-integration",
+      "invocation": "auto",
+      "categories": [],
+      "description": "SAP Cloud Integration (CPI, part of SAP Integration Suite) runtime-specific guidance for building and troubleshooting iFlows. Use when writing or reviewing CPI Groovy scripts, choosing headers vs. exchange properties, designing exception subprocesses, JMS retry, idempotency or data store patterns, or diagnosing adapter errors (SFTP, HTTP/OAuth, SOAP, IDoc, OData, AS2, Cloud Connector) from Message Processing Log (MPL) text. Not for SAP PI/PO, ABAP development, or generic Java/Groovy outside CPI.",
+      "description_ja": ""
+    },
+    {
       "name": "sap-successfactors-automation",
       "source": "composio-awesome",
       "path": "composio-skills/sap-successfactors-automation",
@@ -14641,6 +14999,15 @@
       "description": "The scientific method as a universal problem-solving algorithm — goal-first, plural falsifiable hypotheses, designed experiments, and honest measurement, scaling from TDD to feature validation to MVP launch. USE WHEN think about, figure out, experiment, iterate, optimize, hypothesis, science, full cycle, quick diagnosis, structured investigation, how do we test, analyze results. NOT FOR multi-angle lens passes (use IterativeDepth).",
       "description_ja": "",
       "version": "1.1.18"
+    },
+    {
+      "name": "scout-issue",
+      "source": "github-awesome-copilot",
+      "path": "skills/scout-issue",
+      "invocation": "auto",
+      "categories": [],
+      "description": "Use when a developer wants to find the best GitHub issues to contribute to in a repository. Invoke with /scout-issue or ask to find good first issues, beginner-friendly issues, or open source work. Asks about experience level, technical skills, time, and contribution type, then searches GitHub issues, scores them, and presents ranked recommendations with match analysis.",
+      "description_ja": ""
     },
     {
       "name": "scoutqa-test",
@@ -15300,6 +15667,15 @@
       "description_ja": ""
     },
     {
+      "name": "skill-distribution-audit",
+      "source": "github-awesome-copilot",
+      "path": "skills/skill-distribution-audit",
+      "invocation": "auto",
+      "categories": [],
+      "description": "Audit a skill collection before release or investigate installer omissions, archived/template leakage, duplicate identities, and manifest drift. Reconcile the intended public source set, distribution manifest, and actual discovery output for a specified consumer version. Includes a deterministic set-comparison helper.",
+      "description_ja": ""
+    },
+    {
       "name": "skill-installer",
       "source": "openai-skills",
       "path": "skills/.system/skill-installer",
@@ -15529,12 +15905,39 @@
       "description_ja": ""
     },
     {
+      "name": "spring-boot-4-migration",
+      "source": "github-awesome-copilot",
+      "path": "skills/spring-boot-4-migration",
+      "invocation": "auto",
+      "categories": [],
+      "description": "Migrate a Spring Boot 3.x application to Spring Boot 4.0 (Spring Framework 7, Jackson 3, modular starters, JSpecify). Use only for an explicit Boot 3.x to 4 migration, or to fix build or test failures caused by it, or to review one. Not for 3.x patch bumps or 4.0 to 4.1 upgrades; follow the target Boot version release notes and upgrade guide for those. Covers Maven and Gradle (Kotlin DSL, version catalogs).",
+      "description_ja": ""
+    },
+    {
       "name": "spring-boot-testing",
       "source": "github-awesome-copilot",
       "path": "skills/spring-boot-testing",
       "invocation": "auto",
       "categories": [],
-      "description": "Expert Spring Boot 4 testing specialist that selects the best Spring Boot testing techniques for your situation with Junit 6 and AssertJ.",
+      "description": "Expert Spring Boot testing specialist that selects the best testing techniques for your situation: test slices, Testcontainers with @ServiceConnection, Failsafe integration tests, MockitoBean, JUnit and AssertJ. Written for Spring Boot 4 with notes for Boot 3.",
+      "description_ja": ""
+    },
+    {
+      "name": "spring-observability",
+      "source": "github-awesome-copilot",
+      "path": "skills/spring-observability",
+      "invocation": "auto",
+      "categories": [],
+      "description": "Add and review observability in Spring Boot 3/4 apps: Actuator exposure and health probes, Micrometer metrics, Observation API, OpenTelemetry tracing and OTLP/Prometheus export, structured logging with correlation ids, and safe use of heapdump/threaddump. Use when instrumenting, monitoring or troubleshooting a Spring Boot service.",
+      "description_ja": ""
+    },
+    {
+      "name": "spring-security",
+      "source": "github-awesome-copilot",
+      "path": "skills/spring-security",
+      "invocation": "auto",
+      "categories": [],
+      "description": "Configure, test and review Spring Security 6/7 in Spring Boot 3/4 apps: SecurityFilterChain lambda DSL, method security, OAuth2 resource server with JWT, OIDC login, CSRF/CORS, password encoding, headers, actuator protection, and MockMvc security tests. Use when adding or auditing authentication and authorization.",
       "description_ja": ""
     },
     {
@@ -15544,6 +15947,15 @@
       "invocation": "auto",
       "categories": [],
       "description": "Universal SQL code review assistant that performs comprehensive security, maintainability, and code quality analysis across all SQL databases (MySQL, PostgreSQL, SQL Server, Oracle). Focuses on SQL injection prevention, access control, code standards, and anti-pattern detection. Complements SQL optimization prompt for complete development coverage.",
+      "description_ja": ""
+    },
+    {
+      "name": "sql-object-impact-analysis",
+      "source": "github-awesome-copilot",
+      "path": "skills/sql-object-impact-analysis",
+      "invocation": "auto",
+      "categories": [],
+      "description": "Before modifying a table, column, stored procedure, view, or trigger in a legacy codebase, trace every place that references it — across other SQL objects (procs, views, triggers) AND application code (C#, Angular/TypeScript, JS, or any language in the repo) — and produce a structured blast-radius report so you know what breaks before you change it. Use when the user asks 'what uses this column/table/procedure', 'is it safe to change X', 'what depends on this', 'impact of renaming/dropping X', or before any schema/proc modification in an unfamiliar or legacy codebase. Not for privacy/PII exposure analysis (see data-breach-blast-radius) or query performance tuning (see sql-optimization).",
       "description_ja": ""
     },
     {
@@ -15745,6 +16157,15 @@
       "description": "Discover WHICH new skills you should create, from your own work history plus your satisfaction/frustration signals. Read-only and proposal-only: it surfaces recurring pain that no existing skill, loop, or workflow covers, then hands you a ranked shortlist to build with CreateSkill. It never creates or edits a skill itself. Frustration is a first-class signal (a topic can look 'covered' while you keep hitting the same wall inside it), so it reads low ratings and recurrence markers, not just session topics. USE WHEN should I create a skill, what skills do I need, suggest skills, skill gap, based on my recent work, am I missing a skill, what should I build. NOT FOR creating/validating/testing/optimizing an individual skill (use CreateSkill) — this only decides WHAT to build, not how.",
       "description_ja": "",
       "version": "1.0.0"
+    },
+    {
+      "name": "supabase-rls-policies",
+      "source": "github-awesome-copilot",
+      "path": "skills/supabase-rls-policies",
+      "invocation": "auto",
+      "categories": [],
+      "description": "Write, review, and test Supabase Row Level Security (RLS) policies so that one user cannot read or change another user''s rows. Use when creating or changing tables, policies, views, or security definer functions in a Supabase project, when reviewing a migration that touches RLS, or when asked to prove user isolation with pgTAP tests that sign in as two users.",
+      "description_ja": ""
     },
     {
       "name": "supadata-automation",
@@ -16050,6 +16471,16 @@
       "categories": [],
       "description": "Use when implementing any feature or bugfix, before writing implementation code",
       "description_ja": "Test-driven development (TDD)"
+    },
+    {
+      "name": "test-gap-audit",
+      "source": "github-awesome-copilot",
+      "path": "skills/test-gap-audit",
+      "invocation": "auto",
+      "categories": [],
+      "description": "Run a read-only audit for missing, weak, stale, or mis-scoped test coverage. If the user does not name a scope, audit the full repository and identify important code paths, routes, features, services, workflows, and contracts that lack proper tests. If the user names a feature, PR, branch, route, workflow, service, bug fix, API, security-sensitive path, or risky code change, focus only on that specific scope. Use when the user asks what tests are missing, whether coverage is enough, what regression tests to add, or how to prove a change is safe. This is not a general bug audit and not a security review; it evaluates whether behavior is covered by tests.",
+      "description_ja": "",
+      "license": "MIT"
     },
     {
       "name": "text-to-pdf-automation",
@@ -16657,6 +17088,15 @@
       "description_ja": ""
     },
     {
+      "name": "v-development",
+      "source": "github-awesome-copilot",
+      "path": "skills/v-development",
+      "invocation": "auto",
+      "categories": [],
+      "description": "Guide GitHub Copilot through V language development: installing the toolchain, project layout with v.mod, building, testing, formatting, and writing idiomatic V including Option/Result error handling. Use when the user works with V source files, v.mod projects, or asks about V syntax, tooling, and conventions.",
+      "description_ja": ""
+    },
+    {
       "name": "v0-automation",
       "source": "composio-awesome",
       "path": "composio-skills/v0-automation",
@@ -16955,9 +17395,8 @@
       "source": "github-awesome-copilot",
       "path": "skills/webmcpify",
       "invocation": "auto",
-      "argumentHint": "[inventory|integrate|verify|status|full] [scope notes]",
       "categories": [],
-      "description": "Make a web app agent-ready — propose a WebMCP tool manifest, integrate, verify in a real browser, heal; unrelated code stays untouched. Use for \"webmcpify\", \"add WebMCP\", or \"expose app actions to AI agents\".",
+      "description": "WebMCP agent skill for curated core coverage or route-by-route parity — inventory an existing web app, integrate approved tools, then inspect, verify and heal them in a real browser. Use for \"webmcpify\", \"add WebMCP\", or \"expose app actions to AI agents\".",
       "description_ja": "",
       "license": "MIT"
     },
