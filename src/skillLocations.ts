@@ -796,6 +796,16 @@ async function containsSkillFile(rootUri: vscode.Uri): Promise<boolean> {
   }
 }
 
+/** シンボリックリンクのフォルダは、ワークスペース外を指し得るので自動検出しない。 */
+async function isSymbolicLinkFolder(uri: vscode.Uri): Promise<boolean> {
+  try {
+    const stat = await vscode.workspace.fs.stat(uri);
+    return ((stat.type ?? 0) & vscode.FileType.SymbolicLink) !== 0;
+  } catch {
+    return false;
+  }
+}
+
 /**
  * `.github/skills` `.agents/skills` `.claude/skills` のうち、スキルが入っているものを返す。
  * `isExcluded` に該当する候補（設定済みの root など）は、フォルダを読まずに除く。
@@ -815,7 +825,11 @@ export async function detectWorkspaceSkillRootUris(
     WORKSPACE_SKILLS_DIRECTORY_PRESET_PATHS.claude,
   ]) {
     const candidate = vscode.Uri.joinPath(workspaceUri, relativePath);
-    if (!isExcluded(candidate) && (await containsSkillFile(candidate))) {
+    if (
+      !isExcluded(candidate) &&
+      !(await isSymbolicLinkFolder(candidate)) &&
+      (await containsSkillFile(candidate))
+    ) {
       detected.push(candidate);
     }
   }

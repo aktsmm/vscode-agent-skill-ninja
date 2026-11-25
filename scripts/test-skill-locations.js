@@ -16,6 +16,7 @@ const vscodeStub = {
     Unknown: 0,
     File: 1,
     Directory: 2,
+    SymbolicLink: 64,
   },
   __configBySection: {},
   Uri: {
@@ -55,7 +56,15 @@ const vscodeStub = {
     },
     fs: {
       stat(target) {
-        return fs.statSync(target.fsPath);
+        const stat = fs.statSync(target.fsPath);
+        const link = fs.lstatSync(target.fsPath).isSymbolicLink();
+        // 実際の VS Code と同じく、リンクは種別に SymbolicLink を重ねて返す
+        stat.type =
+          (stat.isDirectory()
+            ? vscodeStub.FileType.Directory
+            : vscodeStub.FileType.File) |
+          (link ? vscodeStub.FileType.SymbolicLink : 0);
+        return stat;
       },
       readDirectory(target) {
         return fs
@@ -795,6 +804,31 @@ function makeConfigStub(values) {
         (await summarize()).map((root) => root.displayPath),
         [".github/skills", ".agents/skills"],
       );
+
+      // ワークスペース外を指し得るシンボリックリンクのフォルダは検出しない
+      const outside = fs.mkdtempSync(
+        path.join(os.tmpdir(), "skill-ninja-autodetect-outside-"),
+      );
+      try {
+        fs.mkdirSync(path.join(outside, "linked-skill"));
+        fs.writeFileSync(path.join(outside, "linked-skill", "SKILL.md"), "x");
+        fs.mkdirSync(path.join(workspacePath, ".claude"));
+        fs.symlinkSync(
+          outside,
+          path.join(workspacePath, ".claude", "skills"),
+          "junction",
+        );
+        assert.deepStrictEqual(
+          (await summarize()).map((root) => root.displayPath),
+          [".github/skills", ".agents/skills"],
+        );
+      } finally {
+        fs.rmSync(path.join(workspacePath, ".claude"), {
+          recursive: true,
+          force: true,
+        });
+        fs.rmSync(outside, { recursive: true, force: true });
+      }
     } finally {
       vscodeStub.__configBySection.skillNinja = {};
       fs.rmSync(workspacePath, { recursive: true, force: true });

@@ -235,7 +235,7 @@ Preset index includes skills from official, curated, and community sources out o
 2. **Installed Skills** - Workspace managed skills grouped by skill root
 
 - **Workspace Skills**: managed under `skillNinja.skillsDirectory` (default: `.github/skills`) plus any `skillNinja.additionalSkillRoots`. Each row is labelled with its folder path (for example `.agents/skills`), followed by the skill count
-- Standard folders (`.github/skills`, `.agents/skills`, `.claude/skills`) that contain a `SKILL.md` are listed automatically even when not configured, and appear in the install-target picker. They are not written to the generated skill list and their `.gitignore` is not managed; add a folder to `skillNinja.additionalSkillRoots` to manage it, or turn detection off with `skillNinja.autoDetectWorkspaceSkillRoots`
+- Standard folders (`.github/skills`, `.agents/skills`, `.claude/skills`) that contain a `SKILL.md` are listed automatically even when not configured, and appear in the install-target picker. They are not written to the generated skill list and their `.gitignore` is not managed; symbolic-link folders are not detected; add a folder to `skillNinja.additionalSkillRoots` to manage it, or turn detection off with `skillNinja.autoDetectWorkspaceSkillRoots`
 - Newly installed skills (temporary badge)
 - Toolbar: Skill Output / Regenerate Skill Output / Create / Refresh View / Settings
 - Each writable root row also exposes inline **Regenerate Skill Output** on the right edge, and roots with at least one remote-backed skill also show **Update Changed Skills in This Root**
