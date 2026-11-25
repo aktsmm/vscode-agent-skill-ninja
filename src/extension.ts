@@ -5845,6 +5845,13 @@ export function activate(
         return;
       }
 
+      if (localSkill.root?.isAutoDetected) {
+        vscode.window.showInformationMessage(
+          messages.autoDetectedRootNotManaged(),
+        );
+        return;
+      }
+
       if (localSkill.isRegistered) {
         vscode.window.showInformationMessage(
           messages.localSkillAlreadyRegistered(localSkill.name),
@@ -5891,6 +5898,13 @@ export function activate(
       if (localSkill.embeddedParentPath) {
         vscode.window.showInformationMessage(
           messages.embeddedSkillNotRegistrable(localSkill.name),
+        );
+        return;
+      }
+
+      if (localSkill.root?.isAutoDetected) {
+        vscode.window.showInformationMessage(
+          messages.autoDetectedRootNotManaged(),
         );
         return;
       }
@@ -6018,6 +6032,12 @@ Add examples here
             isJapanese()
               ? "書き込み可能なスキルルートを特定できません。ルートを選び直してください。"
               : "Could not resolve a writable skill root. Select the root again.",
+          );
+          return;
+        }
+        if (targetRoot?.isAutoDetected) {
+          vscode.window.showInformationMessage(
+            messages.autoDetectedRootNotManaged(),
           );
           return;
         }

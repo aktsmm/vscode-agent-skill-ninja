@@ -20,7 +20,7 @@ const transpiled = ts.transpileModule(fs.readFileSync(sourcePath, "utf8"), {
   },
 });
 
-async function scanFolder(tmp) {
+async function scanFolder(tmp, rootOverrides = {}) {
   const uri = (fsPath) => ({ fsPath });
   const root = {
     rootPath: tmp,
@@ -29,6 +29,7 @@ async function scanFolder(tmp) {
     scope: "workspace",
     isManaged: true,
     isReadOnly: false,
+    ...rootOverrides,
   };
   const exports = {};
   const sandbox = {
@@ -144,6 +145,16 @@ async function scanFolder(tmp) {
       assert.match(skills[name].registrationReason, /Embedded in the parent/);
     }
     console.log("PASS scan marks embedded skills and keeps others unchanged");
+
+    // 自動検出した root は instruction へ出力しないので、「未登録」にしない
+    const detected = await scanFolder(tmp, { isAutoDetected: true });
+    for (const name of ["pack", "plain", "plain-extra"]) {
+      assert.strictEqual(detected[name].registrationState, "registered", name);
+      assert.strictEqual(detected[name].isRegistered, true, name);
+      assert.strictEqual(detected[name].registrationSource, "none", name);
+      assert.match(detected[name].registrationReason, /Auto-detected/);
+    }
+    console.log("PASS scan treats auto-detected roots as not needing registration");
   } finally {
     fs.rmSync(tmp, { recursive: true, force: true });
   }

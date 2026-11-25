@@ -798,10 +798,11 @@ async function containsSkillFile(rootUri: vscode.Uri): Promise<boolean> {
 
 /**
  * `.github/skills` `.agents/skills` `.claude/skills` のうち、スキルが入っているものを返す。
- * 設定済みの root と重なるものの除外は呼び出し側で行う。
+ * `isExcluded` に該当する候補（設定済みの root など）は、フォルダを読まずに除く。
  */
 export async function detectWorkspaceSkillRootUris(
   workspaceUri: vscode.Uri,
+  isExcluded: (candidate: vscode.Uri) => boolean = () => false,
 ): Promise<vscode.Uri[]> {
   if (workspaceUri.scheme !== "file") {
     return [];
@@ -814,7 +815,7 @@ export async function detectWorkspaceSkillRootUris(
     WORKSPACE_SKILLS_DIRECTORY_PRESET_PATHS.claude,
   ]) {
     const candidate = vscode.Uri.joinPath(workspaceUri, relativePath);
-    if (await containsSkillFile(candidate)) {
+    if (!isExcluded(candidate) && (await containsSkillFile(candidate))) {
       detected.push(candidate);
     }
   }
@@ -974,6 +975,7 @@ export async function getManagedSkillRoots(
     ) {
       for (const detectedUri of await detectWorkspaceSkillRootUris(
         workspaceUri,
+        (candidate) => seen.has(normalizeFileSystemPath(candidate.fsPath)),
       )) {
         addWorkspaceRoot(detectedUri, undefined);
       }

@@ -461,7 +461,11 @@ function getWorkspaceRootLabel(root: SkillRoot): string {
     const folderKey = normalizeFileSystemPath(folder.uri.fsPath);
     return rootKey === folderKey || rootKey.startsWith(`${folderKey}/`);
   });
-  return owner ? `${owner.name}/${displayPath}` : displayPath;
+  return owner
+    ? displayPath === "."
+      ? owner.name
+      : `${owner.name}/${displayPath}`
+    : displayPath;
 }
 
 export function getSkillRootGroupLabel(root: SkillRoot): string {

@@ -73,7 +73,7 @@ class FsBackedFs {
   }
 }
 
-function loadModule(fsImpl = new FsBackedFs(), textDocuments = []) {
+function loadModule(fsImpl = new FsBackedFs(), textDocuments = [], managedRoots = []) {
   const moduleExports = {};
   const vscodeStub = {
     FileType,
@@ -118,7 +118,7 @@ function loadModule(fsImpl = new FsBackedFs(), textDocuments = []) {
       }
       if (request === "./skillLocations") {
         return {
-          getManagedSkillRoots: async () => [],
+          getManagedSkillRoots: async () => managedRoots,
           resolveWorkspaceSkillsRootUri: (workspaceUri) => workspaceUri,
         };
       }
@@ -285,6 +285,45 @@ async function main() {
       assert.strictEqual(meta.source, "local");
       assert.strictEqual(meta.name, "expense-report");
       console.log("PASS refreshSkillMetadata creates local source metadata");
+    } finally {
+      fs.rmSync(tmp, { recursive: true, force: true });
+    }
+  }
+
+  {
+    const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "skill-refresh-managed-"));
+    try {
+      const configured = path.join(tmp, "configured");
+      const detected = path.join(tmp, "detected");
+      writeSkill(configured, "managed-demo", "Managed skill");
+      writeSkill(detected, "hand-written", "Committed by hand");
+      const rootOf = (rootPath, extra = {}) => ({
+        scope: "workspace",
+        label: "Workspace Skills",
+        rootUri: makeUri(rootPath),
+        rootPath,
+        displayPath: rootPath,
+        isManaged: true,
+        isReadOnly: false,
+        ...extra,
+      });
+      const withRoots = loadModule(new FsBackedFs(), [], [
+        rootOf(configured),
+        rootOf(detected, { isAutoDetected: true }),
+      ]);
+
+      const updatedCount = await withRoots.refreshManagedSkillMetadata(
+        makeUri(tmp),
+      );
+      assert.strictEqual(updatedCount, 1);
+      assert.ok(
+        fs.existsSync(path.join(configured, "managed-demo", ".skill-meta.json")),
+      );
+      // 設定していないフォルダのスキルへは、メタデータを書き込まない
+      assert.ok(
+        !fs.existsSync(path.join(detected, "hand-written", ".skill-meta.json")),
+      );
+      console.log("PASS metadata refresh leaves auto-detected roots untouched");
     } finally {
       fs.rmSync(tmp, { recursive: true, force: true });
     }

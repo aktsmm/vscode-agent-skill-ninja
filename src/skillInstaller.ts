@@ -2807,6 +2807,10 @@ export async function refreshManagedSkillMetadata(
   let updatedCount = 0;
 
   for (const root of roots) {
+    // 自動検出しただけの root には、メタデータを作らない（.gitignore も管理しない）
+    if (root.isAutoDetected) {
+      continue;
+    }
     updatedCount += await refreshSkillMetadata(
       workspaceUri,
       root.rootUri,

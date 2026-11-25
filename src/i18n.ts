@@ -413,6 +413,8 @@ const jaMessages = {
     "スキルの内容が変わったか未保存の編集があるため保留。変更を確認してからやり直してください",
   updateRecoveryRequired: "復旧の確認が必要なため保留しました",
   skillRootAutoDetected: "自動検出",
+  autoDetectedRootNotManaged:
+    "自動検出したフォルダは、生成されるスキル一覧への出力と登録の対象外です。管理するには skillNinja.additionalSkillRoots にフォルダを追加してください",
   recoveryStartup:
     "中断した可能性のあるスキル更新が {0} 件あります。内容を確認するまで対象の再更新は保留します。",
   recoveryStoreUnavailable:
@@ -851,6 +853,8 @@ const enMessages: MessageDictionary = {
     "skipped because the installed skill changed or has unsaved edits; review the changes before trying again",
   updateRecoveryRequired: "deferred because recovery needs review",
   skillRootAutoDetected: "Auto-detected",
+  autoDetectedRootNotManaged:
+    "Auto-detected folders are not written to the generated skill list and have no registration. Add the folder to skillNinja.additionalSkillRoots to manage it",
   recoveryStartup:
     "{0} skill update(s) may have been interrupted. Further updates to those skills are deferred until reviewed.",
   recoveryStoreUnavailable:
@@ -1412,6 +1416,7 @@ export const messages = {
   updateLocalConflict: () => localize("updateLocalConflict"),
   updateRecoveryRequired: () => localize("updateRecoveryRequired"),
   skillRootAutoDetected: () => localize("skillRootAutoDetected"),
+  autoDetectedRootNotManaged: () => localize("autoDetectedRootNotManaged"),
   recoveryStartup: (count: number) => localize("recoveryStartup", count),
   recoveryStoreUnavailable: () => localize("recoveryStoreUnavailable"),
   recoveryStoreInsideRoot: () => localize("recoveryStoreInsideRoot"),
