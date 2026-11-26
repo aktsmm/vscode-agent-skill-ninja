@@ -262,6 +262,26 @@ async function main() {
     }
   });
 
+  await test("a transient lock while retiring the record is retried", async (env) => {
+    const record = await env.begin();
+    const originalRename = fs.promises.rename;
+    let failures = 0;
+    fs.promises.rename = async (from, to) => {
+      if (String(to).includes(`${path.sep}.finished-`) && failures < 2) {
+        failures += 1;
+        throw Object.assign(new Error("locked"), { code: "EPERM" });
+      }
+      return originalRename.call(fs.promises, from, to);
+    };
+    try {
+      await recovery.finishSkillUpdateRecovery(env.context, record);
+      assert.equal(failures, 2);
+      assert.deepEqual(await recovery.listSkillUpdateRecoveries(env.context), []);
+    } finally {
+      fs.promises.rename = originalRename;
+    }
+  });
+
   await test("review refuses active or missing targets and clears only an explicitly confirmed record", async (env) => {
     const transaction = env.transaction();
     fs.mkdirSync(transaction);

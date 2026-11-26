@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- **Update Recovery Record Cleanup Retries Transient Locks** - After a successful skill update, retiring the recovery record is retried when Windows briefly locks the folder (`EPERM` / `EBUSY` / `EACCES`), so a completed update no longer leaves a stale record that defers later updates with "recovery needs review" (#29) / スキル更新の成功後、Windows が一時的にフォルダをロックしても復旧記録の後始末を再試行するようにし、完了済みの更新が「復旧の確認が必要」で後続の更新を保留する古い記録を残さないようにしました（#29）。
+
 ## [0.9.67] - 2026-11-26
 
 ### Added

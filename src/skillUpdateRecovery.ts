@@ -361,10 +361,21 @@ export async function finishSkillUpdateRecovery(
     throw new SkillUpdateRecoveryStoreError();
   }
   const retired = path.join(directory, `.finished-${record.id}`);
-  try {
-    await fs.rename(path.join(directory, key), retired);
-  } catch {
-    throw new SkillUpdateRecoveryStoreError();
+  // Windows ではウイルス対策やインデクサーが一時的にフォルダを掴み、rename が失敗することがある
+  for (let attempt = 0; ; attempt++) {
+    try {
+      await fs.rename(path.join(directory, key), retired);
+      break;
+    } catch (error) {
+      const code = (error as NodeJS.ErrnoException).code;
+      if (
+        attempt >= 4 ||
+        (code !== "EPERM" && code !== "EBUSY" && code !== "EACCES")
+      ) {
+        throw new SkillUpdateRecoveryStoreError();
+      }
+      await new Promise((resolve) => setTimeout(resolve, 100 * 2 ** attempt));
+    }
   }
   activeRecords.delete(record.id);
   try {
