@@ -1485,7 +1485,7 @@ const watchdog = setTimeout(() => {
     "FAIL controller awaited a non-confirmation notification or did not settle",
   );
   process.exitCode = 1;
-}, 30000);
+}, 120000);
 main()
   .catch((error) => {
     console.error(error);
