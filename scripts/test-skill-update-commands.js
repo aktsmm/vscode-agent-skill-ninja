@@ -775,9 +775,25 @@ async function main() {
   const unavailableRecovery = await scenario({
     entries: [entry("demo")],
     recoveryStoreFailure: true,
+    report: true,
   });
   assert.strictEqual(unavailableRecovery.summary.checkFailed, 1);
   assert.strictEqual(unavailableRecovery.summary.unchanged, 0);
+  await new Promise((resolve) => setImmediate(resolve));
+  assert.strictEqual(
+    unavailableRecovery.executed[0][1],
+    "Skill update failures\ncheck:recovery-store=1",
+  );
+  const reportedRecovery = await scenario({
+    entries: [entry("recovering")],
+    recoveryTarget: path.join(root.rootPath, "recovering"),
+    report: true,
+  });
+  await new Promise((resolve) => setImmediate(resolve));
+  assert.strictEqual(
+    reportedRecovery.executed[0][1],
+    "Skill update failures\ncheck:recovery-required=1",
+  );
   const cancelledRecoveryCheck = await scenario({
     entries: [entry("demo")],
     cancelRecoveryCheck: true,

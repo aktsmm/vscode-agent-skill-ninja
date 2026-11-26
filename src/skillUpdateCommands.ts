@@ -233,9 +233,14 @@ export function registerSkillUpdateCommands(
     ) => {
       const kinds = reportedKinds?.length
         ? reportedKinds
-        : error instanceof SkillInstallIncompleteError && error.failures.length
-          ? error.failures.map((failure) => failure.kind)
-          : [classifySkillInstallFailure(error)];
+        : error instanceof SkillUpdateRecoveryRequiredError
+          ? ["recovery-required"]
+          : error instanceof SkillUpdateRecoveryStoreError
+            ? ["recovery-store"]
+            : error instanceof SkillInstallIncompleteError &&
+                error.failures.length
+              ? error.failures.map((failure) => failure.kind)
+              : [classifySkillInstallFailure(error)];
       const safeKinds: string[] = [];
       for (const candidate of new Set(kinds)) {
         const kind = [
@@ -249,6 +254,8 @@ export function registerSkillUpdateCommands(
           "filesystem",
           "policy-limit",
           "cancelled",
+          "recovery-required",
+          "recovery-store",
           "other",
         ].includes(candidate)
           ? candidate
